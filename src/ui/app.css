@@ -367,3 +367,17 @@ button:disabled { opacity: .55; cursor: not-allowed; }
     flex-basis:64px;width:64px;height:64px;min-width:64px;min-height:64px;
   }
 }
+
+/* Fundos temáticos das ilhas, apenas no painel correspondente. */
+.island-panel[data-island="shipyard"] .island-panel-card {
+  background-image: linear-gradient(rgba(5,20,36,.77),rgba(5,20,36,.89)), url('../../assets/ui/backgrounds/background_estaleiro_mobile.webp');
+  background-position:center;
+  background-size:cover;
+  background-repeat:no-repeat;
+}
+.island-panel[data-island="missions"] .island-panel-card {
+  background-image: linear-gradient(rgba(5,20,36,.77),rgba(5,20,36,.89)), url('../../assets/ui/backgrounds/background_missoes_mobile.webp');
+  background-position:center;
+  background-size:cover;
+  background-repeat:no-repeat;
+}
