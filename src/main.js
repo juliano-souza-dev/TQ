@@ -14,6 +14,7 @@ let currentUser = null;
 let loop = null;
 let oceanRenderer = null;
 let shipCanvas = null;
+let clickNavigation = null;
 let worldGeneration = 0;
 const GUEST_UID = 'local-guest';
 const LOCAL_SESSION_KEY = 'tq:local-session:v1';
@@ -25,6 +26,8 @@ function stopWorld() {
   loop = null;
   if (oceanRenderer) oceanRenderer.dispose();
   oceanRenderer = null;
+  if (clickNavigation) clickNavigation.dispose();
+  clickNavigation = null;
   if (shipCanvas) shipCanvas.remove();
   shipCanvas = null;
 }
@@ -46,12 +49,14 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { advanceNavigation }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
-    import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'), import('./world/NavigationSystem.js'),
+    import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
+    import('./world/NavigationSystem.js'), import('./world/ClickNavigationInput.js'),
   ]);
   if (generation !== worldGeneration) return;
   const world = createWorldState();
+  clickNavigation = createClickNavigation(canvas, world);
   const joystick = createAnalogJoystick();
   shipCanvas = document.createElement('canvas');
   shipCanvas.className = 'ship-layer';
@@ -84,9 +89,17 @@ async function startWorld() {
       oceanTimeMs += stepMs;
       const input = joystick.getVector();
       if (Math.hypot(input.x, input.y) > 0.12) {
+        clickNavigation.cancel();
         heading = (Math.atan2(input.x, -input.y) * 180 / Math.PI + 360) % 360;
+        advanceNavigation(world, input, stepMs);
+      } else {
+        const destination = clickNavigation.getDestination();
+        if (destination) {
+          const result = advanceTowardDestination(world, destination, stepMs);
+          if (result.heading !== null) heading = result.heading;
+          if (result.arrived) clickNavigation.cancel();
+        }
       }
-      advanceNavigation(world, input, stepMs);
     },
     render: () => { renderer.render(world, oceanTimeMs); shipRenderer.render(heading); },
   });
