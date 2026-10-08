@@ -16,6 +16,7 @@ let oceanRenderer = null;
 let shipCanvas = null;
 let islandCanvas = null;
 let minimapElement = null;
+let islandPanelElement = null;
 let clickNavigation = null;
 let keyboardCamera = null;
 let worldGeneration = 0;
@@ -33,6 +34,8 @@ function stopWorld() {
   keyboardCamera = null;
   if (clickNavigation) clickNavigation.dispose();
   clickNavigation = null;
+  if (islandPanelElement) islandPanelElement.remove();
+  islandPanelElement = null;
   if (minimapElement) minimapElement.remove();
   minimapElement = null;
   if (islandCanvas) islandCanvas.remove();
@@ -58,13 +61,15 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact }, { getShipSpeed }, { STARTER_SHIP }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
     import('./rendering/IslandRenderer.js'),
     import('./world/NavigationSystem.js'), import('./world/ClickNavigationInput.js'),
     import('./ui/KeyboardCameraInput.js'), import('./world/CameraSystem.js'),
-    import('./ui/Minimap.js'),
+    import('./ui/Minimap.js'), import('./ui/IslandPanel.js'),
+    import('./world/IslandCollision.js'), import('./ships/ShipSpeed.js'),
+    import('./ships/ShipRegistry.js'),
   ]);
   if (generation !== worldGeneration) return;
   const world = createWorldState();
@@ -89,6 +94,28 @@ async function startWorld() {
   });
   minimapElement = minimap.element;
   root.append(minimapElement);
+  const islandPanel = createIslandPanel();
+  islandPanelElement = islandPanel.element;
+  root.append(islandPanelElement);
+  let contactId = null;
+  const shipSpeed = getShipSpeed(STARTER_SHIP);
+  function checkDockContact(fromX, fromY, inputX, inputY, stepMs) {
+    const magnitude = Math.hypot(inputX, inputY);
+    const step = shipSpeed * stepMs / 1000;
+    const contact = magnitude > 0.01 ? getIslandContact(world.region,
+      fromX + inputX / Math.max(1, magnitude) * step,
+      fromY + inputY / Math.max(1, magnitude) * step) : null;
+    if (!contact) {
+      const nearby = getIslandContact(world.region, world.camera.x, world.camera.y, 42);
+      if (!nearby) contactId = null;
+      return;
+    }
+    if (contact.kind !== 'decoration' && contactId !== contact.id) {
+      contactId = contact.id;
+      clickNavigation.cancel();
+      islandPanel.open(contact.kind);
+    }
+  }
   let renderer;
   try {
     renderer = new OceanRenderer(canvas);
@@ -118,15 +145,22 @@ async function startWorld() {
       world.cameraOffset.y += cameraInput.y * cameraSpeed * stepMs / 1000;
       world.cameraOffset.x = Math.max(-world.region.width, Math.min(world.region.width, world.cameraOffset.x));
       world.cameraOffset.y = Math.max(-world.region.height, Math.min(world.region.height, world.cameraOffset.y));
+      if (islandPanel.isOpen) { updateCamera(world, canvas.clientWidth, canvas.clientHeight); return; }
       const input = joystick.getVector();
       if (Math.hypot(input.x, input.y) > 0.12) {
         clickNavigation.cancel();
         heading = (Math.atan2(input.x, -input.y) * 180 / Math.PI + 360) % 360;
-        advanceNavigation(world, input, stepMs);
+        const fromX = world.camera.x, fromY = world.camera.y;
+        advanceNavigation(world, input, stepMs, shipSpeed);
+        checkDockContact(fromX, fromY, input.x, input.y, stepMs);
       } else {
         const destination = clickNavigation.getDestination();
         if (destination) {
-          const result = advanceTowardDestination(world, destination, stepMs);
+          const fromX = world.camera.x, fromY = world.camera.y;
+          const dx = destination.x - fromX, dy = destination.y - fromY;
+          const distance = Math.hypot(dx, dy);
+          const result = advanceTowardDestination(world, destination, stepMs, shipSpeed);
+          if (distance > 0) checkDockContact(fromX, fromY, dx / distance, dy / distance, stepMs);
           if (result.heading !== null) heading = result.heading;
           if (result.arrived) clickNavigation.cancel();
         }
