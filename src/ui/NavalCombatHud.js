@@ -18,15 +18,19 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   const repairButton = document.createElement('button');
   repairButton.type = 'button';
   repairButton.className = 'naval-repair-button';
-  repairButton.textContent = '🔧';
+  const repairIcon = document.createElement('img');
+  repairIcon.className = 'naval-repair-icon';
+  repairIcon.alt = '';
+  repairIcon.draggable = false;
+  const repairEnabledUrl = new URL('../../assets/ui/hud/consertar_navio.webp', import.meta.url).href;
+  const repairBlockedUrl = new URL('../../assets/ui/hud/consertar_navio_bloqueado.webp', import.meta.url).href;
+  repairIcon.src = repairBlockedUrl;
+  repairButton.append(repairIcon);
   repairButton.setAttribute('aria-label', 'Reparar navio resolvendo uma continha');
   repairButton.title = 'Reparar casco: 20% da vida máxima por continha';
   const hullRow = document.createElement('div');
   hullRow.className = 'combat-hull-row';
-  hullRow.append(hull, repairButton);
-  repairButton.addEventListener('click', () => {
-    if (controller.getHealth() < 100) onRepair();
-  });
+  hullRow.append(hull);
   const ammoSelect = document.createElement('select');
   ammoSelect.className = 'combat-ammo-select';
   ammoSelect.setAttribute('aria-label', 'Selecionar munição');
@@ -56,8 +60,8 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
 
   const attackControls = document.createElement('div');
   attackControls.className = 'combat-attack-controls';
-  // Botão legado à esquerda, novo controle no extremo direito do HUD.
-  attackControls.append(fireButton, fireIconButton);
+  // Attack moves left, repair takes the original rightmost attack position.
+  attackControls.append(fireButton, fireIconButton, repairButton);
   element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
   let optionFingerprint = '';
 
@@ -88,7 +92,11 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
       ? '💣 Canhões: ' + equipped + ' equipados · ' + inRange + ' no alcance'
       : '💣 Contagem de canhões indisponível. Atualize o jogo.';
     hull.textContent = '❤️ Casco: ' + status.health + '/100';
-    repairButton.disabled = status.health >= 100;
+    const repairAvailable = status.health < 100;
+    repairButton.disabled = !repairAvailable;
+    repairIcon.src = repairAvailable ? repairEnabledUrl : repairBlockedUrl;
+    repairButton.classList.toggle('is-available', repairAvailable);
+    repairButton.classList.toggle('is-blocked', !repairAvailable);
     repairButton.setAttribute('aria-disabled', String(repairButton.disabled));
     repairButton.title = status.health >= 100
       ? 'Navio com vida completa'
@@ -137,6 +145,18 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   }
   bindFireControl(fireIconButton);
   bindFireControl(fireButton);
+  // Separate pointer from the joystick: the second finger can repair while sailing.
+  let lastRepairTouchAt = -Infinity;
+  repairButton.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'touch' || repairButton.disabled) return;
+    lastRepairTouchAt = performance.now();
+    event.preventDefault();
+    if (controller.getHealth() < 100) onRepair();
+  });
+  repairButton.addEventListener('click', event => {
+    if (event?.detail !== 0 && performance.now() - lastRepairTouchAt < 650) return;
+    if (!repairButton.disabled && controller.getHealth() < 100) onRepair();
+  });
   ammoSelect.addEventListener('change', () => {
     if (!controller.setAmmo(ammoSelect.value)) {
       setFeedback('Munição indisponível.');
