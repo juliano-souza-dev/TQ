@@ -30,6 +30,9 @@ export function renderLogin(root, { onLogin, onLocal, busy = false, error = '' }
 export function renderPortal(root, user, { onPlay, onLogout, onModeChange, syncMode, busy = false, profile = {} }) {
   const screen = element('main', 'screen pirate-portal');
   const panel = element('section', 'pirate-panel');
+  const artwork = element('div', 'portal-artwork');
+  artwork.setAttribute('aria-hidden', 'true');
+  screen.append(artwork);
   panel.append(element('p', 'pirate-kicker', 'TABUADA QUEST · AVENTURA PIRATA'));
   panel.append(element('h1', 'pirate-title', 'PORTAL DO JOGADOR'));
   panel.append(element('h2', 'pirate-welcome', 'Bem-vindo a bordo!'));
@@ -57,6 +60,7 @@ export function renderPortal(root, user, { onPlay, onLogout, onModeChange, syncM
   ];
   for (const [icon, label, value] of items) {
     const stat = element('div', 'pirate-stat');
+    stat.dataset.field = ['gold', 'level', 'educationalProgress', 'currentMission', 'focusTable', 'dailyChallenge', 'nextReward'][items.indexOf(items.find(item => item[1] === label))];
     stat.append(element('span', 'pirate-stat-icon', icon));
     const content = element('div', 'pirate-stat-content');
     content.append(element('span', 'pirate-stat-label', label));
