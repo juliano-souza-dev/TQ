@@ -183,3 +183,13 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .shipyard-empty-icon { font-size: 35px; }
 .shipyard-cannon-card { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #9d7849; border-radius: 10px; margin: 8px 0; }
 @media (max-width: 380px) { .shipyard-ship-body { grid-template-columns: 1fr; } .shipyard-preview { width: min(190px, 100%); justify-self: center; } }
+
+/* First voyage tutorial: no pointer interception outside the welcome dialog. */
+.voyage-welcome[hidden], .voyage-arrow[hidden] { display: none !important; }
+.voyage-welcome { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px; background: #001527c9; }
+.voyage-welcome-card { width: min(100%, 440px); padding: 26px 22px; border: 2px solid #e4b65d; border-radius: 20px; background: #0b2945; color: #fff4db; text-align: center; box-shadow: 0 16px 50px #000a; }
+.voyage-welcome-card h2 { margin: 0 0 14px; font-size: clamp(21px, 5vw, 28px); }
+.voyage-welcome-card p { line-height: 1.55; }
+.voyage-welcome-card button { margin-top: 14px; }
+.voyage-arrow { position: fixed; top: max(80px, 14dvh); left: 50%; transform: translateX(-50%); z-index: 16; display: grid; justify-items: center; gap: 3px; pointer-events: none; color: #ffe49a; text-shadow: 0 2px 5px #001527, 0 0 10px #001527; font-weight: 900; font-size: 13px; }
+.voyage-arrow-symbol { display: block; font-size: 54px; line-height: 1; transform: rotate(var(--voyage-angle, 0deg)); transform-origin: center; filter: drop-shadow(0 0 5px #f2c459); }
