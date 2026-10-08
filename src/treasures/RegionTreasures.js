@@ -26,7 +26,10 @@ export function treasureReward(id) {
 }
 export function getVisibleTreasures(save = {}) {
   const opened = new Set(save.openedTreasures ?? []);
-  return REGION_ONE_TREASURES.filter(t => !opened.has(t.id));
+  const cycle = Math.floor(opened.size / REGION_ONE_TREASURES.length);
+  return REGION_ONE_TREASURES.map(t => ({
+    ...t, id: cycle ? t.id + '-cycle-' + cycle : t.id,
+  })).filter(t => !opened.has(t.id));
 }
 export function findTreasureNearPoint(treasures, x, y, radius = 90) {
   let closest = null, best = radius;
@@ -37,7 +40,7 @@ export function findTreasureNearPoint(treasures, x, y, radius = 90) {
   return closest;
 }
 export function claimTreasure(save = {}, id) {
-  if (!REGION_ONE_TREASURES.some(t => t.id === id)
+  if (!getVisibleTreasures(save).some(t => t.id === id)
     || (save.openedTreasures ?? []).includes(id)) return null;
   const reward = treasureReward(id);
   return {
