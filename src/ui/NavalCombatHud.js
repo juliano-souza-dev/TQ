@@ -7,13 +7,26 @@ const MESSAGES = Object.freeze({
   sunk: 'O casco está destruído. Repare o navio.',
 });
 
-export function createNavalCombatHud(controller) {
+export function createNavalCombatHud(controller, { onRepair = () => false } = {}) {
   const element = document.createElement('aside');
   element.className = 'combat-hud';
   element.setAttribute('aria-label', 'Combate naval');
 
   const hull = document.createElement('span');
   hull.className = 'combat-hull';
+  // Gameplay repair control: available anywhere at sea, not in the shipyard.
+  const repairButton = document.createElement('button');
+  repairButton.type = 'button';
+  repairButton.className = 'naval-repair-button';
+  repairButton.textContent = '🔧';
+  repairButton.setAttribute('aria-label', 'Reparar navio resolvendo uma continha');
+  repairButton.title = 'Reparar casco: 20% da vida máxima por continha';
+  const hullRow = document.createElement('div');
+  hullRow.className = 'combat-hull-row';
+  hullRow.append(hull, repairButton);
+  repairButton.addEventListener('click', () => {
+    if (controller.getHealth() < 100) onRepair();
+  });
   const ammoSelect = document.createElement('select');
   ammoSelect.className = 'combat-ammo-select';
   ammoSelect.setAttribute('aria-label', 'Selecionar munição');
@@ -26,7 +39,7 @@ export function createNavalCombatHud(controller) {
   feedback.className = 'combat-feedback';
   feedback.setAttribute('aria-live', 'polite');
 
-  element.append(hull, ammoSelect, ammoQuantity, fireButton, feedback);
+  element.append(hullRow, ammoSelect, ammoQuantity, fireButton, feedback);
   let optionFingerprint = '';
 
   function setFeedback(text) {
@@ -51,6 +64,11 @@ export function createNavalCombatHud(controller) {
     ammoSelect.disabled = !choices.some(item => item.amount > 0);
     ammoQuantity.textContent = '⚫ ' + status.ammo + ' munições';
     hull.textContent = '❤️ Casco: ' + status.health + '/100';
+    repairButton.disabled = status.health >= 100;
+    repairButton.setAttribute('aria-disabled', String(repairButton.disabled));
+    repairButton.title = status.health >= 100
+      ? 'Navio com vida completa'
+      : 'Reparar casco com continha (+20 PV por acerto)';
     fireButton.textContent = status.firing ? '⏹ Parar disparos' : '💥 Atirar';
     fireButton.disabled = !status.ready && !status.firing;
     fireButton.classList.toggle('is-firing', status.firing);
