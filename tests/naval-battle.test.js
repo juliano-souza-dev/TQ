@@ -187,6 +187,7 @@ test('Halloween event ammunition is separate from normal cannonball inventory', 
 
 test('fragata em fuga nao atira, inclusive quando recebe dano', () => {
   const t = battleHarness();
+  t.enemy.archetype = 'fugitive-frigate';
   t.enemy.aggression = 'flee';
   t.enemy.cannonSlots = 0;
   t.battle.toggleFire();
