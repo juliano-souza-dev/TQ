@@ -1,3 +1,4 @@
+import { CANNONS, EVENTS, isItemVisible, isItemOwned, getCannonAssetUrl } from '../items/EquipmentCatalog.js';
 import { STARTER_SHIP, ROSE_GOLD_SHIP, getShipSpriteUrl } from '../ships/ShipRegistry.js';
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 
@@ -8,7 +9,7 @@ const el = (tag, className, text) => {
   return node;
 };
 
-export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, cannons = [] } = {}) {
+export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, cannons = CANNONS, events = EVENTS, ownedCannonIds = [] } = {}) {
   const root = el('div', 'shipyard');
   const tabs = el('div', 'shipyard-tabs');
   tabs.setAttribute('role', 'tablist');
@@ -80,17 +81,34 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     view.replaceChildren(el('h3', '', 'Canhões da frota'));
     const equipped = ships.find(ship => ship.id === equippedShipId);
     view.append(el('p', 'shipyard-note', 'Capacidade do navio equipado: ' + (equipped?.cannonSlots ?? 'não definida') + ' espaços.'));
-    if (!cannons.length) {
-      const empty = el('div', 'shipyard-empty');
-      empty.append(el('span', 'shipyard-empty-icon', '💣'), el('strong', '', 'Nenhum canhão cadastrado'), el('p', '', 'Quando você conquistar ou adquirir canhões, eles aparecerão aqui para gerenciamento.'));
-      view.append(empty);
-    } else {
-      for (const cannon of cannons) {
-        const card = el('article', 'shipyard-cannon-card');
-        card.append(el('strong', '', cannon.name), el('span', '', cannon.equipped ? 'Equipado' : 'Disponível'));
-        view.append(card);
+    const visibleCannons = cannons.filter(cannon => isItemVisible(cannon, events));
+    for (const cannon of visibleCannons) {
+      const owned = isItemOwned(cannon, ownedCannonIds);
+      const card = el('article', 'shipyard-cannon-card');
+      const image = el('img', 'shipyard-cannon-image');
+      image.src = getCannonAssetUrl(cannon);
+      image.alt = cannon.name;
+      image.loading = 'lazy';
+      image.style.cssText = 'width:76px;height:76px;object-fit:contain;flex-shrink:0';
+      const info = el('div', 'shipyard-cannon-info');
+      info.append(el('strong', '', cannon.name),
+        el('span', '', owned ? (cannon.equipped ? 'Equipado' : 'Adquirido') : 'Bloqueado'));
+      if (cannon.reloadSeconds != null) {
+        info.append(el('p', 'shipyard-note',
+          'Recarga: ' + cannon.reloadSeconds + ' s | Precisão: ' +
+          Math.round(cannon.accuracy * 100) + '% | Dano: ' +
+          cannon.damageMultiplier + '× | Calibre: ' + cannon.caliberPounder + ' pounder'));
       }
+      if (!owned && cannon.acquisition.type === 'event-reward') {
+        info.append(el('p', 'shipyard-note', 'Recompensa do evento; obtenção ainda não configurada.'));
+      } else if (!owned) {
+        info.append(el('p', 'shipyard-note', 'Forma de obtenção ainda não definida.'));
+      }
+      card.append(image, info);
+      view.append(card);
     }
+    if (!visibleCannons.length) view.append(el('p', 'shipyard-note', 'Nenhum canhão disponível neste momento.'));
+
   }
   root.append(tabs, content);
   return {
