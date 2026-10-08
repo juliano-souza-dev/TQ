@@ -36,12 +36,20 @@ export class NpcRenderer {
         if (image) {
           // Atlas idle 4x4: 16 quadros de 400px, 105ms por quadro.
           // A posição no mundo fica fixa: só muda a região da textura desenhada.
-          const columns = 4, rows = 4, frameDurationMs = 105;
-          const frame = Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
-          const frameW = image.width / columns, frameH = image.height / rows;
-          ctx.drawImage(image, (frame % columns) * frameW,
-            Math.floor(frame / columns) * frameH, frameW, frameH,
-            x - size / 2, y - size / 2, size, size);
+          // A fonte pode ser um atlas 1600x1600 ou um WebP animado 400x400.
+          // Nunca recortar 4x4 um WebP que já contém frames internos.
+          const isAtlas = image.naturalWidth >= 1600 && image.naturalHeight >= 1600;
+          if (isAtlas) {
+            const columns = 4, frameDurationMs = 105;
+            const frame = Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
+            const frameW = image.naturalWidth / columns;
+            const frameH = image.naturalHeight / columns;
+            ctx.drawImage(image, (frame % columns) * frameW,
+              Math.floor(frame / columns) * frameH, frameW, frameH,
+              x - size / 2, y - size / 2, size, size);
+          } else {
+            ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
+          }
           renderMonsterBlood(ctx, npc, x, y, size, performance.now());
           const barW = size * 0.65;
           ctx.fillStyle = '#152233'; ctx.fillRect(x-barW/2,y-size*0.58,barW,6*dpr);
