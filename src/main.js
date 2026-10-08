@@ -484,7 +484,11 @@ async function startWorld() {
         world.manualCamera.x = clamp(world.manualCamera.x + cameraInput.x * distance, world.region.width, halfW);
         world.manualCamera.y = clamp(world.manualCamera.y + cameraInput.y * distance, world.region.height, halfH);
       }
-      if (islandPanel.isOpen) { updateCamera(world, canvas.clientWidth, canvas.clientHeight); return; }
+      if (islandPanel.isOpen) {
+        renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
+        updateCamera(world, canvas.clientWidth, canvas.clientHeight);
+        return;
+      }
       const input = joystick.getVector();
       if (Math.hypot(input.x, input.y) > 0.12) {
         clickNavigation.cancel();
@@ -508,6 +512,7 @@ async function startWorld() {
           if (result.arrived) clickNavigation.cancel();
         }
       }
+      renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
     },
     render: () => {
