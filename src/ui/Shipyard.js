@@ -9,7 +9,7 @@ const el = (tag, className, text) => {
   return node;
 };
 
-export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, ownedShipIds = [STARTER_SHIP.id], cannons = CANNONS, events = EVENTS, ownedCannonIds = [] } = {}) {
+export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, ownedShipIds = [STARTER_SHIP.id], cannons = CANNONS, events = EVENTS, ownedCannonIds = [], equippedCannonIds = [] } = {}) {
   const root = el('div', 'shipyard');
   const tabs = el('div', 'shipyard-tabs');
   tabs.setAttribute('role', 'tablist');
@@ -93,7 +93,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
       image.style.cssText = 'width:76px;height:76px;object-fit:contain;flex-shrink:0';
       const info = el('div', 'shipyard-cannon-info');
       info.append(el('strong', '', cannon.name),
-        el('span', '', owned ? (cannon.equipped ? 'Equipado' : 'Adquirido') : 'Bloqueado'));
+        el('span', '', owned ? (equippedCannonIds.includes(cannon.id) ? 'Equipado' : 'Desequipado') : 'Bloqueado'));
       if (cannon.reloadSeconds != null) {
         info.append(el('p', 'shipyard-note',
           'Recarga: ' + cannon.reloadSeconds + ' s | Precisão: ' +
