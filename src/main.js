@@ -260,7 +260,7 @@ async function startWorld() {
     const npc = findNpcAtPoint(world.entities, point.x, point.y);
     if (npc) {
       selectedNpcId = npc.id;
-      navalBattle.setTarget(npc.id);
+      navalBattle.setTarget(npc.id, { manual: true });
       navalHud.setFeedback('🎯 Alvo selecionado: ' + npc.name);
       navalHud.refresh();
       return true;
@@ -533,6 +533,8 @@ async function startWorld() {
         }
       }
       navalBattle.update(stepMs,performance.now());
+      // Marcador visual acompanha a selecao automatica.
+      selectedNpcId = navalBattle.targetId;
       hudRefreshElapsed += stepMs;
       if (hudRefreshElapsed >= 160) {
         hudRefreshElapsed = 0;
