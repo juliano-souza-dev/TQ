@@ -1,106 +1,24 @@
 import { EVENTS } from '../items/EquipmentCatalog.js';
 import { getRegionMastery } from '../education/RegionMastery.js';
 
-// A region is a free-play mission board, not a scripted sequence. Objectives
-// share one event bus, but every contract persists its own counters.
+// Contracts are completed through gameplay; no separate math academy.
 export const R1_MISSIONS = Object.freeze([
-  {
-    id: 'r1-patrol', name: 'Patrulha das Velas Rubras', tier: 1,
-    description: 'Afaste os corsários que cercam os navios mercantes.',
-    objectives: [{ kind: 'defeat', archetype: 'red-sail-corsair', count: 2, label: 'Afunde 2 Corsários das Velas Rubras' }],
-    reward: { gold: 45, iron: 45 },
-  },
-  {
-    id: 'r1-twos', name: 'O Código dos Pares', tier: 1,
-    description: 'Treine a tabuada do 2 para decifrar sinais dos navegadores.',
-    objectives: [{ kind: 'study', family: 2, count: 8, label: 'Resolva 8 desafios da tabuada do 2' }],
-    reward: { gold: 50, iron: 35 },
-  },
-  {
-    id: 'r1-cartography', name: 'Cartógrafo da Enseada', tier: 1,
-    description: 'Navegue por conta própria para reconhecer as rotas da R1.',
-    objectives: [{ kind: 'travel', count: 750, label: 'Navegue 750 metros pelo oceano' }],
-    reward: { gold: 40, iron: 40 },
-  },
-  {
-    id: 'r1-treasure-hunt', name: 'As Arcas da Enseada', tier: 1,
-    description: 'Encontre arcas pelo oceano. Abra cada uma resolvendo uma multiplicação.',
-    objectives: [{ kind: 'treasure', count: 2, label: 'Resgate 2 tesouros com continhas' }],
-    reward: { gold: 55, iron: 35 },
-  },
-  {
-    id: 'r1-shipyard', name: 'Provisões para o Estaleiro', tier: 1,
-    description: 'Visite o estaleiro e prepare a próxima patrulha.',
-    objectives: [{ kind: 'visit', island: 'shipyard', count: 1, label: 'Visite o Estaleiro' }],
-    reward: { gold: 35, iron: 40 },
-  },
-  {
-    id: 'r1-fives', name: 'A Corrente dos Cinco', tier: 2, minClaimed: 2,
-    description: 'Encontre o padrão das multiplicações de cinco.',
-    objectives: [{ kind: 'study', family: 5, count: 8, label: 'Resolva 8 desafios da tabuada do 5' }],
-    reward: { gold: 65, iron: 45 },
-  },
-  {
-    id: 'r1-tens', name: 'Dezenas ao Vento', tier: 2, minClaimed: 2,
-    description: 'Aprenda a usar dezenas para calcular rapidamente no mar.',
-    objectives: [{ kind: 'study', family: 10, count: 8, label: 'Resolva 8 desafios da tabuada do 10' }],
-    reward: { gold: 65, iron: 45 },
-  },
-  {
-    id: 'r1-hunt', name: 'Caçada na Maré Vermelha', tier: 2, minClaimed: 3,
-    description: 'Os corsários retornaram. Proteja a enseada.',
-    objectives: [{ kind: 'defeat', archetype: 'red-sail-corsair', count: 3, label: 'Afunde 3 Corsários das Velas Rubras' }],
-    reward: { gold: 100, iron: 65 },
-  },
-  {
-    id: 'r1-two-ports', name: 'As Duas Rotas do Porto', tier: 2, minClaimed: 3,
-    description: 'Leve informações entre o Porto das Missões e o Estaleiro.',
-    objectives: [
-      { kind: 'visit', island: 'shipyard', count: 1, label: 'Visite o Estaleiro' },
-      { kind: 'visit', island: 'missions', count: 1, label: 'Visite o Porto das Missões' },
-    ],
-    reward: { gold: 80, iron: 45 },
-  },
-  {
-    id: 'r1-roses', name: 'Corsário das Rosas de Ouro', tier: 3, minClaimed: 5,
-    description: 'Encontre e vença o galeão especial que patrulha esta região.',
-    objectives: [{ kind: 'defeat', archetype: 'rose-gold-corsair', count: 1, label: 'Afunde 1 Corsário das Rosas de Ouro' }],
-    reward: { gold: 130, iron: 110 },
-  },
-  {
-    id: 'r1-three-winds', name: 'A Prova dos Três Ventos', tier: 3, minClaimed: 5,
-    description: 'Misture os cálculos com 2, 5 e 10 sem perder o rumo.',
-    objectives: [
-      { kind: 'study', family: 2, count: 4, label: 'Resolva 4 desafios da tabuada do 2' },
-      { kind: 'study', family: 5, count: 4, label: 'Resolva 4 desafios da tabuada do 5' },
-      { kind: 'study', family: 10, count: 4, label: 'Resolva 4 desafios da tabuada do 10' },
-    ],
-    reward: { gold: 110, iron: 85 },
-  },
-  {
-    id: 'r1-finale', name: 'O Último Bloqueio da R1', tier: 4, minClaimed: 8,
-    requires: ['r1-roses', 'r1-three-winds'],
-    description: 'Una cálculo e coragem para liberar a próxima etapa da jornada.',
-    objectives: [
-      { kind: 'defeat', archetype: 'red-sail-corsair', count: 2, label: 'Afunde 2 Corsários das Velas Rubras' },
-      { kind: 'study', family: 2, count: 2, label: 'Resolva 2 desafios da tabuada do 2' },
-      { kind: 'study', family: 5, count: 2, label: 'Resolva 2 desafios da tabuada do 5' },
-      { kind: 'study', family: 10, count: 2, label: 'Resolva 2 desafios da tabuada do 10' },
-    ],
-    reward: { gold: 250, iron: 150 },
-  },
-  {
-    id: 'r1-halloween-sparks', name: 'Brilhos do Mar Assombrado', tier: 1,
-    event: 'halloween', optional: true,
-    description: 'Colete brilhos mágicos do evento. Esta missão não bloqueia a R2.',
-    objectives: [{ kind: 'collect', count: 2, label: 'Colete 2 Brilhos do Mar' }],
-    reward: { gold: 60, iron: 40, halloween: 35 },
-  },
-].map(mission => Object.freeze({
-  ...mission, objectives: Object.freeze(mission.objectives.map(task => Object.freeze(task))),
-  reward: Object.freeze(mission.reward),
-})));
-export const REQUIRED_R1_CONTRACTS = 8;
+  { id:'r1-patrol', name:'Patrulha das Velas Rubras', description:'Proteja as águas da enseada afundando dois corsários.', objectives:[{kind:'defeat',archetype:'red-sail-corsair',count:2,label:'Afundar 2 Corsários das Velas Rubras'}],reward:{gold:100,ammo:{'volcanic-lava':150}}},
+  { id:'r1-treasure-i',name:'Caça ao Tesouro I',description:'Explore o oceano, encontre arcas e resolva as continhas para resgatá-las.',objectives:[{kind:'treasure',count:10,label:'Resgatar 10 tesouros'}],reward:{gold:50,iron:35}},
+  { id:'r1-red-executioner',name:'Carrasco das Velas Rubras',description:'Enfrente os corsários das Velas Rubras que ameaçam a enseada.',objectives:[{kind:'defeat',archetype:'red-sail-corsair',count:10,label:'Destruir 10 Corsários das Velas Rubras'}],reward:{gold:100,iron:15000}},
+  { id:'r1-treasure-hunt',name:'As Arcas da Enseada',description:'Encontre duas arcas no mar e abra-as com multiplicações.',objectives:[{kind:'treasure',count:2,label:'Resgatar 2 tesouros'}],reward:{gold:55,iron:35,cannons:{'blue-gold-pirate':3}}},
+  { id:'r1-shipyard',name:'Provisões para o Estaleiro',description:'Vá ao estaleiro e equipe os canhões disponíveis no seu navio.',objectives:[{kind:'visit',island:'shipyard',count:1,label:'Visitar o Estaleiro'},{kind:'equip',count:1,label:'Completar os canhões do navio'}],reward:{gold:35,ammo:{'terror-rose':1500}}},
+  { id:'r1-five-chain',name:'A Corrente dos Cinco',description:'Derrote quinze corsários navegando livremente pela enseada.',objectives:[{kind:'defeat',archetype:'red-sail-corsair',count:15,label:'Afundar 15 corsários'}],reward:{gold:65,iron:45}},
+  { id:'r1-treasure-ii',name:'Caça ao Tesouro II',description:'Explore novas rotas e resgate doze tesouros.',objectives:[{kind:'treasure',count:12,label:'Resgatar 12 tesouros'}],reward:{gold:100,iron:100}},
+  { id:'r1-hunt',name:'Caçada na Maré Vermelha',description:'Persiga e afunde três Corsários das Velas Rubras.',objectives:[{kind:'defeat',archetype:'red-sail-corsair',count:3,label:'Afundar 3 Corsários das Velas Rubras'}],reward:{gold:100,iron:65}},
+  { id:'r1-treasure-iii',name:'Caça ao Tesouro III',description:'Localize cinco tesouros e conquiste uma arma especial.',objectives:[{kind:'treasure',count:5,label:'Resgatar 5 tesouros'}],reward:{cannons:{'royal-lion':1}}},
+  { id:'r1-shipyard-upgrade',name:'Artilharia Renovada',description:'Volte ao estaleiro, retire o canhão mais fraco e equipe o Canhão Real Dourado.',objectives:[{kind:'equip',cannon:'royal-lion',count:1,label:'Substituir canhão fraco pelo Real Dourado'}],requires:['r1-treasure-iii'],reward:{gold:100}},
+  { id:'r1-roses',name:'Corsário das Rosas de Ouro',description:'Encontre e afunde o corsário especial para ganhar o seu navio.',objectives:[{kind:'defeat',archetype:'rose-gold-corsair',count:1,label:'Afundar o Corsário das Rosas de Ouro'}],reward:{ships:['galeao-rosas-de-ouro']}},
+  { id:'r1-three-winds',name:'A Prova dos Três Ventos',description:'Supere um grande desafio combinando combate e exploração.',objectives:[{kind:'defeat',archetype:'red-sail-corsair',count:25,label:'Afundar 25 corsários'},{kind:'treasure',count:15,label:'Resgatar 15 tesouros'}],reward:{ammo:{'halloween-purple-ball':15000}}},
+  { id:'r1-finale',name:'Despedida da Enseada dos Aprendizes',description:'Siga a indicação até a passagem para a próxima região.',objectives:[{kind:'exit',count:1,label:'Alcançar a saída para a Costa dos Corsários'}],requires:['r1-three-winds'],reward:{}},
+  { id:'r1-halloween-sparks',name:'Brilhos do Mar Assombrado',description:'Colete dois brilhos do evento opcional.',event:'halloween',optional:true,objectives:[{kind:'collect',count:2,label:'Coletar 2 brilhos'}],reward:{gold:60,iron:40,ammo:{'halloween-purple-ball':35}}},
+].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze)),reward:Object.freeze(m.reward)})));
+export const REQUIRED_R1_CONTRACTS = 13;
 
 export function campaignState(save = {}) {
   const input = save.campaign ?? {};
@@ -138,7 +56,7 @@ export function getCampaignBoard(save = {}, events = EVENTS) {
   const essentialClaimed = missions.filter(mission => !mission.optional && mission.claimed).length;
   const finaleClaimed = state.claimed.includes('r1-finale');
   const canAdvance = afterIntroduction && finaleClaimed
-    && essentialClaimed >= REQUIRED_R1_CONTRACTS && mastery.mastered;
+    && essentialClaimed >= REQUIRED_R1_CONTRACTS;
   const unlocked = canAdvance || (save.progression?.unlockedRegion ?? 1) >= 2;
   return {
     afterIntroduction, missions, mastery, essentialClaimed, canAdvance,
@@ -158,7 +76,7 @@ export function acceptCampaignMission(save, id, events = EVENTS) {
   // before accepting must count, or the optional mission can become impossible.
   const initial = mission.objectives.map(task =>
     task.kind === 'collect' ? Math.min(task.count, (save.collectedGlints ?? []).length)
-    : task.kind === 'treasure' ? Math.min(task.count, (save.openedTreasures ?? []).length)
+    
     : 0);
   return { campaign: {
     ...campaign,
@@ -172,10 +90,11 @@ function applies(task, event) {
   if (task.kind === 'defeat') return task.archetype === event.archetype;
   if (task.kind === 'study') return task.family === event.family;
   if (task.kind === 'visit') return task.island === event.island;
+  if (task.kind === 'equip') return !task.cannon || task.cannon === event.cannon;
   return true;
 }
 export function recordCampaignEvent(save = {}, event, events = EVENTS) {
-  if (!event || !['defeat', 'study', 'travel', 'visit', 'collect', 'treasure'].includes(event.type)) return null;
+  if (!event || !['defeat', 'study', 'travel', 'visit', 'collect', 'treasure', 'equip', 'exit'].includes(event.type)) return null;
   if (save.missions?.corsair !== 'complete') return null;
   const campaign = campaignState(save);
   const dedup = event.id ? event.type + ':' + String(event.id) : null;
@@ -212,6 +131,7 @@ export function claimCampaignMission(save = {}, id, events = EVENTS) {
   const reward = selected.reward;
   const profile = save.profile ?? {};
   const ammo = save.ammunition ?? {};
+  const inventory = save.equipment ?? {};
   const next = {
     campaign: {
       ...state,
@@ -222,10 +142,14 @@ export function claimCampaignMission(save = {}, id, events = EVENTS) {
     ammunition: {
       ...ammo,
       'rusted-iron': (Number.isInteger(ammo['rusted-iron']) ? ammo['rusted-iron'] : 20) + (reward.iron ?? 0),
-      ...(reward.halloween ? {
-        'halloween-purple-ball': (ammo['halloween-purple-ball'] ?? 0) + reward.halloween,
-      } : {}),
+      ...Object.fromEntries(Object.entries(reward.ammo ?? {}).map(([key,qty]) => [key,(Number(ammo[key]) || 0) + qty])),
     },
+  };
+  if (reward.cannons || reward.ships) next.equipment = {
+    ...inventory,
+    ownedCannonIds:[...new Set([...(inventory.ownedCannonIds ?? []),...Object.keys(reward.cannons ?? {})])],
+    cannonCounts:{...inventory.cannonCounts,...Object.fromEntries(Object.entries(reward.cannons ?? {}).map(([key,qty])=>[key,(inventory.cannonCounts?.[key]??0)+qty]))},
+    ownedShipIds:[...new Set([...(inventory.ownedShipIds ?? []),...(reward.ships ?? [])])],
   };
   const updated = { ...save, ...next };
   const board = getCampaignBoard(updated, events);
