@@ -4,7 +4,7 @@ export const STARTER_SHIP = Object.freeze({
   starterShip: true,
   maxHealth: 100,
   cannonSlots: 3,
-  speed: Object.freeze({ min: 80, initial: 100, max: 160 }),
+  speed: Object.freeze({ min: 96, initial: 120, max: 192 }),
   sprite: {
     path: '../../assets/ships/Sprite Sheet de Galeões Piratas em Fundo Transparente (2).png',
     frameWidth: 400, frameHeight: 400, columns: 4, rows: 4,
