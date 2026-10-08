@@ -175,7 +175,7 @@ async function startWorld() {
       const side=shot.slot%2===0?1:-1;
       const from={x:world.camera.x-dy/distance*22*side,y:world.camera.y+dx/distance*22*side};
       projectiles.push(createProjectile({from,to:{x:target.x,y:target.y},
-        damage:Math.max(1,Math.round(10)),accuracy:0.78,owner:'player',targetId:target.id}));
+        damage:shot.damage,accuracy:shot.accuracy,owner:'player',targetId:target.id}));
       addEffect(from.x,from.y,'muzzle');
     }
     combatFeedback.textContent='💥 '+result.spent+' bala(s) disparada(s) · em voo';
