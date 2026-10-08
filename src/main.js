@@ -64,7 +64,7 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact }, { getShipSpeed }, { STARTER_SHIP }, { NpcRenderer }, { createCorsairPopulation, updateCorsairPopulation }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact }, { getShipSpeed }, { STARTER_SHIP }, { NpcRenderer }, { createCorsairPopulation, updateCorsairPopulation }, { findNpcAtPoint }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
     import('./rendering/IslandRenderer.js'),
@@ -74,12 +74,18 @@ async function startWorld() {
     import('./world/IslandCollision.js'), import('./ships/ShipSpeed.js'),
     import('./ships/ShipRegistry.js'),
     import('./rendering/NpcRenderer.js'), import('./npcs/CorsairPopulation.js'),
+    import('./npcs/NpcSelection.js'),
   ]);
   if (generation !== worldGeneration) return;
   const world = createWorldState();
   createCorsairPopulation(world);
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
-  clickNavigation = createClickNavigation(canvas, world);
+  let selectedNpcId = null;
+  clickNavigation = createClickNavigation(canvas, world, point => {
+    const npc = findNpcAtPoint(world.entities, point.x, point.y);
+    selectedNpcId = npc?.id ?? null;
+    return Boolean(npc);
+  });
   keyboardCamera = createKeyboardCameraInput();
   const joystick = createAnalogJoystick();
   islandCanvas = document.createElement('canvas');
@@ -180,7 +186,8 @@ async function startWorld() {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       renderer.render(world, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
-      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom);
+      if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) selectedNpcId = null;
+      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId);
       shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
       minimap.render();
     },
