@@ -211,3 +211,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .mission-math-feedback { text-align:center; min-height:24px; font-weight:700; }
 .mission-math-feedback[data-result="wrong"] { color:#ffb0b0; }
 .mission-math-feedback[data-result="correct"] { color:#a6f3bd; }
+
+.combat-hud { position:fixed; z-index:19; bottom:max(16px,env(safe-area-inset-bottom)); right:max(12px,env(safe-area-inset-right)); display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px; border:1px solid #b99655; border-radius:12px; background:#08243ad9; color:#ffe4a5; font:700 12px system-ui,sans-serif; }
+.combat-hud button { min-width:98px; min-height:48px; border-radius:10px; }
+.combat-feedback { max-width:160px; text-align:center; font-size:11px; }
