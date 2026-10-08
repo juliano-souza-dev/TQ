@@ -35,11 +35,24 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   const fireButton = document.createElement('button');
   fireButton.className = 'primary-button';
   fireButton.type = 'button';
+  // Botão ilustrado separado, mantendo o controle textual original para testes.
+  const fireIconButton = document.createElement('button');
+  fireIconButton.type = 'button';
+  fireIconButton.className = 'combat-fire-icon-button';
+  fireIconButton.setAttribute('aria-label', 'Iniciar disparos');
+  const fireIcon = document.createElement('img');
+  fireIcon.className = 'combat-fire-icon';
+  fireIcon.alt = '';
+  fireIcon.draggable = false;
+  const startFireUrl = new URL('../../assets/ui/hud/start_fire.webp', import.meta.url).href;
+  const cancelAttackUrl = new URL('../../assets/ui/hud/cancel_attack.webp', import.meta.url).href;
+  fireIcon.src = startFireUrl;
+  fireIconButton.append(fireIcon);
   const feedback = document.createElement('span');
   feedback.className = 'combat-feedback';
   feedback.setAttribute('aria-live', 'polite');
 
-  element.append(hullRow, ammoSelect, ammoQuantity, fireButton, feedback);
+  element.append(hullRow, ammoSelect, ammoQuantity, fireIconButton, fireButton, feedback);
   let optionFingerprint = '';
 
   function setFeedback(text) {
@@ -69,6 +82,15 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
     repairButton.title = status.health >= 100
       ? 'Navio com vida completa'
       : 'Reparar casco com continha (+20 PV por acerto)';
+    // A imagem indica exatamente o estado retornado pelo controlador de batalha.
+    const iconUrl = status.firing ? cancelAttackUrl : startFireUrl;
+    if (fireIcon.src !== iconUrl) fireIcon.src = iconUrl;
+    fireIconButton.disabled = !status.ready && !status.firing;
+    fireIconButton.classList.toggle('is-firing', status.firing);
+    fireIconButton.classList.toggle('is-unavailable', !status.ready && !status.firing);
+    fireIconButton.setAttribute('aria-label', status.firing ? 'Cancelar ataque' : 'Iniciar disparos');
+    fireIconButton.title = status.firing ? 'Cancelar ataque' : status.ready
+      ? 'Iniciar disparos' : (MESSAGES[status.reason] || '');
     fireButton.textContent = status.firing ? '⏹ Parar disparos' : '💥 Atirar';
     fireButton.disabled = !status.ready && !status.firing;
     fireButton.classList.toggle('is-firing', status.firing);
@@ -80,6 +102,10 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
     }
   }
 
+  fireIconButton.addEventListener('click', () => {
+    controller.toggleFire();
+    refresh();
+  });
   fireButton.addEventListener('click', () => {
     controller.toggleFire();
     refresh();
