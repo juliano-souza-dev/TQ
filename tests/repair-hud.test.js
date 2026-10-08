@@ -18,6 +18,8 @@ class FakeNode {
   replaceChildren(...nodes) { this.children = [...nodes]; }
   addEventListener(event, handler) { this.handlers.set(event, handler); }
   setAttribute(key, value) { this.attributes.set(key, value); }
+  get src() { return this._src; }
+  set src(value) { this._src = value; }
   click() { this.handlers.get('click')?.(); }
 }
 
@@ -41,16 +43,20 @@ test('repair icon belongs to naval HUD and opens a separate interaction', () => 
     });
     const hullRow = hud.element.children[0];
     assert.equal(hullRow.className, 'combat-hull-row');
-    const repairButton = hullRow.children[1];
+    const controls = hud.element.children[4];
+    const repairButton = controls.children[2];
+    assert.equal(controls.children[1].className, 'combat-fire-icon-button');
     assert.equal(repairButton.className, 'naval-repair-button');
     assert.equal(repairButton.attributes.get('aria-label'), 'Reparar navio resolvendo uma continha');
     assert.equal(repairButton.disabled, false);
+    assert.match(repairButton.children[0].src, /consertar_navio\\.webp/);
     repairButton.click();
     assert.equal(requested, 1);
 
     life = 100;
     hud.refresh();
     assert.equal(repairButton.disabled, true);
+    assert.match(repairButton.children[0].src, /consertar_navio_bloqueado\\.webp/);
     repairButton.click();
     assert.equal(requested, 1, 'a full-health ship must not initiate another repair');
   } finally {
