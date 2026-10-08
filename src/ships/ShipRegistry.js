@@ -1,5 +1,6 @@
 import { STARTER_SHIP } from './StarterShip.js';
 export { STARTER_SHIP };
+export { ROSE_GOLD_SHIP } from './RoseGoldShip.js';
 
 export function getShipFrame(headingDegrees, definition = STARTER_SHIP) {
   const { framesByHeading, angleStepDegrees } = definition.sprite;
