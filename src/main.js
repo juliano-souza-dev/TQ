@@ -119,9 +119,7 @@ async function startWorld() {
         ...save, tutorial: { ...save.tutorial, firstMissionAccepted: true },
         missions: { ...save.missions, firstMission: 'active' },
       });
-      firstVoyageGuide?.finish();
-      firstVoyageGuide?.dispose();
-      firstVoyageGuide = null;
+      firstVoyageGuide?.guideTo('shipyard');
     },
   });
   islandPanelElement = islandPanel.element;
@@ -143,7 +141,11 @@ async function startWorld() {
       contactId = contact.id;
       clickNavigation.cancel();
       islandPanel.open(contact.kind);
-
+      if (contact.kind === 'shipyard' && localSaves.load(currentUser.uid)?.payload?.missions?.firstMission === 'active') {
+        firstVoyageGuide?.finish();
+        firstVoyageGuide?.dispose();
+        firstVoyageGuide = null;
+      }
     }
   }
   let renderer;
@@ -164,11 +166,12 @@ async function startWorld() {
   }
   const previousSave = localSaves.load(currentUser.uid);
   const firstVoyageComplete = Boolean(previousSave?.payload?.tutorial?.firstMissionAccepted);
-  if (!firstVoyageComplete) {
+  if (!firstVoyageComplete || previousSave?.payload?.missions?.firstMission === 'active') {
     const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
     if (generation !== worldGeneration) return;
     firstVoyageGuide = createFirstVoyageGuide(world);
     root.append(...firstVoyageGuide.elements);
+    if (firstVoyageComplete) firstVoyageGuide.guideTo('shipyard');
   }
   let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
   let oceanTimeMs = 0;
