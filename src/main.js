@@ -1,3 +1,4 @@
+import { getMissionFlow } from './missions/MissionFlow.js';
 import { fireCannons } from './combat/CombatSystem.js';
 import { damageCorsair, RED_SAIL_CORSAIR } from './npcs/RedSailCorsair.js';
 import { STARTER_SHIP as PLAYER_SHIP } from './ships/StarterShip.js';
@@ -194,13 +195,17 @@ async function startWorld() {
   missionHud.setAttribute('aria-live', 'polite');
   root.append(missionHud);
   const updateMissionHud = () => {
-    const mission = reconcileTutorial();
-    missionHud.hidden = !mission.firstMission && !mission.corsair;
-    missionHud.textContent = mission.corsair === 'active'
-      ? '📜 Afunde 1 Corsário das Velas Rubras · 0/1'
-      : mission.corsair === 'complete' ? '📜 Corsário das Velas Rubras · 1/1'
-      : mission.firstMission === 'active' ? '📜 Equipe um canhão · ' + (Object.values(readSave().equipment?.loadout ?? {}).some(slots => slots.some(Boolean)) ? '1/1' : '0/1')
-      : mission.firstMission === 'equipped' ? '📜 Volte ao Porto das Missões · 0/1' : '';
+    const flow = getMissionFlow(readSave(), STARTER_SHIP.id);
+    missionHud.hidden = false;
+    missionHud.textContent = flow.stage === 'combat' ? '📜 Afunde 1 Corsário das Velas Rubras · 0/1'
+      : flow.stage === 'next' ? '📜 Corsário afundado · 1/1 · Retorne ao porto'
+      : '📜 ' + flow.objective;
+    if (firstVoyageGuide && flow.destination) firstVoyageGuide.guideTo(flow.destination);
+    else if (firstVoyageGuide && !flow.destination) {
+      firstVoyageGuide.finish();
+      firstVoyageGuide.dispose();
+      firstVoyageGuide = null;
+    }
   };
   const islandPanel = createIslandPanel({
     getMissionState: () => readSave().missions ?? {},
@@ -287,17 +292,13 @@ async function startWorld() {
     return;
   }
   const previousSave = localSaves.load(currentUser.uid);
-  const currentMission = reconcileTutorial();
-  const firstVoyageComplete = Boolean(previousSave?.payload?.tutorial?.firstMissionAccepted);
-  const guideDestination = !firstVoyageComplete ? 'missions'
-    : currentMission.firstMission === 'active' ? 'shipyard'
-    : currentMission.firstMission === 'equipped' ? 'missions' : null;
-  if (guideDestination) {
+  const flow = getMissionFlow(previousSave?.payload ?? {}, STARTER_SHIP.id);
+  if (flow.destination) {
     const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
     if (generation !== worldGeneration) return;
     firstVoyageGuide = createFirstVoyageGuide(world);
     root.append(...firstVoyageGuide.elements);
-    if (firstVoyageComplete) firstVoyageGuide.guideTo(guideDestination);
+    if (flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
   }
   updateMissionHud();
   let positionSaveElapsed = 0;
