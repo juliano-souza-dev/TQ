@@ -11,6 +11,7 @@ import {
 export class NavalBattleController {
   constructor({
     renderer, readSave, writePatch, getPlayer, getEntities, shipId,
+    getMappedMuzzle = () => null,
     onFeedback = () => {}, onVictory = () => {},
     random = Math.random, clock = () => performance.now(),
   }) {
@@ -18,7 +19,7 @@ export class NavalBattleController {
       throw new TypeError('NavalBattleController requires renderer and world adapters');
     }
     Object.assign(this, {
-      renderer, readSave, writePatch, getPlayer, getEntities, shipId,
+      renderer, readSave, writePatch, getPlayer, getEntities, shipId, getMappedMuzzle,
       onFeedback, onVictory, random, clock,
     });
     this.targetId = null;
@@ -153,7 +154,9 @@ export class NavalBattleController {
     for (const [batteryIndex, { slot, cannon }] of battery.entries()) {
       if (!remaining) break;
       if (now < (this.nextBySlot.get(slot) ?? -Infinity)) continue;
-      const muzzle = cannonHardpoint(player, target, player.heading, batteryIndex, battery.length);
+      const muzzle = this.getMappedMuzzle({
+        player, target, heading: player.heading, slot, cannon,
+      }) ?? cannonHardpoint(player, target, player.heading, batteryIndex, battery.length);
       const speed = ammo.projectileSpeed;
       const intercepted = interceptPoint(muzzle, target, this.velocities.get(target.id), speed);
       const destination = aimWithAccuracy(intercepted, muzzle, cannon.accuracy, this.random);
