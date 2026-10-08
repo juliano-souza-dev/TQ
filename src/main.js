@@ -107,6 +107,7 @@ async function startWorld() {
   let selectedNpcId = null;
   let heading = 0;
   let glintElapsed = 0;
+  let hudRefreshElapsed = 0;
   const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
 
@@ -328,7 +329,11 @@ async function startWorld() {
         }
       }
       navalBattle.update(stepMs,performance.now());
-      navalHud.refresh();
+      hudRefreshElapsed += stepMs;
+      if (hudRefreshElapsed >= 160) {
+        hudRefreshElapsed = 0;
+        navalHud.refresh();
+      }
       persistPlayerPosition(stepMs);
       firstVoyageGuide?.update();
       // Manual camera moves only while WASD is held; no inertia or ship movement.
