@@ -14,11 +14,12 @@ export const R1_MISSIONS = Object.freeze([
   { id:'r1-treasure-iii',name:'Caça ao Tesouro III',description:'Localize cinco tesouros e conquiste uma arma especial.',objectives:[{kind:'treasure',count:5,label:'Resgatar 5 tesouros'}],reward:{cannons:{'royal-lion':3}}},
   { id:'r1-shipyard-upgrade',name:'Artilharia Renovada',description:'Volte ao estaleiro, retire o canhão mais fraco e equipe o Canhão Real Dourado.',objectives:[{kind:'equip',cannon:'royal-lion',count:1,label:'Substituir canhão fraco pelo Real Dourado'}],requires:['r1-treasure-iii'],reward:{gold:100}},
   { id:'r1-roses',name:'Corsário das Rosas de Ouro',description:'Encontre e afunde o corsário especial para ganhar o seu navio.',objectives:[{kind:'defeat',archetype:'rose-gold-corsair',count:1,label:'Afundar o Corsário das Rosas de Ouro'}],reward:{ships:['galeao-rosas-de-ouro']}},
+  { id:'r1-equip-roses',name:'Para o Estaleiro',description:'Vá ao Estaleiro e equipe o Galeão Rosas de Ouro conquistado na missão anterior.',objectives:[{kind:'equip-ship',ship:'galeao-rosas-de-ouro',count:1,label:'Equipar o navio Rosas de Ouro'}],requires:['r1-roses'],reward:{ammo:{'rusted-iron':1000}}},
   { id:'r1-three-winds',name:'A Prova dos Três Ventos',description:'Supere um grande desafio combinando combate e exploração.',objectives:[{kind:'defeat',archetype:'red-sail-corsair',count:25,label:'Afundar 25 corsários'},{kind:'treasure',count:15,label:'Resgatar 15 tesouros'}],reward:{ammo:{'halloween-purple-ball':15000}}},
   { id:'r1-finale',name:'Despedida da Enseada dos Aprendizes',description:'Siga a indicação até a passagem para a próxima região.',objectives:[{kind:'exit',count:1,label:'Alcançar a saída para a Costa dos Corsários'}],requires:['r1-three-winds'],reward:{}},
   { id:'r1-halloween-sparks',name:'Brilhos do Mar Assombrado',description:'Colete dois brilhos do evento opcional.',event:'halloween',optional:true,objectives:[{kind:'collect',count:2,label:'Coletar 2 brilhos'}],reward:{gold:60,iron:40,ammo:{'halloween-purple-ball':35}}},
 ].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze)),reward:Object.freeze(m.reward)})));
-export const REQUIRED_R1_CONTRACTS = 13;
+export const REQUIRED_R1_CONTRACTS = 14;
 
 export function campaignState(save = {}) {
   const input = save.campaign ?? {};
@@ -75,7 +76,8 @@ export function acceptCampaignMission(save, id, events = EVENTS) {
   // Halloween lights are unique finite collectibles; progress already collected
   // before accepting must count, or the optional mission can become impossible.
   const initial = mission.objectives.map(task =>
-    task.kind === 'collect' ? Math.min(task.count, (save.collectedGlints ?? []).length) : 0);
+    task.kind === 'collect' ? Math.min(task.count, (save.collectedGlints ?? []).length)
+    : task.kind === 'equip-ship' && save.equipment?.equippedShipId === task.ship ? 1 : 0);
   return { campaign: {
     ...campaign,
     active: [...campaign.active, id],
@@ -89,10 +91,11 @@ function applies(task, event) {
   if (task.kind === 'study') return task.family === event.family;
   if (task.kind === 'visit') return task.island === event.island;
   if (task.kind === 'equip') return !task.cannon || task.cannon === event.cannon;
+  if (task.kind === 'equip-ship') return task.ship === event.ship;
   return true;
 }
 export function recordCampaignEvent(save = {}, event, events = EVENTS) {
-  if (!event || !['defeat', 'study', 'travel', 'visit', 'collect', 'treasure', 'equip', 'exit'].includes(event.type)) return null;
+  if (!event || !['defeat', 'study', 'travel', 'visit', 'collect', 'treasure', 'equip', 'equip-ship', 'exit'].includes(event.type)) return null;
   if (save.missions?.corsair !== 'complete') return null;
   const campaign = campaignState(save);
   const dedup = event.id ? event.type + ':' + String(event.id) : null;
