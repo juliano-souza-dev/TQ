@@ -317,6 +317,10 @@ export class NavalCombatWebGLRenderer{
     if(!from||!to)return false;
     const normalizedAmmo=ammo&&typeof ammo==="object"?ammo:{};
     const fx=normalizeAmmoFx(normalizedAmmo);
+    // Refuse excess shots instead of silently discarding an in-flight cannonball.
+    // Combat logic spends ammunition only when fire() returns true.
+    const shotCap=this.reducedFx?16:48;
+    if(this.shots.length>=shotCap)return false;
     const shot={
       from:{x:Number(from.x)||0,y:Number(from.y)||0},
       to:{x:Number(to.x)||0,y:Number(to.y)||0},
@@ -342,8 +346,7 @@ export class NavalCombatWebGLRenderer{
     }
     const textureSrc=fx.projectile.texture;
     if(textureSrc)this.loadProjectileTexture(normalizedAmmo?.id,textureSrc);
-    const shotCap=this.reducedFx?8:16;
-    if(this.shots.length>shotCap)this.shots.splice(0,this.shots.length-shotCap);
+
     return true;
   }
 
