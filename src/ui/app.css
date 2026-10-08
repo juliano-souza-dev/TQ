@@ -2,34 +2,17 @@
   color-scheme: dark;
   font-family: system-ui, -apple-system, sans-serif;
   background: #081a33;
-  color: #f5f8ff;
+  color: #fff7e6;
 }
 * { box-sizing: border-box; }
-html, body { width: 100%; min-height: 100%; margin: 0; }
+html, body { margin: 0; min-height: 100%; }
 body { min-height: 100dvh; }
 button { font: inherit; cursor: pointer; }
-button:disabled { opacity: .55; cursor: wait; }
+button:disabled { opacity: .55; cursor: not-allowed; }
 #app { min-height: 100dvh; }
 #ocean { display: block; width: 100%; height: 100dvh; touch-action: none; }
-.screen {
-  display: grid;
-  min-height: 100dvh;
-  place-items: center;
-  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
-  background: radial-gradient(circle at 50% 0%, #164e91, #081a33 70%);
-}
-.portal-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: min(100%, 440px);
-  padding: 32px 24px;
-  border: 1px solid #416994;
-  border-radius: 22px;
-  background: #0b2445;
-  text-align: center;
-}
+.screen { display: grid; min-height: 100dvh; place-items: center; padding: 20px; background: radial-gradient(circle at 50% 0%, #164e91, #081a33 70%); }
+.portal-card { display: flex; flex-direction: column; align-items: center; gap: 16px; width: min(100%, 440px); padding: 32px 24px; border: 1px solid #416994; border-radius: 22px; background: #0b2445; text-align: center; }
 .portal-card h1 { margin: 0; font-size: clamp(1.7rem, 6vw, 2.4rem); }
 .eyebrow { margin: 0; color: #8dc6ff; font-size: .78rem; font-weight: 800; letter-spacing: .14em; }
 .description { margin: 0; color: #bed1e6; overflow-wrap: anywhere; }
@@ -37,78 +20,42 @@ button:disabled { opacity: .55; cursor: wait; }
 .player-name { margin: 0; font-size: 1.25rem; font-weight: 700; }
 .account-info { width: 100%; padding: 12px; border-radius: 12px; background: #102f55; }
 .account-info p { margin: 6px 0; }
-.primary-button, .secondary-button {
-  width: 100%; min-height: 50px; border-radius: 12px; padding: 12px 18px; font-weight: 700;
-}
+.primary-button, .secondary-button { width: 100%; min-height: 50px; border-radius: 12px; padding: 12px 18px; font-weight: 700; }
 .primary-button { border: 0; color: #061a35; background: #f6c85b; }
 .secondary-button { border: 1px solid #6b8db6; color: #f5f8ff; background: transparent; }
 .error-message { color: #ffb5b5; margin: 0; }
 
-/* Pirate portal: independent of the login screen, mobile first. */
-.pirate-portal {
-  position: relative;
-  background: linear-gradient(130deg, #091b30d9, #091b30aa), url('../../assets/ui/portal/portal-jogador.png') center / cover no-repeat, #081a33;
-  padding: 24px 12px;
-}
-.pirate-panel {
-  position: relative;
-  width: min(100%, 800px);
-  margin-inline: auto;
-  padding: clamp(16px, 4vw, 34px);
-  border: 5px ridge #a66a26;
-  border-radius: 16px;
-  background: linear-gradient(150deg, #3d220fee, #130f10f5 70%);
-  box-shadow: 0 12px 45px #000a, inset 0 0 0 2px #f6b64b;
-  text-align: center;
-}
-.pirate-kicker { color: #f7ca6c; font-weight: 700; letter-spacing: .12em; font-size: .75rem; }
-.pirate-title { color: #ffd47a; font: 900 clamp(1.55rem, 6vw, 3rem) Georgia, serif; text-shadow: 2px 3px 2px #000; margin: 8px 0; }
-.pirate-welcome { font: 700 clamp(1.2rem, 4vw, 1.9rem) Georgia, serif; margin: 10px 0 4px; }
-.pirate-subtitle { margin: 0 0 14px; color: #f5dfb9; }
-.pirate-identity { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 12px 0 20px; }
-.pirate-identity span { color: #f3c76f; font-size: .85rem; }
-.pirate-identity .avatar { width: 40px; height: 40px; }
-.pirate-stats { display: grid; grid-template-columns: 1fr; gap: 10px; text-align: left; }
-.pirate-stat { display: flex; align-items: center; gap: 12px; min-height: 78px; padding: 12px; border: 2px solid #9d692c; border-radius: 7px; background: linear-gradient(145deg, #0a2c3e, #07141d); }
-.pirate-stat-icon { font-size: 1.8rem; width: 42px; text-align: center; flex-shrink: 0; }
-.pirate-stat-content { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.pirate-stat-label { font: 700 1rem Georgia, serif; color: #ffe0a0; }
-.pirate-stat-value { font-size: .85rem; font-weight: 500; color: #e4eaf1; overflow-wrap: anywhere; }
-.pirate-mode { color: #f2d6a0; font-size: .83rem; line-height: 1.5; }
-.pirate-play { display: block; width: 100%; min-height: 66px; margin-top: 15px; border: 3px solid #ffdb75; border-radius: 10px; background: linear-gradient(#ffdc6a, #e89818); color: #261400; font: 900 clamp(1.5rem, 5vw, 2.4rem) Georgia, serif; box-shadow: inset 0 0 0 2px #b76a12; }
-.pirate-secondary { min-height: 44px; padding: 10px 14px; border: 1px solid #bb8b44; border-radius: 8px; color: #ffdf9a; background: #182333; }
-.pirate-secondary:disabled { opacity: .5; }
-.pirate-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 14px; }
-@media (min-width: 560px) {
-  .pirate-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pirate-stat:nth-child(3) { grid-column: span 2; }
-}
-@media (min-width: 900px) {
-  .pirate-portal { justify-items: end; padding-inline: max(3vw, 24px); }
-}
-
-/* Uploaded portal illustration is decorative; HTML owns every interactive control. */
-.pirate-portal {
-  isolation: isolate;
-  overflow: hidden;
-  background: #06182a;
-}
-.portal-artwork {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: url('../../assets/ui/portal/portal-jogador.png') center center / cover no-repeat;
-}
-.pirate-panel {
-  z-index: 1;
-  background: linear-gradient(150deg, #342013f7, #0c1720fa 70%);
-}
-@media (min-width: 1000px) {
-  .pirate-portal { place-items: center end; }
-  .pirate-panel { width: min(52vw, 800px); margin: 0 2vw 0 0; }
-}
-@media (max-width: 999px) {
-  .pirate-portal { place-items: center; }
-  .portal-artwork { opacity: .48; background-position: 24% center; }
+/* The source illustration already contains every frame, heading and icon.
+   On desktop only values and an invisible click target are overlaid. */
+.portal-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; padding: 0; background: #06172a; }
+.portal-stage { position: relative; width: min(100vw, calc((100dvh - 84px) * 1.5)); aspect-ratio: 3 / 2; flex: 0 0 auto; background: url('../../assets/ui/portal/portal-jogador.png') center / 100% 100% no-repeat; }
+.portal-field { position: absolute; display: grid; place-items: center; padding: 2px; overflow: hidden; text-align: center; color: #fff3d6; font: 700 clamp(9px, 1.15vw, 16px) Georgia, serif; }
+.portal-field-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.portal-field-value { display: block; overflow-wrap: anywhere; text-shadow: 0 1px 3px #000; }
+.portal-field[data-field="gold"] { left: 44%; top: 47%; width: 7%; height: 5%; }
+.portal-field[data-field="level"] { left: 59%; top: 47%; width: 7%; height: 5%; }
+.portal-field[data-field="educationalProgress"] { left: 72%; top: 47%; width: 13%; height: 5%; }
+.portal-field[data-field="currentMission"] { left: 45%; top: 59%; width: 15%; height: 7%; }
+.portal-field[data-field="focusTable"] { left: 70%; top: 59%; width: 15%; height: 5%; }
+.portal-field[data-field="dailyChallenge"] { left: 44%; top: 73%; width: 12%; height: 5%; }
+.portal-field[data-field="nextReward"] { left: 70%; top: 73%; width: 11%; height: 5%; }
+.portal-play { position: absolute; left: 42%; top: 81.5%; width: 40%; height: 9%; border: 0; border-radius: 10px; background: transparent; color: transparent; font-size: 0; }
+.portal-play:focus-visible { outline: 4px solid #fff; outline-offset: -4px; }
+.portal-play:not(:disabled):hover { box-shadow: inset 0 0 0 4px #fff7; }
+.portal-footer { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 14px; padding: 8px 12px 16px; font-size: 12px; }
+.portal-user, .portal-storage-note { margin: 0; }
+.portal-storage-note { color: #f1c875; }
+.portal-utility { border: 1px solid #a97c3d; border-radius: 7px; background: #17273a; color: #ffe2a1; min-height: 34px; padding: 5px 12px; }
+@media (max-width: 700px) {
+  .portal-screen { justify-content: flex-start; gap: 0; }
+  .portal-stage { width: 100%; aspect-ratio: auto; min-height: 0; background: none; padding: 165px 14px 16px; }
+  .portal-stage::before { content: ''; position: absolute; inset: 0 0 auto; height: 160px; background: url('../../assets/ui/portal/portal-jogador.png') 47% 10% / cover no-repeat; }
+  .portal-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .portal-field { position: static; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; min-height: 76px; width: auto; height: auto; padding: 10px; text-align: left; border: 1px solid #a77a39; border-radius: 8px; background: #0a2434; font: 500 13px system-ui, sans-serif; }
+  .portal-field-name { position: static; width: auto; height: auto; clip-path: none; overflow: visible; color: #ffd78b; font-weight: 700; }
+  .portal-field[data-field="educationalProgress"] { grid-column: span 2; }
+  .portal-play { position: static; width: 100%; height: 60px; margin-top: 12px; border: 2px solid #ffe39a; background: linear-gradient(#ffdb6b, #e59a22); color: #241400; font: 900 26px Georgia, serif; }
+  .portal-play::after { content: 'Jogar'; }
+  .portal-play { font-size: 0; }
+  .portal-footer { padding: 8px 14px 20px; }
 }
