@@ -5,7 +5,7 @@ function element(tag, className, text) {
   return node;
 }
 
-export function renderLogin(root, { onLogin, busy = false, error = '' }) {
+export function renderLogin(root, { onLogin, onLocal, busy = false, error = '' }) {
   const screen = element('main', 'screen');
   const card = element('section', 'portal-card');
   card.append(element('p', 'eyebrow', 'TABUADA QUEST'), element('h1', '', 'Sua aventura começa aqui'));
@@ -15,6 +15,13 @@ export function renderLogin(root, { onLogin, busy = false, error = '' }) {
   button.disabled = busy;
   button.addEventListener('click', onLogin);
   card.append(button);
+  if (onLocal) {
+    const local = element('button', 'secondary-button', 'Jogar sem sincronizar dados');
+    local.type = 'button';
+    local.disabled = busy;
+    local.addEventListener('click', onLocal);
+    card.append(local, element('p', 'description', 'Modo local: o progresso fica apenas neste navegador e pode ser perdido ao limpar os dados.'));
+  }
   if (error) card.append(element('p', 'error-message', error));
   screen.append(card);
   root.replaceChildren(screen);
@@ -27,14 +34,14 @@ export function renderPortal(root, user, { onPlay, onLogout, onModeChange, syncM
   if (user.photoURL) {
     const avatar = element('img', 'avatar');
     avatar.src = user.photoURL;
-    avatar.alt = 'Foto da conta Google';
+    avatar.alt = 'Foto do jogador';
     avatar.referrerPolicy = 'no-referrer';
     card.append(avatar);
   }
   card.append(element('p', 'player-name', user.displayName || 'Marujo'));
   if (user.email) card.append(element('p', 'description', user.email));
   const info = element('div', 'account-info');
-  info.append(element('p', '', 'Conta conectada com Google'), element('p', '', 'Região inicial: R1'));
+  info.append(element('p', '', user.isGuest ? 'Perfil local sem conta Google' : 'Conta conectada com Google'), element('p', '', 'Região inicial: R1'));
   card.append(info);
 
   const modeLabel = element('p', 'description', syncMode === 'local'
@@ -56,7 +63,7 @@ export function renderPortal(root, user, { onPlay, onLogout, onModeChange, syncM
   play.type = 'button';
   play.disabled = busy || syncMode !== 'local';
   play.addEventListener('click', onPlay);
-  const logout = element('button', 'secondary-button', 'Sair da conta');
+  const logout = element('button', 'secondary-button', user.isGuest ? 'Voltar ao início' : 'Sair da conta');
   logout.type = 'button';
   logout.addEventListener('click', onLogout);
   card.append(play, logout);
@@ -70,11 +77,15 @@ export function renderLoading(root) {
   root.replaceChildren(screen);
 }
 
-export function renderConfigurationRequired(root) {
+export function renderConfigurationRequired(root, { onLocal } = {}) {
   const screen = element('main', 'screen');
   const card = element('section', 'portal-card');
   card.append(element('h1', '', 'Autenticação não configurada'));
-  card.append(element('p', 'description', 'Configure src/config/firebase-config.js para habilitar o login Google. O oceano permanece protegido.'));
+  card.append(element('p', 'description', 'Configure src/config/firebase-config.js para habilitar o login Google. Enquanto isso, é possível jogar com dados apenas locais.'));
+  const local = element('button', 'primary-button', 'Jogar sem sincronizar dados');
+  local.type = 'button';
+  local.addEventListener('click', onLocal);
+  card.append(local, element('p', 'description', 'O progresso local não é sincronizado. Limpar os dados do navegador pode apagá-lo.'));
   screen.append(card);
   root.replaceChildren(screen);
 }
