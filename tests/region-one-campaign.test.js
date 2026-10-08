@@ -138,3 +138,17 @@ test('stage 2 questions include family 3 without resetting R1 mastery', () => {
   assert.equal(getRegionMastery(progress, 2).families.find(f => f.family === 3).attempts, 1);
   assert.equal(getRegionMastery(progress, 1).families.find(f => f.family === 3), undefined);
 });
+
+test('accepting a two-port mission immediately credits the port where the captain already is', () => {
+  let save = initial();
+  save.campaign.claimed = ['r1-patrol', 'r1-twos', 'r1-cartography'];
+  const result = resolvePedagogicalAction(
+    save, { kind: 'accept-mission', id: 'r1-two-ports' },
+    challenge(2, 1), true,
+  );
+  assert.ok(result);
+  save = apply(save, result.patch);
+  const mission = getCampaignBoard(save).missions.find(item => item.id === 'r1-two-ports');
+  assert.deepEqual(mission.progress, [0, 1],
+    'the player must not need to leave and re-enter the mission port');
+});
