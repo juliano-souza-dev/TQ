@@ -58,9 +58,10 @@ export function renderPortal(root, user, { onPlay, onLogout, onModeChange, syncM
     ['🏆', 'Desafio do dia', profile.dailyChallenge],
     ['🎁', 'Próxima recompensa', profile.nextReward],
   ];
-  for (const [icon, label, value] of items) {
+  const fieldIds = ['gold', 'level', 'educationalProgress', 'currentMission', 'focusTable', 'dailyChallenge', 'nextReward'];
+  for (const [index, [icon, label, value]] of items.entries()) {
     const stat = element('div', 'pirate-stat');
-    stat.dataset.field = ['gold', 'level', 'educationalProgress', 'currentMission', 'focusTable', 'dailyChallenge', 'nextReward'][items.indexOf(items.find(item => item[1] === label))];
+    stat.dataset.field = fieldIds[index];
     stat.append(element('span', 'pirate-stat-icon', icon));
     const content = element('div', 'pirate-stat-content');
     content.append(element('span', 'pirate-stat-label', label));
