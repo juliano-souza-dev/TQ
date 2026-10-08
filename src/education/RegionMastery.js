@@ -9,8 +9,8 @@ export const REQUIRED_QUESTIONS_PER_FAMILY = 10;
 export const REQUIRED_DISTINCT_FACTORS = 8;
 
 const whole = value => Number.isInteger(value) && value >= 0 ? value : 0;
-export const familyStats = (progress = {}, family) => {
-  const record = progress?.region1?.families?.[String(family)] ?? {};
+export const familyStats = (progress = {}, family, region = 1) => {
+  const record = progress?.['region' + region]?.families?.[String(family)] ?? {};
   const byFactor = record.byFactor ?? {};
   const attempts = Object.values(byFactor).reduce((sum, item) => sum + whole(item?.attempts), 0);
   const clean = Object.values(byFactor).reduce((sum, item) => sum + Math.min(whole(item?.attempts), whole(item?.correctFirstTry)), 0);
@@ -22,33 +22,36 @@ export const familyStats = (progress = {}, family) => {
       && distinct >= REQUIRED_DISTINCT_FACTORS && accuracy >= REGION_GATE,
   };
 };
-export function getRegionMastery(progress = {}) {
-  const families = REGION_FAMILIES[1].map(family => familyStats(progress, family));
-  return { region: 1, families, mastered: families.every(record => record.mastered), gate: REGION_GATE };
+export function getRegionMastery(progress = {}, region = 1) {
+  const selectedRegion = REGION_FAMILIES[region] ? region : 1;
+  const families = REGION_FAMILIES[selectedRegion].map(family => familyStats(progress, family, selectedRegion));
+  return { region: selectedRegion, families, mastered: families.every(record => record.mastered), gate: REGION_GATE };
 }
-export function chooseRegionChallenge(progress = {}, preferredFamily = null, random = Math.random) {
-  const mastery = getRegionMastery(progress);
+export function chooseRegionChallenge(progress = {}, preferredFamily = null, random = Math.random, region = 1) {
+  const selectedRegion = REGION_FAMILIES[region] ? region : 1;
+  const mastery = getRegionMastery(progress, selectedRegion);
   const candidates = mastery.families.filter(entry => !entry.mastered);
   const preferred = Number(preferredFamily);
-  const family = REGION_FAMILIES[1].includes(preferred) ? preferred
+  const family = REGION_FAMILIES[selectedRegion].includes(preferred) ? preferred
     : (candidates.sort((a, b) => a.attempts - b.attempts || a.family - b.family)[0]?.family ?? 2);
-  const record = progress?.region1?.families?.[String(family)]?.byFactor ?? {};
+  const record = progress?.['region' + selectedRegion]?.families?.[String(family)]?.byFactor ?? {};
   const factors = Array.from({ length: 10 }, (_, index) => index + 1);
   const min = Math.min(...factors.map(factor => whole(record[factor]?.attempts)));
   const leastPracticed = factors.filter(factor => whole(record[factor]?.attempts) === min);
   const value = Math.min(leastPracticed.length - 1, Math.max(0, Math.floor(random() * leastPracticed.length)));
   const factor = leastPracticed[value];
-  return { id: family + 'x' + factor + ':' + String(Date.now()) + ':' + String(random()),
-    family, factor, a: family, b: factor, answer: family * factor };
+  return { id: selectedRegion + ':' + family + 'x' + factor + ':' + String(Date.now()) + ':' + String(random()),
+    region: selectedRegion, family, factor, a: family, b: factor, answer: family * factor };
 }
 export function recordRegionChallenge(progress = {}, challenge, correctFirstTry) {
-  if (!challenge || !REGION_FAMILIES[1].includes(challenge.family)
+  const regionId = REGION_FAMILIES[challenge?.region] ? challenge.region : 1;
+  if (!challenge || !REGION_FAMILIES[regionId].includes(challenge.family)
     || !Number.isInteger(challenge.factor) || challenge.factor < 1 || challenge.factor > 10) {
     return { progress, recorded: false };
   }
   const id = String(challenge.id ?? '');
   if (!id) return { progress, recorded: false };
-  const region = progress.region1 ?? {};
+  const region = progress['region' + regionId] ?? {};
   const answered = Array.isArray(region.answeredIds) ? region.answeredIds : [];
   if (answered.includes(id)) return { progress, recorded: false };
   const familyKey = String(challenge.family);
@@ -68,7 +71,7 @@ export function recordRegionChallenge(progress = {}, challenge, correctFirstTry)
   };
   return { recorded: true, progress: {
     ...progress,
-    region1: {
+    ['region' + regionId]: {
       ...region,
       answeredIds: [...answered.slice(-199), id],
       families: { ...region.families, [familyKey]: nextFamily },
