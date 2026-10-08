@@ -437,8 +437,8 @@ async function startWorld() {
       islandRenderer.render(world.cameraView, world.camera.zoom);
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) selectedNpcId = null;
       npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId);
-      shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
       projectileRenderer.render(projectiles,effects,world.cameraView,world.camera.zoom);
+      shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
       minimap.render();
       const gr=glintCanvas.getBoundingClientRect(),gd=Math.min(window.devicePixelRatio||1,2);
       const gw=Math.max(1,Math.round(gr.width*gd)),gh=Math.max(1,Math.round(gr.height*gd));
