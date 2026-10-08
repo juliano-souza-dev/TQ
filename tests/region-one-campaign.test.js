@@ -152,3 +152,22 @@ test('accepting a two-port mission immediately credits the port where the captai
   assert.deepEqual(mission.progress, [0, 1],
     'the player must not need to leave and re-enter the mission port');
 });
+
+test('mission 12 is Para o Estaleiro, grants 1000 basic balls only after equipping Rosas de Ouro', () => {
+  assert.equal(R1_MISSIONS[11].id, 'r1-equip-roses');
+  const predecessors = R1_MISSIONS.slice(0,11).map(m => m.id);
+  let save = initial();
+  save.campaign.claimed = predecessors;
+  save.equipment = { ...save.equipment, ownedShipIds:['galeao-rosas-de-ouro'] };
+  save = apply(save, acceptCampaignMission(save,'r1-equip-roses'));
+  assert.equal(getCampaignBoard(save).missions[11].ready,false);
+  assert.equal(recordCampaignEvent(save,{type:'equip-ship',ship:'starter'}),null);
+  assert.equal(claimCampaignMission(save,'r1-equip-roses'),null);
+  save.equipment.equippedShipId = 'galeao-rosas-de-ouro';
+  save = apply(save, recordCampaignEvent(save,{type:'equip-ship',ship:'galeao-rosas-de-ouro'}));
+  assert.equal(getCampaignBoard(save).missions[11].ready,true);
+  const award = claimCampaignMission(save,'r1-equip-roses');
+  assert.equal(award.patch.ammunition['rusted-iron'],1020);
+  save = apply(save, award.patch);
+  assert.equal(claimCampaignMission(save,'r1-equip-roses'),null);
+});
