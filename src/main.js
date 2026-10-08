@@ -1,8 +1,6 @@
 import { GameLoop } from './core/GameLoop.js';
 import { createGameState, setGameStatus, GAME_STATUS, advanceGameState } from './core/GameState.js';
-import { createWorldState } from './world/WorldState.js';
-import { OceanRenderer } from './rendering/OceanRenderer.js';
-import { renderLogin, renderPortal, renderLoading, renderConfigurationRequired } from './ui/Portal.js';
+import { renderLogin, renderLoading, renderConfigurationRequired } from './ui/Portal.js';
 import { createSyncPreferenceStore, SYNC_MODE } from './persistence/SyncPreference.js';
 import { createLocalSaveStore } from './persistence/LocalSaveStore.js';
 
@@ -17,6 +15,7 @@ let loop = null;
 let oceanRenderer = null;
 let worldGeneration = 0;
 const GUEST_UID = 'local-guest';
+const LOCAL_SESSION_KEY = 'tq:local-session:v1';
 let guestMode = false;
 
 function stopWorld() {
@@ -32,57 +31,29 @@ function enterLocalMode() {
   guestMode = true;
   currentUser = { uid: GUEST_UID, displayName: 'Marujo local', isGuest: true };
   syncPreferences.set(GUEST_UID, SYNC_MODE.LOCAL);
-  openPortal();
-}
-
-function openPortal() {
-  stopWorld();
-  if (!currentUser) return;
-  const syncMode = syncPreferences.get(currentUser.uid);
-  const savedProfile = localSaves.load(currentUser.uid)?.payload?.profile;
-  const profile = { level: savedProfile?.level ?? 1, gold: savedProfile?.gold ?? 10 };
-  renderPortal(root, currentUser, {
-    syncMode,
-    profile,
-    onModeChange: mode => {
-      if (!currentUser || mode !== SYNC_MODE.LOCAL) return;
-      try { syncPreferences.set(currentUser.uid, mode); openPortal(); }
-      catch (error) { console.error('Falha ao salvar preferência local', error); }
-    },
-    onPlay: () => {
-      if (!currentUser || syncPreferences.get(currentUser.uid) !== SYNC_MODE.LOCAL) return;
-      startWorld();
-    },
-    onLogout: async () => {
-      stopWorld();
-      if (guestMode) {
-        guestMode = false;
-        currentUser = null;
-        if (authService) showLogin();
-        else renderConfigurationRequired(root, { onLocal: enterLocalMode });
-        return;
-      }
-      try { await authService.signOut(); }
-      catch (error) { console.error('Falha ao sair da conta', error); openPortal(); }
-    },
-  });
+  localStorage.setItem(LOCAL_SESSION_KEY, GUEST_UID);
+  startWorld();
 }
 
 async function startWorld() {
-  if (!currentUser || syncPreferences.get(currentUser.uid) !== SYNC_MODE.LOCAL) return;
+  if (!currentUser) return;
   stopWorld();
+  const generation = worldGeneration;
   const canvas = document.createElement('canvas');
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
+  const [{ createWorldState }, { OceanRenderer }] = await Promise.all([
+    import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
+  ]);
+  if (generation !== worldGeneration) return;
   const world = createWorldState();
-  const generation = worldGeneration;
   let renderer;
   try {
     renderer = new OceanRenderer(canvas);
     oceanRenderer = renderer;
     await renderer.init(world.region.ocean.texture);
-    if (generation !== worldGeneration) return;
+    if (generation !== worldGeneration) { renderer.dispose(); return; }
   } catch (error) {
     if (generation !== worldGeneration) return;
     console.error('Falha ao iniciar oceano WebGL', error);
@@ -124,19 +95,21 @@ function showLogin(error = '') {
 }
 
 renderLoading(root);
-try {
+if (localStorage.getItem(LOCAL_SESSION_KEY) === GUEST_UID) {
+  enterLocalMode();
+} else try {
   // Optional local Firebase config is intentionally not committed.
   const { initializeAuthentication } = await import('./auth/firebase.js');
   authService = initializeAuthentication();
   authService.subscribe(user => {
     if (guestMode) return;
     currentUser = user;
-    if (user) openPortal();
+    if (user) startWorld();
     else showLogin();
   });
 } catch (error) {
   console.error('Firebase não configurado ou indisponível', error);
-  renderConfigurationRequired(root, { onLocal: enterLocalMode });
+  renderLogin(root, { onLocal: enterLocalMode, onLogin: () => renderConfigurationRequired(root, { onLocal: enterLocalMode }) });
 }
 
 document.addEventListener('visibilitychange', () => {
