@@ -3,4 +3,5 @@ dist/
 .env
 .env.*
 !.env.example
+src/config/firebase-config.js
 .DS_Store
