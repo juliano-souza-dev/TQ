@@ -200,7 +200,7 @@ async function startWorld() {
     missionHud.textContent = flow.stage === 'combat' ? '📜 Afunde 1 Corsário das Velas Rubras · 0/1'
       : flow.stage === 'next' ? '📜 Corsário afundado · 1/1 · Retorne ao porto'
       : '📜 ' + flow.objective;
-    if (firstVoyageGuide && flow.destination) firstVoyageGuide.guideTo(flow.destination);
+    if (firstVoyageGuide && flow.destination && flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
     else if (firstVoyageGuide && !flow.destination) {
       firstVoyageGuide.finish();
       firstVoyageGuide.dispose();
