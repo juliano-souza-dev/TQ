@@ -154,13 +154,19 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       updateCorsairPopulation(world, stepMs);
-      // WASD pans the viewport only while a key is held; releasing stops immediately.
+      // Manual camera moves only while WASD is held; no inertia or ship movement.
       const cameraInput = keyboardCamera.getVector();
-      const cameraSpeed = 320;
-      world.cameraOffset.x += cameraInput.x * cameraSpeed * stepMs / 1000;
-      world.cameraOffset.y += cameraInput.y * cameraSpeed * stepMs / 1000;
-      world.cameraOffset.x = Math.max(-world.region.width, Math.min(world.region.width, world.cameraOffset.x));
-      world.cameraOffset.y = Math.max(-world.region.height, Math.min(world.region.height, world.cameraOffset.y));
+      if (cameraInput.x !== 0 || cameraInput.y !== 0) {
+        if (!world.manualCamera) world.manualCamera = { ...world.cameraView };
+        const distance = 320 * stepMs / 1000;
+        const zoom = Math.max(world.camera.zoom, 0.01);
+        const halfW = canvas.clientWidth / (2 * zoom);
+        const halfH = canvas.clientHeight / (2 * zoom);
+        const clamp = (value, extent, half) => extent <= 2 * half
+          ? extent / 2 : Math.max(half, Math.min(extent - half, value));
+        world.manualCamera.x = clamp(world.manualCamera.x + cameraInput.x * distance, world.region.width, halfW);
+        world.manualCamera.y = clamp(world.manualCamera.y + cameraInput.y * distance, world.region.height, halfH);
+      }
       if (islandPanel.isOpen) { updateCamera(world, canvas.clientWidth, canvas.clientHeight); return; }
       const input = joystick.getVector();
       if (Math.hypot(input.x, input.y) > 0.12) {
