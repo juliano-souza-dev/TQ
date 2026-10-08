@@ -119,6 +119,8 @@ async function startWorld() {
     }
   }
   createCorsairPopulation(world);
+  const { createFugitiveFrigatePopulation, updateFugitiveFrigatePopulation } =
+    await import('./npcs/FugitiveFrigateNpc.js');
   const { createMonsterPopulation, updateMonsterPopulation, monsterGoldReward } = await import('./monsters/MonsterPopulation.js');
   createMonsterPopulation(world);
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
@@ -486,6 +488,11 @@ async function startWorld() {
     root.replaceChildren(message);
     return;
   }
+  // Só ativa o NPC quando seu sprite estiver realmente carregado.
+  // Se o arquivo ainda não foi enviado ao GitHub, o oceano inicia normalmente.
+  if (npcRenderer.hasShipSprite('fragata-sombra-fugitiva')) {
+    createFugitiveFrigatePopulation(world);
+  }
   const previousSave = localSaves.load(currentUser.uid);
   const flow = getMissionFlow(previousSave?.payload ?? {}, STARTER_SHIP.id);
   if (flow.destination) {
@@ -510,6 +517,7 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       updateCorsairPopulation(world, stepMs);
+      updateFugitiveFrigatePopulation(world, stepMs);
       updateMonsterPopulation(world, stepMs);
       glintElapsed+=stepMs;
       if(EVENTS.halloween){
