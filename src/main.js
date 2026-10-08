@@ -15,6 +15,7 @@ let loop = null;
 let oceanRenderer = null;
 let shipCanvas = null;
 let clickNavigation = null;
+let keyboardCamera = null;
 let worldGeneration = 0;
 const GUEST_UID = 'local-guest';
 const LOCAL_SESSION_KEY = 'tq:local-session:v1';
@@ -26,6 +27,8 @@ function stopWorld() {
   loop = null;
   if (oceanRenderer) oceanRenderer.dispose();
   oceanRenderer = null;
+  if (keyboardCamera) keyboardCamera.dispose();
+  keyboardCamera = null;
   if (clickNavigation) clickNavigation.dispose();
   clickNavigation = null;
   if (shipCanvas) shipCanvas.remove();
@@ -49,14 +52,16 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
     import('./world/NavigationSystem.js'), import('./world/ClickNavigationInput.js'),
+    import('./ui/KeyboardCameraInput.js'),
   ]);
   if (generation !== worldGeneration) return;
   const world = createWorldState();
   clickNavigation = createClickNavigation(canvas, world);
+  keyboardCamera = createKeyboardCameraInput();
   const joystick = createAnalogJoystick();
   shipCanvas = document.createElement('canvas');
   shipCanvas.className = 'ship-layer';
@@ -87,6 +92,10 @@ async function startWorld() {
     update: (stepMs) => {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
+      const cameraInput = keyboardCamera.getVector();
+      const cameraSpeed = 320;
+      world.cameraOffset.x += cameraInput.x * cameraSpeed * stepMs / 1000;
+      world.cameraOffset.y += cameraInput.y * cameraSpeed * stepMs / 1000;
       const input = joystick.getVector();
       if (Math.hypot(input.x, input.y) > 0.12) {
         clickNavigation.cancel();
