@@ -349,6 +349,7 @@ async function startWorld() {
     shipyardOptions: {
       loadout: equipment.loadout ?? {},
       ownedCannonIds: equipment.ownedCannonIds ?? [],
+      getEquipment: () => readSave().equipment ?? {},
       onLoadoutChange: loadout => {
         const save = readSave();
         const missions = { ...save.missions };
@@ -360,6 +361,11 @@ async function startWorld() {
           firstVoyageGuide?.guideTo('shipyard');
         }
         writePatch({ equipment: { ...save.equipment, loadout }, missions });
+        const slots = loadout[STARTER_SHIP.id] ?? [];
+        if (slots.filter(Boolean).length >= STARTER_SHIP.cannonSlots)
+          recordMissionEvent({ type: 'equip' });
+        if (slots.includes('royal-lion'))
+          recordMissionEvent({ type: 'equip', cannon: 'royal-lion' });
         updateMissionHud();
       },
     },
