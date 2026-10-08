@@ -46,3 +46,16 @@ Os testes incluem voo WebGL simulado, aplicação de dano somente no impacto, er
 Efeito **temporário e exclusivamente visual**, ativado apenas por `EVENTS.halloween === true` em `src/items/EquipmentCatalog.js`. Com a flag desligada, nenhuma camada sazonal é criada e o shader/texture padrão do oceano permanece inalterado.
 
 Arquivos: `src/events/HalloweenAtmosphere.js` (configuração e qualidade mobile), `src/rendering/shaders/halloweenFog.js` (névoa procedural GLSL), `src/rendering/HalloweenFogRenderer.js` (WebGL2/câmera/limpeza) e `tests/halloween-atmosphere.test.js` (testes). Se não houver WebGL2 para a névoa, aplica-se um efeito CSS leve sem interferir na jogabilidade. Não afeta combate, inventário ou progresso.
+
+
+## Oceano original da Tabuada Quest 2
+
+A R1 usa **exatamente o shader e a pipeline WebGL2 do projeto anterior**, portados sem reescrever a fórmula de ondas, espuma, brilho e rastro em `src/rendering/LegacyOceanWebGLRenderer.mjs`. Os presets e a normalização também foram copiados sem alterações, em `src/world/WorldOceanEffect.mjs`.
+
+- `src/rendering/OceanRenderer.js`: adaptador mínimo da interface do novo mundo para o motor antigo. Mantém `init(source)`, `render(world,timeMs)`, `dispose()` e alimenta o rastro pelo método `updatePlayerWake`.
+- `src/rendering/PlayerWakeTrail.js`: amostras de posição, velocidade e rumo do navio conforme o comportamento do antigo `WorldRuntime`, para o shader original desenhar a espuma da esteira.
+- `src/world/regions/r1.js`: parâmetros da **R1 antiga** (preset calm, speed 58, direction 1/.68, swell 55, tile 590, brilho 62, saturação 62, contraste 72, cores 84/79/99 e intensidade original de ondas, espuma e faíscas).
+- `assets/globals/ocean-tile-tabuada-region01.webp`: o **mesmo arquivo binário** de `assets/oceans/ocean-tile-tabuada-region01.webp` do projeto antigo, Git blob SHA `005c2a584f5d7722f632d8674acb02fd555a33b6`. Não há duplicação de assets.
+- `tests/ocean-legacy.test.js`: verifica a paridade do asset, os parâmetros originais, a câmera, a geração da esteira, o draw call WebGL e o fallback.
+
+A névoa verde temporária de Halloween continua como sobreposição independente controlada por `EVENTS.halloween`. Desligar o evento remove a névoa e expõe o **oceano original**, sem trocar textura nem shader. O shader experimental anterior `src/rendering/shaders/ocean.js` foi removido.
