@@ -269,6 +269,47 @@ async function startWorld() {
     }
   };
   const islandPanel = createIslandPanel({
+    getHullHealth: () => navalBattle.getHealth(),
+    onRequestRepair: afterSuccess => mathGate.open({
+      kind: 'repair',
+      title: '🔧 Reparar o casco',
+      description: 'Uma continha correta restaura 20% da vida máxima do navio. Acertos adicionais permitem reparar mais.',
+      afterSuccess: () => { islandPanel.refreshRepair(); navalHud.refresh(); afterSuccess?.(); },
+    }),
+    missionBoardOptions: {
+      getBoard: () => getCampaignBoard(readSave()),
+      getPedagogy: () => readSave().pedagogy ?? {},
+      onAccept: id => mathGate.open({
+        kind: 'accept-mission', id,
+        title: '📜 Aceitar contrato',
+        description: 'Resolva uma continha para receber sua próxima missão.',
+        afterSuccess: () => { islandPanel.refreshMissionBoard(); navalHud.refresh(); },
+      }),
+      onClaim: id => {
+        const result = resolveMissionReward(readSave(), id);
+        if (!result) return false;
+        writePatch(result.patch);
+        navalHud.refresh();
+        updateMissionHud();
+        if (result.region2Unlocked) navalHud.setFeedback('🎉 Etapa 2 desbloqueada! Agora visite o quadro de missões.');
+        else navalHud.setFeedback('🎁 Recompensa recebida: ' + result.mission.name);
+        return true;
+      },
+      onPracticeAnswer: (challenge, firstTry) => {
+        const result = resolvePedagogicalAction(readSave(), { kind:'practice' }, challenge, firstTry);
+        if (!result) return false;
+        writePatch(result.patch);
+        updateMissionHud();
+        return true;
+      },
+      onStartRegion2: () => {
+        const patch = activateNextRegion(readSave());
+        if (!patch) return false;
+        writePatch(patch);
+        updateMissionHud();
+        return true;
+      },
+    },
     getMissionState: () => readSave().missions ?? {},
     getMissionFlow: () => getMissionFlow(readSave(), STARTER_SHIP.id),
     getLearningProgress: () => readSave().learning ?? {},
@@ -334,6 +375,7 @@ async function startWorld() {
       contactId = contact.id;
       clickNavigation.cancel();
       islandPanel.open(contact.kind);
+      recordMissionEvent({ type: 'visit', island: contact.kind });
       updateMissionHud();
     }
   }
@@ -383,7 +425,11 @@ async function startWorld() {
         const nearby=SEA_GLINTS.find(g=>!(save.collectedGlints??[]).includes(g.id)&&Math.hypot(g.x-world.camera.x,g.y-world.camera.y)<55);
         if(nearby){
           const result=collectSeaGlint(save,nearby.id);
-          if(result){writePatch(result.patch);navalHud.setFeedback('🎃 Brilho coletado! +'+result.rewards.simple+' ferro · +'+result.rewards.special+' Halloween · +'+result.rewards.gold+' ouro');}
+          if(result){
+            writePatch(result.patch);
+            recordMissionEvent({ type:'collect', id:nearby.id });
+            navalHud.setFeedback('🎃 Brilho coletado! +'+result.rewards.simple+' ferro · +'+result.rewards.special+' Halloween · +'+result.rewards.gold+' ouro');
+          }
         }
       }
       navalBattle.update(stepMs,performance.now());
@@ -414,6 +460,7 @@ async function startWorld() {
         heading = (Math.atan2(input.x, -input.y) * 180 / Math.PI + 360) % 360;
         const fromX = world.camera.x, fromY = world.camera.y;
         advanceNavigation(world, input, stepMs, shipSpeed);
+        trackVoyage(fromX, fromY);
         persistPlayerPosition(stepMs);
         checkDockContact(fromX, fromY, input.x, input.y, stepMs);
       } else {
@@ -423,6 +470,7 @@ async function startWorld() {
           const dx = destination.x - fromX, dy = destination.y - fromY;
           const distance = Math.hypot(dx, dy);
           const result = advanceTowardDestination(world, destination, stepMs, shipSpeed);
+          trackVoyage(fromX, fromY);
           persistPlayerPosition(stepMs);
           if (distance > 0) checkDockContact(fromX, fromY, dx / distance, dy / distance, stepMs);
           if (result.heading !== null) heading = result.heading;
@@ -435,6 +483,7 @@ async function startWorld() {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       renderer.render(world, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
+      treasureRenderer.render(getVisibleTreasures(readSave()),world.cameraView,world.camera.zoom,oceanTimeMs);
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
         selectedNpcId = null;
         navalBattle.setTarget(null);
