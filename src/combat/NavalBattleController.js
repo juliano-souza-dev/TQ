@@ -69,7 +69,8 @@ export class NavalBattleController {
     const distance = target ? distanceBetween(player, target) : Infinity;
     const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon));
     const ammo = ammoStock(save, this.selectedAmmoId);
-    const missionActive = save.missions?.corsair === 'active';
+    const missionActive = save.missions?.corsair === 'active'
+      || (save.missions?.corsair === 'complete' && (save.campaign?.active?.length ?? 0) > 0);
     let reason = 'ready';
     if (!missionActive) reason = 'mission';
     else if (!battery.length) reason = 'no-cannon';
@@ -197,7 +198,7 @@ export class NavalBattleController {
     this.onFeedback('💥 Acertou ' + target.name + '! -' + damage + ' PV.');
     if (target.health <= 0) {
       if (target.id === this.targetId) this.firing = false;
-      if (target.archetype === RED_SAIL_CORSAIR.id) this.onVictory(target);
+      this.onVictory(target);
     }
     return { kind: 'ship' };
   }
