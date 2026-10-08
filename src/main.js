@@ -1,3 +1,9 @@
+import { getCampaignBoard, recordCampaignEvent } from './missions/RegionOneCampaign.js';
+import { resolvePedagogicalAction, resolveMissionReward, activateNextRegion } from './gameplay/PedagogicalActions.js';
+import { createMathGate } from './ui/MathGate.js';
+import { repairHull } from './combat/HullRepair.js';
+import { getVisibleTreasures, findTreasureNearPoint } from './treasures/RegionTreasures.js';
+import { TreasureRenderer } from './rendering/TreasureRenderer.js';
 import { NavalBattleController } from './combat/NavalBattleController.js';
 import { NavalCombatWebGLRenderer } from './rendering/NavalCombatWebGLRenderer.mjs';
 import { createNavalCombatHud } from './ui/NavalCombatHud.js';
@@ -23,6 +29,7 @@ let oceanRenderer = null;
 let shipCanvas = null;
 let islandCanvas = null;
 let npcCanvas = null;
+let treasureCanvas = null;
 let navalCanvas = null;
 let navalBattle = null;
 let minimapElement = null;
@@ -57,6 +64,8 @@ function stopWorld() {
   minimapElement = null;
   if (npcCanvas) npcCanvas.remove();
   npcCanvas = null;
+  if (treasureCanvas) treasureCanvas.remove();
+  treasureCanvas = null;
   if (islandCanvas) islandCanvas.remove();
   islandCanvas = null;
   if (shipCanvas) shipCanvas.remove();
@@ -110,6 +119,37 @@ async function startWorld() {
   let hudRefreshElapsed = 0;
   const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+  function recordMissionEvent(event) {
+    const patch = recordCampaignEvent(readSave(), event);
+    if (!patch) return false;
+    writePatch(patch);
+    updateMissionHud();
+    return true;
+  }
+  function resolveMathAction(action, cleanAnswer) {
+    const result = resolvePedagogicalAction(readSave(), action, action.challenge, cleanAnswer);
+    if (!result) return false;
+    writePatch(result.patch);
+    updateMissionHud();
+    navalHud?.refresh();
+    navalHud?.setFeedback('🧮 ' + result.message);
+    return result.message;
+  }
+  const mathGate = createMathGate({
+    getPedagogy: () => readSave().pedagogy ?? {},
+    getRegion: () => getCampaignBoard(readSave()).activeRegion,
+    onSolved: (action, clean) => resolveMathAction(action, clean),
+  });
+  root.append(mathGate.element);
+  let voyageDistance = 0;
+  function trackVoyage(previousX, previousY) {
+    voyageDistance += Math.hypot(world.camera.x - previousX, world.camera.y - previousY);
+    if (voyageDistance < 30) return;
+    const distance = voyageDistance;
+    voyageDistance = 0;
+    recordMissionEvent({ type: 'travel', amount: distance });
+  }
+
 
   const glintCanvas=document.createElement('canvas');
   glintCanvas.className='glint-layer';
@@ -134,10 +174,15 @@ async function startWorld() {
     onFeedback: message => navalHud?.setFeedback(message),
     onVictory: npc => {
       const save = readSave();
-      if (save.missions?.corsair === 'active') {
+      if (save.missions?.corsair === 'active' && npc.archetype === 'red-sail-corsair') {
         writePatch({ missions: { ...save.missions, corsair: 'complete' } });
         updateMissionHud();
-        navalHud?.setFeedback('🏆 ' + npc.name + ' afundado! Missão concluída.');
+        navalHud?.setFeedback('🏆 ' + npc.name + ' afundado! Agora explore as missões livremente.');
+      } else {
+        recordMissionEvent({
+          type: 'defeat', archetype: npc.archetype,
+          id: npc.id + ':' + Date.now() + ':' + performance.now(),
+        });
       }
     },
   });
@@ -150,11 +195,23 @@ async function startWorld() {
       navalBattle.setTarget(npc.id);
       navalHud.setFeedback('🎯 Alvo selecionado: ' + npc.name);
       navalHud.refresh();
+      return true;
     }
-    return Boolean(npc);
+    const treasure = findTreasureNearPoint(getVisibleTreasures(readSave()), point.x, point.y);
+    if (treasure && Math.hypot(world.camera.x - treasure.x, world.camera.y - treasure.y) < 125) {
+      mathGate.open({
+        kind: 'treasure', id: treasure.id,
+        title: '🧰 Desafio do tesouro',
+        description: 'A arca só será aberta depois de resolver a continha.',
+      });
+      return true;
+    }
+    return false;
   });
   keyboardCamera = createKeyboardCameraInput();
   const joystick = createAnalogJoystick();
+  treasureCanvas = document.createElement('canvas');
+  treasureCanvas.className = 'treasure-layer';
   islandCanvas = document.createElement('canvas');
   islandCanvas.className = 'island-layer';
   npcCanvas = document.createElement('canvas');
@@ -162,14 +219,15 @@ async function startWorld() {
   shipCanvas = document.createElement('canvas');
   shipCanvas.className = 'ship-layer';
   shipCanvas.setAttribute('aria-label', 'Navio do jogador');
-  root.append(islandCanvas, npcCanvas, shipCanvas, joystick.element);
+  root.append(islandCanvas, treasureCanvas, npcCanvas, shipCanvas, joystick.element);
   const shipRenderer = new ShipRenderer(shipCanvas);
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
+  const treasureRenderer = new TreasureRenderer(treasureCanvas);
   const npcRenderer = new NpcRenderer(npcCanvas);
   const minimap = createMinimap(world, {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
-    getTreasures: () => [...world.entities.values()].filter(entity => entity.type === 'treasure'),
+    getTreasures: () => getVisibleTreasures(readSave()),
     hasTreasureSense: () => Boolean(world.treasureSenseActive),
   });
   minimapElement = minimap.element;
