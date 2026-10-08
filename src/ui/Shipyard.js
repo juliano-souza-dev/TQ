@@ -1,4 +1,5 @@
-import { STARTER_SHIP, getShipSpriteUrl } from '../ships/ShipRegistry.js';
+import { STARTER_SHIP, ROSE_GOLD_SHIP, getShipSpriteUrl } from '../ships/ShipRegistry.js';
+import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
@@ -7,7 +8,7 @@ const el = (tag, className, text) => {
   return node;
 };
 
-export function createShipyard({ ships = [STARTER_SHIP], equippedShipId = STARTER_SHIP.id, cannons = [] } = {}) {
+export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, cannons = [] } = {}) {
   const root = el('div', 'shipyard');
   const tabs = el('div', 'shipyard-tabs');
   tabs.setAttribute('role', 'tablist');
@@ -51,12 +52,15 @@ export function createShipyard({ ships = [STARTER_SHIP], equippedShipId = STARTE
       const equipped = ship.id === equippedShipId;
       const card = el('article', 'shipyard-ship-card' + (equipped ? ' is-equipped' : ''));
       const head = el('div', 'shipyard-ship-head');
-      head.append(el('h4', '', ship.name), el('span', 'shipyard-status', equipped ? '✓ Equipado' : 'Disponível'));
+      head.append(el('h4', '', ship.name), el('span', 'shipyard-status', equipped ? '✓ Equipado' : 'Catalogado'));
       card.append(head);
       const body = el('div', 'shipyard-ship-body');
       const preview = el('div', 'shipyard-preview');
       const sprite = el('div', 'shipyard-sprite');
       sprite.style.backgroundImage = 'url("' + getShipSpriteUrl(ship) + '")';
+      if (ship.sprite.chromaKey) {
+        loadShipSprite(ship).then(image => { sprite.style.backgroundImage = 'url("' + image.toDataURL('image/png') + '")'; }).catch(console.error);
+      }
       preview.append(sprite);
       const stats = el('div', 'shipyard-stats');
       stats.append(
@@ -66,7 +70,7 @@ export function createShipyard({ ships = [STARTER_SHIP], equippedShipId = STARTE
         stat('💣 Espaços para canhões', ship.cannonSlots ?? 'Não definido'),
       );
       body.append(preview, stats); card.append(body);
-      if (!equipped) card.append(el('p', 'shipyard-note', 'Equipamento de outros navios será liberado quando o sistema de frota estiver conectado.'));
+      if (!equipped) card.append(el('p', 'shipyard-note', 'Navio catalogado. Ainda não adquirido ou desbloqueado.'));
       view.append(card);
     }
     if (ships.length === 1) view.append(el('p', 'shipyard-note', 'Você possui 1 navio. Novas embarcações aparecerão aqui quando forem desbloqueadas.'));

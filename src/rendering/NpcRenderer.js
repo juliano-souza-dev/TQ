@@ -1,15 +1,15 @@
-import { STARTER_SHIP, getShipFrame, getShipSpriteUrl } from '../ships/ShipRegistry.js';
+import { STARTER_SHIP, getShipFrame } from '../ships/ShipRegistry.js';
+import { ROSE_GOLD_SHIP } from '../ships/RoseGoldShip.js';
+import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 export class NpcRenderer {
   constructor(canvas) {
-    this.canvas = canvas; this.ctx = canvas.getContext('2d'); this.image = new Image();
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.images = new Map();
   }
   async init() {
-    this.image.src = getShipSpriteUrl(STARTER_SHIP);
-    await new Promise((resolve, reject) => {
-      if (this.image.complete && this.image.naturalWidth) return resolve();
-      this.image.onload = resolve;
-      this.image.onerror = () => reject(new Error('Falha ao carregar sprite dos NPCs'));
-    });
+    const ships = [STARTER_SHIP, ROSE_GOLD_SHIP];
+    await Promise.all(ships.map(async ship => this.images.set(ship.id, await loadShipSprite(ship))));
   }
   render(entities, camera, zoom = 1, selectedId = null) {
     const bounds = this.canvas.getBoundingClientRect();
@@ -20,14 +20,17 @@ export class NpcRenderer {
       this.canvas.width = w; this.canvas.height = h;
     }
     const ctx = this.ctx; ctx.clearRect(0, 0, w, h);
-    const columns = STARTER_SHIP.sprite.columns;
-    const rows = STARTER_SHIP.sprite.rows;
-    const frameW = this.image.naturalWidth / columns;
-    const frameH = this.image.naturalHeight / rows;
     const size = Math.min(w * 0.32, h * 0.32, 185 * dpr) * zoom;
     for (const npc of entities.values()) {
       if (npc.type !== 'npc' || npc.health <= 0) continue;
-      const frame = getShipFrame(npc.heading ?? 0);
+      const ship = npc.shipId === ROSE_GOLD_SHIP.id ? ROSE_GOLD_SHIP : STARTER_SHIP;
+      const image = this.images.get(ship.id);
+      if (!image) continue;
+      const columns = ship.sprite.columns;
+      const rows = ship.sprite.rows;
+      const frameW = image.width / columns;
+      const frameH = image.height / rows;
+      const frame = getShipFrame(npc.heading ?? 0, ship);
       const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
       const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
       if (x < -size || x > w + size || y < -size || y > h + size) continue;
@@ -38,7 +41,7 @@ export class NpcRenderer {
         ctx.beginPath(); ctx.ellipse(x, y + size * 0.20, size * 0.37, size * 0.17, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
       }
-      ctx.drawImage(this.image, (frame % columns) * frameW, Math.floor(frame / columns) * frameH,
+      ctx.drawImage(image, (frame % columns) * frameW, Math.floor(frame / columns) * frameH,
         frameW, frameH, x - size / 2, y - size / 2, size, size);
       {
         ctx.save();
