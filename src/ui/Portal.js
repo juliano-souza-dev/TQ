@@ -20,7 +20,7 @@ export function renderLogin(root, { onLogin, busy = false, error = '' }) {
   root.replaceChildren(screen);
 }
 
-export function renderPortal(root, user, { onPlay, onLogout, busy = false }) {
+export function renderPortal(root, user, { onPlay, onLogout, onModeChange, syncMode, busy = false }) {
   const screen = element('main', 'screen');
   const card = element('section', 'portal-card');
   card.append(element('p', 'eyebrow', 'PORTAL DO JOGADOR'), element('h1', '', 'Bem-vindo a bordo!'));
@@ -36,9 +36,25 @@ export function renderPortal(root, user, { onPlay, onLogout, busy = false }) {
   const info = element('div', 'account-info');
   info.append(element('p', '', 'Conta conectada com Google'), element('p', '', 'Região inicial: R1'));
   card.append(info);
+
+  const modeLabel = element('p', 'description', syncMode === 'local'
+    ? 'Modo local: progresso somente neste dispositivo. Limpar os dados do navegador apaga o progresso.'
+    : syncMode === 'cloud'
+      ? 'Sincronização selecionada. A conexão com o salvamento em nuvem ainda será implementada.'
+      : 'Escolha como deseja guardar seu progresso antes de jogar.');
+  card.append(modeLabel);
+  const localButton = element('button', 'secondary-button', 'Não sincronizar dados');
+  localButton.type = 'button';
+  localButton.disabled = busy;
+  localButton.addEventListener('click', () => onModeChange('local'));
+  const cloudButton = element('button', 'secondary-button', syncMode === 'local' ? 'Sincronizar agora' : 'Ativar sincronização');
+  cloudButton.type = 'button';
+  cloudButton.disabled = true;
+  cloudButton.title = 'Disponível quando o salvamento em nuvem estiver implementado';
+  card.append(localButton, cloudButton);
   const play = element('button', 'primary-button', 'Jogar');
   play.type = 'button';
-  play.disabled = busy;
+  play.disabled = busy || syncMode !== 'local';
   play.addEventListener('click', onPlay);
   const logout = element('button', 'secondary-button', 'Sair da conta');
   logout.type = 'button';
