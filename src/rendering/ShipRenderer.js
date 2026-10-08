@@ -32,7 +32,7 @@ export class ShipRenderer {
     // Use actual image dimensions: exported sheets are not necessarily 1600x1600.
     const frameWidth = this.image.naturalWidth / columns;
     const frameHeight = this.image.naturalHeight / rows;
-    const targetSize = Math.min(w * 0.32, h * 0.32, 190 * dpr);
+    const targetSize = Math.min(w * 0.35, h * 0.35, 209 * dpr);
     const scale = targetSize / Math.max(frameWidth, frameHeight);
     const drawW = frameWidth * scale;
     const drawH = frameHeight * scale;
