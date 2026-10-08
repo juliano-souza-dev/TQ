@@ -111,24 +111,22 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   // Capturamos cada toque diretamente no botão, sem capturar o ponteiro do
   // joystick. Mouse, teclado e tecnologias assistivas continuam usando click.
   function bindFireControl(button) {
-    let touchFired = false;
+    let lastTouchAt = -Infinity;
     button.addEventListener('pointerdown', event => {
       if (event.pointerType !== 'touch' || button.disabled) return;
-      touchFired = true;
+      lastTouchAt = performance.now();
       event.preventDefault(); // Evita click sintetizado duplicado após o toque.
       controller.toggleFire();
       refresh();
     });
     button.addEventListener('click', event => {
-      if (touchFired) {
-        touchFired = false;
+      if (event.detail !== 0 && performance.now() - lastTouchAt < 650) {
         event.preventDefault();
         return;
       }
       controller.toggleFire();
       refresh();
     });
-    button.addEventListener('pointercancel', () => { touchFired = false; });
   }
   bindFireControl(fireIconButton);
   bindFireControl(fireButton);
