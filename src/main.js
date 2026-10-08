@@ -1,7 +1,6 @@
 import { getCampaignBoard, recordCampaignEvent } from './missions/RegionOneCampaign.js';
 import { resolvePedagogicalAction, resolveMissionReward, activateNextRegion } from './gameplay/PedagogicalActions.js';
 import { createMathGate } from './ui/MathGate.js';
-import { repairHull } from './combat/HullRepair.js';
 import { getVisibleTreasures, findTreasureNearPoint } from './treasures/RegionTreasures.js';
 import { TreasureRenderer } from './rendering/TreasureRenderer.js';
 import { NavalBattleController } from './combat/NavalBattleController.js';
@@ -192,7 +191,14 @@ async function startWorld() {
       }
     },
   });
-  navalHud = createNavalCombatHud(navalBattle);
+  navalHud = createNavalCombatHud(navalBattle, {
+    onRepair: () => mathGate.open({
+      kind: 'repair',
+      title: '🔧 Reparar o casco',
+      description: 'Acertar a continha recupera 20 pontos da vida máxima do navio.',
+      afterSuccess: () => navalHud.refresh(),
+    }),
+  });
   root.append(navalHud.element);
   clickNavigation = createClickNavigation(canvas, world, point => {
     const npc = findNpcAtPoint(world.entities, point.x, point.y);
@@ -275,13 +281,6 @@ async function startWorld() {
     }
   };
   const islandPanel = createIslandPanel({
-    getHullHealth: () => navalBattle.getHealth(),
-    onRequestRepair: afterSuccess => mathGate.open({
-      kind: 'repair',
-      title: '🔧 Reparar o casco',
-      description: 'Uma continha correta restaura 20% da vida máxima do navio. Acertos adicionais permitem reparar mais.',
-      afterSuccess: () => { islandPanel.refreshRepair(); navalHud.refresh(); afterSuccess?.(); },
-    }),
     missionBoardOptions: {
       getBoard: () => getCampaignBoard(readSave()),
       getPedagogy: () => readSave().pedagogy ?? {},
