@@ -28,7 +28,7 @@
       1,
       2,
       3
-    ]
-  },
-  "notes": "Image path must be linked to the exact committed asset; do not assume a filename."
+    ],
+    "path": "../../../assets/ships/Sprite Sheet de Galeões Piratas em Fundo Transparente (2).png"
+  }
 }
