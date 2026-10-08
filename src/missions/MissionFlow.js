@@ -34,6 +34,6 @@ export function getMissionFlow(save = {}, shipId) {
   };
   return {
     destination:null, stage:'free',
-    objective:'Abra o Quadro de Missões e escolha sua próxima aventura',
+    objective:'Você tem uma nova missão. Vá até o porto de missões para iniciar',
   };
 }
