@@ -40,3 +40,9 @@ Os testes incluem voo WebGL simulado, aplicação de dano somente no impacto, er
 ## Cache
 
 `index.html` usa import map com versão de desenvolvimento dinâmica para os módulos JS. Os assets e a progressão persistida não usam a mesma chave de cache. Recarregar a página não deve zerar inventário ou missões.
+
+## Névoa de Halloween (WebGL2)
+
+Efeito **temporário e exclusivamente visual**, ativado apenas por `EVENTS.halloween === true` em `src/items/EquipmentCatalog.js`. Com a flag desligada, nenhuma camada sazonal é criada e o shader/texture padrão do oceano permanece inalterado.
+
+Arquivos: `src/events/HalloweenAtmosphere.js` (configuração e qualidade mobile), `src/rendering/shaders/halloweenFog.js` (névoa procedural GLSL), `src/rendering/HalloweenFogRenderer.js` (WebGL2/câmera/limpeza) e `tests/halloween-atmosphere.test.js` (testes). Se não houver WebGL2 para a névoa, aplica-se um efeito CSS leve sem interferir na jogabilidade. Não afeta combate, inventário ou progresso.
