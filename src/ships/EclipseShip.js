@@ -4,7 +4,7 @@ export const ECLIPSE_SHIP = Object.freeze({
   name: 'Galeão Eclipse',
   description: 'Galeão de velas violetas com símbolos celestiais dourados.',
   status: 'catalog-only',
-  cannonSlots: 3,
+  cannonSlots: 10,
   speed: Object.freeze({ min: 330, initial: 330, max: 390 }),
   playable: false,
   npcEnabled: false,
