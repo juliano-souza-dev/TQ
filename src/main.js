@@ -128,6 +128,15 @@ async function startWorld() {
   let hudRefreshElapsed = 0;
   const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+  // O navio inicial já pertence ao jogador desde o primeiro acesso.
+  // Normaliza saves antigos sem excluir equipamentos ou navios conquistados.
+  const initialEquipment = readSave().equipment ?? {};
+  if (!initialEquipment.ownedShipIds?.includes(STARTER_SHIP.id)) {
+    writePatch({ equipment: {
+      ...initialEquipment,
+      ownedShipIds: [...new Set([...(initialEquipment.ownedShipIds ?? []), STARTER_SHIP.id])],
+    } });
+  }
   function recordMissionEvent(event) {
     const patch = recordCampaignEvent(readSave(), event);
     if (!patch) return false;
