@@ -5,7 +5,7 @@ const CONTENT = {
   shipyard: { title: '⚓ Estaleiro', description: 'Aqui você poderá trocar de navio e equipar canhões.', items: ['Trocar navio', 'Equipar canhões'] },
   missions: { title: '📜 Missões', description: 'O quadro de missões desta região.', items: ['Missões disponíveis em breve'] },
 };
-export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {}, getMissionState = () => ({}), getMissionFlow = () => ({stage:'welcome'}), onRequestNextMission = () => false, getLearningProgress = () => ({}), onLearningAttempt = () => {}, missionBoardOptions = {} } = {}) {
+export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {}, getMissionState = () => ({}), getMissionFlow = () => ({stage:'welcome'}), onRequestNextMission = () => false, getLearningProgress = () => ({}), onLearningAttempt = () => {}, missionBoardOptions = {}, getHullHealth = () => 100, onRequestRepair = () => false } = {}) {
   const panel = document.createElement('section');
   panel.className = 'island-panel';
   panel.hidden = true;
@@ -19,6 +19,27 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   const list = document.createElement('div');
   const shipyard = createShipyard(shipyardOptions);
   const missionBoard = createMissionBoard(missionBoardOptions);
+  const repairBox = document.createElement('section');
+  repairBox.className = 'shipyard-repair';
+  const repairTitle = document.createElement('h3');
+  repairTitle.textContent = '🔧 Reparos do casco';
+  const repairDescription = document.createElement('p');
+  const repairButton = document.createElement('button');
+  repairButton.className = 'primary-button';
+  repairButton.type = 'button';
+  repairButton.textContent = 'Resolver continha para consertar';
+  function refreshRepair() {
+    const health = getHullHealth();
+    const missing = Math.max(0, 100 - health);
+    repairDescription.textContent = 'Vida atual: ' + Math.round(health) + '/100. Cada resposta correta restaura até 20 pontos de vida (' + Math.round(Math.min(20, missing)) + ' disponíveis agora).';
+    repairButton.disabled = missing <= 0;
+    if (missing <= 0) repairButton.textContent = '✅ Casco em perfeitas condições';
+    else repairButton.textContent = '🧮 Resolver continha e recuperar até 20 PV';
+  }
+  repairButton.addEventListener('click', () => {
+    if(getHullHealth() < 100) onRequestRepair(() => refreshRepair());
+  });
+  repairBox.append(repairTitle, repairDescription, repairButton);
   const acceptMission = document.createElement('button');
   acceptMission.type = 'button';
   acceptMission.className = 'primary-button';
@@ -87,7 +108,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   close.type = 'button'; close.className = 'primary-button';
   close.textContent = 'Voltar ao mar';
   close.addEventListener('click', () => { panel.hidden = true; });
-  card.append(title, description, list, shipyard.element, acceptMission, mathBox, missionBoard.element, close); panel.append(card);
+  card.append(title, description, list, shipyard.element, repairBox, acceptMission, mathBox, missionBoard.element, close); panel.append(card);
   return {
     element: panel,
     get isOpen() { return !panel.hidden; },
@@ -97,6 +118,8 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       title.textContent = content.title;
       description.textContent = kind === 'shipyard' ? 'Gerencie sua frota e seus equipamentos.' : content.description;
       shipyard.element.hidden = kind !== 'shipyard';
+      repairBox.hidden = kind !== 'shipyard';
+      if (kind === 'shipyard') refreshRepair();
       list.hidden = kind === 'shipyard';
       acceptMission.hidden = kind !== 'missions' || isFirstMissionAccepted();
       const flow = getMissionFlow();
@@ -115,6 +138,8 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       close.focus();
       return true;
     },
+    refreshMissionBoard() { missionBoard.refresh(); },
+    refreshRepair,
     close() { panel.hidden = true; },
   };
 }
