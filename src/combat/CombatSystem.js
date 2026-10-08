@@ -23,10 +23,9 @@ export function fireCannons({loadout,shipId,ammoId,ammoCount,target,distance,now
     const remaining = cannon.reloadSeconds*1000-(now-(next[key]??-Infinity));
     if (remaining>0) { shortestCooldown=Math.min(shortestCooldown,remaining); continue; }
     next[key]=now;spent++;
-    const hit=random()<Math.min(1,Math.max(0,cannon.accuracy+stats.accuracyBonus));
-    const dealt=hit?Math.max(1,Math.round(stats.damage*cannon.damageMultiplier)):0;
+    const dealt=Math.max(1,Math.round(stats.damage*cannon.damageMultiplier));
     damage+=dealt;
-    shots.push({slot,hit,damage:dealt,ammoId,cannonId});
+    shots.push({slot,damage:dealt,accuracy:Math.min(1,Math.max(0,cannon.accuracy+stats.accuracyBonus)),ammoId,cannonId});
   }
   return {shots,lastFired:next,spent,damage,reason:shots.length?'fired':!configured?'no-cannon':!inRange?'range':'cooldown',cooldownMs:Number.isFinite(shortestCooldown)?shortestCooldown:0};
 }
