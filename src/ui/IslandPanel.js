@@ -1,10 +1,11 @@
 import { getLearningChallenge } from '../education/LearningProgress.js';
 import { createShipyard } from './Shipyard.js';
+import { createMissionBoard } from './MissionBoard.js';
 const CONTENT = {
   shipyard: { title: '⚓ Estaleiro', description: 'Aqui você poderá trocar de navio e equipar canhões.', items: ['Trocar navio', 'Equipar canhões'] },
   missions: { title: '📜 Missões', description: 'O quadro de missões desta região.', items: ['Missões disponíveis em breve'] },
 };
-export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {}, getMissionState = () => ({}), getMissionFlow = () => ({stage:'welcome'}), onRequestNextMission = () => false, getLearningProgress = () => ({}), onLearningAttempt = () => {} } = {}) {
+export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {}, getMissionState = () => ({}), getMissionFlow = () => ({stage:'welcome'}), onRequestNextMission = () => false, getLearningProgress = () => ({}), onLearningAttempt = () => {}, missionBoardOptions = {} } = {}) {
   const panel = document.createElement('section');
   panel.className = 'island-panel';
   panel.hidden = true;
@@ -17,6 +18,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   const description = document.createElement('p');
   const list = document.createElement('div');
   const shipyard = createShipyard(shipyardOptions);
+  const missionBoard = createMissionBoard(missionBoardOptions);
   const acceptMission = document.createElement('button');
   acceptMission.type = 'button';
   acceptMission.className = 'primary-button';
@@ -85,7 +87,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   close.type = 'button'; close.className = 'primary-button';
   close.textContent = 'Voltar ao mar';
   close.addEventListener('click', () => { panel.hidden = true; });
-  card.append(title, description, list, shipyard.element, acceptMission, mathBox, close); panel.append(card);
+  card.append(title, description, list, shipyard.element, acceptMission, mathBox, missionBoard.element, close); panel.append(card);
   return {
     element: panel,
     get isOpen() { return !panel.hidden; },
@@ -97,10 +99,13 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       shipyard.element.hidden = kind !== 'shipyard';
       list.hidden = kind === 'shipyard';
       acceptMission.hidden = kind !== 'missions' || isFirstMissionAccepted();
-      const mission = getMissionState();
       const flow = getMissionFlow();
       mathBox.hidden = kind !== 'missions' || flow.stage !== 'mission';
       if (!mathBox.hidden) prepareChallenge();
+      const freePlay = kind === 'missions' && ['free', 'ready2', 'stage2'].includes(flow.stage);
+      missionBoard.setHidden(!freePlay);
+      if (freePlay) missionBoard.show();
+      list.hidden = kind === 'shipyard' || freePlay;
       if (kind === 'shipyard') shipyard.show();
       list.replaceChildren(...(kind === 'missions' ? [flow.stage === 'mission' ? 'Canhão equipado! Resolva a continha para iniciar a missão.' : flow.stage === 'combat' ? 'Missão em andamento: afunde 1 Corsário das Velas Rubras.' : flow.stage === 'next' ? 'Missão concluída: Corsário das Velas Rubras afundado!' : flow.stage === 'equip' ? 'Equipe um canhão no Estaleiro para continuar.' : 'Aceite sua primeira missão para começar.'] : content.items).map(item => {
         const p = document.createElement('p');
