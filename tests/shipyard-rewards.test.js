@@ -29,6 +29,13 @@ test('cada canhão possuído pode ocupar um slot sem apagar outro igual',()=>{
   slots=equipCannon(slots,ship,1,'royal-lion',3,available,{'royal-lion':3});
   slots=equipCannon(slots,ship,2,'royal-lion',3,available,{'royal-lion':3});
   assert.deepEqual(slots[ship],['royal-lion','royal-lion','royal-lion']);
-  assert.throws(()=>equipCannon(slots,'other',0,'royal-lion',1,available,{'royal-lion':3}),/Not enough/);
+  const other = equipCannon(slots,'other',0,'royal-lion',1,available,{'royal-lion':3});
+  assert.deepEqual(other.other,['royal-lion']);
+  let twoOwned = {};
+  twoOwned = equipCannon(twoOwned,ship,0,'royal-lion',3,available,{'royal-lion':2});
+  twoOwned = equipCannon(twoOwned,ship,1,'royal-lion',3,available,{'royal-lion':2});
+  assert.throws(()=>equipCannon(twoOwned,ship,2,'royal-lion',3,available,{'royal-lion':2}),/Not enough/);
+  const reused = equipCannon(twoOwned,'other',0,'royal-lion',3,available,{'royal-lion':2});
+  assert.equal(reused.other[0],'royal-lion');
   assert.equal(unequipCannon(slots,ship,1,3)[ship][1],null);
 });
