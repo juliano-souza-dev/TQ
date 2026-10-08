@@ -59,10 +59,13 @@ export class HalloweenFogRenderer {
     this.onContextLost = event => {
       event.preventDefault();
       this.ready = false;
+      this.canvas.classList?.add('halloween-fog-fallback');
       this.releaseGpuHandles();
     };
     this.onContextRestored = () => {
-      if (!this.disposed) this.init();
+      if (!this.disposed && this.init()) {
+        this.canvas.classList?.remove('halloween-fog-fallback');
+      }
     };
     canvas.addEventListener?.('webglcontextlost', this.onContextLost, false);
     canvas.addEventListener?.('webglcontextrestored', this.onContextRestored, false);
@@ -86,7 +89,8 @@ export class HalloweenFogRenderer {
         antialias: false,
         depth: false,
         stencil: false,
-        preserveDrawingBuffer: false,
+        // Keep the last fog frame visible between throttled draws.
+        preserveDrawingBuffer: true,
         powerPreference: 'low-power',
       });
       if (!gl) return false;
