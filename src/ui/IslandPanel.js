@@ -3,7 +3,7 @@ const CONTENT = {
   shipyard: { title: '⚓ Estaleiro', description: 'Aqui você poderá trocar de navio e equipar canhões.', items: ['Trocar navio', 'Equipar canhões'] },
   missions: { title: '📜 Missões', description: 'O quadro de missões desta região.', items: ['Missões disponíveis em breve'] },
 };
-export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false } = {}) {
+export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {} } = {}) {
   const panel = document.createElement('section');
   panel.className = 'island-panel';
   panel.hidden = true;
@@ -15,7 +15,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   const title = document.createElement('h2');
   const description = document.createElement('p');
   const list = document.createElement('div');
-  const shipyard = createShipyard();
+  const shipyard = createShipyard(shipyardOptions);
   const acceptMission = document.createElement('button');
   acceptMission.type = 'button';
   acceptMission.className = 'primary-button';
