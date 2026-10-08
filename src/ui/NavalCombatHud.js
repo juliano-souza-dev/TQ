@@ -52,7 +52,11 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   feedback.className = 'combat-feedback';
   feedback.setAttribute('aria-live', 'polite');
 
-  element.append(hullRow, ammoSelect, ammoQuantity, fireIconButton, fireButton, feedback);
+  const attackControls = document.createElement('div');
+  attackControls.className = 'combat-attack-controls';
+  // Botão legado à esquerda, novo controle no extremo direito do HUD.
+  attackControls.append(fireButton, fireIconButton);
+  element.append(hullRow, ammoSelect, ammoQuantity, attackControls, feedback);
   let optionFingerprint = '';
 
   function setFeedback(text) {
