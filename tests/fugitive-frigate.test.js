@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FUGITIVE_FRIGATE_SHIP } from '../src/ships/FugitiveFrigateShip.js';
-import { NPC_SHIP_CATALOG, SHIP_CATALOG } from '../src/ships/ShipRegistry.js';
+import { NPC_SHIP_CATALOG, SHIP_CATALOG, getShipFrame } from '../src/ships/ShipRegistry.js';
 import {
   createFugitiveFrigate, updateFugitiveFrigate, createFugitiveFrigatePopulation,
   updateFugitiveFrigatePopulation, FUGITIVE_FRIGATE_NPC,
@@ -58,4 +58,29 @@ test('populacao de fuga nasce longe do jogador e nunca cria duplicatas', () => {
   assert.equal(npc.health > 0, true);
   updateFugitiveFrigatePopulation(world, 16, () => .25);
   assert.equal(npc.aggression, 'flee');
+});
+
+test('Ladrao da Sombra tem quadros por direcao, com espelhamento apenas onde necessario', () => {
+  const { sprite } = FUGITIVE_FRIGATE_SHIP;
+  assert.equal(sprite.framesByHeading.length, 16);
+  assert.equal(sprite.flipXByHeading.length, 16);
+  assert.deepEqual(sprite.framesByHeading, [
+    15, 13, 11, 10, 5, 3, 2, 1,
+    0, 1, 2, 3, 5, 7, 9, 13,
+  ]);
+  for (let i = 0; i < 16; i++) {
+    const heading = i * 22.5;
+    assert.equal(getShipFrame(heading, FUGITIVE_FRIGATE_SHIP), sprite.framesByHeading[i],
+      'rumo ' + heading);
+    assert.ok(sprite.framesByHeading[i] >= 0 && sprite.framesByHeading[i] < 16);
+    assert.equal(typeof sprite.flipXByHeading[i], 'boolean');
+  }
+  assert.equal(getShipFrame(0, FUGITIVE_FRIGATE_SHIP), 15, 'proa para cima');
+  assert.equal(getShipFrame(90, FUGITIVE_FRIGATE_SHIP), 5, 'quadro de perfil espelhado para Leste');
+  assert.equal(sprite.flipXByHeading[4], true);
+  assert.equal(getShipFrame(180, FUGITIVE_FRIGATE_SHIP), 0, 'proa para baixo');
+  assert.equal(getShipFrame(270, FUGITIVE_FRIGATE_SHIP), 5, 'perfil sem espelhamento para Oeste');
+  assert.equal(sprite.flipXByHeading[12], false);
+  assert.equal(getShipFrame(-90, FUGITIVE_FRIGATE_SHIP), 5);
+  assert.equal(getShipFrame(360, FUGITIVE_FRIGATE_SHIP), 15);
 });
