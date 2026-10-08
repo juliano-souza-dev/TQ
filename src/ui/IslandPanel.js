@@ -101,7 +101,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       mathBox.hidden = kind !== 'missions' || mission.firstMission !== 'equipped';
       if (!mathBox.hidden) prepareChallenge();
       if (kind === 'shipyard') shipyard.show();
-      list.replaceChildren(...(kind === 'missions' ? [mission.firstMission === 'equipped' ? 'Canhão equipado! Resolva a continha para receber a próxima missão.' : mission.navigation === 'active' ? 'Missão em andamento: navegue 300 metros.' : mission.navigation === 'complete' ? 'Missão concluída: você navegou 300 metros!' : 'Primeira missão: visite o Estaleiro e prepare seu canhão.'] : content.items).map(item => {
+      list.replaceChildren(...(kind === 'missions' ? [mission.firstMission === 'equipped' ? 'Canhão equipado! Resolva a continha para receber a próxima missão.' : mission.corsair === 'active' ? 'Missão em andamento: afunde 1 Corsário das Velas Rubras.' : mission.corsair === 'complete' ? 'Missão concluída: Corsário das Velas Rubras afundado!' : 'Primeira missão: visite o Estaleiro e prepare seu canhão.'] : content.items).map(item => {
         const p = document.createElement('p');
         p.textContent = item; return p;
       }));
