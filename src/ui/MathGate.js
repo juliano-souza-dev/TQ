@@ -91,8 +91,8 @@ export function createMathGate({
         if (value !== challenge.answer) {
           mistakeMade = true;
           button.disabled = true;
-          markAnswer({ correct: false, chosen: button, expected: challenge.answer, revealExpected: false });
-          feedback.textContent = '✕ Resposta incorreta. Tente novamente!';
+          markAnswer({ correct: false, chosen: button, expected: challenge.answer });
+          feedback.textContent = '✕ Resposta incorreta. A correta está marcada em verde. Tente novamente!';
           feedback.dataset.result = 'wrong';
           return;
         }
