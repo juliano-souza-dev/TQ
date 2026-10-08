@@ -1,7 +1,7 @@
-// Fragata NPC de evasão. Não é concedida, vendida ou equipável pelo jogador.
+// Navio NPC de evasão. Não é concedida, vendida ou equipável pelo jogador.
 export const FUGITIVE_FRIGATE_SHIP = Object.freeze({
   id: 'fragata-sombra-fugitiva',
-  name: 'Fragata Sombra Fugitiva',
+  name: 'Ladrão da Sombra',
   status: 'npc-only',
   playable: false,
   npcEnabled: true,
