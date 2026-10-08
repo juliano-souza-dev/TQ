@@ -127,13 +127,14 @@ async function startWorld() {
     });
     lastFired=result.lastFired;
     if (!result.spent) {
-      combatFeedback.textContent = result.reason==='ammo'?'Sem munição.':'Fora do alcance ou recarregando.';
+      combatFeedback.textContent = result.reason==='ammo' ? 'Sem munição.' : result.reason==='no-cannon' ? 'Nenhum canhão válido equipado.' : result.reason==='range' ? 'Alvo fora do alcance do canhão.' : result.reason==='cooldown' ? 'Recarregando: ' + (result.cooldownMs / 1000).toFixed(1) + ' s' : 'Não foi possível disparar.';
       return;
     }
     localSaves.save(currentUser.uid,{...save,ammunition:{...save.ammunition,'rusted-iron':getAmmoCount()-result.spent}});
     refreshAmmo();
     if (result.damage && target.archetype===RED_SAIL_CORSAIR.id) damageCorsair(target,result.damage,'player');
-    combatFeedback.textContent = result.shots.filter(shot=>shot.hit).length+' acertos · '+result.damage+' dano';
+    const hits = result.shots.filter(shot=>shot.hit).length;
+    combatFeedback.textContent = hits ? '💥 ' + result.shots.length + ' disparo(s) · ' + hits + ' acerto(s) · ' + result.damage + ' dano' : '💨 ' + result.shots.length + ' disparo(s) efetuado(s), mas erraram o alvo. Recarga: 7 s.';
     if (target.health<=0 && target.archetype===RED_SAIL_CORSAIR.id) {
       const current=localSaves.load(currentUser.uid)?.payload ?? {};
       if (current.missions?.corsair==='active') {
