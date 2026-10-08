@@ -60,3 +60,53 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .portal-play { font-size: 22px; }
   .portal-footer { padding: 6px 14px 12px; }
 }
+
+
+/* Mobile-first navigation joystick: visual-only HUD, isolated from WebGL. */
+.analog-joystick {
+  position: fixed;
+  left: max(14px, env(safe-area-inset-left));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 20;
+  width: clamp(116px, 34vw, 154px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid rgba(105, 217, 255, .8);
+  background: radial-gradient(circle at 38% 30%, rgba(54, 164, 207, .4), rgba(3, 28, 61, .78) 72%);
+  box-shadow: inset 0 0 17px #59cfff88, 0 0 13px #032c64aa;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  display: grid;
+  place-items: center;
+}
+.analog-joystick::before {
+  content: '⌃';
+  position: absolute;
+  top: 3px;
+  font-size: 26px;
+  color: #a4efff;
+  text-shadow: 0 0 8px #4bc7ff;
+  pointer-events: none;
+}
+.analog-knob {
+  width: 48%;
+  aspect-ratio: 1;
+  border: 4px ridge #e5b65c;
+  border-radius: 50%;
+  background: radial-gradient(circle, #d9a64c 0 9%, #68401d 11% 35%, #b67c35 65%, #40240f 100%);
+  box-shadow: 0 4px 12px #00192c, inset 0 0 10px #ffe2a06e;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  will-change: transform;
+}
+.analog-knob::after {
+  content: '✦';
+  font-size: clamp(25px, 7vw, 38px);
+  color: #f4ca76;
+  text-shadow: 0 2px 3px #2b1507;
+}
+@media (min-width: 800px) {
+  .analog-joystick { left: 24px; bottom: 24px; width: 148px; }
+}
