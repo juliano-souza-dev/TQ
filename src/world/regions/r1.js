@@ -1,5 +1,6 @@
 const versionedAsset = path => { const url = new URL(path, import.meta.url); if (globalThis.__TQ_ASSET_VERSION__) url.searchParams.set('v', globalThis.__TQ_ASSET_VERSION__); return url.href; };
 // World configuration only. Shared textures live in assets/globals.
+const OCEAN_TEXTURE = versionedAsset('../../../assets/globals/ocean-tile-tabuada-region01.webp');
 export const R1 = Object.freeze({
   id: 'r1',
   name: 'Enseada dos Aprendizes',
@@ -12,10 +13,34 @@ export const R1 = Object.freeze({
     Object.freeze({ id: 'scenery', kind: 'decoration', x: 2180, y: 2950, size: 1150, width: 900, height: 740, asset: versionedAsset('../../../assets/regions/islands/ilha_fundo_transparente.png') }),
   ]),
   ocean: Object.freeze({
-    texture: versionedAsset('../../../assets/globals/ocean-tile-tabuada-region01.webp'),
+    // Identical source image to the old R1 (the Git blob SHA matches).
+    texture: OCEAN_TEXTURE,
+    background: OCEAN_TEXTURE,
+    active: true,
+    renderer: "webgl",
+    preset: "calm",
+    speed: 58,
+    directionX: 1,
+    directionY: 0.68,
+    swell: 55,
     tileSize: 590,
-    flowX: 0.012,
-    flowY: 0.008,
-    waveStrength: 0.008,
+    brightness: 62,
+    saturation: 62,
+    contrast: 72,
+    tintR: 84,
+    tintG: 79,
+    tintB: 99,
+    distortion: 20,
+    waveFrequencyA: 24,
+    waveFrequencyB: 29,
+    waveMix: 56,
+    foamMix: 48,
+    sparkleIntensity: 18,
+    sparkleSharpness: 32,
+    layers: Object.freeze({
+      deep: Object.freeze({ background: OCEAN_TEXTURE, parallax: 0.22, driftX: 7, driftY: 4, tileScale: 1.18, opacity: 1 }),
+      wave: Object.freeze({ background: OCEAN_TEXTURE, parallax: 0.45, driftX: 18, driftY: 11, tileScale: 0.72, opacity: 0.34 }),
+      foam: Object.freeze({ background: OCEAN_TEXTURE, parallax: 0.68, driftX: 36, driftY: 24, tileScale: 0.48, opacity: 0.2 }),
+    }),
   }),
 });
