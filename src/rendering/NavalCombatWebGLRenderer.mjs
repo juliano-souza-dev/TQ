@@ -398,24 +398,30 @@ export class NavalCombatWebGLRenderer{
       const elapsed=now-shot.startTime;
       if(elapsed>=shot.duration&&!shot.impactSpawned){
         shot.impactSpawned=true;
-        const section=shot.impactKind==="water"?shot.fx.impactWater:shot.fx.impactShip;
+        // Game rules decide if a moving ship was actually hit. The renderer
+        // only paints that outcome, never decides damage or consumes ammo.
+        let outcome=null;
+        try{
+          outcome=shot.onImpact?.({at:{x:shot.to.x,y:shot.to.y},shot})||null;
+        }catch(error){
+          console.warn("[TabuadaQuest] Naval impact callback failed:",error);
+        }
+        const impactKind=outcome?.kind==="water"?"water"
+          :(outcome?.kind==="monster"?"monster":(outcome?.kind==="ship"?"ship":shot.impactKind));
+        const section=impactKind==="water"?shot.fx.impactWater:shot.fx.impactShip;
         if(section.enabled){
-          const piercing=shot.impactKind==="ship"&&String(shot.fx?.preset||"")==="piercing";
+          const piercing=impactKind==="ship"&&String(shot.fx?.preset||"")==="piercing";
           this.impacts.push({
-            x:shot.to.x,
-            y:shot.to.y,
+            x:shot.to.x,y:shot.to.y,
             startTime:shot.startTime+shot.duration,
             duration:Math.min(680,section.durationMs),
-            kind:shot.impactKind,
-            effect:shot.impactKind==="monster"?"blood":(piercing?"piercing-shrapnel":"profile"),
+            kind:impactKind,
+            effect:impactKind==="monster"?"blood":(piercing?"piercing-shrapnel":"profile"),
             fx:shot.fx,
             seed:Math.abs(Math.sin(shot.to.x*.017+shot.to.y*.031+shot.startTime*.0001))
           });
           const impactCap=this.reducedFx?5:12;
           if(this.impacts.length>impactCap)this.impacts.splice(0,this.impacts.length-impactCap);
-        }
-        try{shot.onImpact?.()}catch(error){
-          console.warn("[TabuadaQuest] Naval impact callback failed:",error);
         }
       }
     }
