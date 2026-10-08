@@ -200,3 +200,45 @@ test('fragata em fuga nao atira, inclusive quando recebe dano', () => {
   t.battle.update(16, 2000);
   assert.equal(t.shots.length, 1);
 });
+
+test('mira automatica prioriza menor vida dentro do alcance real', () => {
+  const t = battleHarness();
+  const close = { ...t.enemy, id:'close', x:180, health:20 };
+  const weak = { ...t.enemy, id:'weak', x:240, health:5 };
+  const far = { ...t.enemy, id:'far', x:4000, health:1 };
+  t.battle.getEntities = () => new Map([[close.id,close],[weak.id,weak],[far.id,far]]);
+  t.battle.setTarget(null);
+  t.battle.updateAutoTarget(160);
+  assert.equal(t.battle.targetId,'weak');
+  weak.health = 0;
+  t.battle.updateAutoTarget(160);
+  assert.equal(t.battle.targetId,'close');
+  close.x = 4000;
+  t.battle.updateAutoTarget(160);
+  assert.equal(t.battle.targetId,null);
+});
+
+test('mira automatica desempata por distancia e respeita selecao manual ate sair do alcance', () => {
+  const t = battleHarness();
+  const close = { ...t.enemy, id:'close', x:160, health:10 };
+  const far = { ...t.enemy, id:'far', x:240, health:10 };
+  t.battle.getEntities = () => new Map([[far.id,far],[close.id,close]]);
+  t.battle.setTarget(null);
+  t.battle.updateAutoTarget(160);
+  assert.equal(t.battle.targetId,'close');
+  t.battle.setTarget('far',{manual:true});
+  close.health = 1;
+  t.battle.updateAutoTarget(160);
+  assert.equal(t.battle.targetId,'far');
+  far.x = 5000;
+  t.battle.updateAutoTarget(160);
+  assert.equal(t.battle.targetId,'close');
+});
+
+test('mira nao adquire alvo quando nenhum canhao esta equipado', () => {
+  const t = battleHarness();
+  t.save.equipment.loadout.starter = [];
+  t.battle.setTarget(null);
+  t.battle.updateAutoTarget(160);
+  assert.equal(t.battle.targetId,null);
+});
