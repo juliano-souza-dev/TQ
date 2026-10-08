@@ -37,6 +37,8 @@ export function createMathGate({
   let mistakeMade = false;
   let resolved = false;
   let closeTimer = null;
+  let attempts = 0;
+  const maxAttempts = 5;
   const vibrate = pattern => { try { globalThis.navigator?.vibrate?.(pattern); } catch {} };
   function clearFeedbackState() {
     card.classList.remove('is-answer-correct', 'is-answer-wrong');
@@ -72,13 +74,17 @@ export function createMathGate({
     cancel.disabled = false;
     const region = getRegion();
     const challenge = chooseRegionChallenge(getPedagogy(), family, Math.random, region);
-    pending = { kind, id, challenge, afterSuccess };
+    pending = { kind, id, challenge, afterSuccess, family, region };
+    attempts = 0;
     mistakeMade = false;
     resolved = false;
     title.textContent = heading || 'Resolva a continha';
     description.textContent = explanation || 'Escolha a resposta para continuar.';
+    function renderRound() {
+    const challenge = pending.challenge;
+    clearFeedbackState();
     problem.textContent = challenge.a + ' × ' + challenge.b + ' = ?';
-    feedback.textContent = 'Escolha uma das quatro respostas.';
+    feedback.textContent = 'Tentativa ' + (attempts + 1) + '/' + maxAttempts + '. Escolha uma resposta.';
     feedback.dataset.result = '';
     answers.replaceChildren();
     for (const value of buildMultipleChoiceAnswers(challenge.answer)) {
@@ -118,6 +124,8 @@ export function createMathGate({
       });
       answers.append(button);
     }
+    }
+    renderRound();
     element.hidden = false;
     cancel.focus();
     return true;
