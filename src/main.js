@@ -13,6 +13,7 @@ let authService = null;
 let currentUser = null;
 let loop = null;
 let oceanRenderer = null;
+let shipCanvas = null;
 let worldGeneration = 0;
 const GUEST_UID = 'local-guest';
 const LOCAL_SESSION_KEY = 'tq:local-session:v1';
@@ -24,6 +25,8 @@ function stopWorld() {
   loop = null;
   if (oceanRenderer) oceanRenderer.dispose();
   oceanRenderer = null;
+  if (shipCanvas) shipCanvas.remove();
+  shipCanvas = null;
 }
 
 function enterLocalMode() {
@@ -43,18 +46,24 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }] = await Promise.all([
-    import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'), import('./ui/AnalogJoystick.js'),
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { advanceNavigation }] = await Promise.all([
+    import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
+    import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'), import('./world/NavigationSystem.js'),
   ]);
   if (generation !== worldGeneration) return;
   const world = createWorldState();
   const joystick = createAnalogJoystick();
-  root.append(joystick.element);
+  shipCanvas = document.createElement('canvas');
+  shipCanvas.className = 'ship-layer';
+  shipCanvas.setAttribute('aria-label', 'Navio do jogador');
+  root.append(shipCanvas, joystick.element);
+  const shipRenderer = new ShipRenderer(shipCanvas);
+  let heading = 0;
   let renderer;
   try {
     renderer = new OceanRenderer(canvas);
     oceanRenderer = renderer;
-    await renderer.init(world.region.ocean.texture);
+    await Promise.all([renderer.init(world.region.ocean.texture), shipRenderer.init()]);
     if (generation !== worldGeneration) { renderer.dispose(); return; }
   } catch (error) {
     if (generation !== worldGeneration) return;
@@ -74,11 +83,12 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       const input = joystick.getVector();
-      const speed = 80;
-      world.camera.x = Math.max(0, Math.min(world.region.width, world.camera.x + input.x * speed * stepMs / 1000));
-      world.camera.y = Math.max(0, Math.min(world.region.height, world.camera.y + input.y * speed * stepMs / 1000));
+      if (Math.hypot(input.x, input.y) > 0.12) {
+        heading = (Math.atan2(input.x, -input.y) * 180 / Math.PI + 360) % 360;
+      }
+      advanceNavigation(world, input, stepMs);
     },
-    render: () => renderer.render(world, oceanTimeMs),
+    render: () => { renderer.render(world, oceanTimeMs); shipRenderer.render(heading); },
   });
   if (!document.hidden) loop.start();
   // This first local save contains only the minimal world metadata.
