@@ -111,7 +111,47 @@ async function startWorld() {
   });
   minimapElement = minimap.element;
   root.append(minimapElement);
+  const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
+  const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+  const equipment = readSave().equipment ?? {};
+  const missionHud = document.createElement('aside');
+  missionHud.className = 'mission-progress-hud';
+  missionHud.setAttribute('aria-live', 'polite');
+  root.append(missionHud);
+  const updateMissionHud = () => {
+    const mission = readSave().missions ?? {};
+    missionHud.hidden = !mission.firstMission && !mission.navigation;
+    missionHud.textContent = mission.navigation === 'active'
+      ? '📜 Navegue pelo oceano · ' + Math.min(300, Math.floor(mission.distance ?? 0)) + '/300 m'
+      : mission.firstMission === 'active' ? '📜 Equipe um canhão · ' + (Object.values(readSave().equipment?.loadout ?? {}).some(slots => slots.some(Boolean)) ? '1/1' : '0/1')
+      : mission.firstMission === 'equipped' ? '📜 Volte ao Porto das Missões · 0/1' : '';
+  };
   const islandPanel = createIslandPanel({
+    shipyardOptions: {
+      loadout: equipment.loadout ?? {},
+      ownedCannonIds: equipment.ownedCannonIds ?? [],
+      onLoadoutChange: loadout => {
+        const save = readSave();
+        const missions = { ...save.missions };
+        if (missions.firstMission === 'active' && Object.values(loadout).some(slots => slots.some(Boolean))) {
+          missions.firstMission = 'equipped';
+          firstVoyageGuide?.guideTo('missions');
+        }
+        writePatch({ equipment: { ...save.equipment, loadout }, missions });
+        updateMissionHud();
+      },
+    },
+    onRequestNextMission: (answer) => {
+      const a = 3, b = 4;
+      if (Number(answer) !== a * b) return false;
+      const save = readSave();
+      writePatch({ missions: { ...save.missions, firstMission: 'complete', navigation: 'active', distance: 0 } });
+      firstVoyageGuide?.finish();
+      firstVoyageGuide?.dispose();
+      firstVoyageGuide = null;
+      updateMissionHud();
+      return true;
+    },
     isFirstMissionAccepted: () => Boolean(localSaves.load(currentUser.uid)?.payload?.tutorial?.firstMissionAccepted),
     onAcceptFirstMission: () => {
       const save = localSaves.load(currentUser.uid)?.payload ?? {};
@@ -120,6 +160,7 @@ async function startWorld() {
         missions: { ...save.missions, firstMission: 'active' },
       });
       firstVoyageGuide?.guideTo('shipyard');
+      updateMissionHud();
     },
   });
   islandPanelElement = islandPanel.element;
@@ -141,6 +182,7 @@ async function startWorld() {
       contactId = contact.id;
       clickNavigation.cancel();
       islandPanel.open(contact.kind);
+      updateMissionHud();
       if (contact.kind === 'shipyard' && localSaves.load(currentUser.uid)?.payload?.missions?.firstMission === 'active') {
         firstVoyageGuide?.finish();
         firstVoyageGuide?.dispose();
@@ -171,7 +213,17 @@ async function startWorld() {
     if (generation !== worldGeneration) return;
     firstVoyageGuide = createFirstVoyageGuide(world);
     root.append(...firstVoyageGuide.elements);
-    if (firstVoyageComplete) firstVoyageGuide.guideTo('shipyard');
+    if (firstVoyageComplete) firstVoyageGuide.guideTo(previousSave?.payload?.missions?.firstMission === 'equipped' ? 'missions' : 'shipyard');
+  }
+  updateMissionHud();
+  function trackMissionTravel(fromX, fromY) {
+    const mission = readSave().missions ?? {};
+    if (mission.navigation !== 'active') return;
+    const moved = Math.hypot(world.camera.x - fromX, world.camera.y - fromY);
+    if (moved < 0.01) return;
+    const distance = Math.min(300, (mission.distance ?? 0) + moved);
+    writePatch({ missions: { ...mission, distance, navigation: distance >= 300 ? 'complete' : 'active' } });
+    updateMissionHud();
   }
   let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
   let oceanTimeMs = 0;
@@ -201,6 +253,7 @@ async function startWorld() {
         heading = (Math.atan2(input.x, -input.y) * 180 / Math.PI + 360) % 360;
         const fromX = world.camera.x, fromY = world.camera.y;
         advanceNavigation(world, input, stepMs, shipSpeed);
+        trackMissionTravel(fromX, fromY);
         checkDockContact(fromX, fromY, input.x, input.y, stepMs);
       } else {
         const destination = clickNavigation.getDestination();
@@ -209,6 +262,7 @@ async function startWorld() {
           const dx = destination.x - fromX, dy = destination.y - fromY;
           const distance = Math.hypot(dx, dy);
           const result = advanceTowardDestination(world, destination, stepMs, shipSpeed);
+          trackMissionTravel(fromX, fromY);
           if (distance > 0) checkDockContact(fromX, fromY, dx / distance, dy / distance, stepMs);
           if (result.heading !== null) heading = result.heading;
           if (result.arrived) clickNavigation.cancel();
