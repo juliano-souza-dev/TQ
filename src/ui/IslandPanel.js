@@ -1,9 +1,10 @@
+import { getLearningChallenge } from '../education/LearningProgress.js';
 import { createShipyard } from './Shipyard.js';
 const CONTENT = {
   shipyard: { title: '⚓ Estaleiro', description: 'Aqui você poderá trocar de navio e equipar canhões.', items: ['Trocar navio', 'Equipar canhões'] },
   missions: { title: '📜 Missões', description: 'O quadro de missões desta região.', items: ['Missões disponíveis em breve'] },
 };
-export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {}, getMissionState = () => ({}), onRequestNextMission = () => false } = {}) {
+export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {}, getMissionState = () => ({}), onRequestNextMission = () => false, getLearningProgress = () => ({}), onLearningAttempt = () => {} } = {}) {
   const panel = document.createElement('section');
   panel.className = 'island-panel';
   panel.hidden = true;
@@ -34,11 +35,12 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   const feedback = document.createElement('p');
   feedback.className = 'mission-math-feedback';
   feedback.setAttribute('aria-live', 'polite');
-  let correctAnswer = 12;
+  let correctAnswer = 1;
+  let mistakeMade = false;
   let solved = false;
   function prepareChallenge() {
-    const a = 2 + Math.floor(Math.random() * 8);
-    const b = 2 + Math.floor(Math.random() * 8);
+    const { a, b } = getLearningChallenge(getLearningProgress());
+    mistakeMade = false;
     correctAnswer = a * b;
     solved = false;
     question.textContent = 'Resolva para iniciar a próxima missão: ' + a + ' × ' + b + ' = ?';
@@ -59,6 +61,8 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       button.addEventListener('click', () => {
         if (solved) return;
         if (value !== correctAnswer) {
+          mistakeMade = true;
+          onLearningAttempt(false, false);
           button.classList.add('is-wrong');
           button.disabled = true;
           feedback.textContent = '✗ Ainda não! Tente outra resposta.';
@@ -66,6 +70,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
           return;
         }
         if (!onRequestNextMission(value, correctAnswer)) return;
+        onLearningAttempt(true, !mistakeMade);
         solved = true;
         button.classList.add('is-correct');
         for (const option of choices.children) option.disabled = true;
