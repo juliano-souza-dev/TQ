@@ -124,13 +124,15 @@ export class NavalBattleController {
 
   update(stepMs, now = this.clock()) {
     this.trackMovement(stepMs);
-    const status = this.getStatus();
-    if (this.firing && !status.ready) {
-      this.firing = false;
-      this.onFeedback(status.reason === 'range'
-        ? '⏸ Alvo saiu do alcance.' : '⏹ Disparos interrompidos.');
+    // Do not parse localStorage every frame when no cannon is firing.
+    if (this.firing) {
+      const status = this.getStatus();
+      if (!status.ready) {
+        this.firing = false;
+        this.onFeedback(status.reason === 'range'
+          ? '⏸ Alvo saiu do alcance.' : '⏹ Disparos interrompidos.');
+      } else this.firePlayerVolley(now);
     }
-    if (this.firing) this.firePlayerVolley(now);
     this.fireNpcVolleys(now);
   }
 
