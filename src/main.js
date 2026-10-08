@@ -171,13 +171,30 @@ async function startWorld() {
   root.append(minimapElement);
   const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+  const hasEquippedCannon = save => (save.equipment?.loadout?.[STARTER_SHIP.id] ?? []).some(Boolean);
+  function reconcileTutorial() {
+    const save = readSave();
+    const missions = { ...save.missions };
+    let changed = false;
+    if (missions.firstMission === 'active' && hasEquippedCannon(save)) {
+      missions.firstMission = 'equipped';
+      changed = true;
+    }
+    if (missions.firstMission === 'equipped' && !hasEquippedCannon(save)) {
+      missions.firstMission = 'active';
+      changed = true;
+    }
+    if (changed) writePatch({ missions });
+    return missions;
+  }
+  reconcileTutorial();
   const equipment = readSave().equipment ?? {};
   const missionHud = document.createElement('aside');
   missionHud.className = 'mission-progress-hud';
   missionHud.setAttribute('aria-live', 'polite');
   root.append(missionHud);
   const updateMissionHud = () => {
-    const mission = readSave().missions ?? {};
+    const mission = reconcileTutorial();
     missionHud.hidden = !mission.firstMission && !mission.corsair;
     missionHud.textContent = mission.corsair === 'active'
       ? '📜 Afunde 1 Corsário das Velas Rubras · 0/1'
@@ -198,9 +215,12 @@ async function startWorld() {
       onLoadoutChange: loadout => {
         const save = readSave();
         const missions = { ...save.missions };
-        if (missions.firstMission === 'active' && Object.values(loadout).some(slots => slots.some(Boolean))) {
+        if (missions.firstMission === 'active' && (loadout[STARTER_SHIP.id] ?? []).some(Boolean)) {
           missions.firstMission = 'equipped';
           firstVoyageGuide?.guideTo('missions');
+        } else if (missions.firstMission === 'equipped' && !(loadout[STARTER_SHIP.id] ?? []).some(Boolean)) {
+          missions.firstMission = 'active';
+          firstVoyageGuide?.guideTo('shipyard');
         }
         writePatch({ equipment: { ...save.equipment, loadout }, missions });
         updateMissionHud();
@@ -219,11 +239,12 @@ async function startWorld() {
     isFirstMissionAccepted: () => Boolean(localSaves.load(currentUser.uid)?.payload?.tutorial?.firstMissionAccepted),
     onAcceptFirstMission: () => {
       const save = localSaves.load(currentUser.uid)?.payload ?? {};
+      const equipped = hasEquippedCannon(save);
       localSaves.save(currentUser.uid, {
         ...save, tutorial: { ...save.tutorial, firstMissionAccepted: true },
-        missions: { ...save.missions, firstMission: 'active' },
+        missions: { ...save.missions, firstMission: equipped ? 'equipped' : 'active' },
       });
-      firstVoyageGuide?.guideTo('shipyard');
+      firstVoyageGuide?.guideTo(equipped ? 'missions' : 'shipyard');
       updateMissionHud();
     },
   });
@@ -247,11 +268,6 @@ async function startWorld() {
       clickNavigation.cancel();
       islandPanel.open(contact.kind);
       updateMissionHud();
-      if (contact.kind === 'shipyard' && localSaves.load(currentUser.uid)?.payload?.missions?.firstMission === 'equipped') {
-        firstVoyageGuide?.finish();
-        firstVoyageGuide?.dispose();
-        firstVoyageGuide = null;
-      }
     }
   }
   let renderer;
@@ -271,13 +287,17 @@ async function startWorld() {
     return;
   }
   const previousSave = localSaves.load(currentUser.uid);
+  const currentMission = reconcileTutorial();
   const firstVoyageComplete = Boolean(previousSave?.payload?.tutorial?.firstMissionAccepted);
-  if (!firstVoyageComplete || previousSave?.payload?.missions?.firstMission === 'active') {
+  const guideDestination = !firstVoyageComplete ? 'missions'
+    : currentMission.firstMission === 'active' ? 'shipyard'
+    : currentMission.firstMission === 'equipped' ? 'missions' : null;
+  if (guideDestination) {
     const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
     if (generation !== worldGeneration) return;
     firstVoyageGuide = createFirstVoyageGuide(world);
     root.append(...firstVoyageGuide.elements);
-    if (firstVoyageComplete) firstVoyageGuide.guideTo(previousSave?.payload?.missions?.firstMission === 'equipped' ? 'missions' : 'shipyard');
+    if (firstVoyageComplete) firstVoyageGuide.guideTo(guideDestination);
   }
   updateMissionHud();
   let positionSaveElapsed = 0;
