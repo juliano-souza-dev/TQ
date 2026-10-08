@@ -23,6 +23,12 @@ export const R1_MISSIONS = Object.freeze([
     reward: { gold: 40, iron: 40 },
   },
   {
+    id: 'r1-treasure-hunt', name: 'As Arcas da Enseada', tier: 1,
+    description: 'Encontre arcas pelo oceano. Abra cada uma resolvendo uma multiplicação.',
+    objectives: [{ kind: 'treasure', count: 2, label: 'Resgate 2 tesouros com continhas' }],
+    reward: { gold: 55, iron: 35 },
+  },
+  {
     id: 'r1-shipyard', name: 'Provisões para o Estaleiro', tier: 1,
     description: 'Visite o estaleiro e prepare a próxima patrulha.',
     objectives: [{ kind: 'visit', island: 'shipyard', count: 1, label: 'Visite o Estaleiro' }],
@@ -150,8 +156,10 @@ export function acceptCampaignMission(save, id, events = EVENTS) {
   const campaign = campaignState(save);
   // Halloween lights are unique finite collectibles; progress already collected
   // before accepting must count, or the optional mission can become impossible.
-  const initial = mission.objectives.map(task => task.kind === 'collect'
-    ? Math.min(task.count, (save.collectedGlints ?? []).length) : 0);
+  const initial = mission.objectives.map(task =>
+    task.kind === 'collect' ? Math.min(task.count, (save.collectedGlints ?? []).length)
+    : task.kind === 'treasure' ? Math.min(task.count, (save.openedTreasures ?? []).length)
+    : 0);
   return { campaign: {
     ...campaign,
     active: [...campaign.active, id],
@@ -167,7 +175,7 @@ function applies(task, event) {
   return true;
 }
 export function recordCampaignEvent(save = {}, event, events = EVENTS) {
-  if (!event || !['defeat', 'study', 'travel', 'visit', 'collect'].includes(event.type)) return null;
+  if (!event || !['defeat', 'study', 'travel', 'visit', 'collect', 'treasure'].includes(event.type)) return null;
   if (save.missions?.corsair !== 'complete') return null;
   const campaign = campaignState(save);
   const dedup = event.id ? event.type + ':' + String(event.id) : null;
