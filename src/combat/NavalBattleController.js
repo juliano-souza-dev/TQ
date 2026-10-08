@@ -148,10 +148,10 @@ export class NavalBattleController {
 
     let remaining = ammoStock(save, ammo.id);
     let spent = 0;
-    for (const { slot, cannon } of battery) {
+    for (const [batteryIndex, { slot, cannon }] of battery.entries()) {
       if (!remaining) break;
       if (now < (this.nextBySlot.get(slot) ?? -Infinity)) continue;
-      const muzzle = cannonHardpoint(player, target, player.heading, slot, battery.length);
+      const muzzle = cannonHardpoint(player, target, player.heading, batteryIndex, battery.length);
       const speed = ammo.projectileSpeed;
       const intercepted = interceptPoint(muzzle, target, this.velocities.get(target.id), speed);
       const destination = aimWithAccuracy(intercepted, muzzle, cannon.accuracy, this.random);
