@@ -259,9 +259,6 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .campaign-answer.is-correct,.math-gate-answer.is-correct {background:#24835a;color:#fff;border-color:#9af3b4;}
 .campaign-answer-feedback,.math-gate-feedback {min-height:26px;text-align:center;}
 .campaign-next {margin-top:10px;}
-.shipyard-repair {margin:14px 0;padding:14px;border-radius:12px;background:#13334c;border:1px solid #b58a52;}
-.shipyard-repair h3 {margin:0 0 10px;color:#ffe4aa;}
-.shipyard-repair button:disabled {opacity:.55;}
 .math-gate[hidden] {display:none!important;}
 .math-gate {position:fixed;inset:0;z-index:75;display:grid;place-items:center;padding:14px;background:rgba(0,15,28,.89);}
 .math-gate-card {width:min(100%,450px);max-height:calc(100dvh - 28px);overflow:auto;border:2px solid #dfb76d;border-radius:18px;padding:clamp(16px,5vw,26px);background:#102f49;color:#fff0d0;box-shadow:0 18px 70px #000b;}
@@ -272,3 +269,9 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 .treasure-nearby-tip[hidden] {display:none!important;}
 .treasure-nearby-tip {position:fixed;top:38%;left:50%;transform:translateX(-50%);z-index:13;pointer-events:none;max-width:min(88vw,330px);padding:10px 13px;text-align:center;border-radius:12px;border:1px solid #f0ca70;background:#112f49e6;color:#fff2ba;box-shadow:0 4px 22px #001b25aa;font:700 13px/1.5 system-ui,sans-serif;}
+
+/* Persistent repair action beside the ship's health, not a port interaction. */
+.combat-hull-row {display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;}
+.combat-hull-row .combat-hull {flex:1;min-width:0;text-align:left;}
+.combat-hud .naval-repair-button {display:grid;place-items:center;flex:0 0 43px;min-width:43px;min-height:43px;padding:0;border:2px solid #dfba68;border-radius:11px;background:#163f55;color:#fff3cd;font-size:24px;touch-action:manipulation;cursor:pointer;}
+.combat-hud .naval-repair-button:disabled {opacity:.32;filter:grayscale(1);cursor:not-allowed;}
