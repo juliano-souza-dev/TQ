@@ -40,7 +40,7 @@ export class NpcRenderer {
       }
       ctx.drawImage(this.image, (frame % columns) * frameW, Math.floor(frame / columns) * frameH,
         frameW, frameH, x - size / 2, y - size / 2, size, size);
-      if (npc.id === selectedId) {
+      {
         ctx.save();
         ctx.font = 'bold ' + Math.round(13 * dpr) + 'px system-ui';
         ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
