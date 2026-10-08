@@ -1,3 +1,5 @@
+import { normalizeJoystickVector } from '../world/WorldNavigationInput.mjs';
+
 // Pointer-only analog input. No world, renderer or gameplay dependencies.
 export function createAnalogJoystick({ onChange = () => {} } = {}) {
   const base = document.createElement('div');
@@ -21,10 +23,8 @@ export function createAnalogJoystick({ onChange = () => {} } = {}) {
     const dy = event.clientY - (rect.top + rect.height / 2);
     const radius = rect.width * 0.28;
     const length = Math.hypot(dx, dy);
-    const factor = length > radius ? radius / length : 1;
-    const x = dx * factor / radius;
-    const y = dy * factor / radius;
-    emit(Math.hypot(x, y) < 0.12 ? 0 : x, Math.hypot(x, y) < 0.12 ? 0 : y);
+    const input = normalizeJoystickVector(dx, dy, radius);
+    emit(input.x, input.y);
   };
   const release = event => {
     if (event.pointerId !== activePointer) return;
