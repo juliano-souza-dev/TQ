@@ -1,3 +1,5 @@
+import { SEA_GLINTS, collectSeaGlint } from './events/HalloweenSeaGlints.js';
+import { EVENTS } from './items/EquipmentCatalog.js';
 import { createProjectile, advanceProjectiles, renderProjectiles } from './combat/Projectiles.js';
 import { getMissionFlow } from './missions/MissionFlow.js';
 import { fireCannons } from './combat/CombatSystem.js';
@@ -105,6 +107,11 @@ async function startWorld() {
   let effects = [];
   let playerHealth = 100;
   let npcFireCooldown = 0;
+  let glintElapsed = 0;
+  const glintCanvas=document.createElement('canvas');
+  glintCanvas.className='glint-layer';
+  root.append(glintCanvas);
+  const glintCtx=glintCanvas.getContext('2d');
   const combatCanvas = document.createElement('canvas');
   combatCanvas.className = 'combat-layer';
   const combatCtx = combatCanvas.getContext('2d');
@@ -351,6 +358,15 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       updateCorsairPopulation(world, stepMs);
+      glintElapsed+=stepMs;
+      if(EVENTS.halloween){
+        const save=readSave();
+        const nearby=SEA_GLINTS.find(g=>!(save.collectedGlints??[]).includes(g.id)&&Math.hypot(g.x-world.camera.x,g.y-world.camera.y)<55);
+        if(nearby){
+          const result=collectSeaGlint(save,nearby.id);
+          if(result){writePatch(result.patch);refreshAmmo();combatFeedback.textContent='🎃 Brilho coletado! +'+result.rewards.simple+' ferro · +'+result.rewards.special+' Halloween · +'+result.rewards.gold+' ouro';}
+        }
+      }
       if(firing)fireVolley();
       projectiles=advanceProjectiles(projectiles,stepMs,p=>{
         addEffect(p.to.x,p.to.y,p.hit?'hit':'splash');
@@ -430,6 +446,25 @@ async function startWorld() {
       combatCtx.clearRect(0,0,w,h);
       renderProjectiles(combatCtx,projectiles,effects,world.cameraView,world.camera.zoom,dpr,w,h);
       minimap.render();
+      const gr=glintCanvas.getBoundingClientRect(),gd=Math.min(window.devicePixelRatio||1,2);
+      const gw=Math.max(1,Math.round(gr.width*gd)),gh=Math.max(1,Math.round(gr.height*gd));
+      if(glintCanvas.width!==gw||glintCanvas.height!==gh){glintCanvas.width=gw;glintCanvas.height=gh;}
+      glintCtx.clearRect(0,0,gw,gh);
+      if(EVENTS.halloween){
+        const collected=readSave().collectedGlints??[];
+        for(const g of SEA_GLINTS){
+          if(collected.includes(g.id))continue;
+          const x=gw/2+(g.x-world.cameraView.x)*world.camera.zoom*gd;
+          const y=gh/2+(g.y-world.cameraView.y)*world.camera.zoom*gd;
+          if(x<0||x>gw||y<0||y>gh)continue;
+          const pulse=1+0.24*Math.sin(glintElapsed/260+g.x);
+          glintCtx.save();glintCtx.translate(x,y);glintCtx.scale(pulse,pulse);
+          glintCtx.shadowColor='#ffcf6b';glintCtx.shadowBlur=26*gd;
+          glintCtx.fillStyle='#fff2a0';glintCtx.beginPath();glintCtx.arc(0,0,6*gd,0,Math.PI*2);glintCtx.fill();
+          glintCtx.strokeStyle='#fff6c7';glintCtx.lineWidth=2*gd;
+          glintCtx.beginPath();glintCtx.moveTo(-16*gd,0);glintCtx.lineTo(16*gd,0);glintCtx.moveTo(0,-16*gd);glintCtx.lineTo(0,16*gd);glintCtx.stroke();glintCtx.restore();
+        }
+      }
     },
   });
   if (!document.hidden) loop.start();
