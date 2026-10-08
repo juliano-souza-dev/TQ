@@ -155,6 +155,12 @@ async function startWorld() {
   glintCanvas.className='glint-layer';
   root.append(glintCanvas);
   const glintCtx=glintCanvas.getContext('2d');
+  const treasurePrompt = document.createElement('div');
+  treasurePrompt.className = 'treasure-nearby-tip';
+  treasurePrompt.hidden = true;
+  treasurePrompt.textContent = '🧰 Tesouro próximo! Toque na arca para resolver a continha e resgatar.';
+  root.append(treasurePrompt);
+
 
   navalCanvas = document.createElement('canvas');
   navalCanvas.className = 'naval-combat-webgl';
@@ -437,6 +443,8 @@ async function startWorld() {
       if (hudRefreshElapsed >= 160) {
         hudRefreshElapsed = 0;
         navalHud.refresh();
+        const near = findTreasureNearPoint(getVisibleTreasures(readSave()), world.camera.x, world.camera.y, 125);
+        treasurePrompt.hidden = !near || mathGate.isOpen || islandPanel.isOpen;
       }
       persistPlayerPosition(stepMs);
       firstVoyageGuide?.update();
