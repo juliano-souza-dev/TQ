@@ -10,8 +10,8 @@ export function createKeyboardCameraInput() {
   };
   const up = event => { pressed.delete(event.code); };
   const clear = () => pressed.clear();
-  window.addEventListener('keydown', down);
-  window.addEventListener('keyup', up);
+  document.addEventListener('keydown', down, true);
+  document.addEventListener('keyup', up, true);
   window.addEventListener('blur', clear);
   return {
     getVector() {
@@ -21,8 +21,8 @@ export function createKeyboardCameraInput() {
       return { x: x / len, y: y / len };
     },
     dispose() {
-      window.removeEventListener('keydown', down);
-      window.removeEventListener('keyup', up);
+      document.removeEventListener('keydown', down, true);
+      document.removeEventListener('keyup', up, true);
       window.removeEventListener('blur', clear);
       clear();
     },
