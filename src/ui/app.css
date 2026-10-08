@@ -201,3 +201,13 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .mission-math input { width:100%; min-height:46px; border:1px solid #b99b6a; border-radius:8px; padding:10px; background:#fff9eb; color:#132332; font-size:20px; }
 .shipyard-cannon-slot { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:10px; margin:8px 0; border:1px solid #987e51; border-radius:10px; background:#082139; }
 .shipyard-cannon-select { max-width:100%; min-height:44px; padding:8px; border-radius:8px; }
+
+.mission-math-question { font-size:clamp(18px,4vw,23px); font-weight:800; text-align:center; color:#ffe6a9; }
+.mission-math-choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:14px 0; }
+.mission-math-option { min-height:62px; border:2px solid #edc56c; border-radius:12px; background:#f4c65c; color:#142536; font-size:clamp(21px,5vw,28px); font-weight:900; cursor:pointer; touch-action:manipulation; }
+.mission-math-option.is-wrong { background:#9e3841; border-color:#ff9e9e; color:white; }
+.mission-math-option.is-correct { background:#27835d; border-color:#9ef1b8; color:white; }
+.mission-math-option:disabled { cursor:default; }
+.mission-math-feedback { text-align:center; min-height:24px; font-weight:700; }
+.mission-math-feedback[data-result="wrong"] { color:#ffb0b0; }
+.mission-math-feedback[data-result="correct"] { color:#a6f3bd; }
