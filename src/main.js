@@ -14,12 +14,17 @@ const localSaves = createLocalSaveStore(window.localStorage);
 let authService = null;
 let currentUser = null;
 let loop = null;
+let oceanRenderer = null;
+let worldGeneration = 0;
 const GUEST_UID = 'local-guest';
 let guestMode = false;
 
 function stopWorld() {
+  worldGeneration++;
   if (loop) loop.stop();
   loop = null;
+  if (oceanRenderer) oceanRenderer.dispose();
+  oceanRenderer = null;
 }
 
 function enterLocalMode() {
@@ -63,7 +68,7 @@ function openPortal() {
   });
 }
 
-function startWorld() {
+async function startWorld() {
   if (!currentUser || syncPreferences.get(currentUser.uid) !== SYNC_MODE.LOCAL) return;
   stopWorld();
   const canvas = document.createElement('canvas');
@@ -71,12 +76,29 @@ function startWorld() {
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
   const world = createWorldState();
-  const renderer = new OceanRenderer(canvas);
+  const generation = worldGeneration;
+  let renderer;
+  try {
+    renderer = new OceanRenderer(canvas);
+    oceanRenderer = renderer;
+    await renderer.init(world.region.ocean.texture);
+    if (generation !== worldGeneration) return;
+  } catch (error) {
+    if (generation !== worldGeneration) return;
+    console.error('Falha ao iniciar oceano WebGL', error);
+    stopWorld();
+    const message = document.createElement('p');
+    message.className = 'error-message';
+    message.textContent = 'Não foi possível iniciar o oceano: ' + error.message;
+    root.replaceChildren(message);
+    return;
+  }
   const previousSave = localSaves.load(currentUser.uid);
   let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
+  let oceanTimeMs = 0;
   loop = new GameLoop({
-    update: (stepMs) => { state = advanceGameState(state, stepMs); },
-    render: () => renderer.render(world),
+    update: (stepMs) => { state = advanceGameState(state, stepMs); oceanTimeMs += stepMs; },
+    render: () => renderer.render(world, oceanTimeMs),
   });
   if (!document.hidden) loop.start();
   // This first local save contains only the minimal world metadata.
