@@ -11,6 +11,22 @@ export const REGION_ONE_TREASURES = Object.freeze([
   { id: 'r1-treasure-06', x: 640, y: 1150 },
   { id: 'r1-treasure-07', x: 2050, y: 770 },
   { id: 'r1-treasure-08', x: 3510, y: 1100 },
+  { id: 'r1-treasure-09', x: 450, y: 450 },
+  { id: 'r1-treasure-10', x: 1050, y: 450 },
+  { id: 'r1-treasure-11', x: 1650, y: 450 },
+  { id: 'r1-treasure-12', x: 2650, y: 450 },
+  { id: 'r1-treasure-13', x: 3450, y: 450 },
+  { id: 'r1-treasure-14', x: 3890, y: 650 },
+  { id: 'r1-treasure-15', x: 3850, y: 1720 },
+  { id: 'r1-treasure-16', x: 3850, y: 2250 },
+  { id: 'r1-treasure-17', x: 3850, y: 3500 },
+  { id: 'r1-treasure-18', x: 3350, y: 3850 },
+  { id: 'r1-treasure-19', x: 2650, y: 3850 },
+  { id: 'r1-treasure-20', x: 1950, y: 3850 },
+  { id: 'r1-treasure-21', x: 1250, y: 3850 },
+  { id: 'r1-treasure-22', x: 550, y: 3650 },
+  { id: 'r1-treasure-23', x: 300, y: 2800 },
+  { id: 'r1-treasure-24', x: 320, y: 1850 },
 ]);
 function hashId(id) {
   let seed = 2166136261;
