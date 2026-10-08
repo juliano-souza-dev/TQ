@@ -5,6 +5,7 @@ export const HALLOWEEN_TABUADA_SHIP = Object.freeze({
   description: 'Galeão pirata de Halloween com velas ilustradas por multiplicações.',
   status: 'catalog-only',
   cannonSlots: 10,
+  speed: Object.freeze({ min: 300, initial: 300, max: 360 }),
   playable: false,
   npcEnabled: false,
   shopEnabled: false,
