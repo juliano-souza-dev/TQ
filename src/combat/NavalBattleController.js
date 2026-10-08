@@ -198,7 +198,7 @@ export class NavalBattleController {
       damageCorsair(target, damage, 'player');
     } else {
       target.health = Math.max(0, target.health - damage);
-      target.state = target.health ? 'retaliating' : 'sunk';
+      target.state = target.health ? (target.aggression === 'flee' ? 'fleeing' : 'retaliating') : 'sunk';
       target.lastAttackerId = 'player';
     }
     this.onFeedback('💥 Acertou ' + target.name + '! -' + damage + ' PV.');
@@ -213,7 +213,8 @@ export class NavalBattleController {
     const player = this.getPlayer();
     if (this.getHealth() <= 0) return;
     for (const npc of this.getEntities().values()) {
-      if (npc.type !== 'npc' || npc.health <= 0 || npc.state !== 'retaliating') continue;
+      if (npc.type !== 'npc' || npc.health <= 0 || npc.state !== 'retaliating' ||
+        npc.aggression === 'flee' || npc.cannonSlots === 0) continue;
       if (distanceBetween(npc, player) > 340) continue;
       if (now < (this.nextNpcShot.get(npc.id) ?? -Infinity)) continue;
       const muzzle = cannonHardpoint(npc, player, npc.heading, 0, 1);
