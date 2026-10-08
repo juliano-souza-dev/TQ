@@ -1,3 +1,4 @@
+import { equipCannon, unequipCannon } from '../items/CannonLoadout.js';
 import { CANNONS, EVENTS, isItemVisible, isItemOwned, getCannonAssetUrl } from '../items/EquipmentCatalog.js';
 import { STARTER_SHIP, ROSE_GOLD_SHIP, getShipSpriteUrl } from '../ships/ShipRegistry.js';
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
@@ -9,7 +10,8 @@ const el = (tag, className, text) => {
   return node;
 };
 
-export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, ownedShipIds = [STARTER_SHIP.id], cannons = CANNONS, events = EVENTS, ownedCannonIds = [], equippedCannonIds = [] } = {}) {
+export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, ownedShipIds = [STARTER_SHIP.id], cannons = CANNONS, events = EVENTS, ownedCannonIds = [], equippedCannonIds = [], loadout = {}, onLoadoutChange = () => {} } = {}) {
+  let currentLoadout = loadout;
   const root = el('div', 'shipyard');
   const tabs = el('div', 'shipyard-tabs');
   tabs.setAttribute('role', 'tablist');
@@ -82,9 +84,46 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     view.replaceChildren(el('h3', '', 'Canhões da frota'));
     const equipped = ships.find(ship => ship.id === equippedShipId);
     view.append(el('p', 'shipyard-note', 'Capacidade do navio equipado: ' + (equipped?.cannonSlots ?? 'não definida') + ' espaços.'));
-    const visibleCannons = cannons.filter(cannon => isItemVisible(cannon, events) && isItemOwned(cannon, ownedCannonIds));
-    for (const cannon of visibleCannons) {
-      const owned = isItemOwned(cannon, ownedCannonIds);
+    const capacity = equipped?.cannonSlots ?? 0;
+    const slots = currentLoadout[equippedShipId] ?? [];
+    const ownedCannons = cannons.filter(cannon => isItemVisible(cannon, events) && isItemOwned(cannon, ownedCannonIds));
+    const ownedIds = ownedCannons.map(cannon => cannon.id);
+    const occupied = new Set(slots.filter(Boolean));
+    const slotsBox = el('div', 'shipyard-cannon-slots');
+    for (let index = 0; index < capacity; index++) {
+      const cannonId = slots[index] ?? null;
+      const cannon = ownedCannons.find(item => item.id === cannonId);
+      const slot = el('div', 'shipyard-cannon-slot');
+      slot.append(el('strong', '', 'Slot ' + (index + 1)), el('span', '', cannon?.name ?? 'Vazio'));
+      if (cannon) {
+        const remove = el('button', 'primary-button', 'Desequipar');
+        remove.type = 'button';
+        remove.addEventListener('click', () => {
+          currentLoadout = unequipCannon(currentLoadout, equippedShipId, index, capacity);
+          onLoadoutChange(currentLoadout);
+          renderCannons();
+        });
+        slot.append(remove);
+      } else {
+        const select = el('select', 'shipyard-cannon-select');
+        select.setAttribute('aria-label', 'Equipar canhão no slot ' + (index + 1));
+        select.append(new Option('Escolha um canhão', ''));
+        for (const available of ownedCannons.filter(item => !occupied.has(item.id))) {
+          select.append(new Option(available.name, available.id));
+        }
+        select.addEventListener('change', () => {
+          if (!select.value) return;
+          currentLoadout = equipCannon(currentLoadout, equippedShipId, index, select.value, capacity, ownedIds);
+          onLoadoutChange(currentLoadout);
+          renderCannons();
+        });
+        slot.append(select);
+      }
+      slotsBox.append(slot);
+    }
+    view.append(slotsBox);
+    view.append(el('h4', '', 'Canhões no inventário'));
+    for (const cannon of ownedCannons) {
       const card = el('article', 'shipyard-cannon-card');
       const image = el('img', 'shipyard-cannon-image');
       image.src = getCannonAssetUrl(cannon);
@@ -92,23 +131,14 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
       image.loading = 'lazy';
       image.style.cssText = 'width:76px;height:76px;object-fit:contain;flex-shrink:0';
       const info = el('div', 'shipyard-cannon-info');
-      info.append(el('strong', '', cannon.name),
-        el('span', '', owned ? (equippedCannonIds.includes(cannon.id) ? 'Equipado' : 'Desequipado') : 'Bloqueado'));
-      if (cannon.reloadSeconds != null) {
-        info.append(el('p', 'shipyard-note',
-          'Recarga: ' + cannon.reloadSeconds + ' s | Precisão: ' +
-          Math.round(cannon.accuracy * 100) + '% | Dano: ' +
-          cannon.damageMultiplier + '× | Calibre: ' + cannon.caliberPounder + ' pounder'));
-      }
-      if (!owned && cannon.acquisition.type === 'event-reward') {
-        info.append(el('p', 'shipyard-note', 'Recompensa do evento; obtenção ainda não configurada.'));
-      } else if (!owned) {
-        info.append(el('p', 'shipyard-note', 'Forma de obtenção ainda não definida.'));
-      }
+      info.append(el('strong', '', cannon.name), el('span', '', occupied.has(cannon.id) ? 'Equipado' : 'Desequipado'));
+      if (cannon.reloadSeconds != null) info.append(el('p', 'shipyard-note',
+        'Recarga: ' + cannon.reloadSeconds + ' s | Precisão: ' + Math.round(cannon.accuracy * 100) +
+        '% | Dano: ' + cannon.damageMultiplier + '× | Calibre: ' + cannon.caliberPounder + ' pounder'));
       card.append(image, info);
       view.append(card);
     }
-    if (!visibleCannons.length) view.append(el('p', 'shipyard-note', 'Nenhum canhão disponível neste momento.'));
+    if (!ownedCannons.length) view.append(el('p', 'shipyard-note', 'Nenhum canhão no inventário.'));
 
   }
   root.append(tabs, content);
