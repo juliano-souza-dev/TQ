@@ -86,3 +86,29 @@ button:disabled { opacity: .55; cursor: wait; }
 @media (min-width: 900px) {
   .pirate-portal { justify-items: end; padding-inline: max(3vw, 24px); }
 }
+
+/* Uploaded portal illustration is decorative; HTML owns every interactive control. */
+.pirate-portal {
+  isolation: isolate;
+  overflow: hidden;
+  background: #06182a;
+}
+.portal-artwork {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('../../assets/ui/portal/portal-jogador.png') center center / cover no-repeat;
+}
+.pirate-panel {
+  z-index: 1;
+  background: linear-gradient(150deg, #342013f7, #0c1720fa 70%);
+}
+@media (min-width: 1000px) {
+  .pirate-portal { place-items: center end; }
+  .pirate-panel { width: min(52vw, 800px); margin: 0 2vw 0 0; }
+}
+@media (max-width: 999px) {
+  .pirate-portal { place-items: center; }
+  .portal-artwork { opacity: .48; background-position: 24% center; }
+}
