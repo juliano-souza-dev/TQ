@@ -184,3 +184,18 @@ test('Halloween event ammunition is separate from normal cannonball inventory', 
   assert.equal(t.save.ammunition['rusted-iron'], 20);
   assert.equal(t.shots[0].ammo.fx.preset, 'halloween');
 });
+
+test('fragata em fuga nao atira, inclusive quando recebe dano', () => {
+  const t = battleHarness();
+  t.enemy.aggression = 'flee';
+  t.enemy.cannonSlots = 0;
+  t.battle.toggleFire();
+  const shot = t.shots[0];
+  assert.equal(shot.onImpact({ at: shot.to }).kind, 'ship');
+  assert.equal(t.enemy.state, 'fleeing');
+  t.battle.toggleFire();
+  t.enemy.state = 'retaliating'; // Mesmo um estado herdado nao libera canhoes inexistentes.
+  t.time = 2000;
+  t.battle.update(16, 2000);
+  assert.equal(t.shots.length, 1);
+});
