@@ -4,7 +4,7 @@ const CONTENT = {
   shipyard: { title: '⚓ Estaleiro', description: 'Aqui você poderá trocar de navio e equipar canhões.', items: ['Trocar navio', 'Equipar canhões'] },
   missions: { title: '📜 Missões', description: 'O quadro de missões desta região.', items: ['Missões disponíveis em breve'] },
 };
-export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {}, getMissionState = () => ({}), onRequestNextMission = () => false, getLearningProgress = () => ({}), onLearningAttempt = () => {} } = {}) {
+export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {}, getMissionState = () => ({}), getMissionFlow = () => ({stage:'welcome'}), onRequestNextMission = () => false, getLearningProgress = () => ({}), onLearningAttempt = () => {} } = {}) {
   const panel = document.createElement('section');
   panel.className = 'island-panel';
   panel.hidden = true;
@@ -24,7 +24,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   acceptMission.addEventListener('click', () => {
     onAcceptFirstMission();
     acceptMission.hidden = true;
-    list.replaceChildren(Object.assign(document.createElement('p'), { textContent: '✓ Primeira missão aceita: visite o Estaleiro e prepare seu canhão.' }));
+    list.replaceChildren(Object.assign(document.createElement('p'), { textContent: '✓ Missão aceita. Siga a orientação na tela.' }));
   });
   const mathBox = document.createElement('div');
   mathBox.className = 'mission-math';
@@ -98,10 +98,11 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       list.hidden = kind === 'shipyard';
       acceptMission.hidden = kind !== 'missions' || isFirstMissionAccepted();
       const mission = getMissionState();
-      mathBox.hidden = kind !== 'missions' || mission.firstMission !== 'equipped';
+      const flow = getMissionFlow();
+      mathBox.hidden = kind !== 'missions' || flow.stage !== 'mission';
       if (!mathBox.hidden) prepareChallenge();
       if (kind === 'shipyard') shipyard.show();
-      list.replaceChildren(...(kind === 'missions' ? [mission.firstMission === 'equipped' ? 'Canhão equipado! Resolva a continha para receber a próxima missão.' : mission.corsair === 'active' ? 'Missão em andamento: afunde 1 Corsário das Velas Rubras.' : mission.corsair === 'complete' ? 'Missão concluída: Corsário das Velas Rubras afundado!' : 'Primeira missão: visite o Estaleiro e prepare seu canhão.'] : content.items).map(item => {
+      list.replaceChildren(...(kind === 'missions' ? [flow.stage === 'mission' ? 'Canhão equipado! Resolva a continha para iniciar a missão.' : flow.stage === 'combat' ? 'Missão em andamento: afunde 1 Corsário das Velas Rubras.' : flow.stage === 'next' ? 'Missão concluída: Corsário das Velas Rubras afundado!' : flow.stage === 'equip' ? 'Equipe um canhão no Estaleiro para continuar.' : 'Aceite sua primeira missão para começar.'] : content.items).map(item => {
         const p = document.createElement('p');
         p.textContent = item; return p;
       }));
