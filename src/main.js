@@ -154,7 +154,13 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       updateCorsairPopulation(world, stepMs);
-      // The camera is ship-locked: no independent accumulated pan.
+      // WASD pans the viewport only while a key is held; releasing stops immediately.
+      const cameraInput = keyboardCamera.getVector();
+      const cameraSpeed = 320;
+      world.cameraOffset.x += cameraInput.x * cameraSpeed * stepMs / 1000;
+      world.cameraOffset.y += cameraInput.y * cameraSpeed * stepMs / 1000;
+      world.cameraOffset.x = Math.max(-world.region.width, Math.min(world.region.width, world.cameraOffset.x));
+      world.cameraOffset.y = Math.max(-world.region.height, Math.min(world.region.height, world.cameraOffset.y));
       if (islandPanel.isOpen) { updateCamera(world, canvas.clientWidth, canvas.clientHeight); return; }
       const input = joystick.getVector();
       if (Math.hypot(input.x, input.y) > 0.12) {
