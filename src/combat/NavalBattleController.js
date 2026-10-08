@@ -1,4 +1,5 @@
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
+import { damageMonster } from '../monsters/MonsterCombat.js';
 import {
   ammoStock, armedCannons, availableNavalAmmo, cannonHardpoint, cannonRange,
   effectiveAmmo, aimWithAccuracy, distanceBetween, flightDurationMs,
@@ -58,7 +59,7 @@ export class NavalBattleController {
 
   getTarget() {
     const entity = this.getEntities().get(this.targetId);
-    return entity?.type === 'npc' && entity.health > 0 ? entity : null;
+    return (entity?.type === 'npc' || entity?.type === 'monster') && entity.health > 0 ? entity : null;
   }
 
   getStatus() {
@@ -112,7 +113,7 @@ export class NavalBattleController {
   trackMovement(stepMs) {
     const seconds = Math.max(.001, stepMs / 1000);
     for (const entity of this.getEntities().values()) {
-      if (entity.type !== 'npc' || entity.health <= 0) continue;
+      if ((entity.type !== 'npc' && entity.type !== 'monster') || entity.health <= 0) continue;
       const old = this.previousPositions.get(entity.id);
       const velocity = old
         ? { x: (entity.x - old.x) / seconds, y: (entity.y - old.y) / seconds }
@@ -188,7 +189,9 @@ export class NavalBattleController {
       this.onFeedback('💦 A bala caiu na água.');
       return { kind: 'water' };
     }
-    if (target.archetype === RED_SAIL_CORSAIR.id) {
+    if (target.type === 'monster') {
+      damageMonster(target, damage, this.clock());
+    } else if (target.archetype === RED_SAIL_CORSAIR.id) {
       damageCorsair(target, damage, 'player');
     } else {
       target.health = Math.max(0, target.health - damage);
