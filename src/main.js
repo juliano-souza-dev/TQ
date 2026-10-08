@@ -1,3 +1,4 @@
+import { recordLearningAnswer } from './education/LearningProgress.js';
 import { GameLoop } from './core/GameLoop.js';
 import { createGameState, setGameStatus, GAME_STATUS, advanceGameState } from './core/GameState.js';
 import { renderLogin, renderLoading, renderConfigurationRequired } from './ui/Portal.js';
@@ -128,6 +129,11 @@ async function startWorld() {
   };
   const islandPanel = createIslandPanel({
     getMissionState: () => readSave().missions ?? {},
+    getLearningProgress: () => readSave().learning ?? {},
+    onLearningAttempt: (correct, firstAttempt) => {
+      const save = readSave();
+      writePatch({ learning: recordLearningAnswer(save.learning, correct, firstAttempt) });
+    },
     shipyardOptions: {
       loadout: equipment.loadout ?? {},
       ownedCannonIds: equipment.ownedCannonIds ?? [],
