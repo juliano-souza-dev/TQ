@@ -111,7 +111,19 @@ async function startWorld() {
   });
   minimapElement = minimap.element;
   root.append(minimapElement);
-  const islandPanel = createIslandPanel();
+  const islandPanel = createIslandPanel({
+    isFirstMissionAccepted: () => Boolean(localSaves.load(currentUser.uid)?.payload?.tutorial?.firstMissionAccepted),
+    onAcceptFirstMission: () => {
+      const save = localSaves.load(currentUser.uid)?.payload ?? {};
+      localSaves.save(currentUser.uid, {
+        ...save, tutorial: { ...save.tutorial, firstMissionAccepted: true },
+        missions: { ...save.missions, firstMission: 'active' },
+      });
+      firstVoyageGuide?.finish();
+      firstVoyageGuide?.dispose();
+      firstVoyageGuide = null;
+    },
+  });
   islandPanelElement = islandPanel.element;
   root.append(islandPanelElement);
   let contactId = null;
@@ -131,13 +143,7 @@ async function startWorld() {
       contactId = contact.id;
       clickNavigation.cancel();
       islandPanel.open(contact.kind);
-      if (contact.kind === 'missions' && firstVoyageGuide) {
-        firstVoyageGuide.finish();
-        firstVoyageGuide.dispose();
-        firstVoyageGuide = null;
-        const save = localSaves.load(currentUser.uid)?.payload ?? {};
-        localSaves.save(currentUser.uid, { ...save, tutorial: { ...save.tutorial, missionsHarborVisited: true } });
-      }
+
     }
   }
   let renderer;
@@ -157,7 +163,7 @@ async function startWorld() {
     return;
   }
   const previousSave = localSaves.load(currentUser.uid);
-  const firstVoyageComplete = Boolean(previousSave?.payload?.tutorial?.missionsHarborVisited);
+  const firstVoyageComplete = Boolean(previousSave?.payload?.tutorial?.firstMissionAccepted);
   if (!firstVoyageComplete) {
     const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
     if (generation !== worldGeneration) return;
