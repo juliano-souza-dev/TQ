@@ -49,14 +49,14 @@ test('repair icon belongs to naval HUD and opens a separate interaction', () => 
     assert.equal(repairButton.className, 'naval-repair-button');
     assert.equal(repairButton.attributes.get('aria-label'), 'Reparar navio resolvendo uma continha');
     assert.equal(repairButton.disabled, false);
-    assert.match(repairButton.children[0].src, /consertar_navio\\.webp/);
+    assert.match(repairButton.children[0].src, /consertar_navio\.webp/);
     repairButton.click();
     assert.equal(requested, 1);
 
     life = 100;
     hud.refresh();
     assert.equal(repairButton.disabled, true);
-    assert.match(repairButton.children[0].src, /consertar_navio_bloqueado\\.webp/);
+    assert.match(repairButton.children[0].src, /consertar_navio_bloqueado\.webp/);
     repairButton.click();
     assert.equal(requested, 1, 'a full-health ship must not initiate another repair');
   } finally {
