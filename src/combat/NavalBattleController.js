@@ -128,6 +128,8 @@ export class NavalBattleController {
       reason, distance,
       range: battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0,
       targetName: target?.name || '',
+      equippedCannons: battery.length,
+      cannonsInRange: inRangeCannons.length,
       ammoId: this.selectedAmmoId,
       ammo,
       options: availableNavalAmmo(save),
