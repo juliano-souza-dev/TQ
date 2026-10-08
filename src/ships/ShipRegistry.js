@@ -8,5 +8,7 @@ export function getShipFrame(headingDegrees, definition = STARTER_SHIP) {
 }
 
 export function getShipSpriteUrl(definition = STARTER_SHIP) {
-  return new URL(definition.sprite.path, import.meta.url).href;
+  const url = new URL(definition.sprite.path, import.meta.url);
+  if (globalThis.__TQ_ASSET_VERSION__) url.searchParams.set('v', globalThis.__TQ_ASSET_VERSION__);
+  return url.href;
 }
