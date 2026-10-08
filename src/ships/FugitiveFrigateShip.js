@@ -20,7 +20,7 @@ export const FUGITIVE_FRIGATE_SHIP = Object.freeze({
     disengageRange: 700,
   }),
   sprite: Object.freeze({
-    path: '../../assets/ships/fragata_sombra_fugitiva.webp',
+    path: '../../assets/ships/sombra_fugitiva.webp',
     frameWidth: 400,
     frameHeight: 400,
     columns: 4,
