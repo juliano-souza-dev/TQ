@@ -83,8 +83,23 @@ export class NpcRenderer {
         ctx.beginPath(); ctx.ellipse(x, y + size * 0.20, size * 0.37, size * 0.17, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
       }
-      ctx.drawImage(image, (frame % columns) * frameW, Math.floor(frame / columns) * frameH,
-        frameW, frameH, x - size / 2, y - size / 2, size, size);
+      // Espelhamento opcional, exclusivamente no desenho do sprite.
+      // O ID, a posição, o rumo, a colisão e a seleção permanecem inalterados.
+      const headingStep = ship.sprite.angleStepDegrees;
+      const headingIndex = Math.round(((((npc.heading ?? 0) % 360) + 360) % 360) / headingStep)
+        % ship.sprite.framesByHeading.length;
+      const flipX = ship.sprite.flipXByHeading?.[headingIndex] === true;
+      if (flipX) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(-1, 1);
+        ctx.drawImage(image, (frame % columns) * frameW, Math.floor(frame / columns) * frameH,
+          frameW, frameH, -size / 2, -size / 2, size, size);
+        ctx.restore();
+      } else {
+        ctx.drawImage(image, (frame % columns) * frameW, Math.floor(frame / columns) * frameH,
+          frameW, frameH, x - size / 2, y - size / 2, size, size);
+      }
       {
         ctx.save();
         ctx.font = 'bold ' + Math.round(13 * dpr) + 'px system-ui';
