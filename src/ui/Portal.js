@@ -27,47 +27,70 @@ export function renderLogin(root, { onLogin, onLocal, busy = false, error = '' }
   root.replaceChildren(screen);
 }
 
-export function renderPortal(root, user, { onPlay, onLogout, onModeChange, syncMode, busy = false }) {
-  const screen = element('main', 'screen');
-  const card = element('section', 'portal-card');
-  card.append(element('p', 'eyebrow', 'PORTAL DO JOGADOR'), element('h1', '', 'Bem-vindo a bordo!'));
+export function renderPortal(root, user, { onPlay, onLogout, onModeChange, syncMode, busy = false, profile = {} }) {
+  const screen = element('main', 'screen pirate-portal');
+  const panel = element('section', 'pirate-panel');
+  panel.append(element('p', 'pirate-kicker', 'TABUADA QUEST · AVENTURA PIRATA'));
+  panel.append(element('h1', 'pirate-title', 'PORTAL DO JOGADOR'));
+  panel.append(element('h2', 'pirate-welcome', 'Bem-vindo a bordo!'));
+  panel.append(element('p', 'pirate-subtitle', 'Domine a tabuada e conquiste novos mares!'));
+  const identity = element('div', 'pirate-identity');
   if (user.photoURL) {
     const avatar = element('img', 'avatar');
     avatar.src = user.photoURL;
     avatar.alt = 'Foto do jogador';
     avatar.referrerPolicy = 'no-referrer';
-    card.append(avatar);
+    identity.append(avatar);
   }
-  card.append(element('p', 'player-name', user.displayName || 'Marujo'));
-  if (user.email) card.append(element('p', 'description', user.email));
-  const info = element('div', 'account-info');
-  info.append(element('p', '', user.isGuest ? 'Perfil local sem conta Google' : 'Conta conectada com Google'), element('p', '', 'Região inicial: R1'));
-  card.append(info);
-
-  const modeLabel = element('p', 'description', syncMode === 'local'
-    ? 'Modo local: progresso somente neste dispositivo. Limpar os dados do navegador apaga o progresso.'
-    : syncMode === 'cloud'
-      ? 'Sincronização selecionada. A conexão com o salvamento em nuvem ainda será implementada.'
-      : 'Escolha como deseja guardar seu progresso antes de jogar.');
-  card.append(modeLabel);
-  const localButton = element('button', 'secondary-button', 'Não sincronizar dados');
-  localButton.type = 'button';
-  localButton.disabled = busy;
-  localButton.addEventListener('click', () => onModeChange('local'));
-  const cloudButton = element('button', 'secondary-button', syncMode === 'local' ? 'Sincronizar agora' : 'Ativar sincronização');
-  cloudButton.type = 'button';
-  cloudButton.disabled = true;
-  cloudButton.title = 'Disponível quando o salvamento em nuvem estiver implementado';
-  card.append(localButton, cloudButton);
-  const play = element('button', 'primary-button', 'Jogar');
+  identity.append(element('strong', '', user.displayName || 'Marujo'));
+  identity.append(element('span', '', user.isGuest ? 'Perfil local' : 'Conta Google'));
+  panel.append(identity);
+  const stats = element('div', 'pirate-stats');
+  const items = [
+    ['🪙', 'Ouro atual', profile.gold],
+    ['🧭', 'Nível do jogador', profile.level],
+    ['📖', 'Progressão pedagógica', profile.educationalProgress],
+    ['🗺️', 'Missão atual', profile.currentMission],
+    ['✖️', 'Tabuada em foco', profile.focusTable],
+    ['🏆', 'Desafio do dia', profile.dailyChallenge],
+    ['🎁', 'Próxima recompensa', profile.nextReward],
+  ];
+  for (const [icon, label, value] of items) {
+    const stat = element('div', 'pirate-stat');
+    stat.append(element('span', 'pirate-stat-icon', icon));
+    const content = element('div', 'pirate-stat-content');
+    content.append(element('span', 'pirate-stat-label', label));
+    content.append(element('strong', 'pirate-stat-value', value === undefined || value === null ? 'Ainda não disponível' : String(value)));
+    stat.append(content);
+    stats.append(stat);
+  }
+  panel.append(stats);
+  panel.append(element('p', 'pirate-mode', syncMode === 'local'
+    ? 'Sem sincronização: os dados ficam neste navegador e serão perdidos se o armazenamento for apagado.'
+    : 'Escolha onde salvar seu progresso antes de jogar.'));
+  if (syncMode !== 'local') {
+    const local = element('button', 'pirate-secondary', 'Não sincronizar dados');
+    local.type = 'button';
+    local.disabled = busy;
+    local.addEventListener('click', () => onModeChange('local'));
+    panel.append(local);
+  }
+  const play = element('button', 'pirate-play', '⚔ Jogar');
   play.type = 'button';
   play.disabled = busy || syncMode !== 'local';
   play.addEventListener('click', onPlay);
-  const logout = element('button', 'secondary-button', user.isGuest ? 'Voltar ao início' : 'Sair da conta');
+  panel.append(play);
+  const actions = element('div', 'pirate-actions');
+  const cloud = element('button', 'pirate-secondary', 'Sincronizar agora');
+  cloud.type = 'button';
+  cloud.disabled = true;
+  cloud.title = 'A sincronização em nuvem ainda não foi implementada';
+  const logout = element('button', 'pirate-secondary', user.isGuest ? 'Voltar ao início' : 'Sair da conta');
   logout.type = 'button';
   logout.addEventListener('click', onLogout);
-  card.append(play, logout);
-  screen.append(card);
+  actions.append(cloud, logout);
+  panel.append(actions);
+  screen.append(panel);
   root.replaceChildren(screen);
 }
 
