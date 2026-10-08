@@ -14,6 +14,7 @@ let currentUser = null;
 let loop = null;
 let oceanRenderer = null;
 let shipCanvas = null;
+let islandCanvas = null;
 let clickNavigation = null;
 let keyboardCamera = null;
 let worldGeneration = 0;
@@ -31,6 +32,8 @@ function stopWorld() {
   keyboardCamera = null;
   if (clickNavigation) clickNavigation.dispose();
   clickNavigation = null;
+  if (islandCanvas) islandCanvas.remove();
+  islandCanvas = null;
   if (shipCanvas) shipCanvas.remove();
   shipCanvas = null;
 }
@@ -52,9 +55,10 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
+    import('./rendering/IslandRenderer.js'),
     import('./world/NavigationSystem.js'), import('./world/ClickNavigationInput.js'),
     import('./ui/KeyboardCameraInput.js'), import('./world/CameraSystem.js'),
   ]);
@@ -64,17 +68,20 @@ async function startWorld() {
   clickNavigation = createClickNavigation(canvas, world);
   keyboardCamera = createKeyboardCameraInput();
   const joystick = createAnalogJoystick();
+  islandCanvas = document.createElement('canvas');
+  islandCanvas.className = 'island-layer';
   shipCanvas = document.createElement('canvas');
   shipCanvas.className = 'ship-layer';
   shipCanvas.setAttribute('aria-label', 'Navio do jogador');
-  root.append(shipCanvas, joystick.element);
+  root.append(islandCanvas, shipCanvas, joystick.element);
   const shipRenderer = new ShipRenderer(shipCanvas);
+  const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
   let heading = 0;
   let renderer;
   try {
     renderer = new OceanRenderer(canvas);
     oceanRenderer = renderer;
-    await Promise.all([renderer.init(world.region.ocean.texture), shipRenderer.init()]);
+    await Promise.all([renderer.init(world.region.ocean.texture), shipRenderer.init(), islandRenderer.init()]);
     if (generation !== worldGeneration) { renderer.dispose(); return; }
   } catch (error) {
     if (generation !== worldGeneration) return;
@@ -117,6 +124,7 @@ async function startWorld() {
     render: () => {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       renderer.render(world, oceanTimeMs);
+      islandRenderer.render(world.cameraView, world.camera.zoom);
       shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
     },
   });
