@@ -206,7 +206,7 @@ async function startWorld() {
   let navalHud = null;
   navalBattle = new NavalBattleController({
     renderer: navalRenderer,
-    shipId: STARTER_SHIP.id,
+    shipId: activeShip.id,
     readSave,
     writePatch,
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
@@ -273,7 +273,13 @@ async function startWorld() {
   shipCanvas.className = 'ship-layer';
   shipCanvas.setAttribute('aria-label', 'Navio do jogador');
   root.append(islandCanvas, treasureCanvas, npcCanvas, shipCanvas, joystick.element);
-  const shipRenderer = new ShipRenderer(shipCanvas);
+  const { ROSE_GOLD_SHIP } = await import('./ships/RoseGoldShip.js');
+  const playableShips = [STARTER_SHIP, ROSE_GOLD_SHIP];
+  const savedEquipment = readSave().equipment ?? {};
+  const initialShip = playableShips.find(ship => ship.id === savedEquipment.equippedShipId &&
+    (ship.id === STARTER_SHIP.id || savedEquipment.ownedShipIds?.includes(ship.id))) ?? STARTER_SHIP;
+  let activeShip = initialShip;
+  const shipRenderer = new ShipRenderer(shipCanvas, initialShip);
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
   const treasureRenderer = new TreasureRenderer(treasureCanvas);
   const npcRenderer = new NpcRenderer(npcCanvas);
@@ -309,7 +315,7 @@ async function startWorld() {
   missionHud.setAttribute('aria-live', 'polite');
   root.append(missionHud);
   const updateMissionHud = () => {
-    const flow = getMissionFlow(readSave(), STARTER_SHIP.id);
+    const flow = getMissionFlow(readSave(), activeShip.id);
     missionHud.hidden = false;
     missionHud.textContent = flow.stage === 'combat' ? '📜 Afunde 1 Corsário das Velas Rubras · 0/1'
       : flow.stage === 'next' ? '📜 Corsário afundado · 1/1 · Retorne ao porto'
@@ -367,6 +373,31 @@ async function startWorld() {
       loadout: equipment.loadout ?? {},
       ownedCannonIds: equipment.ownedCannonIds ?? [],
       getEquipment: () => readSave().equipment ?? {},
+      equippedShipId: initialShip.id,
+      onEquipShip: async shipId => {
+        const save = readSave();
+        const ship = playableShips.find(item => item.id === shipId);
+        if (!ship || (ship.id !== STARTER_SHIP.id && !save.equipment?.ownedShipIds?.includes(shipId))) return false;
+        if (ship.id === activeShip.id) return true;
+        const previous = activeShip;
+        try {
+          shipRenderer.definition = ship;
+          await shipRenderer.init();
+          activeShip = ship;
+          navalBattle.shipId = ship.id;
+          navalBattle.firing = false;
+          shipSpeed = getShipSpeed(ship);
+          writePatch({ equipment: { ...save.equipment, equippedShipId: ship.id } });
+          navalHud?.refresh();
+          updateMissionHud();
+          return true;
+        } catch (error) {
+          console.error('Não foi possível carregar o navio', error);
+          shipRenderer.definition = previous;
+          await shipRenderer.init().catch(console.error);
+          return false;
+        }
+      },
       onLoadoutChange: loadout => {
         const save = readSave();
         const missions = { ...save.missions };
@@ -411,7 +442,7 @@ async function startWorld() {
   islandPanelElement = islandPanel.element;
   root.append(islandPanelElement);
   let contactId = null;
-  const shipSpeed = getShipSpeed(STARTER_SHIP);
+  let shipSpeed = getShipSpeed(activeShip);
   function checkDockContact(fromX, fromY, inputX, inputY, stepMs) {
     const magnitude = Math.hypot(inputX, inputY);
     const step = shipSpeed * stepMs / 1000;
