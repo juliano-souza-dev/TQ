@@ -52,14 +52,15 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
     import('./world/NavigationSystem.js'), import('./world/ClickNavigationInput.js'),
-    import('./ui/KeyboardCameraInput.js'),
+    import('./ui/KeyboardCameraInput.js'), import('./world/CameraSystem.js'),
   ]);
   if (generation !== worldGeneration) return;
   const world = createWorldState();
+  updateCamera(world, canvas.clientWidth, canvas.clientHeight);
   clickNavigation = createClickNavigation(canvas, world);
   keyboardCamera = createKeyboardCameraInput();
   const joystick = createAnalogJoystick();
@@ -96,6 +97,8 @@ async function startWorld() {
       const cameraSpeed = 320;
       world.cameraOffset.x += cameraInput.x * cameraSpeed * stepMs / 1000;
       world.cameraOffset.y += cameraInput.y * cameraSpeed * stepMs / 1000;
+      world.cameraOffset.x = Math.max(-world.region.width, Math.min(world.region.width, world.cameraOffset.x));
+      world.cameraOffset.y = Math.max(-world.region.height, Math.min(world.region.height, world.cameraOffset.y));
       const input = joystick.getVector();
       if (Math.hypot(input.x, input.y) > 0.12) {
         clickNavigation.cancel();
@@ -109,8 +112,13 @@ async function startWorld() {
           if (result.arrived) clickNavigation.cancel();
         }
       }
+      updateCamera(world, canvas.clientWidth, canvas.clientHeight);
     },
-    render: () => { renderer.render(world, oceanTimeMs); shipRenderer.render(heading, world.cameraOffset, world.camera.zoom); },
+    render: () => {
+      updateCamera(world, canvas.clientWidth, canvas.clientHeight);
+      renderer.render(world, oceanTimeMs);
+      shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
+    },
   });
   if (!document.hidden) loop.start();
   // This first local save contains only the minimal world metadata.
