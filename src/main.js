@@ -3,10 +3,14 @@ import { createGameState, setGameStatus, GAME_STATUS, advanceGameState } from '.
 import { createWorldState } from './world/WorldState.js';
 import { OceanRenderer } from './rendering/OceanRenderer.js';
 import { renderLogin, renderPortal, renderLoading, renderConfigurationRequired } from './ui/Portal.js';
+import { createSyncPreferenceStore, SYNC_MODE } from './persistence/SyncPreference.js';
+import { createLocalSaveStore } from './persistence/LocalSaveStore.js';
 
 const root = document.getElementById('app');
 if (!root) throw new Error('Elemento #app ausente');
 
+const syncPreferences = createSyncPreferenceStore(window.localStorage);
+const localSaves = createLocalSaveStore(window.localStorage);
 let authService = null;
 let currentUser = null;
 let loop = null;
@@ -20,9 +24,16 @@ function stopWorld() {
 function openPortal() {
   stopWorld();
   if (!currentUser) return;
+  const syncMode = syncPreferences.get(currentUser.uid);
   renderPortal(root, currentUser, {
+    syncMode,
+    onModeChange: mode => {
+      if (!currentUser || mode !== SYNC_MODE.LOCAL) return;
+      try { syncPreferences.set(currentUser.uid, mode); openPortal(); }
+      catch (error) { console.error('Falha ao salvar preferência local', error); }
+    },
     onPlay: () => {
-      if (!currentUser) return;
+      if (!currentUser || syncPreferences.get(currentUser.uid) !== SYNC_MODE.LOCAL) return;
       startWorld();
     },
     onLogout: async () => {
@@ -34,7 +45,7 @@ function openPortal() {
 }
 
 function startWorld() {
-  if (!currentUser) return;
+  if (!currentUser || syncPreferences.get(currentUser.uid) !== SYNC_MODE.LOCAL) return;
   stopWorld();
   const canvas = document.createElement('canvas');
   canvas.id = 'ocean';
@@ -42,12 +53,16 @@ function startWorld() {
   root.replaceChildren(canvas);
   const world = createWorldState();
   const renderer = new OceanRenderer(canvas);
-  let state = setGameStatus(createGameState(), GAME_STATUS.RUNNING);
+  const previousSave = localSaves.load(currentUser.uid);
+  let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
   loop = new GameLoop({
     update: (stepMs) => { state = advanceGameState(state, stepMs); },
     render: () => renderer.render(world),
   });
   if (!document.hidden) loop.start();
+  // This first local save contains only the minimal world metadata.
+  // Gameplay state persistence will be extended alongside the systems.
+  localSaves.save(currentUser.uid, { seed: state.seed, regionId: world.region.id });
 }
 
 function showLogin(error = '') {
