@@ -23,6 +23,8 @@ export class NavalBattleController {
       onFeedback, onVictory, random, clock,
     });
     this.targetId = null;
+    this.manualTargetId = null;
+    this.targetScanElapsedMs = 0;
     this.firing = false;
     this.nextBySlot = new Map();
     this.nextNpcShot = new Map();
@@ -53,9 +55,49 @@ export class NavalBattleController {
     return true;
   }
 
-  setTarget(id) {
+  setTarget(id, { manual = false } = {}) {
     if (this.targetId !== id) this.firing = false;
     this.targetId = id || null;
+    this.manualTargetId = manual && id ? id : null;
+  }
+
+  // Select only targets reachable by at least one installed cannon.
+  // Lowest current HP wins; distance and stable ID break ties.
+  // Manual targeting is respected until that target leaves range or sinks.
+  updateAutoTarget(stepMs = 0) {
+    this.targetScanElapsedMs += Math.max(0, stepMs);
+    if (this.targetScanElapsedMs < 150) return false;
+    this.targetScanElapsedMs = 0;
+    const battery = armedCannons(this.readSave(), this.shipId);
+    const maxRange = battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0;
+    const player = this.getPlayer();
+    if (!maxRange) {
+      if (this.targetId) this.setTarget(null);
+      return false;
+    }
+    const withinRange = npc => npc && (npc.type === 'npc' || npc.type === 'monster')
+      && npc.health > 0 && distanceBetween(player, npc) <= maxRange;
+    const entities = this.getEntities();
+    if (this.manualTargetId) {
+      const manuallyChosen = entities.get(this.manualTargetId);
+      if (withinRange(manuallyChosen)) return false;
+      this.manualTargetId = null;
+    }
+    let candidate = null, bestDistance = Infinity;
+    for (const npc of entities.values()) {
+      if (!withinRange(npc)) continue;
+      const distance = distanceBetween(player, npc);
+      if (!candidate || npc.health < candidate.health
+        || (npc.health === candidate.health && distance < bestDistance)
+        || (npc.health === candidate.health && distance === bestDistance && String(npc.id) < String(candidate.id))) {
+        candidate = npc;
+        bestDistance = distance;
+      }
+    }
+    const chosen = candidate?.id ?? null;
+    if (chosen === this.targetId) return false;
+    this.setTarget(chosen);
+    return true;
   }
 
   getTarget() {
@@ -127,6 +169,7 @@ export class NavalBattleController {
 
   update(stepMs, now = this.clock()) {
     this.trackMovement(stepMs);
+    this.updateAutoTarget(stepMs);
     // Do not parse localStorage every frame when no cannon is firing.
     if (this.firing) {
       const status = this.getStatus();
