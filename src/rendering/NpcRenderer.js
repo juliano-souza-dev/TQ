@@ -1,5 +1,6 @@
 import { STARTER_SHIP, getShipFrame } from '../ships/ShipRegistry.js';
 import { ROSE_GOLD_SHIP } from '../ships/RoseGoldShip.js';
+import { FUGITIVE_FRIGATE_SHIP } from '../ships/FugitiveFrigateShip.js';
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 import { renderMonsterBlood } from '../monsters/MonsterBloodRenderer.js';
 export class NpcRenderer {
@@ -12,10 +13,16 @@ export class NpcRenderer {
   async init() {
     const ships = [STARTER_SHIP, ROSE_GOLD_SHIP];
     await Promise.all(ships.map(async ship => this.images.set(ship.id, await loadShipSprite(ship))));
+    // O novo asset é opcional: se ainda não foi enviado ao GitHub,
+    // o carregamento do oceano e dos NPCs existentes não pode falhar.
+    await loadShipSprite(FUGITIVE_FRIGATE_SHIP)
+      .then(image => this.images.set(FUGITIVE_FRIGATE_SHIP.id, image))
+      .catch(() => console.warn('Fragata Sombra Fugitiva aguardando sprite no repositório.'));
     const image = new Image();
     image.src = new URL('../../assets/monsters/sea_monster_kraken.webp', import.meta.url).href;
     try { await image.decode(); this.monsterImage = image; } catch (error) { console.warn('Monstro não carregado:', error); }
   }
+  hasShipSprite(id) { return this.images.has(id); }
   render(entities, camera, zoom = 1, selectedId = null) {
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -57,7 +64,8 @@ export class NpcRenderer {
         }
         continue;
       }
-      const ship = npc.shipId === ROSE_GOLD_SHIP.id ? ROSE_GOLD_SHIP : STARTER_SHIP;
+      const ship = npc.shipId === FUGITIVE_FRIGATE_SHIP.id ? FUGITIVE_FRIGATE_SHIP
+        : npc.shipId === ROSE_GOLD_SHIP.id ? ROSE_GOLD_SHIP : STARTER_SHIP;
       const image = this.images.get(ship.id);
       if (!image) continue;
       const columns = ship.sprite.columns;
