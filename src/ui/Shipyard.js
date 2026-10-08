@@ -60,7 +60,8 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
       const equipped = ship.id === currentEquippedShipId;
       const card = el('article', 'shipyard-ship-card' + (equipped ? ' is-equipped' : ''));
       const head = el('div', 'shipyard-ship-head');
-      head.append(el('h4', '', ship.name), el('span', 'shipyard-status', equipped ? '✓ Em uso' : 'Seu navio'));
+      head.append(el('h4', '', ship.name));
+      if (equipped) head.append(el('span', 'shipyard-status', '✓ Equipado'));
       card.append(head);
       const body = el('div', 'shipyard-ship-body');
       const preview = el('div', 'shipyard-preview');
@@ -79,7 +80,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
       );
       body.append(preview, stats); card.append(body);
       if (!equipped) {
-        const button = el('button', 'primary-button', 'Navegar com este navio');
+        const button = el('button', 'primary-button', 'Equipar');
         button.type = 'button';
         button.addEventListener('click', async () => {
           button.disabled = true;
