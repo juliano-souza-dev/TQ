@@ -144,6 +144,7 @@ async function startWorld() {
   const initialShip = playableShips.find(ship => ship.id === savedEquipment.equippedShipId &&
     (ship.id === STARTER_SHIP.id || savedEquipment.ownedShipIds?.includes(ship.id))) ?? STARTER_SHIP;
   let activeShip = initialShip;
+  const { spriteCannonMuzzle } = await import('./ships/CannonMuzzleMap.js');
   function recordMissionEvent(event) {
     const patch = recordCampaignEvent(readSave(), event);
     if (!patch) return false;
@@ -214,6 +215,11 @@ async function startWorld() {
   navalBattle = new NavalBattleController({
     renderer: navalRenderer,
     shipId: activeShip.id,
+    // Fallback automático no controlador quando não existe mapeamento de boca.
+    getMappedMuzzle: ({ player, target, heading, slot }) => spriteCannonMuzzle(
+      activeShip, player, target, heading, slot,
+      shipRenderer.getFrameWorldSize(world.camera.zoom),
+    ),
     readSave,
     writePatch,
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
