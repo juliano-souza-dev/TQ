@@ -31,6 +31,8 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   ammoSelect.className = 'combat-ammo-select';
   ammoSelect.setAttribute('aria-label', 'Selecionar munição');
   const ammoQuantity = document.createElement('span');
+  const cannonQuantity = document.createElement('span');
+  cannonQuantity.className = 'combat-cannon-quantity';
   ammoQuantity.className = 'combat-ammo-quantity';
   const fireButton = document.createElement('button');
   fireButton.className = 'primary-button';
@@ -56,7 +58,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   attackControls.className = 'combat-attack-controls';
   // Botão legado à esquerda, novo controle no extremo direito do HUD.
   attackControls.append(fireButton, fireIconButton);
-  element.append(hullRow, ammoSelect, ammoQuantity, attackControls, feedback);
+  element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
   let optionFingerprint = '';
 
   function setFeedback(text) {
@@ -80,6 +82,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
     ammoSelect.value = status.ammoId;
     ammoSelect.disabled = !choices.some(item => item.amount > 0);
     ammoQuantity.textContent = '⚫ ' + status.ammo + ' munições';
+    cannonQuantity.textContent = '💣 Canhões: ' + status.equippedCannons + ' equipados · ' + status.cannonsInRange + ' no alcance';
     hull.textContent = '❤️ Casco: ' + status.health + '/100';
     repairButton.disabled = status.health >= 100;
     repairButton.setAttribute('aria-disabled', String(repairButton.disabled));
