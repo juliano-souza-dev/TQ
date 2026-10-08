@@ -127,6 +127,7 @@ async function startWorld() {
       : mission.firstMission === 'equipped' ? '📜 Volte ao Porto das Missões · 0/1' : '';
   };
   const islandPanel = createIslandPanel({
+    getMissionState: () => readSave().missions ?? {},
     shipyardOptions: {
       loadout: equipment.loadout ?? {},
       ownedCannonIds: equipment.ownedCannonIds ?? [],
@@ -183,7 +184,7 @@ async function startWorld() {
       clickNavigation.cancel();
       islandPanel.open(contact.kind);
       updateMissionHud();
-      if (contact.kind === 'shipyard' && localSaves.load(currentUser.uid)?.payload?.missions?.firstMission === 'active') {
+      if (contact.kind === 'shipyard' && localSaves.load(currentUser.uid)?.payload?.missions?.firstMission === 'equipped') {
         firstVoyageGuide?.finish();
         firstVoyageGuide?.dispose();
         firstVoyageGuide = null;
