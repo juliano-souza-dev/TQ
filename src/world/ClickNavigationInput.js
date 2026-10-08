@@ -1,3 +1,5 @@
+import { screenPointToWorld } from './WorldNavigationInput.mjs';
+
 // Pointer gestures on the ocean only. HUD and joystick retain independent pointers.
 export function createClickNavigation(canvas, world, onWorldClick = null) {
   let destination = null;
@@ -41,12 +43,12 @@ export function createClickNavigation(canvas, world, onWorldClick = null) {
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const zoom = Math.max(world.camera.zoom, 0.01);
-    const x = world.cameraView.x + (event.clientX - rect.left - rect.width / 2) / zoom;
-    const y = world.cameraView.y + (event.clientY - rect.top - rect.height / 2) / zoom;
-    const point = {
-      x: Math.max(0, Math.min(world.region.width, x)),
-      y: Math.max(0, Math.min(world.region.height, y)),
-    };
+    const point = screenPointToWorld(event.clientX, event.clientY, {
+      viewportLeft: rect.left, viewportTop: rect.top,
+      viewportWidth: rect.width, viewportHeight: rect.height,
+      cameraX: world.cameraView.x, cameraY: world.cameraView.y, zoom,
+      worldWidth: world.region.width, worldHeight: world.region.height,
+    });
     if (onWorldClick?.(point) === true) { destination = null; return; }
     destination = point;
   };
