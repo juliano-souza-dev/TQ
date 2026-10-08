@@ -94,6 +94,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
     open(kind) {
       const content = CONTENT[kind];
       if (!content) return false;
+      panel.dataset.island = kind;
       title.textContent = content.title;
       description.textContent = kind === 'shipyard' ? 'Gerencie sua frota e seus equipamentos.' : content.description;
       shipyard.element.hidden = kind !== 'shipyard';
