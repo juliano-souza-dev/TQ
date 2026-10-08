@@ -10,11 +10,12 @@ const el = (tag, className, text) => {
   return node;
 };
 
-export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, ownedShipIds = [STARTER_SHIP.id], cannons = CANNONS, events = EVENTS, ownedCannonIds = [], equippedCannonIds = [], loadout = {}, getEquipment = () => ({}), onLoadoutChange = () => {} } = {}) {
+export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, ownedShipIds = [STARTER_SHIP.id], cannons = CANNONS, events = EVENTS, ownedCannonIds = [], equippedCannonIds = [], loadout = {}, getEquipment = () => ({}), onLoadoutChange = () => {}, onEquipShip = () => false } = {}) {
   let currentLoadout = loadout;
   let currentOwnedCannonIds = ownedCannonIds;
   let currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...ownedShipIds])];
   let currentCannonCounts = {};
+  let currentEquippedShipId = equippedShipId;
   const root = el('div', 'shipyard');
   const tabs = el('div', 'shipyard-tabs');
   tabs.setAttribute('role', 'tablist');
@@ -53,13 +54,13 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     const view = views.ships;
     view.replaceChildren();
     view.append(el('h3', '', 'Sua frota'));
-    const ownedShips = ships.filter(ship => ship.id === equippedShipId || currentOwnedShipIds.includes(ship.id));
-    const ordered = [...ownedShips].sort((a, b) => Number(b.id === equippedShipId) - Number(a.id === equippedShipId));
+    const ownedShips = ships.filter(ship => ship.id === currentEquippedShipId || currentOwnedShipIds.includes(ship.id));
+    const ordered = [...ownedShips].sort((a, b) => Number(b.id === currentEquippedShipId) - Number(a.id === currentEquippedShipId));
     for (const ship of ordered) {
-      const equipped = ship.id === equippedShipId;
+      const equipped = ship.id === currentEquippedShipId;
       const card = el('article', 'shipyard-ship-card' + (equipped ? ' is-equipped' : ''));
       const head = el('div', 'shipyard-ship-head');
-      head.append(el('h4', '', ship.name), el('span', 'shipyard-status', equipped ? '✓ Equipado' : 'Catalogado'));
+      head.append(el('h4', '', ship.name), el('span', 'shipyard-status', equipped ? '✓ Em uso' : 'Seu navio'));
       card.append(head);
       const body = el('div', 'shipyard-ship-body');
       const preview = el('div', 'shipyard-preview');
@@ -77,7 +78,21 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
         stat('💣 Espaços para canhões', ship.cannonSlots ?? 'Não definido'),
       );
       body.append(preview, stats); card.append(body);
-      if (!equipped) card.append(el('p', 'shipyard-note', 'Navio catalogado. Ainda não adquirido ou desbloqueado.'));
+      if (!equipped) {
+        const button = el('button', 'primary-button', 'Navegar com este navio');
+        button.type = 'button';
+        button.addEventListener('click', async () => {
+          button.disabled = true;
+          try {
+            if (await onEquipShip(ship.id)) {
+              currentEquippedShipId = ship.id;
+              renderShips();
+              renderCannons();
+            } else button.disabled = false;
+          } catch (error) { console.error('Falha ao equipar navio', error); button.disabled = false; }
+        });
+        card.append(button);
+      }
       view.append(card);
     }
     if (!ownedShips.length) view.append(el('p', 'shipyard-note', 'Nenhum navio adquirido.'));
@@ -85,10 +100,10 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
   function renderCannons() {
     const view = views.cannons;
     view.replaceChildren(el('h3', '', 'Canhões da frota'));
-    const equipped = ships.find(ship => ship.id === equippedShipId);
+    const equipped = ships.find(ship => ship.id === currentEquippedShipId);
     view.append(el('p', 'shipyard-note', 'Capacidade do navio equipado: ' + (equipped?.cannonSlots ?? 'não definida') + ' espaços.'));
     const capacity = equipped?.cannonSlots ?? 0;
-    const slots = currentLoadout[equippedShipId] ?? [];
+    const slots = currentLoadout[currentEquippedShipId] ?? [];
     const ownedCannons = cannons.filter(cannon => isItemVisible(cannon, events) && (isItemOwned(cannon, currentOwnedCannonIds) || (Number(currentCannonCounts[cannon.id]) || 0) > 0));
     const ownedIds = ownedCannons.map(cannon => cannon.id);
     const usedCounts = Object.values(currentLoadout).flat().filter(Boolean).reduce((counts,id) => { counts[id] = (counts[id] || 0) + 1; return counts; }, {});
@@ -102,7 +117,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
         const remove = el('button', 'primary-button', 'Desequipar');
         remove.type = 'button';
         remove.addEventListener('click', () => {
-          currentLoadout = unequipCannon(currentLoadout, equippedShipId, index, capacity);
+          currentLoadout = unequipCannon(currentLoadout, currentEquippedShipId, index, capacity);
           onLoadoutChange(currentLoadout);
           renderCannons();
         });
@@ -116,7 +131,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
         }
         select.addEventListener('change', () => {
           if (!select.value) return;
-          currentLoadout = equipCannon(currentLoadout, equippedShipId, index, select.value, capacity, ownedIds, { ...currentCannonCounts, 'blue-gold-pirate': Number(currentCannonCounts['blue-gold-pirate']) || 1 });
+          currentLoadout = equipCannon(currentLoadout, currentEquippedShipId, index, select.value, capacity, ownedIds, { ...currentCannonCounts, 'blue-gold-pirate': Number(currentCannonCounts['blue-gold-pirate']) || 1 });
           onLoadoutChange(currentLoadout);
           renderCannons();
         });
@@ -147,6 +162,6 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
   root.append(tabs, content);
   return {
     element: root,
-    show() { const fresh = getEquipment(); currentLoadout = fresh.loadout ?? loadout; currentOwnedCannonIds = fresh.ownedCannonIds ?? ownedCannonIds; currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...(fresh.ownedShipIds ?? ownedShipIds)])]; currentCannonCounts = fresh.cannonCounts ?? {}; renderShips(); renderCannons(); selectTab('ships'); },
+    show() { const fresh = getEquipment(); currentLoadout = fresh.loadout ?? loadout; currentOwnedCannonIds = fresh.ownedCannonIds ?? ownedCannonIds; currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...(fresh.ownedShipIds ?? ownedShipIds)])]; currentCannonCounts = fresh.cannonCounts ?? {}; currentEquippedShipId = fresh.equippedShipId ?? equippedShipId; renderShips(); renderCannons(); selectTab('ships'); },
   };
 }
