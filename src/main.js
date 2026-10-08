@@ -1,6 +1,7 @@
 import { SEA_GLINTS, collectSeaGlint } from './events/HalloweenSeaGlints.js';
 import { EVENTS } from './items/EquipmentCatalog.js';
-import { createProjectile, advanceProjectiles, renderProjectiles } from './combat/Projectiles.js';
+import { createProjectile, advanceProjectiles } from './combat/Projectiles.js';
+import { NavalProjectileRenderer } from './rendering/NavalProjectileRenderer.js';
 import { getMissionFlow } from './missions/MissionFlow.js';
 import { fireCannons } from './combat/CombatSystem.js';
 import { CANNONS } from './items/EquipmentCatalog.js';
@@ -112,10 +113,6 @@ async function startWorld() {
   glintCanvas.className='glint-layer';
   root.append(glintCanvas);
   const glintCtx=glintCanvas.getContext('2d');
-  const combatCanvas = document.createElement('canvas');
-  combatCanvas.className = 'combat-layer';
-  const combatCtx = combatCanvas.getContext('2d');
-  root.append(combatCanvas);
   const combatHud = document.createElement('div');
   combatHud.className = 'combat-hud';
   const ammoLabel = document.createElement('span');
@@ -203,6 +200,7 @@ async function startWorld() {
   const shipRenderer = new ShipRenderer(shipCanvas);
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
   const npcRenderer = new NpcRenderer(npcCanvas);
+  const projectileRenderer = new NavalProjectileRenderer(npcCanvas);
   let heading = 0;
   const minimap = createMinimap(world, {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
@@ -440,11 +438,7 @@ async function startWorld() {
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) selectedNpcId = null;
       npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId);
       shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
-      const bounds=combatCanvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
-      const w=Math.max(1,Math.round(bounds.width*dpr)),h=Math.max(1,Math.round(bounds.height*dpr));
-      if(combatCanvas.width!==w||combatCanvas.height!==h){combatCanvas.width=w;combatCanvas.height=h;}
-      combatCtx.clearRect(0,0,w,h);
-      renderProjectiles(combatCtx,projectiles,effects,world.cameraView,world.camera.zoom,dpr,w,h);
+      projectileRenderer.render(projectiles,effects,world.cameraView,world.camera.zoom);
       minimap.render();
       const gr=glintCanvas.getBoundingClientRect(),gd=Math.min(window.devicePixelRatio||1,2);
       const gw=Math.max(1,Math.round(gr.width*gd)),gh=Math.max(1,Math.round(gr.height*gd));
