@@ -34,12 +34,9 @@ export class NpcRenderer {
         if (x < -size || x > w + size || y < -size || y > h + size) continue;
         const image = this.monsterImage;
         if (image) {
-          // Sprite animado 4×4: mantém a posição do monstro, avançando apenas os quadros.
-          const cols = 4, rows = 4;
-          const frame = Math.floor((npc.animationTimeMs ?? 0) / 120) % (cols * rows);
-          const frameW = image.width / cols, frameH = image.height / rows;
-          ctx.drawImage(image, (frame % cols) * frameW, Math.floor(frame / cols) * frameH,
-            frameW, frameH, x - size / 2, y - size / 2, size, size);
+          // O WebP já contém seus próprios quadros e tempos de animação.
+          // Desenhar a imagem integral evita recortar o Kraken em 16 pedaços.
+          ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
           renderMonsterBlood(ctx, npc, x, y, size, performance.now());
           const barW = size * 0.65;
           ctx.fillStyle = '#152233'; ctx.fillRect(x-barW/2,y-size*0.58,barW,6*dpr);
