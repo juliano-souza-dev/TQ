@@ -106,14 +106,32 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
     }
   }
 
-  fireIconButton.addEventListener('click', () => {
-    controller.toggleFire();
-    refresh();
-  });
-  fireButton.addEventListener('click', () => {
-    controller.toggleFire();
-    refresh();
-  });
+  // Em telas touch, o evento click de um segundo dedo pode ser suprimido
+  // pelo navegador enquanto o primeiro dedo mantém o joystick pressionado.
+  // Capturamos cada toque diretamente no botão, sem capturar o ponteiro do
+  // joystick. Mouse, teclado e tecnologias assistivas continuam usando click.
+  function bindFireControl(button) {
+    let touchFired = false;
+    button.addEventListener('pointerdown', event => {
+      if (event.pointerType !== 'touch' || button.disabled) return;
+      touchFired = true;
+      event.preventDefault(); // Evita click sintetizado duplicado após o toque.
+      controller.toggleFire();
+      refresh();
+    });
+    button.addEventListener('click', event => {
+      if (touchFired) {
+        touchFired = false;
+        event.preventDefault();
+        return;
+      }
+      controller.toggleFire();
+      refresh();
+    });
+    button.addEventListener('pointercancel', () => { touchFired = false; });
+  }
+  bindFireControl(fireIconButton);
+  bindFireControl(fireButton);
   ammoSelect.addEventListener('change', () => {
     if (!controller.setAmmo(ammoSelect.value)) {
       setFeedback('Munição indisponível.');
