@@ -142,9 +142,8 @@ async function startWorld() {
         updateMissionHud();
       },
     },
-    onRequestNextMission: (answer) => {
-      const a = 3, b = 4;
-      if (Number(answer) !== a * b) return false;
+    onRequestNextMission: (answer, expectedAnswer) => {
+      if (Number(answer) !== Number(expectedAnswer)) return false;
       const save = readSave();
       writePatch({ missions: { ...save.missions, firstMission: 'complete', navigation: 'active', distance: 0 } });
       firstVoyageGuide?.finish();
