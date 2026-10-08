@@ -4,7 +4,9 @@ export { HALLOWEEN_TABUADA_SHIP };
 // Catálogo consultável, independente de navios equipáveis ou entidades do mundo.
 import { GOLDEN_GALLEON_SHIP } from './GoldenGalleonShip.js';
 export { GOLDEN_GALLEON_SHIP };
-export const SHIP_CATALOG = Object.freeze([HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP]);
+import { ECLIPSE_SHIP } from './EclipseShip.js';
+export { ECLIPSE_SHIP };
+export const SHIP_CATALOG = Object.freeze([HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP, ECLIPSE_SHIP]);
 
 import { STARTER_SHIP } from './StarterShip.js';
 export { STARTER_SHIP };
