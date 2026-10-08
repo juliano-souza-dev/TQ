@@ -216,7 +216,6 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .combat-hud button { min-width:98px; min-height:48px; border-radius:10px; }
 .combat-feedback { max-width:160px; text-align:center; font-size:11px; }
 
- .combat-layer {position:fixed;inset:0;width:100vw;height:100dvh;pointer-events:none;z-index:18;}
 .combat-hud button:disabled {opacity:.34;filter:grayscale(1);cursor:not-allowed;}
 .combat-hud button.is-firing {background:#ad3d35;color:#fff;}
 
