@@ -17,7 +17,7 @@ export class ShipRenderer {
       image.onerror = () => reject(new Error('Falha ao carregar sprite do navio'));
     });
   }
-  render(headingDegrees, offset = { x: 0, y: 0 }, zoom = 1) {
+  render(headingDegrees, shipPosition, cameraView, zoom = 1) {
     const ctx = this.ctx;
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -37,6 +37,7 @@ export class ShipRenderer {
     const drawW = frameWidth * scale;
     const drawH = frameHeight * scale;
     ctx.drawImage(this.image, (frame % columns) * frameWidth, Math.floor(frame / columns) * frameHeight,
-      frameWidth, frameHeight, (w - drawW) / 2 - offset.x * zoom * dpr, (h - drawH) / 2 - offset.y * zoom * dpr, drawW, drawH);
+      frameWidth, frameHeight, (w - drawW) / 2 + (shipPosition.x - cameraView.x) * zoom * dpr,
+      (h - drawH) / 2 + (shipPosition.y - cameraView.y) * zoom * dpr, drawW, drawH);
   }
 }
