@@ -5,7 +5,7 @@ export const R1 = Object.freeze({
   name: 'Enseada dos Aprendizes',
   width: 4096,
   height: 4096,
-  spawn: Object.freeze({ x: 2048, y: 2048 }),
+  spawn: Object.freeze({ x: 3400, y: 3500 }),
   islands: Object.freeze([
     Object.freeze({ id: 'shipyard', kind: 'shipyard', x: 1430, y: 1650, size: 1050, width: 820, height: 690, asset: versionedAsset('../../../assets/regions/islands/ilha_estaleiro.webp') }),
     Object.freeze({ id: 'missions', kind: 'missions', x: 2760, y: 1750, size: 1050, width: 820, height: 690, asset: versionedAsset('../../../assets/regions/islands/ilha_missoes.webp') }),
