@@ -34,9 +34,14 @@ export class NpcRenderer {
         if (x < -size || x > w + size || y < -size || y > h + size) continue;
         const image = this.monsterImage;
         if (image) {
-          // O WebP já contém seus próprios quadros e tempos de animação.
-          // Desenhar a imagem integral evita recortar o Kraken em 16 pedaços.
-          ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
+          // Atlas idle 4x4: 16 quadros de 400px, 105ms por quadro.
+          // A posição no mundo fica fixa: só muda a região da textura desenhada.
+          const columns = 4, rows = 4, frameDurationMs = 105;
+          const frame = Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
+          const frameW = image.width / columns, frameH = image.height / rows;
+          ctx.drawImage(image, (frame % columns) * frameW,
+            Math.floor(frame / columns) * frameH, frameW, frameH,
+            x - size / 2, y - size / 2, size, size);
           renderMonsterBlood(ctx, npc, x, y, size, performance.now());
           const barW = size * 0.65;
           ctx.fillStyle = '#152233'; ctx.fillRect(x-barW/2,y-size*0.58,barW,6*dpr);
