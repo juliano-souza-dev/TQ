@@ -28,9 +28,8 @@ export function getMissionFlow(save = {}, shipId) {
   };
   if (board.active.length) return {
     destination:null, stage:'free',
-    objective:board.active[0].name + ' · '
-      + board.active[0].progress.map((count, index) =>
-        Math.floor(count) + '/' + board.active[0].objectives[index].count).join(' · '),
+    objective:board.active[0].objectives.map((task, index) =>
+        task.label + ' · ' + Math.floor(board.active[0].progress[index] ?? 0) + '/' + task.count).join(' · '),
   };
   return {
     destination:null, stage:'free',
