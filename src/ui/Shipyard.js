@@ -13,7 +13,8 @@ const el = (tag, className, text) => {
 export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, ownedShipIds = [STARTER_SHIP.id], cannons = CANNONS, events = EVENTS, ownedCannonIds = [], equippedCannonIds = [], loadout = {}, getEquipment = () => ({}), onLoadoutChange = () => {} } = {}) {
   let currentLoadout = loadout;
   let currentOwnedCannonIds = ownedCannonIds;
-  let currentOwnedShipIds = ownedShipIds;
+  let currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...ownedShipIds])];
+  let currentCannonCounts = {};
   const root = el('div', 'shipyard');
   const tabs = el('div', 'shipyard-tabs');
   tabs.setAttribute('role', 'tablist');
@@ -52,7 +53,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     const view = views.ships;
     view.replaceChildren();
     view.append(el('h3', '', 'Sua frota'));
-    const ownedShips = ships.filter(ship => currentOwnedShipIds.includes(ship.id));
+    const ownedShips = ships.filter(ship => ship.id === equippedShipId || currentOwnedShipIds.includes(ship.id));
     const ordered = [...ownedShips].sort((a, b) => Number(b.id === equippedShipId) - Number(a.id === equippedShipId));
     for (const ship of ordered) {
       const equipped = ship.id === equippedShipId;
@@ -88,9 +89,9 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     view.append(el('p', 'shipyard-note', 'Capacidade do navio equipado: ' + (equipped?.cannonSlots ?? 'não definida') + ' espaços.'));
     const capacity = equipped?.cannonSlots ?? 0;
     const slots = currentLoadout[equippedShipId] ?? [];
-    const ownedCannons = cannons.filter(cannon => isItemVisible(cannon, events) && isItemOwned(cannon, currentOwnedCannonIds));
+    const ownedCannons = cannons.filter(cannon => isItemVisible(cannon, events) && (isItemOwned(cannon, currentOwnedCannonIds) || (Number(currentCannonCounts[cannon.id]) || 0) > 0));
     const ownedIds = ownedCannons.map(cannon => cannon.id);
-    const occupied = new Set(slots.filter(Boolean));
+    const usedCounts = Object.values(currentLoadout).flat().filter(Boolean).reduce((counts,id) => { counts[id] = (counts[id] || 0) + 1; return counts; }, {});
     const slotsBox = el('div', 'shipyard-cannon-slots');
     for (let index = 0; index < capacity; index++) {
       const cannonId = slots[index] ?? null;
@@ -110,7 +111,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
         const select = el('select', 'shipyard-cannon-select');
         select.setAttribute('aria-label', 'Equipar canhão no slot ' + (index + 1));
         select.append(new Option('Escolha um canhão', ''));
-        for (const available of ownedCannons.filter(item => !occupied.has(item.id))) {
+        for (const available of ownedCannons.filter(item => (Number(currentCannonCounts[item.id]) || (item.acquisition?.type === 'starter' ? 1 : 0)) > (usedCounts[item.id] || 0))) {
           select.append(new Option(available.name, available.id));
         }
         select.addEventListener('change', () => {
@@ -133,7 +134,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
       image.loading = 'lazy';
       image.style.cssText = 'width:76px;height:76px;object-fit:contain;flex-shrink:0';
       const info = el('div', 'shipyard-cannon-info');
-      info.append(el('strong', '', cannon.name), el('span', '', occupied.has(cannon.id) ? 'Equipado' : 'Desequipado'));
+      info.append(el('strong', '', cannon.name), el('span', '', 'Possui: ' + (Number(currentCannonCounts[cannon.id]) || (cannon.acquisition?.type === 'starter' ? 1 : 0)) + ' · Equipados: ' + (usedCounts[cannon.id] || 0)));
       if (cannon.reloadSeconds != null) info.append(el('p', 'shipyard-note',
         'Recarga: ' + cannon.reloadSeconds + ' s | Precisão: ' + Math.round(cannon.accuracy * 100) +
         '% | Dano: ' + cannon.damageMultiplier + '× | Calibre: ' + cannon.caliberPounder + ' pounder'));
@@ -146,6 +147,6 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
   root.append(tabs, content);
   return {
     element: root,
-    show() { const fresh = getEquipment(); currentLoadout = fresh.loadout ?? loadout; currentOwnedCannonIds = fresh.ownedCannonIds ?? ownedCannonIds; currentOwnedShipIds = fresh.ownedShipIds ?? ownedShipIds; renderShips(); renderCannons(); selectTab('ships'); },
+    show() { const fresh = getEquipment(); currentLoadout = fresh.loadout ?? loadout; currentOwnedCannonIds = fresh.ownedCannonIds ?? ownedCannonIds; currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...(fresh.ownedShipIds ?? ownedShipIds)])]; currentCannonCounts = fresh.cannonCounts ?? {}; renderShips(); renderCannons(); selectTab('ships'); },
   };
 }
