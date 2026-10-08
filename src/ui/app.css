@@ -121,3 +121,12 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   pointer-events: none;
   z-index: 2;
 }
+
+.island-layer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
