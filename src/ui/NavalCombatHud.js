@@ -82,7 +82,11 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
     ammoSelect.value = status.ammoId;
     ammoSelect.disabled = !choices.some(item => item.amount > 0);
     ammoQuantity.textContent = '⚫ ' + status.ammo + ' munições';
-    cannonQuantity.textContent = '💣 Canhões: ' + status.equippedCannons + ' equipados · ' + status.cannonsInRange + ' no alcance';
+    const equipped = Number(status.equippedCannons);
+    const inRange = Number(status.cannonsInRange);
+    cannonQuantity.textContent = Number.isFinite(equipped) && Number.isFinite(inRange)
+      ? '💣 Canhões: ' + equipped + ' equipados · ' + inRange + ' no alcance'
+      : '💣 Contagem de canhões indisponível. Atualize o jogo.';
     hull.textContent = '❤️ Casco: ' + status.health + '/100';
     repairButton.disabled = status.health >= 100;
     repairButton.setAttribute('aria-disabled', String(repairButton.disabled));
