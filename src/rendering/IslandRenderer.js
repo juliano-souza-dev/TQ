@@ -27,10 +27,11 @@ export class IslandRenderer {
       const image = this.images.get(island.id);
       if (!image) continue;
       const size = island.size * zoom * dpr;
-      const aspect = image.naturalHeight / image.naturalWidth;
+      // Match the configured collision footprint exactly on screen.
+      const height = (island.height ?? island.size) * zoom * dpr;
       const x = w / 2 + (island.x - cameraView.x) * zoom * dpr;
       const y = h / 2 + (island.y - cameraView.y) * zoom * dpr;
-      this.ctx.drawImage(image, x - size / 2, y - size * aspect / 2, size, size * aspect);
+      this.ctx.drawImage(image, x - size / 2, y - height / 2, size, height);
     }
   }
 }
