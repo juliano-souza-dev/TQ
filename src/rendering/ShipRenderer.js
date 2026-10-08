@@ -17,6 +17,21 @@ export class ShipRenderer {
       image.onerror = () => reject(new Error('Falha ao carregar sprite do navio'));
     });
   }
+  // World-unit dimensions of the exact sprite frame on screen.
+  // A 400x400 muzzle map stays aligned when viewport size, DPR or zoom changes.
+  getFrameWorldSize(zoom = 1) {
+    const bounds = this.canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(bounds.width * dpr));
+    const h = Math.max(1, Math.round(bounds.height * dpr));
+    const { columns, rows, frameWidth: configuredWidth, frameHeight: configuredHeight } = this.definition.sprite;
+    const frameWidth = (this.image.naturalWidth / columns) || configuredWidth;
+    const frameHeight = (this.image.naturalHeight / rows) || configuredHeight;
+    const targetSize = Math.min(w * .40, h * .40, 240 * dpr)
+      * (this.definition.id === STARTER_SHIP.id ? 1.25 : 1);
+    const factor = targetSize / Math.max(frameWidth, frameHeight) / (Math.max(.001, zoom) * dpr);
+    return { width: frameWidth * factor, height: frameHeight * factor };
+  }
   render(headingDegrees, shipPosition, cameraView, zoom = 1) {
     const ctx = this.ctx;
     const bounds = this.canvas.getBoundingClientRect();
