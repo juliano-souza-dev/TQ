@@ -34,8 +34,11 @@ function openPortal() {
   stopWorld();
   if (!currentUser) return;
   const syncMode = syncPreferences.get(currentUser.uid);
+  const savedProfile = localSaves.load(currentUser.uid)?.payload?.profile;
+  const profile = { level: savedProfile?.level ?? 1, gold: savedProfile?.gold ?? 10 };
   renderPortal(root, currentUser, {
     syncMode,
+    profile,
     onModeChange: mode => {
       if (!currentUser || mode !== SYNC_MODE.LOCAL) return;
       try { syncPreferences.set(currentUser.uid, mode); openPortal(); }
@@ -78,7 +81,7 @@ function startWorld() {
   if (!document.hidden) loop.start();
   // This first local save contains only the minimal world metadata.
   // Gameplay state persistence will be extended alongside the systems.
-  localSaves.save(currentUser.uid, { seed: state.seed, regionId: world.region.id });
+  localSaves.save(currentUser.uid, { ...previousSave?.payload, seed: state.seed, regionId: world.region.id, profile: { level: previousSave?.payload?.profile?.level ?? 1, gold: previousSave?.payload?.profile?.gold ?? 10 } });
 }
 
 function showLogin(error = '') {
