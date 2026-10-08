@@ -33,6 +33,10 @@ void main() {
   vec3 surface = texture(uTexture, fract(base * 1.38 + flow * 0.32 + distortion)).rgb;
   float crest = smoothstep(0.30, 0.95, waveA * 0.5 + waveB * 0.25 + 0.5);
   vec3 water = mix(deep, surface, 0.26 + crest * 0.16);
-  water += vec3(0.025, 0.06, 0.075) * crest;
-  fragColor = vec4(water, 1.0);
+  // Deepen the turquoise palette while retaining the original foam detail.
+  water = mix(water, vec3(0.025, 0.105, 0.19), 0.24);
+  water *= vec3(0.77, 0.81, 0.88);
+  // Restrained highlights instead of a uniformly luminous surface.
+  water += vec3(0.008, 0.019, 0.027) * crest;
+  fragColor = vec4(clamp(water, 0.0, 1.0), 1.0);
 }`;
