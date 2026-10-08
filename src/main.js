@@ -20,6 +20,7 @@ let minimapElement = null;
 let islandPanelElement = null;
 let clickNavigation = null;
 let keyboardCamera = null;
+let firstVoyageGuide = null;
 let worldGeneration = 0;
 const GUEST_UID = 'local-guest';
 const LOCAL_SESSION_KEY = 'tq:local-session:v1';
@@ -32,6 +33,8 @@ function stopWorld() {
   if (oceanRenderer) oceanRenderer.dispose();
   oceanRenderer = null;
   if (keyboardCamera) keyboardCamera.dispose();
+  if (firstVoyageGuide) firstVoyageGuide.dispose();
+  firstVoyageGuide = null;
   keyboardCamera = null;
   if (clickNavigation) clickNavigation.dispose();
   clickNavigation = null;
@@ -128,6 +131,13 @@ async function startWorld() {
       contactId = contact.id;
       clickNavigation.cancel();
       islandPanel.open(contact.kind);
+      if (contact.kind === 'missions' && firstVoyageGuide) {
+        firstVoyageGuide.finish();
+        firstVoyageGuide.dispose();
+        firstVoyageGuide = null;
+        const save = localSaves.load(currentUser.uid)?.payload ?? {};
+        localSaves.save(currentUser.uid, { ...save, tutorial: { ...save.tutorial, missionsHarborVisited: true } });
+      }
     }
   }
   let renderer;
@@ -147,6 +157,13 @@ async function startWorld() {
     return;
   }
   const previousSave = localSaves.load(currentUser.uid);
+  const firstVoyageComplete = Boolean(previousSave?.payload?.tutorial?.missionsHarborVisited);
+  if (!firstVoyageComplete) {
+    const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
+    if (generation !== worldGeneration) return;
+    firstVoyageGuide = createFirstVoyageGuide(world);
+    root.append(...firstVoyageGuide.elements);
+  }
   let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
   let oceanTimeMs = 0;
   loop = new GameLoop({
@@ -154,6 +171,7 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       updateCorsairPopulation(world, stepMs);
+      firstVoyageGuide?.update();
       // Manual camera moves only while WASD is held; no inertia or ship movement.
       const cameraInput = keyboardCamera.getVector();
       if (cameraInput.x !== 0 || cameraInput.y !== 0) {
