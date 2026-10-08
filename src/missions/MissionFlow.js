@@ -1,11 +1,39 @@
-// Single source of truth for mission-driven player guidance.
+import { getCampaignBoard } from './RegionOneCampaign.js';
+
+// The short initial voyage is guided; the rest of the campaign is free-play.
 export function getMissionFlow(save = {}, shipId) {
   const missions = save.missions ?? {};
   const armed = (save.equipment?.loadout?.[shipId] ?? []).some(Boolean);
   const accepted = Boolean(save.tutorial?.firstMissionAccepted);
   if (!accepted) return { destination:'missions', objective:'Visite o Porto das Missões', stage:'welcome' };
   if (!armed) return { destination:'shipyard', objective:'Equipe um canhão no Estaleiro', stage:'equip' };
-  if (missions.corsair === 'active') return { destination:null, objective:'Afunde 1 Corsário das Velas Rubras', stage:'combat' };
-  if (missions.corsair === 'complete') return { destination:'missions', objective:'Volte ao Porto das Missões para continuar', stage:'next' };
-  return { destination:'missions', objective:'Vá ao Porto das Missões buscar sua missão', stage:'mission' };
+  if (missions.corsair === 'active') return {
+    destination:null, objective:'Afunde 1 Corsário das Velas Rubras', stage:'combat',
+  };
+  if (missions.corsair !== 'complete') return {
+    destination:'missions', objective:'Vá ao Porto das Missões buscar sua missão', stage:'mission',
+  };
+  const board = getCampaignBoard(save);
+  if (board.activeRegion >= 2) return {
+    destination:null, stage:'stage2',
+    objective:'Etapa 2 iniciada: tabuada do 3 desbloqueada',
+  };
+  if (board.unlockedRegion >= 2) return {
+    destination:null, stage:'ready2',
+    objective:'Etapa 2 liberada! Abra o Quadro de Missões para avançar',
+  };
+  if (board.claimable.length) return {
+    destination:null, stage:'free',
+    objective:'📦 ' + board.claimable.length + ' recompensa(s) de missão aguardando resgate',
+  };
+  if (board.active.length) return {
+    destination:null, stage:'free',
+    objective:board.active[0].name + ' · '
+      + board.active[0].progress.map((count, index) =>
+        Math.floor(count) + '/' + board.active[0].objectives[index].count).join(' · '),
+  };
+  return {
+    destination:null, stage:'free',
+    objective:'Abra o Quadro de Missões e escolha sua próxima aventura',
+  };
 }
