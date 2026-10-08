@@ -1,34 +1,49 @@
 import { resolveIslandMovement } from './IslandCollision.js';
+import { integratePlayerVelocity } from './navigation/PlayerKinematics.mjs';
+import { targetNavigationVector } from './WorldNavigationInput.mjs';
 
-// Region-independent navigation. Inputs are normalized [-1, 1].
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+
+// Cinemática importada do projeto antigo com adaptador para o estado do TQ.
 export function advanceNavigation(world, input, deltaMs, speed = 80) {
   if (!world?.region || !world.camera) throw new TypeError('world required');
   if (!Number.isFinite(deltaMs) || deltaMs < 0) throw new RangeError('invalid deltaMs');
-  const x = Number.isFinite(input?.x) ? input.x : 0;
-  const y = Number.isFinite(input?.y) ? input.y : 0;
-  const magnitude = Math.max(1, Math.hypot(x, y));
-  const distance = speed * deltaMs / 1000;
-  const nextX = Math.max(0, Math.min(world.region.width, world.camera.x + x / magnitude * distance));
-  const nextY = Math.max(0, Math.min(world.region.height, world.camera.y + y / magnitude * distance));
-  const resolved = resolveIslandMovement(world.region, world.camera.x, world.camera.y, nextX, nextY);
-  world.camera.x = resolved.x;
-  world.camera.y = resolved.y;
+  const dt=Math.min(deltaMs,100)/1000;
+  const x=Number.isFinite(input?.x)?input.x:0;
+  const y=Number.isFinite(input?.y)?input.y:0;
+  const magnitude=Math.max(1,Math.hypot(x,y));
+  const previous=world.navigationVelocity??{vx:0,vy:0};
+  const velocity=integratePlayerVelocity({
+    ...previous, input:{x:x/magnitude,y:y/magnitude},
+    acceleration:Math.max(240,speed*5),
+    maxSpeed:Math.max(40,speed),
+    minSpeed:0,
+    braking:.12,dt
+  });
+  const fromX=world.camera.x,fromY=world.camera.y;
+  const toX=clamp(fromX+velocity.vx*dt,0,world.region.width);
+  const toY=clamp(fromY+velocity.vy*dt,0,world.region.height);
+  const resolved=resolveIslandMovement(world.region,fromX,fromY,toX,toY);
+  world.camera.x=resolved.x;
+  world.camera.y=resolved.y;
+  world.navigationVelocity={
+    vx:Math.abs(resolved.x-toX)>.01?0:velocity.vx,
+    vy:Math.abs(resolved.y-toY)>.01?0:velocity.vy
+  };
 }
 
-/** Advance toward a clicked world point without overshooting. */
-export function advanceTowardDestination(world, destination, deltaMs, speed = 80) {
-  if (!destination) return { arrived: true, heading: null };
-  const dx = destination.x - world.camera.x;
-  const dy = destination.y - world.camera.y;
-  const distance = Math.hypot(dx, dy);
-  if (distance <= 1) return { arrived: true, heading: null };
-  const step = Math.min(distance, speed * deltaMs / 1000);
-  const beforeX = world.camera.x;
-  const beforeY = world.camera.y;
-  advanceNavigation(world, { x: dx / distance, y: dy / distance }, step / speed * 1000, speed);
-  const blocked = Math.hypot(world.camera.x - beforeX, world.camera.y - beforeY) < 0.001;
-  return {
-    arrived: blocked || distance - step <= 1,
-    heading: (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360,
-  };
+export function advanceTowardDestination(world,destination,deltaMs,speed=80){
+  if(!destination)return {arrived:true,heading:null};
+  const fromX=world.camera.x,fromY=world.camera.y;
+  const vector=targetNavigationVector(world.camera,destination,{arrivalRadius:4,slowRadius:Math.max(70,speed*.65)});
+  if(vector.arrived){
+    world.navigationVelocity={vx:0,vy:0};
+    return {arrived:true,heading:null};
+  }
+  advanceNavigation(world,vector,deltaMs,speed);
+  const movement=Math.hypot(world.camera.x-fromX,world.camera.y-fromY);
+  const arrived=Math.hypot(destination.x-world.camera.x,destination.y-world.camera.y)<=4;
+  const blocked=movement<.001 && Math.hypot(world.navigationVelocity.vx,world.navigationVelocity.vy)<.2;
+  if(arrived)world.navigationVelocity={vx:0,vy:0};
+  return {arrived:arrived||blocked,heading:(Math.atan2(vector.x,-vector.y)*180/Math.PI+360)%360};
 }
