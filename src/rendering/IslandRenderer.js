@@ -27,8 +27,8 @@ export class IslandRenderer {
       const image = this.images.get(island.id);
       if (!image) continue;
       const size = island.size * zoom * dpr;
-      // Match the configured collision footprint exactly on screen.
-      const height = (island.height ?? island.size) * zoom * dpr;
+      // Preserve the original image proportions; collision footprint is independent.
+      const height = size * image.naturalHeight / image.naturalWidth;
       const x = w / 2 + (island.x - cameraView.x) * zoom * dpr;
       const y = h / 2 + (island.y - cameraView.y) * zoom * dpr;
       this.ctx.drawImage(image, x - size / 2, y - height / 2, size, height);
