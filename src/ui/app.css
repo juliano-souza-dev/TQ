@@ -68,7 +68,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   left: max(14px, env(safe-area-inset-left));
   bottom: max(20px, env(safe-area-inset-bottom));
   z-index: 20;
-  width: clamp(116px, 34vw, 154px);
+  width: clamp(104px, 30.6vw, 139px);
   aspect-ratio: 1;
   border-radius: 50%;
   border: 3px solid rgba(105, 217, 255, .8);
@@ -108,5 +108,5 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   text-shadow: 0 2px 3px #2b1507;
 }
 @media (min-width: 800px) {
-  .analog-joystick { left: 24px; bottom: 24px; width: 148px; }
+  .analog-joystick { display: none; }
 }
