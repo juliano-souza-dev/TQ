@@ -83,7 +83,7 @@ async function startWorld() {
   let selectedNpcId = null;
   clickNavigation = createClickNavigation(canvas, world, point => {
     const npc = findNpcAtPoint(world.entities, point.x, point.y);
-    selectedNpcId = npc?.id ?? null;
+    if (npc) selectedNpcId = npc.id;
     return Boolean(npc);
   });
   keyboardCamera = createKeyboardCameraInput();
