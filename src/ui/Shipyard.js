@@ -102,12 +102,12 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     const view = views.cannons;
     view.replaceChildren(el('h3', '', 'Canhões da frota'));
     const equipped = ships.find(ship => ship.id === currentEquippedShipId);
-    view.append(el('p', 'shipyard-note', 'Capacidade do navio equipado: ' + (equipped?.cannonSlots ?? 'não definida') + ' espaços.'));
+    view.append(el('p', 'shipyard-note', 'Os canhões podem equipar vários navios. Em cada navio, o limite é a quantidade que você possui. Capacidade: ' + (equipped?.cannonSlots ?? 'não definida') + ' espaços.'));
     const capacity = equipped?.cannonSlots ?? 0;
     const slots = currentLoadout[currentEquippedShipId] ?? [];
     const ownedCannons = cannons.filter(cannon => isItemVisible(cannon, events) && (isItemOwned(cannon, currentOwnedCannonIds) || (Number(currentCannonCounts[cannon.id]) || 0) > 0));
     const ownedIds = ownedCannons.map(cannon => cannon.id);
-    const usedCounts = Object.values(currentLoadout).flat().filter(Boolean).reduce((counts,id) => { counts[id] = (counts[id] || 0) + 1; return counts; }, {});
+    const usedCounts = slots.filter(Boolean).reduce((counts, id) => { counts[id] = (counts[id] || 0) + 1; return counts; }, {});
     const slotsBox = el('div', 'shipyard-cannon-slots');
     for (let index = 0; index < capacity; index++) {
       const cannonId = slots[index] ?? null;
@@ -150,7 +150,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
       image.loading = 'lazy';
       image.style.cssText = 'width:76px;height:76px;object-fit:contain;flex-shrink:0';
       const info = el('div', 'shipyard-cannon-info');
-      info.append(el('strong', '', cannon.name), el('span', '', 'Possui: ' + (Number(currentCannonCounts[cannon.id]) || (cannon.acquisition?.type === 'starter' ? 1 : 0)) + ' · Equipados: ' + (usedCounts[cannon.id] || 0)));
+      info.append(el('strong', '', cannon.name), el('span', '', 'Possui: ' + (Number(currentCannonCounts[cannon.id]) || (cannon.acquisition?.type === 'starter' ? 1 : 0)) + ' · Neste navio: ' + (usedCounts[cannon.id] || 0)));
       if (cannon.reloadSeconds != null) info.append(el('p', 'shipyard-note',
         'Recarga: ' + cannon.reloadSeconds + ' s | Precisão: ' + Math.round(cannon.accuracy * 100) +
         '% | Dano: ' + cannon.damageMultiplier + '× | Calibre: ' + cannon.caliberPounder + ' pounder'));
