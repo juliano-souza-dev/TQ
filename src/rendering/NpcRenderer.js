@@ -7,10 +7,14 @@ export class NpcRenderer {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.images = new Map();
+    this.monsterImage = null;
   }
   async init() {
     const ships = [STARTER_SHIP, ROSE_GOLD_SHIP];
     await Promise.all(ships.map(async ship => this.images.set(ship.id, await loadShipSprite(ship))));
+    const image = new Image();
+    image.src = new URL('../../assets/monsters/sea_monster_kraken.webp', import.meta.url).href;
+    try { await image.decode(); this.monsterImage = image; } catch (error) { console.warn('Monstro não carregado:', error); }
   }
   render(entities, camera, zoom = 1, selectedId = null) {
     const bounds = this.canvas.getBoundingClientRect();
@@ -28,8 +32,19 @@ export class NpcRenderer {
         const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
         const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
         if (x < -size || x > w + size || y < -size || y > h + size) continue;
-        // O sprite do monstro só será ativado quando os assets forem migrados.
-        renderMonsterBlood(ctx, npc, x, y, size, performance.now());
+        const image = this.monsterImage;
+        if (image) {
+          // Sprite animado 4×4: mantém a posição do monstro, avançando apenas os quadros.
+          const cols = 4, rows = 4;
+          const frame = Math.floor((npc.animationTimeMs ?? 0) / 120) % (cols * rows);
+          const frameW = image.width / cols, frameH = image.height / rows;
+          ctx.drawImage(image, (frame % cols) * frameW, Math.floor(frame / cols) * frameH,
+            frameW, frameH, x - size / 2, y - size / 2, size, size);
+          renderMonsterBlood(ctx, npc, x, y, size, performance.now());
+          const barW = size * 0.65;
+          ctx.fillStyle = '#152233'; ctx.fillRect(x-barW/2,y-size*0.58,barW,6*dpr);
+          ctx.fillStyle = '#db5655'; ctx.fillRect(x-barW/2,y-size*0.58,barW * Math.max(0,npc.health/npc.maxHealth),6*dpr);
+        }
         continue;
       }
       const ship = npc.shipId === ROSE_GOLD_SHIP.id ? ROSE_GOLD_SHIP : STARTER_SHIP;
