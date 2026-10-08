@@ -28,28 +28,54 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   const mathBox = document.createElement('div');
   mathBox.className = 'mission-math';
   const question = document.createElement('p');
-  question.textContent = 'Resolva para iniciar a próxima missão: 3 × 4 = ?';
-  const answer = document.createElement('input');
-  answer.type = 'number';
-  answer.inputMode = 'numeric';
-  answer.placeholder = 'Resposta';
-  answer.setAttribute('aria-label', 'Resposta da continha');
+  question.className = 'mission-math-question';
+  const choices = document.createElement('div');
+  choices.className = 'mission-math-choices';
   const feedback = document.createElement('p');
+  feedback.className = 'mission-math-feedback';
   feedback.setAttribute('aria-live', 'polite');
-  const submit = document.createElement('button');
-  submit.type = 'button';
-  submit.className = 'primary-button';
-  submit.textContent = 'Confirmar resposta';
-  submit.addEventListener('click', () => {
-    if (onRequestNextMission(answer.value)) {
-      feedback.textContent = '✓ Correto! Missão iniciada.';
-      submit.hidden = true;
-    } else {
-      feedback.textContent = 'Tente novamente, capitão!';
-      answer.focus();
+  let correctAnswer = 12;
+  let solved = false;
+  function prepareChallenge() {
+    const a = 2 + Math.floor(Math.random() * 8);
+    const b = 2 + Math.floor(Math.random() * 8);
+    correctAnswer = a * b;
+    solved = false;
+    question.textContent = 'Resolva para iniciar a próxima missão: ' + a + ' × ' + b + ' = ?';
+    feedback.textContent = 'Escolha uma das quatro respostas.';
+    feedback.dataset.result = '';
+    choices.replaceChildren();
+    const answers = new Set([correctAnswer]);
+    for (const delta of [b, -b, a, -a, 1, -1, 2, -2, 10, -10]) {
+      if (answers.size >= 4) break;
+      if (correctAnswer + delta > 0) answers.add(correctAnswer + delta);
     }
-  });
-  mathBox.append(question, answer, submit, feedback);
+    const shuffled = [...answers].sort(() => Math.random() - 0.5);
+    for (const value of shuffled) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'mission-math-option';
+      button.textContent = String(value);
+      button.addEventListener('click', () => {
+        if (solved) return;
+        if (value !== correctAnswer) {
+          button.classList.add('is-wrong');
+          button.disabled = true;
+          feedback.textContent = '✗ Ainda não! Tente outra resposta.';
+          feedback.dataset.result = 'wrong';
+          return;
+        }
+        if (!onRequestNextMission(value, correctAnswer)) return;
+        solved = true;
+        button.classList.add('is-correct');
+        for (const option of choices.children) option.disabled = true;
+        feedback.textContent = '✓ Acertou! Sua missão começou. Bons ventos, capitão!';
+        feedback.dataset.result = 'correct';
+      });
+      choices.append(button);
+    }
+  }
+  mathBox.append(question, choices, feedback);
   const close = document.createElement('button');
   close.type = 'button'; close.className = 'primary-button';
   close.textContent = 'Voltar ao mar';
@@ -68,9 +94,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       acceptMission.hidden = kind !== 'missions' || isFirstMissionAccepted();
       const mission = getMissionState();
       mathBox.hidden = kind !== 'missions' || mission.firstMission !== 'equipped';
-      feedback.textContent = '';
-      answer.value = '';
-      submit.hidden = false;
+      if (!mathBox.hidden) prepareChallenge();
       if (kind === 'shipyard') shipyard.show();
       list.replaceChildren(...(kind === 'missions' ? [mission.firstMission === 'equipped' ? 'Canhão equipado! Resolva a continha para receber a próxima missão.' : mission.navigation === 'active' ? 'Missão em andamento: navegue 300 metros.' : mission.navigation === 'complete' ? 'Missão concluída: você navegou 300 metros!' : 'Primeira missão: visite o Estaleiro e prepare seu canhão.'] : content.items).map(item => {
         const p = document.createElement('p');
