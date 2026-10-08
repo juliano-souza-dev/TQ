@@ -5,10 +5,43 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#081a33">
   <title>Tabuada Quest</title>
-  <link rel="stylesheet" href="./src/ui/app.css">
 </head>
 <body>
   <main id="app" aria-label="Tabuada Quest"></main>
-  <script type="module" src="./src/main.js"></script>
+  <script>
+    // Single volatile cache version for every JS module, stylesheet and asset.
+    // Do not use this timestamp for player saves or gameplay persistence.
+    (async () => {
+      const version = String(Date.now());
+      window.__TQ_ASSET_VERSION__ = version;
+      const modulePaths = ["src/auth/AuthService.js","src/auth/firebase.js","src/config/firebase-config.example.js","src/core/GameLoop.js","src/core/GameState.js","src/main.js","src/npcs/CorsairPopulation.js","src/npcs/RedSailCorsair.js","src/persistence/LocalSaveStore.js","src/persistence/SyncPreference.js","src/rendering/IslandRenderer.js","src/rendering/NpcRenderer.js","src/rendering/OceanRenderer.js","src/rendering/ShipRenderer.js","src/rendering/shaders/ocean.js","src/ships/ShipRegistry.js","src/ships/ShipSpeed.js","src/ships/StarterShip.js","src/ui/AnalogJoystick.js","src/ui/IslandPanel.js","src/ui/KeyboardCameraInput.js","src/ui/Minimap.js","src/ui/Portal.js","src/world/CameraSystem.js","src/world/ClickNavigationInput.js","src/world/IslandCollision.js","src/world/NavigationSystem.js","src/world/WorldState.js","src/world/regions/r1.js"];
+      const imports = {};
+      for (const path of modulePaths) {
+        const absolute = new URL('./' + path, document.baseURI).href;
+        imports[absolute] = absolute + '?v=' + version;
+      }
+      const importMap = document.createElement('script');
+      importMap.type = 'importmap';
+      importMap.textContent = JSON.stringify({ imports });
+      document.head.append(importMap);
+
+      // Rewrite CSS url(...) assets too, so background images cannot stay stale.
+      const cssUrl = new URL('./src/ui/app.css', document.baseURI);
+      const response = await fetch(cssUrl.href + '?v=' + version, { cache: 'no-store' });
+      if (!response.ok) throw new Error('CSS HTTP ' + response.status);
+      const css = (await response.text()).replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/g, (_, quote, raw) => {
+        const asset = new URL(raw, cssUrl);
+        asset.searchParams.set('v', version);
+        return 'url("' + asset.href + '")';
+      });
+      const style = document.createElement('style');
+      style.textContent = css;
+      document.head.append(style);
+      await import(imports[new URL('./src/main.js', document.baseURI).href]);
+    })().catch(error => {
+      console.error('Falha ao carregar Tabuada Quest', error);
+      document.getElementById('app').textContent = 'Falha ao carregar o jogo. Atualize a página.';
+    });
+  </script>
 </body>
 </html>
