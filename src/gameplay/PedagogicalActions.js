@@ -16,6 +16,9 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
   if (type === 'accept-mission') {
     patch = acceptCampaignMission(save, action.id);
     if (!patch) return null;
+    // Accepting a contract happens at the Missions Port. This visit must count
+    // toward two-port objectives without requiring the player to leave and redock.
+    questEvent = { type: 'visit', island: 'missions' };
     message = 'Contrato aceito! Boa aventura.';
   } else if (type === 'treasure') {
     const outcome = claimTreasure(save, action.id);
