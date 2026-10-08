@@ -9,7 +9,7 @@ const el = (tag, className, text) => {
   return node;
 };
 
-export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, cannons = CANNONS, events = EVENTS, ownedCannonIds = [] } = {}) {
+export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, ownedShipIds = [STARTER_SHIP.id], cannons = CANNONS, events = EVENTS, ownedCannonIds = [] } = {}) {
   const root = el('div', 'shipyard');
   const tabs = el('div', 'shipyard-tabs');
   tabs.setAttribute('role', 'tablist');
@@ -48,7 +48,8 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     const view = views.ships;
     view.replaceChildren();
     view.append(el('h3', '', 'Sua frota'));
-    const ordered = [...ships].sort((a, b) => Number(b.id === equippedShipId) - Number(a.id === equippedShipId));
+    const ownedShips = ships.filter(ship => ownedShipIds.includes(ship.id));
+    const ordered = [...ownedShips].sort((a, b) => Number(b.id === equippedShipId) - Number(a.id === equippedShipId));
     for (const ship of ordered) {
       const equipped = ship.id === equippedShipId;
       const card = el('article', 'shipyard-ship-card' + (equipped ? ' is-equipped' : ''));
@@ -74,14 +75,14 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
       if (!equipped) card.append(el('p', 'shipyard-note', 'Navio catalogado. Ainda não adquirido ou desbloqueado.'));
       view.append(card);
     }
-    if (ships.length === 1) view.append(el('p', 'shipyard-note', 'Você possui 1 navio. Novas embarcações aparecerão aqui quando forem desbloqueadas.'));
+    if (!ownedShips.length) view.append(el('p', 'shipyard-note', 'Nenhum navio adquirido.'));
   }
   function renderCannons() {
     const view = views.cannons;
     view.replaceChildren(el('h3', '', 'Canhões da frota'));
     const equipped = ships.find(ship => ship.id === equippedShipId);
     view.append(el('p', 'shipyard-note', 'Capacidade do navio equipado: ' + (equipped?.cannonSlots ?? 'não definida') + ' espaços.'));
-    const visibleCannons = cannons.filter(cannon => isItemVisible(cannon, events));
+    const visibleCannons = cannons.filter(cannon => isItemVisible(cannon, events) && isItemOwned(cannon, ownedCannonIds));
     for (const cannon of visibleCannons) {
       const owned = isItemOwned(cannon, ownedCannonIds);
       const card = el('article', 'shipyard-cannon-card');
