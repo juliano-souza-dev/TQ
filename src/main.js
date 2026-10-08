@@ -274,7 +274,8 @@ async function startWorld() {
   shipCanvas.setAttribute('aria-label', 'Navio do jogador');
   root.append(islandCanvas, treasureCanvas, npcCanvas, shipCanvas, joystick.element);
   const { ROSE_GOLD_SHIP } = await import('./ships/RoseGoldShip.js');
-  const playableShips = [STARTER_SHIP, ROSE_GOLD_SHIP];
+  const { SHIP_CATALOG } = await import('./ships/ShipRegistry.js');
+  const playableShips = [STARTER_SHIP, ROSE_GOLD_SHIP, ...SHIP_CATALOG];
   const savedEquipment = readSave().equipment ?? {};
   const initialShip = playableShips.find(ship => ship.id === savedEquipment.equippedShipId &&
     (ship.id === STARTER_SHIP.id || savedEquipment.ownedShipIds?.includes(ship.id))) ?? STARTER_SHIP;
@@ -370,6 +371,7 @@ async function startWorld() {
       writePatch({ learning: recordLearningAnswer(save.learning, correct, firstAttempt) });
     },
     shipyardOptions: {
+      ships: playableShips,
       loadout: equipment.loadout ?? {},
       ownedCannonIds: equipment.ownedCannonIds ?? [],
       getEquipment: () => readSave().equipment ?? {},
