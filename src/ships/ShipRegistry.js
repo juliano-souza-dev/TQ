@@ -1,6 +1,5 @@
 import { STARTER_SHIP } from './StarterShip.js';
-
-export const STARTER_SHIP = Object.freeze(starter);
+export { STARTER_SHIP };
 
 export function getShipFrame(headingDegrees, definition = STARTER_SHIP) {
   const { framesByHeading, angleStepDegrees } = definition.sprite;
