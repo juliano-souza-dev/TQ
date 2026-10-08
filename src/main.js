@@ -110,7 +110,7 @@ async function startWorld() {
         }
       }
     },
-    render: () => { renderer.render(world, oceanTimeMs); shipRenderer.render(heading); },
+    render: () => { renderer.render(world, oceanTimeMs); shipRenderer.render(heading, world.cameraOffset, world.camera.zoom); },
   });
   if (!document.hidden) loop.start();
   // This first local save contains only the minimal world metadata.
