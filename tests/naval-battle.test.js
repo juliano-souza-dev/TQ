@@ -242,3 +242,20 @@ test('mira nao adquire alvo quando nenhum canhao esta equipado', () => {
   t.battle.updateAutoTarget(160);
   assert.equal(t.battle.targetId,null);
 });
+
+test('three equipped cannons consume three rounds in one volley', () => {
+  const t = battleHarness({ ammoCount: 20 });
+  t.save.equipment.loadout.starter = ['blue-gold-pirate','blue-gold-pirate','blue-gold-pirate'];
+  assert.equal(t.battle.toggleFire(), true);
+  assert.equal(t.shots.length, 3, 'each cannon must launch its own projectile');
+  assert.equal(t.save.ammunition['rusted-iron'], 17, 'one round per projectile');
+  assert.match(t.messages.at(-1), /3 balas disparadas/);
+});
+
+test('multiple cannons use remaining ammo only and never create free shots', () => {
+  const t = battleHarness({ ammoCount: 2 });
+  t.save.equipment.loadout.starter = ['blue-gold-pirate','blue-gold-pirate','blue-gold-pirate'];
+  assert.equal(t.battle.toggleFire(), true);
+  assert.equal(t.shots.length, 2);
+  assert.equal(t.save.ammunition['rusted-iron'], 0);
+});
