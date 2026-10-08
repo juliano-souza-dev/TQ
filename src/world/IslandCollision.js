@@ -29,3 +29,11 @@ export function resolveIslandMovement(region, fromX, fromY, toX, toY, radius = S
   const y = moveAxis(x, fromY, toY, 'y');
   return { x, y };
 }
+
+export function getIslandContact(region, x, y, radius = SHIP_COLLISION_RADIUS) {
+  return (region.islands ?? []).find(island => {
+    const halfW = (island.width ?? island.size * 0.65) / 2 + radius;
+    const halfH = (island.height ?? island.size * 0.5) / 2 + radius;
+    return Math.abs(x - island.x) <= halfW && Math.abs(y - island.y) <= halfH;
+  }) ?? null;
+}
