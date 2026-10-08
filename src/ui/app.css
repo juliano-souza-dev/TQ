@@ -153,3 +153,5 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .island-panel-card h2 { margin: 0 0 12px; }
 .island-panel-card p { margin: 12px 0; }
 .island-panel-card button { margin-top: 12px; }
+
+.npc-layer { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
