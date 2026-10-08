@@ -15,6 +15,7 @@ let loop = null;
 let oceanRenderer = null;
 let shipCanvas = null;
 let islandCanvas = null;
+let minimapElement = null;
 let clickNavigation = null;
 let keyboardCamera = null;
 let worldGeneration = 0;
@@ -32,6 +33,8 @@ function stopWorld() {
   keyboardCamera = null;
   if (clickNavigation) clickNavigation.dispose();
   clickNavigation = null;
+  if (minimapElement) minimapElement.remove();
+  minimapElement = null;
   if (islandCanvas) islandCanvas.remove();
   islandCanvas = null;
   if (shipCanvas) shipCanvas.remove();
@@ -55,12 +58,13 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
     import('./rendering/IslandRenderer.js'),
     import('./world/NavigationSystem.js'), import('./world/ClickNavigationInput.js'),
     import('./ui/KeyboardCameraInput.js'), import('./world/CameraSystem.js'),
+    import('./ui/Minimap.js'),
   ]);
   if (generation !== worldGeneration) return;
   const world = createWorldState();
@@ -77,6 +81,14 @@ async function startWorld() {
   const shipRenderer = new ShipRenderer(shipCanvas);
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
   let heading = 0;
+  const minimap = createMinimap(world, {
+    getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
+    getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
+    getTreasures: () => [...world.entities.values()].filter(entity => entity.type === 'treasure'),
+    hasTreasureSense: () => Boolean(world.treasureSenseActive),
+  });
+  minimapElement = minimap.element;
+  root.append(minimapElement);
   let renderer;
   try {
     renderer = new OceanRenderer(canvas);
@@ -126,6 +138,7 @@ async function startWorld() {
       renderer.render(world, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
       shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
+      minimap.render();
     },
   });
   if (!document.hidden) loop.start();
