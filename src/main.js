@@ -119,6 +119,8 @@ async function startWorld() {
     }
   }
   createCorsairPopulation(world);
+  const { createMonsterPopulation, updateMonsterPopulation, monsterGoldReward } = await import('./monsters/MonsterPopulation.js');
+  createMonsterPopulation(world);
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
   let selectedNpcId = null;
   let heading = 0;
@@ -203,6 +205,12 @@ async function startWorld() {
     onFeedback: message => navalHud?.setFeedback(message),
     onVictory: npc => {
       const save = readSave();
+      if (npc.type === 'monster') {
+        const gold = monsterGoldReward();
+        writePatch({ profile: { ...save.profile, gold: (Number(save.profile?.gold) || 0) + gold } });
+        navalHud?.setFeedback('🐙 Kraken derrotado! +' + gold + ' ouro.');
+        return;
+      }
       if (save.missions?.corsair === 'active' && npc.archetype === 'red-sail-corsair') {
         writePatch({ missions: { ...save.missions, corsair: 'complete' } });
         updateMissionHud();
@@ -454,6 +462,7 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       updateCorsairPopulation(world, stepMs);
+      updateMonsterPopulation(world, stepMs);
       glintElapsed+=stepMs;
       if(EVENTS.halloween){
         const save=readSave();
