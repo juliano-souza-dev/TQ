@@ -2,7 +2,7 @@ import { createRedSailCorsair, updateCorsair, RED_SAIL_CORSAIR } from './RedSail
 import { createRoseGoldCorsair, ROSE_GOLD_CORSAIR } from './RoseGoldCorsair.js';
 import { resolveIslandMovement, collidesWithIsland } from '../world/IslandCollision.js';
 
-export const CORSAIR_POPULATION = 10;
+export const CORSAIR_POPULATION = 20;
 export const CORSAIR_RESPAWN_MS = 30000;
 const MARGIN = 90;
 
