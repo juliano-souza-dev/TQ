@@ -6,9 +6,9 @@ export const R1 = Object.freeze({
   height: 4096,
   spawn: Object.freeze({ x: 2048, y: 2048 }),
   islands: Object.freeze([
-    Object.freeze({ id: 'shipyard', kind: 'shipyard', x: 1430, y: 1650, size: 235, width: 190, height: 175, asset: new URL('../../../assets/regions/islands/ilha_estaleiro.webp', import.meta.url).href }),
-    Object.freeze({ id: 'missions', kind: 'missions', x: 2760, y: 1750, size: 235, width: 190, height: 175, asset: new URL('../../../assets/regions/islands/ilha_missoes.webp', import.meta.url).href }),
-    Object.freeze({ id: 'scenery', kind: 'decoration', x: 2180, y: 2950, size: 270, width: 215, height: 200, asset: new URL('../../../assets/regions/islands/ilha_fundo_transparente.png', import.meta.url).href }),
+    Object.freeze({ id: 'shipyard', kind: 'shipyard', x: 1430, y: 1650, size: 510, width: 350, height: 290, asset: new URL('../../../assets/regions/islands/ilha_estaleiro.webp', import.meta.url).href }),
+    Object.freeze({ id: 'missions', kind: 'missions', x: 2760, y: 1750, size: 510, width: 350, height: 290, asset: new URL('../../../assets/regions/islands/ilha_missoes.webp', import.meta.url).href }),
+    Object.freeze({ id: 'scenery', kind: 'decoration', x: 2180, y: 2950, size: 570, width: 390, height: 320, asset: new URL('../../../assets/regions/islands/ilha_fundo_transparente.png', import.meta.url).href }),
   ]),
   ocean: Object.freeze({
     texture: new URL('../../../assets/globals/ocean-tile-tabuada-region01.webp', import.meta.url).href,
