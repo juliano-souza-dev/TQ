@@ -1,6 +1,7 @@
 import { STARTER_SHIP, getShipFrame } from '../ships/ShipRegistry.js';
 import { ROSE_GOLD_SHIP } from '../ships/RoseGoldShip.js';
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
+import { renderMonsterBlood } from '../monsters/MonsterBloodRenderer.js';
 export class NpcRenderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -22,7 +23,15 @@ export class NpcRenderer {
     const ctx = this.ctx; ctx.clearRect(0, 0, w, h);
     const size = Math.min(w * 0.32, h * 0.32, 185 * dpr) * zoom;
     for (const npc of entities.values()) {
-      if (npc.type !== 'npc' || npc.health <= 0) continue;
+      if (npc.type !== 'npc' && npc.type !== 'monster' || npc.health <= 0) continue;
+      if (npc.type === 'monster') {
+        const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
+        const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
+        if (x < -size || x > w + size || y < -size || y > h + size) continue;
+        // O sprite do monstro só será ativado quando os assets forem migrados.
+        renderMonsterBlood(ctx, npc, x, y, size, performance.now());
+        continue;
+      }
       const ship = npc.shipId === ROSE_GOLD_SHIP.id ? ROSE_GOLD_SHIP : STARTER_SHIP;
       const image = this.images.get(ship.id);
       if (!image) continue;
