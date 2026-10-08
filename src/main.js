@@ -398,6 +398,7 @@ async function startWorld() {
           navalBattle.firing = false;
           shipSpeed = getShipSpeed(ship);
           writePatch({ equipment: { ...save.equipment, equippedShipId: ship.id } });
+          recordMissionEvent({ type: 'equip-ship', ship: ship.id });
           navalHud?.refresh();
           updateMissionHud();
           return true;
