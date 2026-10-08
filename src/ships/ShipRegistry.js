@@ -1,4 +1,4 @@
-import starter from './definitions/starter-red-sails.json' with { type: 'json' };
+import { STARTER_SHIP } from './StarterShip.js';
 
 export const STARTER_SHIP = Object.freeze(starter);
 
