@@ -100,7 +100,7 @@ export class OceanRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     const ocean = world.region.ocean;
     gl.uniform2f(this.uniforms.uResolution, bounds.width, bounds.height);
-    gl.uniform2f(this.uniforms.uCamera, world.camera.x + world.cameraOffset.x, world.camera.y + world.cameraOffset.y);
+    gl.uniform2f(this.uniforms.uCamera, world.cameraView.x, world.cameraView.y);
     gl.uniform2f(this.uniforms.uFlow, ocean.flowX, ocean.flowY);
     gl.uniform1f(this.uniforms.uZoom, world.camera.zoom);
     gl.uniform1f(this.uniforms.uTime, timeMs / 1000);
