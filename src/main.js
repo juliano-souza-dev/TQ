@@ -64,7 +64,7 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact }, { getShipSpeed }, { STARTER_SHIP }, { NpcRenderer }, { createRedSailCorsair, updateCorsair }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact }, { getShipSpeed }, { STARTER_SHIP }, { NpcRenderer }, { createCorsairPopulation, updateCorsairPopulation }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
     import('./rendering/IslandRenderer.js'),
@@ -73,11 +73,11 @@ async function startWorld() {
     import('./ui/Minimap.js'), import('./ui/IslandPanel.js'),
     import('./world/IslandCollision.js'), import('./ships/ShipSpeed.js'),
     import('./ships/ShipRegistry.js'),
-    import('./rendering/NpcRenderer.js'), import('./npcs/RedSailCorsair.js'),
+    import('./rendering/NpcRenderer.js'), import('./npcs/CorsairPopulation.js'),
   ]);
   if (generation !== worldGeneration) return;
   const world = createWorldState();
-  world.entities.set('corsair-r1-01', createRedSailCorsair('corsair-r1-01', 2290, 2060));
+  createCorsairPopulation(world);
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
   clickNavigation = createClickNavigation(canvas, world);
   keyboardCamera = createKeyboardCameraInput();
@@ -147,9 +147,7 @@ async function startWorld() {
     update: (stepMs) => {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
-      for (const npc of world.entities.values()) {
-        if (npc.type === 'npc') updateCorsair(npc, stepMs, new Map([['player', world.camera]]), () => {});
-      }
+      updateCorsairPopulation(world, stepMs);
       const cameraInput = keyboardCamera.getVector();
       const cameraSpeed = 320;
       world.cameraOffset.x += cameraInput.x * cameraSpeed * stepMs / 1000;
