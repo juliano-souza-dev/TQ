@@ -229,3 +229,43 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .combat-hud button:disabled {opacity:.35;filter:grayscale(1);cursor:not-allowed;}
 .combat-hud button.is-firing {background:#a92c2c;color:#fff;}
 @media (max-width:480px){.combat-hud{max-width:calc(50vw - 16px);padding:7px}.combat-hud button{min-width:92px;}}
+
+/* Region-one campaign and pedagogical interactions */
+.campaign-board {display:grid;gap:12px;margin:12px 0;color:#f5e6ca;}
+.campaign-board h3 {margin:10px 0 4px;color:#ffda8d;font-size:18px;}
+.campaign-intro,.campaign-progress {font-size:13px;line-height:1.5;margin:5px 0;}
+.campaign-mastery {background:#0d3148;border:1px solid #577f8c;border-radius:12px;padding:12px;font-size:13px;}
+.campaign-mastery p {margin:7px 0!important;}
+.campaign-stage-controls {border-radius:9px;padding:6px 0;font-weight:600;font-size:13px;}
+.campaign-unlocked {color:#bdf7c7;}
+.campaign-missions {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:10px;}
+.campaign-contract {border-radius:12px;padding:12px;border:1px solid #a27b48;background:#0d2d45;}
+.campaign-contract--ready {border-color:#8fe9b8;}
+.campaign-contract--claimed {opacity:.65;}
+.campaign-contract--locked {opacity:.56;}
+.campaign-contract h4 {font-size:15px;color:#ffe2a6;margin:0 0 8px;}
+.campaign-contract p {font-size:12px;line-height:1.4;margin:6px 0;}
+.campaign-objectives {border-top:1px solid #547086;border-bottom:1px solid #547086;padding:5px 0;}
+.campaign-reward {color:#c0f1ba;}
+.campaign-contract button {width:100%;margin-top:8px;}
+.campaign-status {font-weight:700;}
+.campaign-practice {border:1px solid #a7854f;border-radius:12px;background:#0b2235;padding:14px;}
+.campaign-family-options {display:flex;flex-wrap:wrap;gap:8px;}
+.campaign-family-options button {width:auto;min-width:110px;flex:1;}
+.campaign-question {font-weight:800;text-align:center;font-size:clamp(25px,6vw,36px);}
+.campaign-answer-options,.math-gate-answers {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.campaign-answer,.math-gate-answer {min-height:60px;padding:10px;border:2px solid #e4b663;border-radius:12px;background:#f2cc76;color:#102333;font-weight:900;font-size:23px;touch-action:manipulation;}
+.campaign-answer.is-wrong,.math-gate-answer.is-wrong {background:#a03240;color:#fff;border-color:#f5afb1;}
+.campaign-answer.is-correct,.math-gate-answer.is-correct {background:#24835a;color:#fff;border-color:#9af3b4;}
+.campaign-answer-feedback,.math-gate-feedback {min-height:26px;text-align:center;}
+.campaign-next {margin-top:10px;}
+.shipyard-repair {margin:14px 0;padding:14px;border-radius:12px;background:#13334c;border:1px solid #b58a52;}
+.shipyard-repair h3 {margin:0 0 10px;color:#ffe4aa;}
+.shipyard-repair button:disabled {opacity:.55;}
+.math-gate[hidden] {display:none!important;}
+.math-gate {position:fixed;inset:0;z-index:75;display:grid;place-items:center;padding:14px;background:rgba(0,15,28,.89);}
+.math-gate-card {width:min(100%,450px);max-height:calc(100dvh - 28px);overflow:auto;border:2px solid #dfb76d;border-radius:18px;padding:clamp(16px,5vw,26px);background:#102f49;color:#fff0d0;box-shadow:0 18px 70px #000b;}
+.math-gate-card h2 {font-size:clamp(21px,5vw,28px);margin:0 0 14px;}
+.math-gate-question {font-size:clamp(28px,7vw,40px);font-weight:900;text-align:center;margin:18px 0;}
+.math-gate-card .secondary-button {margin-top:12px;}
+.treasure-layer {position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;}
