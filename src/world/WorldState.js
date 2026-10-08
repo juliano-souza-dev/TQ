@@ -9,6 +9,6 @@ export function createWorldState(region = R1) {
     region,
     entities: new Map(),
     camera: { x: region.spawn.x, y: region.spawn.y, zoom: 0.88 },
-    cameraOffset: { x: 0, y: 0 },
+    cameraOffset: { x: 0, y: -65 },
   };
 }
