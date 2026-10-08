@@ -1,3 +1,6 @@
+import { fireCannons } from './combat/CombatSystem.js';
+import { damageCorsair, RED_SAIL_CORSAIR } from './npcs/RedSailCorsair.js';
+import { STARTER_SHIP as PLAYER_SHIP } from './ships/StarterShip.js';
 import { recordLearningAnswer } from './education/LearningProgress.js';
 import { GameLoop } from './core/GameLoop.js';
 import { createGameState, setGameStatus, GAME_STATUS, advanceGameState } from './core/GameState.js';
@@ -93,6 +96,52 @@ async function startWorld() {
   createCorsairPopulation(world);
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
   let selectedNpcId = null;
+  let lastFired = {};
+  const combatHud = document.createElement('div');
+  combatHud.className = 'combat-hud';
+  const ammoLabel = document.createElement('span');
+  const fireButton = document.createElement('button');
+  fireButton.type = 'button';
+  fireButton.className = 'primary-button';
+  fireButton.textContent = '💥 Atirar';
+  const combatFeedback = document.createElement('span');
+  combatFeedback.className = 'combat-feedback';
+  combatHud.append(ammoLabel,fireButton,combatFeedback);
+  root.append(combatHud);
+  const getAmmoCount = () => {
+    const ammunition = localSaves.load(currentUser.uid)?.payload?.ammunition ?? {};
+    return Number.isInteger(ammunition['rusted-iron']) ? ammunition['rusted-iron'] : 20;
+  };
+  const refreshAmmo = () => { ammoLabel.textContent = '⚫ Ferro: ' + getAmmoCount(); };
+  refreshAmmo();
+  fireButton.addEventListener('click', () => {
+    const target = world.entities.get(selectedNpcId);
+    if (!target || target.health <= 0) { combatFeedback.textContent = 'Selecione um corsário.'; return; }
+    const save = localSaves.load(currentUser.uid)?.payload ?? {};
+    const distance = Math.hypot(target.x-world.camera.x,target.y-world.camera.y);
+    const result = fireCannons({
+      loadout:save.equipment?.loadout ?? {},shipId:PLAYER_SHIP.id,
+      ammoId:'rusted-iron',ammoCount:getAmmoCount(),target,distance,
+      now:performance.now(),lastFired,
+    });
+    lastFired=result.lastFired;
+    if (!result.spent) {
+      combatFeedback.textContent = result.reason==='ammo'?'Sem munição.':'Fora do alcance ou recarregando.';
+      return;
+    }
+    localSaves.save(currentUser.uid,{...save,ammunition:{...save.ammunition,'rusted-iron':getAmmoCount()-result.spent}});
+    refreshAmmo();
+    if (result.damage && target.archetype===RED_SAIL_CORSAIR.id) damageCorsair(target,result.damage,'player');
+    combatFeedback.textContent = result.shots.filter(shot=>shot.hit).length+' acertos · '+result.damage+' dano';
+    if (target.health<=0 && target.archetype===RED_SAIL_CORSAIR.id) {
+      const current=localSaves.load(currentUser.uid)?.payload ?? {};
+      if (current.missions?.corsair==='active') {
+        localSaves.save(currentUser.uid,{...current,missions:{...current.missions,corsair:'complete'}});
+        updateMissionHud();
+        combatFeedback.textContent = '🏆 Corsário afundado! Missão concluída.';
+      }
+    }
+  });
   clickNavigation = createClickNavigation(canvas, world, point => {
     const npc = findNpcAtPoint(world.entities, point.x, point.y);
     if (npc) selectedNpcId = npc.id;
