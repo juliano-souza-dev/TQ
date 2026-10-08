@@ -1,6 +1,6 @@
 // Item availability and ownership are separate concerns.
 // An event becoming active never awards an event item.
-export const EVENTS = Object.freeze({ halloween: false });
+export const EVENTS = Object.freeze({ halloween: true });
 export const CANNONS = Object.freeze([
   { id:'blue-gold-pirate', name:'Canhão Pirata Ornamentado em Azul e Ouro', asset:'Canhão Pirata Ornamentado em Azul e Ouro.webp', reloadSeconds:7, accuracy:0.25, damageMultiplier:1, caliberPounder:20, acquisition:{type:'starter'}, event:null },
   { id:'spiked-war', name:'Canhão de Guerra Espinhoso Fantástico', asset:'Canhão de Guerra Espinhoso Fantástico.webp', acquisition:{type:'unconfigured'}, event:null },
