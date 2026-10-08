@@ -367,3 +367,22 @@ button:disabled { opacity: .55; cursor: not-allowed; }
     flex-basis:64px;width:64px;height:64px;min-width:64px;min-height:64px;
   }
 }
+
+
+/* Feedback pedagogico inspirado no jogo anterior. */
+.math-gate-card.is-answer-correct {border-color:#65dba2;box-shadow:0 0 22px #29965a66,0 18px 70px #000b;}
+.math-gate-card.is-answer-wrong {border-color:#f19a9a;}
+.math-gate-answer.is-muted {opacity:.40;filter:saturate(.45);}
+.math-gate-answer.is-reveal-correct {background:#24835a;border-color:#9af3b4;color:#fff;opacity:1;}
+.math-gate-feedback[data-result="correct"] {color:#9af3b4;font-weight:900;}
+.math-gate-feedback[data-result="wrong"] {color:#ffb0b0;font-weight:800;}
+.math-gate-card.is-answer-correct .math-gate-question {color:#bafed1;}
+@media (prefers-reduced-motion:no-preference) {
+  .math-gate-card.is-answer-correct {animation:tq-math-correct-pop 360ms ease-out;}
+  .math-gate-answer.is-correct {animation:tq-math-correct-pop 280ms ease-out;}
+}
+@keyframes tq-math-correct-pop {
+  0% {transform:scale(1);}
+  45% {transform:scale(1.025);}
+  100% {transform:scale(1);}
+}
