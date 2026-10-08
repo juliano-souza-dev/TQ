@@ -94,12 +94,26 @@ export function createMathGate({
       button.textContent = String(value);
       button.addEventListener('click', () => {
         if (!pending || resolved) return;
+        attempts++;
         if (value !== challenge.answer) {
           mistakeMade = true;
-          button.disabled = true;
+          resolved = true;
+          for (const item of answers.children) item.disabled = true;
+          cancel.disabled = true;
           markAnswer({ correct: false, chosen: button, expected: challenge.answer });
-          feedback.textContent = '✕ Resposta incorreta. A correta está marcada em verde. Tente novamente!';
+          feedback.textContent = attempts >= maxAttempts
+            ? '✕ Cinco erros. Tesouro fechado, tente novamente mais tarde.'
+            : '✕ Errou! A correta está em verde. Preparando outra continha...';
           feedback.dataset.result = 'wrong';
+          closeTimer = setTimeout(() => {
+            closeTimer = null;
+            if (!pending) return;
+            if (attempts >= maxAttempts) { close(); return; }
+            pending.challenge = chooseRegionChallenge(getPedagogy(), pending.family, Math.random, pending.region);
+            resolved = false;
+            cancel.disabled = false;
+            renderRound();
+          }, 850);
           return;
         }
         // Gate actions are validated once more against current saved state,
