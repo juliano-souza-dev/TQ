@@ -161,3 +161,26 @@ test('projectile origin follows the equipped cannon side; interception accounts 
   const predicted = interceptPoint({ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 30, y: 0 }, 420);
   assert.ok(predicted.x > 200, 'must lead moving ship, not aim behind it');
 });
+
+test('retaliating NPC launches a projectile and damage persists on the hull', () => {
+  const t = battleHarness();
+  t.battle.toggleFire();
+  const initialShot = t.shots[0];
+  initialShot.onImpact({ at: initialShot.to });
+  t.time = 1300;
+  t.battle.update(16, 1300);
+  const returnShot = t.shots.find(shot => shot !== initialShot);
+  assert.ok(returnShot, 'retaliation must be a genuine projectile');
+  assert.equal(returnShot.onImpact({ at: returnShot.to }).kind, 'ship');
+  assert.equal(t.save.combat.shipHealth, 95);
+});
+
+test('Halloween event ammunition is separate from normal cannonball inventory', () => {
+  const t = battleHarness();
+  t.save.ammunition['halloween-purple-ball'] = 24;
+  assert.equal(t.battle.setAmmo('halloween-purple-ball'), true);
+  assert.equal(t.battle.toggleFire(), true);
+  assert.equal(t.save.ammunition['halloween-purple-ball'], 23);
+  assert.equal(t.save.ammunition['rusted-iron'], 20);
+  assert.equal(t.shots[0].ammo.fx.preset, 'halloween');
+});
