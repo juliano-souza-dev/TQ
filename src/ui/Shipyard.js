@@ -10,8 +10,10 @@ const el = (tag, className, text) => {
   return node;
 };
 
-export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, ownedShipIds = [STARTER_SHIP.id], cannons = CANNONS, events = EVENTS, ownedCannonIds = [], equippedCannonIds = [], loadout = {}, onLoadoutChange = () => {} } = {}) {
+export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippedShipId = STARTER_SHIP.id, ownedShipIds = [STARTER_SHIP.id], cannons = CANNONS, events = EVENTS, ownedCannonIds = [], equippedCannonIds = [], loadout = {}, getEquipment = () => ({}), onLoadoutChange = () => {} } = {}) {
   let currentLoadout = loadout;
+  let currentOwnedCannonIds = ownedCannonIds;
+  let currentOwnedShipIds = ownedShipIds;
   const root = el('div', 'shipyard');
   const tabs = el('div', 'shipyard-tabs');
   tabs.setAttribute('role', 'tablist');
@@ -50,7 +52,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     const view = views.ships;
     view.replaceChildren();
     view.append(el('h3', '', 'Sua frota'));
-    const ownedShips = ships.filter(ship => ownedShipIds.includes(ship.id));
+    const ownedShips = ships.filter(ship => currentOwnedShipIds.includes(ship.id));
     const ordered = [...ownedShips].sort((a, b) => Number(b.id === equippedShipId) - Number(a.id === equippedShipId));
     for (const ship of ordered) {
       const equipped = ship.id === equippedShipId;
@@ -86,7 +88,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     view.append(el('p', 'shipyard-note', 'Capacidade do navio equipado: ' + (equipped?.cannonSlots ?? 'não definida') + ' espaços.'));
     const capacity = equipped?.cannonSlots ?? 0;
     const slots = currentLoadout[equippedShipId] ?? [];
-    const ownedCannons = cannons.filter(cannon => isItemVisible(cannon, events) && isItemOwned(cannon, ownedCannonIds));
+    const ownedCannons = cannons.filter(cannon => isItemVisible(cannon, events) && isItemOwned(cannon, currentOwnedCannonIds));
     const ownedIds = ownedCannons.map(cannon => cannon.id);
     const occupied = new Set(slots.filter(Boolean));
     const slotsBox = el('div', 'shipyard-cannon-slots');
@@ -144,6 +146,6 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
   root.append(tabs, content);
   return {
     element: root,
-    show() { renderShips(); renderCannons(); selectTab('ships'); },
+    show() { const fresh = getEquipment(); currentLoadout = fresh.loadout ?? loadout; currentOwnedCannonIds = fresh.ownedCannonIds ?? ownedCannonIds; currentOwnedShipIds = fresh.ownedShipIds ?? ownedShipIds; renderShips(); renderCannons(); selectTab('ships'); },
   };
 }
