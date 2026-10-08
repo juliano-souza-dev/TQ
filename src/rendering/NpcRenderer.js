@@ -11,7 +11,7 @@ export class NpcRenderer {
       this.image.onerror = () => reject(new Error('Falha ao carregar sprite dos NPCs'));
     });
   }
-  render(entities, camera, zoom = 1) {
+  render(entities, camera, zoom = 1, selectedId = null) {
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.max(1, Math.round(bounds.width * dpr));
@@ -31,8 +31,24 @@ export class NpcRenderer {
       const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
       const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
       if (x < -size || x > w + size || y < -size || y > h + size) continue;
+      if (npc.id === selectedId) {
+        ctx.save();
+        ctx.strokeStyle = '#ffd36c'; ctx.lineWidth = 3 * dpr;
+        ctx.shadowColor = '#ffd36c'; ctx.shadowBlur = 12 * dpr;
+        ctx.beginPath(); ctx.ellipse(x, y + size * 0.20, size * 0.37, size * 0.17, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
       ctx.drawImage(this.image, (frame % columns) * frameW, Math.floor(frame / columns) * frameH,
         frameW, frameH, x - size / 2, y - size / 2, size, size);
+      if (npc.id === selectedId) {
+        ctx.save();
+        ctx.font = 'bold ' + Math.round(13 * dpr) + 'px system-ui';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.lineWidth = 4 * dpr; ctx.strokeStyle = '#061729';
+        ctx.strokeText(npc.name, x, y - size * 0.57);
+        ctx.fillStyle = '#fff0bc'; ctx.fillText(npc.name, x, y - size * 0.57);
+        ctx.restore();
+      }
       const barW = size * 0.55;
       ctx.fillStyle = '#152233'; ctx.fillRect(x - barW / 2, y - size * 0.52, barW, 5 * dpr);
       ctx.fillStyle = '#e45e52'; ctx.fillRect(x - barW / 2, y - size * 0.52, barW * npc.health / npc.maxHealth, 5 * dpr);
