@@ -1,5 +1,11 @@
 import { getShipFrame, getShipSpriteUrl, STARTER_SHIP } from '../ships/ShipRegistry.js';
 
+function getVisualScale(definition) {
+  if (definition.id === STARTER_SHIP.id) return 1.25;
+  if (definition.id === 'galeao-rosas-de-ouro') return 0.82;
+  return 1;
+}
+
 // Dedicated transparent canvas: ocean renderer remains exclusively responsible for water.
 export class ShipRenderer {
   constructor(canvas, definition = STARTER_SHIP) {
@@ -28,7 +34,7 @@ export class ShipRenderer {
     const frameWidth = (this.image.naturalWidth / columns) || configuredWidth;
     const frameHeight = (this.image.naturalHeight / rows) || configuredHeight;
     const targetSize = Math.min(w * .40, h * .40, 240 * dpr)
-      * (this.definition.id === STARTER_SHIP.id ? 1.25 : 1) * zoom;
+      * getVisualScale(this.definition) * zoom;
     const factor = targetSize / Math.max(frameWidth, frameHeight) / (Math.max(.001, zoom) * dpr);
     return { width: frameWidth * factor, height: frameHeight * factor };
   }
@@ -47,7 +53,7 @@ export class ShipRenderer {
     // Use actual image dimensions: exported sheets are not necessarily 1600x1600.
     const frameWidth = this.image.naturalWidth / columns;
     const frameHeight = this.image.naturalHeight / rows;
-    const targetSize = Math.min(w * 0.40, h * 0.40, 240 * dpr) * (this.definition.id === STARTER_SHIP.id ? 1.25 : 1) * zoom;
+    const targetSize = Math.min(w * 0.40, h * 0.40, 240 * dpr) * getVisualScale(this.definition) * zoom;
     const scale = targetSize / Math.max(frameWidth, frameHeight);
     const drawW = frameWidth * scale;
     const drawH = frameHeight * scale;
