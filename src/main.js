@@ -174,8 +174,8 @@ async function startWorld() {
       const distance=Math.hypot(dx,dy)||1;
       const side=shot.slot%2===0?1:-1;
       const from={x:world.camera.x-dy/distance*22*side,y:world.camera.y+dx/distance*22*side};
-      projectiles.push(createProjectile({from,to:{x:target.x,y:target.y},hit:shot.hit,
-        damage:shot.damage,owner:'player',targetId:target.id}));
+      projectiles.push(createProjectile({from,to:{x:target.x,y:target.y},
+        damage:Math.max(1,Math.round(10)),accuracy:0.78,owner:'player',targetId:target.id}));
       addEffect(from.x,from.y,'muzzle');
     }
     combatFeedback.textContent='💥 '+result.spent+' bala(s) disparada(s) · em voo';
@@ -368,28 +368,28 @@ async function startWorld() {
         }
       }
       if(firing)fireVolley();
-      projectiles=advanceProjectiles(projectiles,stepMs,p=>{
-        addEffect(p.to.x,p.to.y,p.hit?'hit':'splash');
-        if(p.owner==='player'&&p.hit){
+      projectiles=advanceProjectiles(projectiles,stepMs,(p,impact)=>{
+        addEffect(impact.x,impact.y,impact.kind);
+        if(impact.kind!=='hit'){if(p.owner==='player')combatFeedback.textContent='💦 Bala caiu na água.';return;}
+        if(p.owner==='player'){
           const npc=world.entities.get(p.targetId);
-          if(npc?.health>0&&Math.hypot(npc.x-p.to.x,npc.y-p.to.y)<65){
-            if(damageCorsair(npc,p.damage,'player')){
-              combatFeedback.textContent='💥 Impacto: '+p.damage+' dano';
-              if(npc.health<=0){if(npc.id===selectedNpcId)firing=false;completeCorsairMission();}
-            }
-          } else combatFeedback.textContent='💦 O alvo se moveu. Bala caiu na água.';
-        } else if(p.owner==='npc'&&p.hit&&Math.hypot(world.camera.x-p.to.x,world.camera.y-p.to.y)<65){
+          if(npc?.health>0&&damageCorsair(npc,p.damage,'player')){
+            combatFeedback.textContent='💥 Impacto: '+p.damage+' dano';
+            if(npc.health<=0){if(npc.id===selectedNpcId)firing=false;completeCorsairMission();}
+          }
+        }else{
           playerHealth=Math.max(0,playerHealth-p.damage);
           combatFeedback.textContent='❤️ Casco: '+playerHealth+'/100';
-        } else if(p.owner==='player')combatFeedback.textContent='💦 Bala caiu na água.';
-      });
+        }
+      },p=>p.owner==='player'?world.entities.get(p.targetId):
+        {x:world.camera.x,y:world.camera.y,health:playerHealth});
       effects=effects.filter(e=>(e.elapsed+=stepMs/1000)<e.duration);
       npcFireCooldown-=stepMs;
       if(npcFireCooldown<=0){
         const aggressor=[...world.entities.values()].find(n=>n.type==='npc'&&n.health>0&&n.state==='retaliating'&&Math.hypot(n.x-world.camera.x,n.y-world.camera.y)<330);
         if(aggressor){
           const from={x:aggressor.x,y:aggressor.y};
-          projectiles.push(createProjectile({from,to:{x:world.camera.x,y:world.camera.y},hit:Math.random()<0.35,damage:5,owner:'npc',targetId:'player'}));
+          projectiles.push(createProjectile({from,to:{x:world.camera.x,y:world.camera.y},damage:5,accuracy:0.65,owner:'npc',targetId:'player'}));
           addEffect(from.x,from.y,'muzzle');npcFireCooldown=1800;
         }
       }
