@@ -15,6 +15,7 @@ let loop = null;
 let oceanRenderer = null;
 let shipCanvas = null;
 let islandCanvas = null;
+let npcCanvas = null;
 let minimapElement = null;
 let islandPanelElement = null;
 let clickNavigation = null;
@@ -38,6 +39,8 @@ function stopWorld() {
   islandPanelElement = null;
   if (minimapElement) minimapElement.remove();
   minimapElement = null;
+  if (npcCanvas) npcCanvas.remove();
+  npcCanvas = null;
   if (islandCanvas) islandCanvas.remove();
   islandCanvas = null;
   if (shipCanvas) shipCanvas.remove();
@@ -61,7 +64,7 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact }, { getShipSpeed }, { STARTER_SHIP }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact }, { getShipSpeed }, { STARTER_SHIP }, { NpcRenderer }, { createRedSailCorsair, updateCorsair }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
     import('./rendering/IslandRenderer.js'),
@@ -70,21 +73,26 @@ async function startWorld() {
     import('./ui/Minimap.js'), import('./ui/IslandPanel.js'),
     import('./world/IslandCollision.js'), import('./ships/ShipSpeed.js'),
     import('./ships/ShipRegistry.js'),
+    import('./rendering/NpcRenderer.js'), import('./npcs/RedSailCorsair.js'),
   ]);
   if (generation !== worldGeneration) return;
   const world = createWorldState();
+  world.entities.set('corsair-r1-01', createRedSailCorsair('corsair-r1-01', 2290, 2060));
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
   clickNavigation = createClickNavigation(canvas, world);
   keyboardCamera = createKeyboardCameraInput();
   const joystick = createAnalogJoystick();
   islandCanvas = document.createElement('canvas');
   islandCanvas.className = 'island-layer';
+  npcCanvas = document.createElement('canvas');
+  npcCanvas.className = 'npc-layer';
   shipCanvas = document.createElement('canvas');
   shipCanvas.className = 'ship-layer';
   shipCanvas.setAttribute('aria-label', 'Navio do jogador');
-  root.append(islandCanvas, shipCanvas, joystick.element);
+  root.append(islandCanvas, npcCanvas, shipCanvas, joystick.element);
   const shipRenderer = new ShipRenderer(shipCanvas);
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
+  const npcRenderer = new NpcRenderer(npcCanvas);
   let heading = 0;
   const minimap = createMinimap(world, {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
@@ -120,7 +128,7 @@ async function startWorld() {
   try {
     renderer = new OceanRenderer(canvas);
     oceanRenderer = renderer;
-    await Promise.all([renderer.init(world.region.ocean.texture), shipRenderer.init(), islandRenderer.init()]);
+    await Promise.all([renderer.init(world.region.ocean.texture), shipRenderer.init(), islandRenderer.init(), npcRenderer.init()]);
     if (generation !== worldGeneration) { renderer.dispose(); return; }
   } catch (error) {
     if (generation !== worldGeneration) return;
@@ -139,6 +147,9 @@ async function startWorld() {
     update: (stepMs) => {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
+      for (const npc of world.entities.values()) {
+        if (npc.type === 'npc') updateCorsair(npc, stepMs, new Map([['player', world.camera]]), () => {});
+      }
       const cameraInput = keyboardCamera.getVector();
       const cameraSpeed = 320;
       world.cameraOffset.x += cameraInput.x * cameraSpeed * stepMs / 1000;
@@ -171,6 +182,7 @@ async function startWorld() {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       renderer.render(world, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
+      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom);
       shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
       minimap.render();
     },
