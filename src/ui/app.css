@@ -110,3 +110,14 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 @media (min-width: 800px) {
   .analog-joystick { display: none; }
 }
+
+
+/* Ship overlay occupies viewport; it does not capture touch gestures. */
+.ship-layer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
