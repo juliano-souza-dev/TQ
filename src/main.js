@@ -43,11 +43,13 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }] = await Promise.all([
-    import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }] = await Promise.all([
+    import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'), import('./ui/AnalogJoystick.js'),
   ]);
   if (generation !== worldGeneration) return;
   const world = createWorldState();
+  const joystick = createAnalogJoystick();
+  root.append(joystick.element);
   let renderer;
   try {
     renderer = new OceanRenderer(canvas);
@@ -68,7 +70,14 @@ async function startWorld() {
   let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
   let oceanTimeMs = 0;
   loop = new GameLoop({
-    update: (stepMs) => { state = advanceGameState(state, stepMs); oceanTimeMs += stepMs; },
+    update: (stepMs) => {
+      state = advanceGameState(state, stepMs);
+      oceanTimeMs += stepMs;
+      const input = joystick.getVector();
+      const speed = 80;
+      world.camera.x = Math.max(0, Math.min(world.region.width, world.camera.x + input.x * speed * stepMs / 1000));
+      world.camera.y = Math.max(0, Math.min(world.region.height, world.camera.y + input.y * speed * stepMs / 1000));
+    },
     render: () => renderer.render(world, oceanTimeMs),
   });
   if (!document.hidden) loop.start();
