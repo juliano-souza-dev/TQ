@@ -35,7 +35,7 @@ const progressFor = (campaign, mission) =>
 function eligible(mission, campaign, events) {
   const claimed = campaign.claimed.filter(id => R1_MISSIONS.some(entry => entry.id === id && !entry.optional)).length;
   return (!mission.event || events[mission.event] === true)
-    && claimed >= (mission.minClaimed ?? 0)
+    && (mission.optional || R1_MISSIONS.filter(m=>!m.optional).find(m=>!campaign.claimed.includes(m.id))?.id === mission.id)
     && (mission.requires ?? []).every(id => campaign.claimed.includes(id));
 }
 export function getCampaignBoard(save = {}, events = EVENTS) {
@@ -70,14 +70,12 @@ export function getCampaignBoard(save = {}, events = EVENTS) {
 
 export function acceptCampaignMission(save, id, events = EVENTS) {
   const mission = getCampaignBoard(save, events).missions.find(entry => entry.id === id);
-  if (!mission || mission.status !== 'available') return null;
+  if (!mission || mission.status !== 'available' || campaignState(save).active.some(id=>R1_MISSIONS.some(m=>m.id===id&&!m.optional)) && !mission.optional) return null;
   const campaign = campaignState(save);
   // Halloween lights are unique finite collectibles; progress already collected
   // before accepting must count, or the optional mission can become impossible.
   const initial = mission.objectives.map(task =>
-    task.kind === 'collect' ? Math.min(task.count, (save.collectedGlints ?? []).length)
-    
-    : 0);
+    task.kind === 'collect' ? Math.min(task.count, (save.collectedGlints ?? []).length) : 0);
   return { campaign: {
     ...campaign,
     active: [...campaign.active, id],
