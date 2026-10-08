@@ -28,74 +28,61 @@ export function renderLogin(root, { onLogin, onLocal, busy = false, error = '' }
 }
 
 export function renderPortal(root, user, { onPlay, onLogout, onModeChange, syncMode, busy = false, profile = {} }) {
-  const screen = element('main', 'screen pirate-portal');
-  const panel = element('section', 'pirate-panel');
-  const artwork = element('div', 'portal-artwork');
-  artwork.setAttribute('aria-hidden', 'true');
-  screen.append(artwork);
-  panel.append(element('p', 'pirate-kicker', 'TABUADA QUEST · AVENTURA PIRATA'));
-  panel.append(element('h1', 'pirate-title', 'PORTAL DO JOGADOR'));
-  panel.append(element('h2', 'pirate-welcome', 'Bem-vindo a bordo!'));
-  panel.append(element('p', 'pirate-subtitle', 'Domine a tabuada e conquiste novos mares!'));
-  const identity = element('div', 'pirate-identity');
-  if (user.photoURL) {
-    const avatar = element('img', 'avatar');
-    avatar.src = user.photoURL;
-    avatar.alt = 'Foto do jogador';
-    avatar.referrerPolicy = 'no-referrer';
-    identity.append(avatar);
-  }
-  identity.append(element('strong', '', user.displayName || 'Marujo'));
-  identity.append(element('span', '', user.isGuest ? 'Perfil local' : 'Conta Google'));
-  panel.append(identity);
-  const stats = element('div', 'pirate-stats');
-  const items = [
-    ['🪙', 'Ouro atual', profile.gold],
-    ['🧭', 'Nível do jogador', profile.level],
-    ['📖', 'Progressão pedagógica', profile.educationalProgress],
-    ['🗺️', 'Missão atual', profile.currentMission],
-    ['✖️', 'Tabuada em foco', profile.focusTable],
-    ['🏆', 'Desafio do dia', profile.dailyChallenge],
-    ['🎁', 'Próxima recompensa', profile.nextReward],
+  const screen = element('main', 'screen portal-screen');
+  const stage = element('section', 'portal-stage');
+  stage.setAttribute('aria-label', 'Portal do jogador');
+  const fields = element('div', 'portal-fields');
+  const entries = [
+    ['gold', 'Ouro atual', profile.gold],
+    ['level', 'Nível do jogador', profile.level],
+    ['educationalProgress', 'Progressão pedagógica', profile.educationalProgress],
+    ['currentMission', 'Missão atual', profile.currentMission],
+    ['focusTable', 'Tabuada em foco', profile.focusTable],
+    ['dailyChallenge', 'Desafio do dia', profile.dailyChallenge],
+    ['nextReward', 'Próxima recompensa', profile.nextReward],
   ];
-  const fieldIds = ['gold', 'level', 'educationalProgress', 'currentMission', 'focusTable', 'dailyChallenge', 'nextReward'];
-  for (const [index, [icon, label, value]] of items.entries()) {
-    const stat = element('div', 'pirate-stat');
-    stat.dataset.field = fieldIds[index];
-    stat.append(element('span', 'pirate-stat-icon', icon));
-    const content = element('div', 'pirate-stat-content');
-    content.append(element('span', 'pirate-stat-label', label));
-    content.append(element('strong', 'pirate-stat-value', value === undefined || value === null ? 'Ainda não disponível' : String(value)));
-    stat.append(content);
-    stats.append(stat);
+  for (const [id, label, value] of entries) {
+    const field = element('div', 'portal-field');
+    field.dataset.field = id;
+    field.setAttribute('aria-label', label);
+    const name = element('span', 'portal-field-name', label);
+    const display = element('span', 'portal-field-value',
+      value === undefined || value === null ? 'Em breve' : String(value));
+    field.append(name, display);
+    fields.append(field);
   }
-  panel.append(stats);
-  panel.append(element('p', 'pirate-mode', syncMode === 'local'
-    ? 'Sem sincronização: os dados ficam neste navegador e serão perdidos se o armazenamento for apagado.'
-    : 'Escolha onde salvar seu progresso antes de jogar.'));
-  if (syncMode !== 'local') {
-    const local = element('button', 'pirate-secondary', 'Não sincronizar dados');
-    local.type = 'button';
-    local.disabled = busy;
-    local.addEventListener('click', () => onModeChange('local'));
-    panel.append(local);
-  }
-  const play = element('button', 'pirate-play', '⚔ Jogar');
+  stage.append(fields);
+  const play = element('button', 'portal-play', 'Jogar');
   play.type = 'button';
   play.disabled = busy || syncMode !== 'local';
   play.addEventListener('click', onPlay);
-  panel.append(play);
-  const actions = element('div', 'pirate-actions');
-  const cloud = element('button', 'pirate-secondary', 'Sincronizar agora');
+  stage.append(play);
+  screen.append(stage);
+
+  const footer = element('div', 'portal-footer');
+  const identity = element('p', 'portal-user',
+    (user.displayName || 'Marujo') + (user.isGuest ? ' · Perfil local' : ' · Google'));
+  footer.append(identity);
+  footer.append(element('p', 'portal-storage-note',
+    syncMode === 'local'
+      ? 'Sem sincronização. Limpar os dados do navegador pode apagar seu progresso.'
+      : 'Escolha como guardar seu progresso.'));
+  if (syncMode !== 'local') {
+    const local = element('button', 'portal-utility', 'Não sincronizar dados');
+    local.type = 'button';
+    local.disabled = busy;
+    local.addEventListener('click', () => onModeChange('local'));
+    footer.append(local);
+  }
+  const cloud = element('button', 'portal-utility', 'Sincronizar agora');
   cloud.type = 'button';
   cloud.disabled = true;
-  cloud.title = 'A sincronização em nuvem ainda não foi implementada';
-  const logout = element('button', 'pirate-secondary', user.isGuest ? 'Voltar ao início' : 'Sair da conta');
+  cloud.title = 'Sincronização em nuvem ainda não implementada';
+  const logout = element('button', 'portal-utility', user.isGuest ? 'Voltar ao início' : 'Sair da conta');
   logout.type = 'button';
   logout.addEventListener('click', onLogout);
-  actions.append(cloud, logout);
-  panel.append(actions);
-  screen.append(panel);
+  footer.append(cloud, logout);
+  screen.append(footer);
   root.replaceChildren(screen);
 }
 
