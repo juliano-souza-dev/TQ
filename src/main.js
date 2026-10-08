@@ -1,12 +1,9 @@
+import { NavalBattleController } from './combat/NavalBattleController.js';
+import { NavalCombatWebGLRenderer } from './rendering/NavalCombatWebGLRenderer.mjs';
+import { createNavalCombatHud } from './ui/NavalCombatHud.js';
 import { SEA_GLINTS, collectSeaGlint } from './events/HalloweenSeaGlints.js';
 import { EVENTS } from './items/EquipmentCatalog.js';
-import { createProjectile, advanceProjectiles } from './combat/Projectiles.js';
-import { NavalProjectileRenderer } from './rendering/NavalProjectileRenderer.js';
 import { getMissionFlow } from './missions/MissionFlow.js';
-import { fireCannons } from './combat/CombatSystem.js';
-import { CANNONS } from './items/EquipmentCatalog.js';
-import { damageCorsair, RED_SAIL_CORSAIR } from './npcs/RedSailCorsair.js';
-import { STARTER_SHIP as PLAYER_SHIP } from './ships/StarterShip.js';
 import { recordLearningAnswer } from './education/LearningProgress.js';
 import { GameLoop } from './core/GameLoop.js';
 import { createGameState, setGameStatus, GAME_STATUS, advanceGameState } from './core/GameState.js';
@@ -26,6 +23,8 @@ let oceanRenderer = null;
 let shipCanvas = null;
 let islandCanvas = null;
 let npcCanvas = null;
+let navalCanvas = null;
+let navalBattle = null;
 let minimapElement = null;
 let islandPanelElement = null;
 let clickNavigation = null;
@@ -41,6 +40,10 @@ function stopWorld() {
   if (loop) loop.stop();
   loop = null;
   if (oceanRenderer) oceanRenderer.dispose();
+  if (navalBattle) navalBattle.dispose();
+  navalBattle = null;
+  if (navalCanvas) navalCanvas.remove();
+  navalCanvas = null;
   oceanRenderer = null;
   if (keyboardCamera) keyboardCamera.dispose();
   if (firstVoyageGuide) firstVoyageGuide.dispose();
@@ -102,89 +105,51 @@ async function startWorld() {
   createCorsairPopulation(world);
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
   let selectedNpcId = null;
-  let lastFired = {};
-  let firing = false;
-  let projectiles = [];
-  let effects = [];
-  let playerHealth = 100;
-  let npcFireCooldown = 0;
+  let heading = 0;
   let glintElapsed = 0;
+  const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
+  const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+
   const glintCanvas=document.createElement('canvas');
   glintCanvas.className='glint-layer';
   root.append(glintCanvas);
   const glintCtx=glintCanvas.getContext('2d');
-  const combatHud = document.createElement('div');
-  combatHud.className = 'combat-hud';
-  const ammoLabel = document.createElement('span');
-  const fireButton = document.createElement('button');
-  fireButton.type = 'button';
-  fireButton.className = 'primary-button';
-  fireButton.textContent = '💥 Atirar';
-  const combatFeedback = document.createElement('span');
-  combatFeedback.className = 'combat-feedback';
-  combatHud.append(ammoLabel,fireButton,combatFeedback);
-  root.append(combatHud);
-  const getAmmoCount = () => {
-    const ammunition = localSaves.load(currentUser.uid)?.payload?.ammunition ?? {};
-    return Number.isInteger(ammunition['rusted-iron']) ? ammunition['rusted-iron'] : 20;
-  };
-  const refreshAmmo = () => { ammoLabel.textContent = '⚫ Ferro: ' + getAmmoCount(); };
-  refreshAmmo();
-  function validTarget() {
-    const target=world.entities.get(selectedNpcId);
-    const loadout=readSave().equipment?.loadout?.[PLAYER_SHIP.id] ?? [];
-    const cannon=loadout.map(id=>CANNONS.find(c=>c.id===id)).find(c=>c?.caliberPounder);
-    return target?.health>0 && cannon && getAmmoCount()>0
-      && Math.hypot(target.x-world.camera.x,target.y-world.camera.y)<=cannon.caliberPounder*15;
-  }
-  function refreshFireButton() {
-    const ready=Boolean(validTarget());
-    if(firing&&!ready) firing=false;
-    fireButton.disabled=!ready&&!firing;
-    fireButton.textContent=firing?'⏹ Parar disparos':'💥 Atirar';
-    fireButton.classList.toggle('is-firing',firing);
-    if(!ready&&!firing) fireButton.title='Selecione um inimigo ao alcance com canhão e munição';
-  }
-  function addEffect(x,y,kind) {effects.push({x,y,kind,elapsed:0,duration:kind==='muzzle'?0.24:0.65});}
-  function completeCorsairMission() {
-    const save=readSave();
-    if(save.missions?.corsair==='active') {
-      writePatch({missions:{...save.missions,corsair:'complete'}});
-      updateMissionHud();
-      combatFeedback.textContent='🏆 Corsário afundado! Missão concluída.';
-    }
-  }
-  function fireVolley() {
-    const target=validTarget();
-    if(!target)return;
-    const save=readSave();
-    const result=fireCannons({loadout:save.equipment?.loadout??{},shipId:PLAYER_SHIP.id,
-      ammoId:'rusted-iron',ammoCount:getAmmoCount(),target,
-      distance:Math.hypot(target.x-world.camera.x,target.y-world.camera.y),
-      now:performance.now(),lastFired});
-    lastFired=result.lastFired;
-    if(!result.spent)return;
-    writePatch({ammunition:{...save.ammunition,'rusted-iron':getAmmoCount()-result.spent}});
-    refreshAmmo();
-    for(const shot of result.shots) {
-      const dx=target.x-world.camera.x,dy=target.y-world.camera.y;
-      const distance=Math.hypot(dx,dy)||1;
-      const side=shot.slot%2===0?1:-1;
-      const from={x:world.camera.x-dy/distance*22*side,y:world.camera.y+dx/distance*22*side};
-      projectiles.push(createProjectile({from,to:{x:target.x,y:target.y},
-        damage:shot.damage,accuracy:shot.accuracy,owner:'player',targetId:target.id}));
-      addEffect(from.x,from.y,'muzzle');
-    }
-    combatFeedback.textContent='💥 '+result.spent+' bala(s) disparada(s) · em voo';
-  }
-  fireButton.addEventListener('click',()=>{
-    if(firing){firing=false;combatFeedback.textContent='⏹ Disparos interrompidos. Balas em voo continuam.';}
-    else if(validTarget()){firing=true;fireVolley();}
-    refreshFireButton();
+
+  navalCanvas = document.createElement('canvas');
+  navalCanvas.className = 'naval-combat-webgl';
+  navalCanvas.setAttribute('aria-label', 'Animações de batalha naval');
+  root.append(navalCanvas);
+  const navalRenderer = new NavalCombatWebGLRenderer(navalCanvas);
+  navalRenderer.setReducedFx(window.matchMedia?.('(max-width: 700px)').matches === true);
+
+  let navalHud = null;
+  navalBattle = new NavalBattleController({
+    renderer: navalRenderer,
+    shipId: STARTER_SHIP.id,
+    readSave,
+    writePatch,
+    getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
+    getEntities: () => world.entities,
+    onFeedback: message => navalHud?.setFeedback(message),
+    onVictory: npc => {
+      const save = readSave();
+      if (save.missions?.corsair === 'active') {
+        writePatch({ missions: { ...save.missions, corsair: 'complete' } });
+        updateMissionHud();
+        navalHud?.setFeedback('🏆 ' + npc.name + ' afundado! Missão concluída.');
+      }
+    },
   });
+  navalHud = createNavalCombatHud(navalBattle);
+  root.append(navalHud.element);
   clickNavigation = createClickNavigation(canvas, world, point => {
     const npc = findNpcAtPoint(world.entities, point.x, point.y);
-    if (npc) selectedNpcId = npc.id;
+    if (npc) {
+      selectedNpcId = npc.id;
+      navalBattle.setTarget(npc.id);
+      navalHud.setFeedback('🎯 Alvo selecionado: ' + npc.name);
+      navalHud.refresh();
+    }
     return Boolean(npc);
   });
   keyboardCamera = createKeyboardCameraInput();
@@ -200,8 +165,6 @@ async function startWorld() {
   const shipRenderer = new ShipRenderer(shipCanvas);
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
   const npcRenderer = new NpcRenderer(npcCanvas);
-  const projectileRenderer = new NavalProjectileRenderer(npcCanvas);
-  let heading = 0;
   const minimap = createMinimap(world, {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
@@ -210,8 +173,7 @@ async function startWorld() {
   });
   minimapElement = minimap.element;
   root.append(minimapElement);
-  const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
-  const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+
   const hasEquippedCannon = save => (save.equipment?.loadout?.[STARTER_SHIP.id] ?? []).some(Boolean);
   function reconcileTutorial() {
     const save = readSave();
@@ -362,36 +324,11 @@ async function startWorld() {
         const nearby=SEA_GLINTS.find(g=>!(save.collectedGlints??[]).includes(g.id)&&Math.hypot(g.x-world.camera.x,g.y-world.camera.y)<55);
         if(nearby){
           const result=collectSeaGlint(save,nearby.id);
-          if(result){writePatch(result.patch);refreshAmmo();combatFeedback.textContent='🎃 Brilho coletado! +'+result.rewards.simple+' ferro · +'+result.rewards.special+' Halloween · +'+result.rewards.gold+' ouro';}
+          if(result){writePatch(result.patch);navalHud.setFeedback('🎃 Brilho coletado! +'+result.rewards.simple+' ferro · +'+result.rewards.special+' Halloween · +'+result.rewards.gold+' ouro');}
         }
       }
-      if(firing)fireVolley();
-      projectiles=advanceProjectiles(projectiles,stepMs,(p,impact)=>{
-        addEffect(impact.x,impact.y,impact.kind);
-        if(impact.kind!=='hit'){if(p.owner==='player')combatFeedback.textContent='💦 Bala caiu na água.';return;}
-        if(p.owner==='player'){
-          const npc=world.entities.get(p.targetId);
-          if(npc?.health>0&&damageCorsair(npc,p.damage,'player')){
-            combatFeedback.textContent='💥 Impacto: '+p.damage+' dano';
-            if(npc.health<=0){if(npc.id===selectedNpcId)firing=false;completeCorsairMission();}
-          }
-        }else{
-          playerHealth=Math.max(0,playerHealth-p.damage);
-          combatFeedback.textContent='❤️ Casco: '+playerHealth+'/100';
-        }
-      },p=>p.owner==='player'?world.entities.get(p.targetId):
-        {x:world.camera.x,y:world.camera.y,health:playerHealth});
-      effects=effects.filter(e=>(e.elapsed+=stepMs/1000)<e.duration);
-      npcFireCooldown-=stepMs;
-      if(npcFireCooldown<=0){
-        const aggressor=[...world.entities.values()].find(n=>n.type==='npc'&&n.health>0&&n.state==='retaliating'&&Math.hypot(n.x-world.camera.x,n.y-world.camera.y)<330);
-        if(aggressor){
-          const from={x:aggressor.x,y:aggressor.y};
-          projectiles.push(createProjectile({from,to:{x:world.camera.x,y:world.camera.y},damage:5,accuracy:0.65,owner:'npc',targetId:'player'}));
-          addEffect(from.x,from.y,'muzzle');npcFireCooldown=1800;
-        }
-      }
-      refreshFireButton();
+      navalBattle.update(stepMs,performance.now());
+      navalHud.refresh();
       persistPlayerPosition(stepMs);
       firstVoyageGuide?.update();
       // Manual camera moves only while WASD is held; no inertia or ship movement.
@@ -435,10 +372,13 @@ async function startWorld() {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       renderer.render(world, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
-      if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) selectedNpcId = null;
+      if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
+        selectedNpcId = null;
+        navalBattle.setTarget(null);
+      }
       npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId);
-      projectileRenderer.render(projectiles,effects,world.cameraView,world.camera.zoom);
       shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
+      navalBattle.render(performance.now(),world.cameraView,world.camera.zoom,canvas.clientWidth,canvas.clientHeight);
       minimap.render();
       const gr=glintCanvas.getBoundingClientRect(),gd=Math.min(window.devicePixelRatio||1,2);
       const gw=Math.max(1,Math.round(gr.width*gd)),gh=Math.max(1,Math.round(gr.height*gd));
