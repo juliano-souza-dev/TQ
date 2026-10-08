@@ -116,7 +116,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
         }
         select.addEventListener('change', () => {
           if (!select.value) return;
-          currentLoadout = equipCannon(currentLoadout, equippedShipId, index, select.value, capacity, ownedIds);
+          currentLoadout = equipCannon(currentLoadout, equippedShipId, index, select.value, capacity, ownedIds, { ...currentCannonCounts, 'blue-gold-pirate': Number(currentCannonCounts['blue-gold-pirate']) || 1 });
           onLoadoutChange(currentLoadout);
           renderCannons();
         });
