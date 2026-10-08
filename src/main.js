@@ -525,6 +525,9 @@ async function startWorld() {
           if (distance > 0) checkDockContact(fromX, fromY, dx / distance, dy / distance, stepMs);
           if (result.heading !== null) heading = result.heading;
           if (result.arrived) clickNavigation.cancel();
+        } else {
+          // Desaceleração por inércia da cinemática do projeto anterior.
+          advanceNavigation(world, { x: 0, y: 0 }, stepMs, shipSpeed);
         }
       }
       renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
