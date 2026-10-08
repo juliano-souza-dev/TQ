@@ -2,6 +2,8 @@ export const STARTER_SHIP = Object.freeze({
   id: 'starter-red-sails',
   name: 'Galeão das Velas Rubras',
   starterShip: true,
+  maxHealth: 100,
+  cannonSlots: 2,
   speed: Object.freeze({ min: 80, initial: 100, max: 160 }),
   sprite: {
     path: '../../assets/ships/Sprite Sheet de Galeões Piratas em Fundo Transparente (2).png',
