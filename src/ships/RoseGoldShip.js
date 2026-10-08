@@ -3,7 +3,7 @@ export const ROSE_GOLD_SHIP = Object.freeze({
   name: 'Galeão Rosas de Ouro',
   maxHealth: 120,
   cannonSlots: 5,
-  speed: Object.freeze({ min: 80, initial: 100, max: 160 }),
+  speed: Object.freeze({ min: 80, initial: 170, max: 250 }),
   sprite: Object.freeze({
     path: '../../assets/ships/galeao-rosas-de-ouro.webp',
     frameWidth: 400, frameHeight: 400, columns: 4, rows: 4,
