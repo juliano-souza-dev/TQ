@@ -5,6 +5,7 @@ export const GOLDEN_GALLEON_SHIP = Object.freeze({
   description: 'Galeão ornamentado com casco dourado e velas vermelhas.',
   status: 'catalog-only',
   cannonSlots: 10,
+  speed: Object.freeze({ min: 250, initial: 250, max: 310 }),
   playable: false,
   npcEnabled: false,
   shopEnabled: false,
