@@ -8,6 +8,8 @@ import { NavalCombatWebGLRenderer } from './rendering/NavalCombatWebGLRenderer.m
 import { createNavalCombatHud } from './ui/NavalCombatHud.js';
 import { SEA_GLINTS, collectSeaGlint } from './events/HalloweenSeaGlints.js';
 import { EVENTS } from './items/EquipmentCatalog.js';
+import { isHalloweenAtmosphereActive } from './events/HalloweenAtmosphere.js';
+import { HalloweenFogRenderer } from './rendering/HalloweenFogRenderer.js';
 import { getMissionFlow } from './missions/MissionFlow.js';
 import { recordLearningAnswer } from './education/LearningProgress.js';
 import { GameLoop } from './core/GameLoop.js';
@@ -25,6 +27,8 @@ let authService = null;
 let currentUser = null;
 let loop = null;
 let oceanRenderer = null;
+let halloweenFogRenderer = null;
+let halloweenFogCanvas = null;
 let shipCanvas = null;
 let islandCanvas = null;
 let npcCanvas = null;
@@ -46,6 +50,10 @@ function stopWorld() {
   if (loop) loop.stop();
   loop = null;
   if (oceanRenderer) oceanRenderer.dispose();
+  if (halloweenFogRenderer) halloweenFogRenderer.dispose();
+  halloweenFogRenderer = null;
+  if (halloweenFogCanvas) halloweenFogCanvas.remove();
+  halloweenFogCanvas = null;
   if (navalBattle) navalBattle.dispose();
   navalBattle = null;
   if (navalCanvas) navalCanvas.remove();
@@ -149,6 +157,22 @@ async function startWorld() {
     recordMissionEvent({ type: 'travel', amount: distance });
   }
 
+
+  // The regular ocean, missions and ship renderers are never modified for
+  // seasonal cosmetics. Disabling the Halloween event removes this entire layer.
+  if (isHalloweenAtmosphereActive(EVENTS)) {
+    halloweenFogCanvas = document.createElement('canvas');
+    halloweenFogCanvas.className = 'halloween-fog-layer';
+    halloweenFogCanvas.setAttribute('aria-hidden', 'true');
+    root.append(halloweenFogCanvas);
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    halloweenFogRenderer = new HalloweenFogRenderer(halloweenFogCanvas, {
+      getReducedMotion: () => reducedMotion?.matches === true,
+    });
+    if (!halloweenFogRenderer.init()) {
+      halloweenFogCanvas.classList.add('halloween-fog-fallback');
+    }
+  }
 
   const glintCanvas=document.createElement('canvas');
   glintCanvas.className='glint-layer';
@@ -489,6 +513,7 @@ async function startWorld() {
     render: () => {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       renderer.render(world, oceanTimeMs);
+      halloweenFogRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
       treasureRenderer.render(getVisibleTreasures(readSave()),world.cameraView,world.camera.zoom,oceanTimeMs);
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
