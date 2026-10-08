@@ -7,9 +7,9 @@ export function equipCannon(loadout, shipId, slot, cannonId, capacity, ownedIds,
   next[shipId].length = capacity;
   const limit = Number.isFinite(Number(counts[cannonId]))
     ? Math.max(0, Math.floor(Number(counts[cannonId]))) : 1;
-  // Retirar do slot atual não consome outra unidade.
-  const used = Object.entries(next).reduce((total, [id, slots]) =>
-    total + slots.filter((value, index) => value === cannonId && !(id === shipId && index === slot)).length, 0);
+  // A quantidade é limitada por navio, não pela soma dos navios da conta.
+  // O mesmo canhão pode integrar a configuração de vários navios.
+  const used = next[shipId].filter((value, index) => value === cannonId && index !== slot).length;
   if (used >= limit) throw new Error('Not enough cannon instances');
   next[shipId][slot] = cannonId;
   return next;
