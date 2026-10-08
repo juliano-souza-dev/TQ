@@ -269,3 +269,6 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .math-gate-question {font-size:clamp(28px,7vw,40px);font-weight:900;text-align:center;margin:18px 0;}
 .math-gate-card .secondary-button {margin-top:12px;}
 .treasure-layer {position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;}
+
+.treasure-nearby-tip[hidden] {display:none!important;}
+.treasure-nearby-tip {position:fixed;top:38%;left:50%;transform:translateX(-50%);z-index:13;pointer-events:none;max-width:min(88vw,330px);padding:10px 13px;text-align:center;border-radius:12px;border:1px solid #f0ca70;background:#112f49e6;color:#fff2ba;box-shadow:0 4px 22px #001b25aa;font:700 13px/1.5 system-ui,sans-serif;}
