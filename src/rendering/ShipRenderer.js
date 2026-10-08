@@ -28,8 +28,12 @@ export class ShipRenderer {
     }
     ctx.clearRect(0, 0, w, h);
     const frame = getShipFrame(headingDegrees, this.definition);
-    const { columns, frameWidth, frameHeight } = this.definition.sprite;
-    const scale = Math.min(w / 4, h / 4, 150 * dpr) / frameWidth;
+    const { columns, rows } = this.definition.sprite;
+    // Use actual image dimensions: exported sheets are not necessarily 1600x1600.
+    const frameWidth = this.image.naturalWidth / columns;
+    const frameHeight = this.image.naturalHeight / rows;
+    const targetSize = Math.min(w * 0.32, h * 0.32, 190 * dpr);
+    const scale = targetSize / Math.max(frameWidth, frameHeight);
     const drawW = frameWidth * scale;
     const drawH = frameHeight * scale;
     ctx.drawImage(this.image, (frame % columns) * frameWidth, Math.floor(frame / columns) * frameHeight,
