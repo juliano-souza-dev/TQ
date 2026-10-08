@@ -14,11 +14,20 @@ const localSaves = createLocalSaveStore(window.localStorage);
 let authService = null;
 let currentUser = null;
 let loop = null;
-let screenVersion = 0;
+const GUEST_UID = 'local-guest';
+let guestMode = false;
 
 function stopWorld() {
   if (loop) loop.stop();
   loop = null;
+}
+
+function enterLocalMode() {
+  stopWorld();
+  guestMode = true;
+  currentUser = { uid: GUEST_UID, displayName: 'Marujo local', isGuest: true };
+  syncPreferences.set(GUEST_UID, SYNC_MODE.LOCAL);
+  openPortal();
 }
 
 function openPortal() {
@@ -38,6 +47,13 @@ function openPortal() {
     },
     onLogout: async () => {
       stopWorld();
+      if (guestMode) {
+        guestMode = false;
+        currentUser = null;
+        if (authService) showLogin();
+        else renderConfigurationRequired(root, { onLocal: enterLocalMode });
+        return;
+      }
       try { await authService.signOut(); }
       catch (error) { console.error('Falha ao sair da conta', error); openPortal(); }
     },
@@ -69,9 +85,10 @@ function showLogin(error = '') {
   stopWorld();
   renderLogin(root, {
     error,
+    onLocal: enterLocalMode,
     onLogin: async () => {
       if (!authService) return;
-      renderLogin(root, { busy: true, onLogin: () => {} });
+      renderLogin(root, { busy: true, onLogin: () => {}, onLocal: enterLocalMode });
       try { await authService.signIn(); }
       catch (e) {
         console.error('Falha no login Google', e);
@@ -87,14 +104,14 @@ try {
   const { initializeAuthentication } = await import('./auth/firebase.js');
   authService = initializeAuthentication();
   authService.subscribe(user => {
-    screenVersion++;
+    if (guestMode) return;
     currentUser = user;
     if (user) openPortal();
     else showLogin();
   });
 } catch (error) {
   console.error('Firebase não configurado ou indisponível', error);
-  renderConfigurationRequired(root);
+  renderConfigurationRequired(root, { onLocal: enterLocalMode });
 }
 
 document.addEventListener('visibilitychange', () => {
