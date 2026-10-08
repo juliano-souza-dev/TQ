@@ -193,3 +193,11 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .voyage-welcome-card button { margin-top: 14px; }
 .voyage-arrow { position: fixed; top: max(80px, 14dvh); left: 50%; transform: translateX(-50%); z-index: 16; display: grid; justify-items: center; gap: 3px; pointer-events: none; color: #ffe49a; text-shadow: 0 2px 5px #001527, 0 0 10px #001527; font-weight: 900; font-size: 13px; }
 .voyage-arrow-symbol { display: block; font-size: 54px; line-height: 1; transform: rotate(var(--voyage-angle, 0deg)); transform-origin: center; filter: drop-shadow(0 0 5px #f2c459); }
+
+/* Compact objective tracker, clear of minimap and movement joystick. */
+.mission-progress-hud { position:fixed; z-index:14; top:max(12px,env(safe-area-inset-top)); left:max(10px,env(safe-area-inset-left)); max-width:min(47vw,240px); padding:7px 10px; border:1px solid #b9975b88; border-radius:9px; background:#071b2edb; color:#ffe1a1; font:600 12px/1.4 system-ui,sans-serif; pointer-events:none; }
+.mission-progress-hud[hidden], .mission-math[hidden] { display:none!important; }
+.mission-math { margin:12px 0; padding:12px; border:1px solid #caa65e; border-radius:12px; background:#071e33; }
+.mission-math input { width:100%; min-height:46px; border:1px solid #b99b6a; border-radius:8px; padding:10px; background:#fff9eb; color:#132332; font-size:20px; }
+.shipyard-cannon-slot { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:10px; margin:8px 0; border:1px solid #987e51; border-radius:10px; background:#082139; }
+.shipyard-cannon-select { max-width:100%; min-height:44px; padding:8px; border-radius:8px; }
