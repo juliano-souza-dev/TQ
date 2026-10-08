@@ -209,6 +209,7 @@ async function startWorld() {
   };
   const islandPanel = createIslandPanel({
     getMissionState: () => readSave().missions ?? {},
+    getMissionFlow: () => getMissionFlow(readSave(), STARTER_SHIP.id),
     getLearningProgress: () => readSave().learning ?? {},
     onLearningAttempt: (correct, firstAttempt) => {
       const save = readSave();
