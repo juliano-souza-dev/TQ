@@ -110,7 +110,11 @@ async function startWorld() {
     import('./npcs/NpcSelection.js'),
   ]);
   if (generation !== worldGeneration) return;
-  const world = createWorldState();
+  const storedRegion = localSaves.load(currentUser.uid)?.payload?.progression?.activeRegion ?? 1;
+  const region = storedRegion >= 2
+    ? (await import('./world/regions/r2.js')).R2
+    : (await import('./world/regions/r1.js')).R1;
+  const world = createWorldState(region);
   const savedPosition = localSaves.load(currentUser.uid)?.payload?.playerPosition;
   if (savedPosition && Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y)) {
     const { collidesWithIsland } = await import('./world/IslandCollision.js');
@@ -366,6 +370,52 @@ async function startWorld() {
   thiefGuide.setAttribute('aria-label', 'Direção da fragata fugitiva');
   thiefGuide.innerHTML = '<span class="thief-guide-arrow">➤</span><span class="thief-guide-label">Ladrão</span>';
   root.append(thiefGuide);
+  const exitDialog = document.createElement('section');
+  exitDialog.className = 'region-exit-dialog';
+  exitDialog.hidden = true;
+  exitDialog.setAttribute('role','dialog');
+  exitDialog.setAttribute('aria-modal','true');
+  exitDialog.setAttribute('aria-label','Passagem para a Costa dos Corsários');
+  const exitCard = document.createElement('div');
+  exitCard.className = 'region-exit-card';
+  const exitHeading = document.createElement('h2');
+  exitHeading.textContent = '🧭 Passagem liberada!';
+  const exitDescription = document.createElement('p');
+  exitDescription.textContent = 'Você encontrou a passagem para a Costa dos Corsários. Deseja navegar para o próximo mapa?';
+  const exitActions = document.createElement('div');
+  const exitStay = document.createElement('button');
+  exitStay.type = 'button';
+  exitStay.className = 'secondary-button';
+  exitStay.textContent = 'Permanecer na Enseada';
+  const exitTravel = document.createElement('button');
+  exitTravel.type = 'button';
+  exitTravel.className = 'primary-button';
+  exitTravel.textContent = '⚓ Navegar para Costa dos Corsários';
+  exitActions.append(exitStay,exitTravel);
+  exitCard.append(exitHeading,exitDescription,exitActions);
+  exitDialog.append(exitCard);
+  root.append(exitDialog);
+  let exitDismissed = false;
+  exitStay.addEventListener('click',()=>{exitDialog.hidden=true;exitDismissed=true;});
+  exitTravel.addEventListener('click',()=>{
+    let save = readSave();
+    const mission = getCampaignBoard(save).missions.find(m=>m.id==='r1-finale');
+    if (mission?.status === 'ready') {
+      const claimed = resolveMissionReward(save,'r1-finale');
+      if (!claimed) return;
+      writePatch(claimed.patch);
+      save = readSave();
+    }
+    const patch = activateNextRegion(save);
+    if (!patch) {
+      exitDescription.textContent = 'Conclua as missões anteriores para liberar a travessia.';
+      return;
+    }
+    writePatch({ ...patch, playerPosition:{x:180,y:1100} });
+    exitDialog.hidden=true;
+    startWorld();
+  });
+
   function updateThiefGuide() {
     const campaign = readSave().campaign ?? {};
     const thiefActive = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed && !mathGate.isOpen;
@@ -708,11 +758,16 @@ async function startWorld() {
       if (finale.active?.includes('r1-finale') && !(finale.progress?.['r1-finale']?.[0] >= 1)) {
         const exit = world.region.exitPoint;
         if (exit && Math.hypot(world.camera.x-exit.x,world.camera.y-exit.y) <= exit.radius) {
-          if (recordMissionEvent({type:'exit',id:'r1-exit-east'})) {
-            clickNavigation.cancel();
-            navalHud.setFeedback('🧭 Passagem encontrada! Resgate a missão no Porto das Missões.');
+          recordMissionEvent({type:'exit',id:'r1-exit-east'});
+          clickNavigation.cancel();
+          if (!exitDismissed && exitDialog.hidden && !mathGate.isOpen && !islandPanel.isOpen) {
+            exitDialog.hidden = false;
+            navalBattle.firing = false;
           }
         }
+      }
+      if (world.region.id === 'r1' && !exitDialog.hidden) {
+        clickNavigation.cancel();
       }
       renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
