@@ -6,6 +6,7 @@ import { getR2Board, acceptR2Mission, recordR2Event, claimR2Mission } from './Re
 const catalogs = Object.freeze({
   r1: { board: getCampaignBoard, accept: acceptCampaignMission, record: recordCampaignEvent, claim: claimCampaignMission },
   r2: { board: getR2Board, accept: acceptR2Mission, record: recordR2Event, claim: claimR2Mission },
+  r3: {board: () => ({missions:[],active:[],available:[],claimable:[],unlockedRegion:3,activeRegion:3}),accept:()=>null,record:()=>null,claim:()=>null},
 });
 export const campaignFor = regionId => catalogs[regionId] ?? catalogs.r1;
 export const boardFor = (save, regionId) => campaignFor(regionId).board(save);
