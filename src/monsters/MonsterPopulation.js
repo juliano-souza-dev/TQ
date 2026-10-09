@@ -1,7 +1,7 @@
 import { collidesWithIsland } from '../world/IslandCollision.js';
 
-export const MONSTERS_PER_MAP = 10;
-export const MONSTER_RESPAWN_MS = 15000;
+export const MONSTERS_PER_MAP = 2;
+export const MONSTER_RESPAWN_MS = 60000;
 export const MONSTER_GOLD_MIN = 20;
 export const MONSTER_GOLD_MAX = 80;
 
@@ -20,7 +20,7 @@ export function createMonsterPopulation(world, random = Math.random) {
     const id = region.id + '-kraken-' + String(i + 1).padStart(2, '0');
     world.entities.set(id, {
       id, name: 'Kraken das Profundezas', type: 'monster', archetype: 'sea-monster-kraken',
-      x, y, heading: 0, health: 1500, maxHealth: 1500,
+      x, y, heading: 0, health: 1650, maxHealth: 1650,
       state: 'idle', respawnRemainingMs: null, animationTimeMs: random() * 2000,
     });
   }
