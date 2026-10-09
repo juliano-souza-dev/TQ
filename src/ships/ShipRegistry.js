@@ -10,7 +10,9 @@ import { SHADOW_CHASER_SHIP } from './ShadowChaserShip.js';
 export { SHADOW_CHASER_SHIP };
 import { TERROR_DO_MAR_SHIP } from './TerrorDoMarShip.js';
 export { TERROR_DO_MAR_SHIP };
-export const SHIP_CATALOG = Object.freeze([HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP, ECLIPSE_SHIP, SHADOW_CHASER_SHIP]);
+import { PUMPKIN_FLEET_GALLEON_SHIP } from './PumpkinFleetGalleonShip.js';
+export { PUMPKIN_FLEET_GALLEON_SHIP };
+export const SHIP_CATALOG = Object.freeze([HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP, ECLIPSE_SHIP, SHADOW_CHASER_SHIP, PUMPKIN_FLEET_GALLEON_SHIP]);
 
 import { FUGITIVE_FRIGATE_SHIP } from './FugitiveFrigateShip.js';
 export { FUGITIVE_FRIGATE_SHIP };
