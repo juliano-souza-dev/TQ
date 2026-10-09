@@ -374,7 +374,7 @@ export class NavalCombatWebGLRenderer{
   }
 
   // Underwater ambush shared with the Kraken sprite renderer.
-  attackKraken({from,to,monsterId=null,startTime=performance.now(),duration=1400,onImpact=null}={}){
+  attackKraken({from,to,monsterId=null,startTime=performance.now(),duration=1720,onImpact=null}={}){
     if(!from||!to||!this.init())return false;
     if(this.krakenAttacks.length>=(this.reducedFx?3:8))return false;
     this.krakenAttacks.push({
@@ -513,42 +513,55 @@ export class NavalCombatWebGLRenderer{
       gl.drawArrays(gl.POINTS,0,1);
     };
 
-    // Low-visibility underwater shadow, then a foam ring where the hull is struck.
+    // 300ms submerge, 450ms outbound, 220ms tentacle strike,
+    // 450ms return on the exact reverse trajectory, 300ms resurfacing.
     for(const attack of this.krakenAttacks){
       const elapsed=now-attack.startTime;
-      if(elapsed<300){
-        const p=clamp(elapsed/300,0,1);
-        drawPoint(attack.from.x,attack.from.y,112*zoom,0,0,false,{
-          color:"#063f48",coreColor:"#096c6b",glow:0,opacity:.38*(1-p)});
-        drawPoint(attack.from.x,attack.from.y,140*zoom,7,p,false,{
-          color:"#127b88",coreColor:"#9de9db",glow:.3,opacity:.42*(1-p)});
-      }else if(elapsed<750){
-        const p=clamp((elapsed-300)/450,0,1);
+      const outbound=elapsed>=300&&elapsed<750;
+      const returning=elapsed>=970&&elapsed<1420;
+      if(elapsed<300||elapsed>=1420){
+        const p=elapsed<300?clamp(elapsed/300,0,1):clamp((elapsed-1420)/300,0,1);
+        const fade=elapsed<300?1-p:p;
+        drawPoint(attack.from.x,attack.from.y,140*zoom,7,elapsed<300?p:1-p,false,{
+          color:"#126378",coreColor:"#a7e9df",glow:.25,opacity:.36*fade});
+      }
+      if(outbound||returning){
+        const p=outbound?(elapsed-300)/450:1-(elapsed-970)/450;
         const x=attack.from.x+(attack.to.x-attack.from.x)*p;
         const y=attack.from.y+(attack.to.y-attack.from.y)*p;
         drawPoint(x,y,118*zoom,0,0,false,{
-          color:"#042a35",coreColor:"#075567",glow:0,opacity:.18});
-        if(!this.reducedFx)drawPoint(x,y,120*zoom,7,p,false,{
-          color:"#1a7483",coreColor:"#57b3b8",glow:.15,opacity:.11});
-      }else if(elapsed>=750 && elapsed<1400){
-        const pre=clamp((elapsed-750)/220,0,1);
-        // Water bulges from below before the Kraken collides with the hull.
-        if(elapsed<970){
-          drawPoint(attack.to.x,attack.to.y,110*zoom,7,pre*.42,false,{
-            color:"#0a5361",coreColor:"#48b8be",glow:.45,opacity:.32*pre});
-          drawPoint(attack.to.x,attack.to.y,65*zoom,0,0,false,{
-            color:"#126a70",coreColor:"#6bd4c8",glow:.2,opacity:.19*pre});
+          color:"#042a35",coreColor:"#075567",glow:0,opacity:.15});
+        if(!this.reducedFx)drawPoint(x,y,128*zoom,7,p,false,{
+          color:"#1a7483",coreColor:"#57b3b8",glow:.1,opacity:.09});
+      }
+      if(elapsed>=750&&elapsed<1130){
+        const rise=clamp((elapsed-750)/220,0,1);
+        const decay=1-clamp((elapsed-970)/160,0,1);
+        const intensity=rise*decay;
+        const arms=this.reducedFx?3:5;
+        const segments=this.reducedFx?7:13;
+        for(let arm=0;arm<arms;arm++){
+          const angle=arm*2*Math.PI/arms+.35;
+          for(let i=0;i<segments;i++){
+            const u=i/(segments-1);
+            const sway=Math.sin(u*5+elapsed*.013+arm)*11*zoom;
+            const radial=(15+u*68*intensity)*zoom;
+            const x=attack.to.x+Math.cos(angle)*radial-Math.sin(angle)*sway;
+            const y=attack.to.y+Math.sin(angle)*radial*.65+Math.cos(angle)*sway;
+            drawPoint(x,y,(19-u*12)*zoom,0,0,false,{
+              color:"#063b49",coreColor:"#30a8a9",glow:.25,opacity:.85*intensity});
+          }
         }
       }
-      if(elapsed>=970 && elapsed<1400){
-        const p=clamp((elapsed-970)/430,0,1);
+      if(elapsed>=940&&elapsed<1390){
+        const p=clamp((elapsed-940)/450,0,1);
         drawPoint(attack.to.x,attack.to.y,170*zoom,7,p,false,{
-          color:"#38a9b6",coreColor:"#c7fcf3",glow:1,opacity:(1-p)*.9});
-        // Staggered water ripples, foam and rising droplets. Cheap on mobile.
+          color:"#38a9b6",coreColor:"#c7fcf3",glow:1,opacity:(1-p)*.85});
         const ringCount=this.reducedFx?2:4;
         for(let ring=0;ring<ringCount;ring++){
-          const rp=clamp((elapsed-970-ring*70)/Math.max(1,430-ring*40),0,1);
-          if(elapsed<970+ring*70)continue;
+          const delay=ring*70;
+          if(elapsed<940+delay)continue;
+          const rp=clamp((elapsed-940-delay)/(450-delay),0,1);
           drawPoint(attack.to.x,attack.to.y,(135+ring*36)*zoom,7,rp,false,{
             color:ring%2?"#2a8492":"#63d6d4",coreColor:"#e5fff5",
             glow:.65,opacity:(1-rp)*(.7-ring*.1)});
@@ -558,15 +571,11 @@ export class NavalCombatWebGLRenderer{
           const seed=i*2.39996323+attack.startTime*.00023;
           const radius=(17+(i%5)*13+105*p)*zoom;
           const up=Math.sin(Math.PI*p)*(9+(i%4)*7)*zoom;
-          drawPoint(
-            attack.to.x+Math.cos(seed)*radius,
+          drawPoint(attack.to.x+Math.cos(seed)*radius,
             attack.to.y+Math.sin(seed)*radius*.55-up,
             (3+(i%4)*2)*(1-p)*zoom,0,p,true,
-            {color:"#6bced2",coreColor:"#ecffff",glow:.8,opacity:.9*(1-p)}
-          );
+            {color:"#6bced2",coreColor:"#ecffff",glow:.8,opacity:.9*(1-p)});
         }
-        if(elapsed<1120)drawPoint(attack.to.x,attack.to.y,100*zoom,5,p,true,{
-          color:"#4ac9d0",coreColor:"#ffffff",glow:1,opacity:1-p});
       }
     }
 
