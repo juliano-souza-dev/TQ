@@ -206,6 +206,24 @@ async function startWorld() {
   const initialShip = playableShips.find(ship => ship.id === savedEquipment.equippedShipId &&
     (ship.id === STARTER_SHIP.id || savedEquipment.ownedShipIds?.includes(ship.id))) ?? STARTER_SHIP;
   let activeShip = initialShip;
+  // Wide cinematic pursuit framing, local to R2 mission 11.
+  const normalCameraZoom = world.camera.zoom;
+  let pursuitCameraZoom = normalCameraZoom;
+  function updatePursuitCamera(stepMs = 16) {
+    const hunting = world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief';
+    const thief = hunting ? [...world.entities.values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0) : null;
+    const targetZoom = thief ? Math.max(.27, Math.min(.43,
+      Math.min(canvas.clientWidth || 900, canvas.clientHeight || 600) /
+      Math.max(1300, Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y)*2.4))) : normalCameraZoom;
+    const smoothing = 1-Math.exp(-Math.max(0,stepMs)/450);
+    pursuitCameraZoom += (targetZoom-pursuitCameraZoom)*smoothing;
+    world.camera.zoom = pursuitCameraZoom;
+    // Keep player centered unless manual camera control is enabled.
+    world.cameraOffset = thief && !world.manualCamera
+      ? {x:(thief.x-world.camera.x)*.14,y:(thief.y-world.camera.y)*.14}
+      : {x:0,y:-65};
+  }
+
   const { spriteCannonMuzzle } = await import('./ships/CannonMuzzleMap.js');
   function recordMissionEvent(event) {
     const patch = campaignFor(world.region.id).record(readSave(), event);
@@ -1044,6 +1062,7 @@ async function startWorld() {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
     },
     render: () => {
+      updatePursuitCamera(16);
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       renderer.render(world, oceanTimeMs);
       halloweenFogRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
