@@ -72,14 +72,14 @@ export function createMathGate({
   function open({
     kind, title: heading, description: explanation, id,
     family = null, afterSuccess = () => {}, repeatOnSuccess = false,
-    locked = false, getLocked = () => false, onClose = () => {},
+    locked = false, getLocked = () => false, getContinue = () => false, onClose = () => {},
   } = {}) {
     if (!kind || pending) return false;
     clearFeedbackState();
     cancel.disabled = locked && getLocked();
     const region = getRegion();
     const challenge = chooseRegionChallenge(getPedagogy(), family, Math.random, region);
-    pending = { kind, id, challenge, afterSuccess, family, region, repeatOnSuccess, locked, getLocked, onClose };
+    pending = { kind, id, challenge, afterSuccess, family, region, repeatOnSuccess, locked, getLocked, getContinue, onClose };
     attempts = 0;
     mistakeMade = false;
     resolved = false;
@@ -141,11 +141,11 @@ export function createMathGate({
           if (!pending) return;
           if (pending.repeatOnSuccess) {
             callback();
-            if (pending.locked && pending.getLocked()) {
+            if (pending.getContinue()) {
               pending.challenge = chooseRegionChallenge(getPedagogy(), pending.family, Math.random, pending.region);
               attempts = 0;
               resolved = false;
-              cancel.disabled = true;
+              cancel.disabled = pending.locked && pending.getLocked();
               renderRound();
             } else close();
           } else {
