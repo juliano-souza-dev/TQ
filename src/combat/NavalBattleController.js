@@ -19,7 +19,7 @@ export class NavalBattleController {
     renderer, readSave, writePatch, getPlayer, getEntities, shipId,
     getRegionId = () => 'r1',
     getMappedMuzzle = () => null,
-    onFeedback = () => {}, onVictory = () => {},
+    onFeedback = () => {}, onVictory = () => {}, onPlayerSunk = () => {},
     random = Math.random, clock = () => performance.now(),
   }) {
     if (!renderer || !readSave || !writePatch || !getPlayer || !getEntities || !shipId) {
@@ -27,7 +27,7 @@ export class NavalBattleController {
     }
     Object.assign(this, {
       renderer, readSave, writePatch, getPlayer, getEntities, shipId, getMappedMuzzle, getRegionId,
-      onFeedback, onVictory, random, clock,
+      onFeedback, onVictory, onPlayerSunk, random, clock,
     });
     this.targetId = null;
     this.manualTargetId = null;
@@ -533,6 +533,7 @@ export class NavalBattleController {
     const target = this.getEntities().get(targetId);
     const lockedThief = this.getThiefMissionTarget();
     if (lockedThief && target?.id !== lockedThief.id) return { kind: 'water' };
+    if(target?.id==='r2-morbi' && this.readSave().r2Campaign?.active!=='r2-golden-ii')return {kind:'water'};
     if (this.isProtectedInformant(target)) {
       this.onFeedback('🕊️ O informante não pode ser atacado durante a missão.');
       return { kind: 'water' };
@@ -624,6 +625,20 @@ export class NavalBattleController {
     const player = this.getPlayer();
     if (this.getHealth() <= 0) return;
     for (const npc of this.getEntities().values()) {
+      if(npc.id==='r2-morbi' && npc.health>0){
+        if(this.readSave().r2Campaign?.active==='r2-golden-i'
+          && distanceBetween(npc,player)<1200
+          && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
+          const muzzle=cannonHardpoint(npc,player,npc.heading,0,20);
+          const aimed={x:player.x,y:player.y};
+          const fired=this.renderer.fire({from:muzzle,to:aimed,
+            duration:flightDurationMs(muzzle,aimed,650),ammo:this.enemyAmmo,
+            impactKind:'water',startTime:now,
+            onImpact:({at})=>this.resolveNpcImpact(npc.id,at,150)});
+          if(fired)this.nextNpcShot.set(npc.id,now+3000);
+        }
+        continue;
+      }
       if (npc.archetype === 'fugitive-frigate' && this.getThiefMissionTarget()?.id === npc.id) {
         if (distanceBetween(npc, player) > 840 || now < (this.nextNpcShot.get(npc.id) ?? -Infinity)) continue;
         const muzzle = cannonHardpoint(npc, player, npc.heading, 0, 1);
@@ -671,6 +686,7 @@ export class NavalBattleController {
     if (!health) {
       this.firing = false;
       this.onFeedback('☠️ Navio destruído. Procure reparos.');
+      this.onPlayerSunk(npcId);
     }
     return { kind: 'ship' };
   }
