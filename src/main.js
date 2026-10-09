@@ -651,6 +651,8 @@ async function startWorld() {
           navalBattle.firing = false;
           shipSpeed = getShipSpeed(ship);
           writePatch({ equipment: { ...save.equipment, equippedShipId: ship.id } });
+          navalBattle.selectedAmmoId = navalBattle.resolveSelectedAmmo();
+          navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
           recordMissionEvent({ type: 'equip-ship', ship: ship.id });
           navalHud?.refresh();
           updateMissionHud();
@@ -673,6 +675,9 @@ async function startWorld() {
           firstVoyageGuide?.guideTo('shipyard');
         }
         writePatch({ equipment: { ...save.equipment, loadout }, missions });
+        navalBattle.selectedAmmoId = navalBattle.resolveSelectedAmmo();
+        navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
+        navalHud?.refresh();
         const slots = loadout[STARTER_SHIP.id] ?? [];
         if (slots.filter(Boolean).length >= STARTER_SHIP.cannonSlots)
           recordMissionEvent({ type: 'equip' });
