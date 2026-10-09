@@ -430,7 +430,9 @@ export class NavalBattleController {
       }) ?? cannonHardpoint(player, target, player.heading, batteryIndex, battery.length);
       const speed = ammo.projectileSpeed;
       const intercepted = interceptPoint(muzzle, target, this.velocities.get(target.id), speed);
-      const destination = aimWithAccuracy(intercepted, muzzle, cannon.accuracy, this.random);
+      // Fast mission boss needs predictive accuracy to register real projectile impacts.
+      const accuracy = target.archetype === 'fugitive-frigate' && this.getThiefMissionTarget() ? 1 : cannon.accuracy;
+      const destination = aimWithAccuracy(intercepted, muzzle, accuracy, this.random);
       const duration = flightDurationMs(muzzle, destination, speed);
       const damage = shotDamage(cannon, ammo.id);
       const targetId = target.id;
@@ -490,7 +492,8 @@ export class NavalBattleController {
       this.onFeedback('💦 Kraken submerso! A bala caiu na água.');
       return { kind: 'water' };
     }
-    if (!shipCollision(at, target, 56)) {
+    const hitRadius = target?.archetype === 'fugitive-frigate' && this.getThiefMissionTarget() ? 80 : 56;
+    if (!shipCollision(at, target, hitRadius)) {
       this.onFeedback('💦 A bala caiu na água.');
       return { kind: 'water' };
     }
