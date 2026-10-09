@@ -79,6 +79,18 @@ export function updateFugitiveFrigate(npc, player, region, deltaMs, random = Mat
       desiredHeading = npc.cruiseHeading ?? npc.heading;
     }
   }
+  // Mission 11: steer back into the central sea before touching a map border.
+  // Apply before collision/position clamping to avoid getting stuck on the edge.
+  if (npc.keepAwayFromEdges) {
+    const margin = Math.min(420, region.width * .22, region.height * .22);
+    const inwardX = npc.x < margin ? margin - npc.x : npc.x > region.width - margin ? region.width - margin - npc.x : 0;
+    const inwardY = npc.y < margin ? margin - npc.y : npc.y > region.height - margin ? region.height - margin - npc.y : 0;
+    if (inwardX || inwardY) {
+      desiredHeading = bearing(inwardX, inwardY);
+      npc.avoidanceTimeMs = 0;
+      npc.cruiseHeading = desiredHeading;
+    }
+  }
   if (npc.avoidanceTimeMs > 0) {
     npc.avoidanceTimeMs = Math.max(0, npc.avoidanceTimeMs - deltaMs);
     desiredHeading = npc.avoidanceHeading;
@@ -91,8 +103,9 @@ export function updateFugitiveFrigate(npc, player, region, deltaMs, random = Mat
     npc.speed + Math.max(-step, Math.min(step, desiredSpeed - npc.speed))));
   const radians = npc.heading * Math.PI / 180;
   const movement = npc.speed * dt;
-  const nextX = Math.max(MARGIN, Math.min(region.width - MARGIN, npc.x + Math.sin(radians) * movement));
-  const nextY = Math.max(MARGIN, Math.min(region.height - MARGIN, npc.y - Math.cos(radians) * movement));
+  const safeMargin = npc.keepAwayFromEdges ? Math.min(240, region.width * .18, region.height * .18) : MARGIN;
+  const nextX = Math.max(safeMargin, Math.min(region.width - safeMargin, npc.x + Math.sin(radians) * movement));
+  const nextY = Math.max(safeMargin, Math.min(region.height - safeMargin, npc.y - Math.cos(radians) * movement));
   const moved = resolveIslandMovement(region, npc.x, npc.y, nextX, nextY, 32);
   const actual = Math.hypot(moved.x - npc.x, moved.y - npc.y);
   if (movement > .1 && actual < movement * .35 && npc.avoidanceTimeMs <= 0) {
@@ -157,6 +170,7 @@ export function updateFugitiveFrigatePopulation(world, deltaMs, random = Math.ra
       updateFugitiveFrigate(npc, world.camera, world.region, deltaMs, random);
       continue;
     }
+    if (npc.thiefBossInitialized) continue; // Boss stays sunk until the mission resolves.
     npc.respawnRemainingMs = (npc.respawnRemainingMs ?? 30000) - Math.max(0, deltaMs);
     if (npc.respawnRemainingMs > 0) continue;
     const point = spawnPosition(world.region, world.camera, random);
