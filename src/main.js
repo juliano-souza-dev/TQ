@@ -1,3 +1,4 @@
+import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission } from './missions/RegionTwoCampaign.js';
 import { beginHullRecovery, advanceHullRecovery } from './combat/HullRepair.js';
 import { getCampaignBoard, recordCampaignEvent } from './missions/RegionOneCampaign.js';
 import { resolvePedagogicalAction, resolveMissionReward, activateNextRegion } from './gameplay/PedagogicalActions.js';
@@ -160,7 +161,7 @@ async function startWorld() {
   let activeShip = initialShip;
   const { spriteCannonMuzzle } = await import('./ships/CannonMuzzleMap.js');
   function recordMissionEvent(event) {
-    const patch = recordCampaignEvent(readSave(), event);
+    const patch = world.region.id === 'r2' ? recordR2Event(readSave(),event) : recordCampaignEvent(readSave(), event);
     if (!patch) return false;
     writePatch(patch);
     updateMissionHud();
@@ -170,6 +171,14 @@ async function startWorld() {
     const result = resolvePedagogicalAction(readSave(), action, action.challenge, cleanAnswer);
     if (!result) return false;
     writePatch(result.patch);
+    if (world.region.id === 'r2') {
+      const questPatch=recordR2Event(readSave(),{type:'study',id:action.challenge.id+':'+Date.now()});
+      if(questPatch)writePatch(questPatch);
+      if(action.kind==='treasure') {
+        const treasurePatch=recordR2Event(readSave(),{type:'treasure',id:action.id});
+        if(treasurePatch)writePatch(treasurePatch);
+      }
+    }
     updateMissionHud();
     navalHud?.refresh();
     navalHud?.setFeedback('🧮 ' + result.message);
@@ -475,9 +484,11 @@ async function startWorld() {
   const updateMissionHud = () => {
     if (world.region.id === 'r2') {
       missionHud.hidden = false;
-      missionHud.textContent = readSave().progression?.r2PortVisited
-        ? '⚓ Costa dos Corsários · Explore o porto e prepare a próxima aventura'
-        : '📜 Primeiro objetivo: vá ao Porto das Missões';
+      const mission = getR2Board(readSave()).active[0];
+      missionHud.textContent = mission
+        ? '📜 '+mission.name+' · '+mission.objectives.map((o,i)=>mission.progress[i]+'/'+o.count).join(' · ')
+        : !readSave().progression?.r2PortVisited ? '📜 Primeiro objetivo: vá ao Porto das Missões'
+        : '📜 Vá ao Porto das Missões para receber seu próximo contrato';
       return;
     }
     const flow = getMissionFlow(readSave(), activeShip.id);
@@ -494,18 +505,18 @@ async function startWorld() {
   };
   const islandPanel = createIslandPanel({
     missionBoardOptions: {
-      getBoard: () => world.region.id === 'r2'
-        ? { essentialClaimed: 0, missions: [], unlockedRegion: 1, active: [], claimable: [], available: [] }
-        : getCampaignBoard(readSave()),
+      getBoard: () => world.region.id === 'r2' ? getR2Board(readSave()) : getCampaignBoard(readSave()),
       getPedagogy: () => readSave().pedagogy ?? {},
-      onAccept: id => mathGate.open({
+      onAccept: id => world.region.id === 'r2'
+        ? (()=>{const patch=acceptR2Mission(readSave(),id);if(!patch)return false;writePatch(patch);updateMissionHud();return true;})()
+        : mathGate.open({
         kind: 'accept-mission', id,
         title: '📜 Aceitar contrato',
         description: 'Resolva uma continha para receber sua próxima missão.',
         afterSuccess: () => { islandPanel.refreshMissionBoard(); navalHud.refresh(); },
       }),
       onClaim: id => {
-        const result = resolveMissionReward(readSave(), id);
+        const result = world.region.id === 'r2' ? claimR2Mission(readSave(),id) : resolveMissionReward(readSave(), id);
         if (!result) return false;
         writePatch(result.patch);
         navalHud.refresh();
@@ -635,6 +646,10 @@ async function startWorld() {
         firstVoyageGuide = null;
       }
       if (world.region.id === 'r1') recordMissionEvent({ type: 'visit', island: contact.kind });
+      if (world.region.id === 'r2' && contact.kind==='missions') {
+        islandPanel.refreshMissionBoard();
+      }
+      if (world.region.id === 'r2' && contact.id==='r2-scenery-north') recordMissionEvent({type:'discover',id:contact.id});
       updateMissionHud();
     }
   }
