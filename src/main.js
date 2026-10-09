@@ -493,7 +493,8 @@ async function startWorld() {
     const r2 = world.region.id === 'r2' ? getR2Board(readSave()).active[0] : null;
     const guideTarget = r2?.id === 'r2-informant' && (r2.progress?.[1] ?? 0)<3 ? world.entities.get('r2-informant')
       : r2?.id === 'r2-island' ? world.region.islands.find(i=>i.id==='r2-scenery-north')
-      : r2?.id === 'r2-admiral' && (r2.progress?.[1] ?? 0) < 1 && (world.entities.get('r2-admiral')?.health ?? 0) > 0 ? world.entities.get('r2-admiral') : null;
+      : r2?.id === 'r2-admiral' && (r2.progress?.[1] ?? 0) < 1 && (world.entities.get('r2-admiral')?.health ?? 0) > 0 ? world.entities.get('r2-admiral')
+      : r2?.id === 'r2-equip-chaser' && (r2.progress?.[0] ?? 0) < 1 ? world.region.islands.find(i=>i.kind==='shipyard') : null;
     const target = guideTarget ?? (thiefActive
       ? [...world.entities.values()].find(npc => npc.archetype === 'fugitive-frigate' && npc.health > 0)
       : exitActive ? world.region.exitPoint : null);
@@ -512,7 +513,7 @@ async function startWorld() {
     thiefGuide.style.setProperty('--thief-angle', (inView ? 90 : Math.atan2(y-py, x-px)*180/Math.PI) + 'deg');
     thiefGuide.classList.toggle('is-visible-target', inView);
     thiefGuide.querySelector('.thief-guide-label').textContent =
-      (guideTarget ? (r2?.id === 'r2-informant' ? 'Informante' : r2?.id === 'r2-island' ? 'Ilha Esquecida' : 'Almirante') : exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
+      (guideTarget ? (r2?.id === 'r2-informant' ? 'Informante' : r2?.id === 'r2-island' ? 'Ilha Esquecida' : r2?.id === 'r2-equip-chaser' ? 'Estaleiro · Equipar Fragata' : 'Almirante') : exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
     thiefGuide.hidden = false;
   }
 
@@ -594,7 +595,10 @@ async function startWorld() {
         const save = readSave();
         const ship = playableShips.find(item => item.id === shipId);
         if (!ship || (ship.id !== STARTER_SHIP.id && !save.equipment?.ownedShipIds?.includes(shipId))) return false;
-        if (ship.id === activeShip.id) return true;
+        if (ship.id === activeShip.id) {
+           if (world.region.id==='r2' && ship.id==='fragata-sombra-cacadora') recordMissionEvent({type:'equip-ship',ship:ship.id});
+           return true;
+         }
         const previous = activeShip;
         try {
           shipRenderer.definition = ship;
@@ -683,6 +687,9 @@ async function startWorld() {
         firstVoyageGuide = null;
       }
       if (world.region.id === 'r1') recordMissionEvent({ type: 'visit', island: contact.kind });
+      if (world.region.id === 'r2' && contact.kind==='shipyard' && activeShip.id==='fragata-sombra-cacadora') {
+        recordMissionEvent({type:'equip-ship',ship:activeShip.id});
+      }
       if (world.region.id === 'r2' && contact.kind==='missions') {
         islandPanel.refreshMissionBoard();
       }
