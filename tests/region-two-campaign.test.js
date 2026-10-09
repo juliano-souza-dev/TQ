@@ -28,7 +28,7 @@ test('campanha da segunda região tem onze missões sequenciais', () => {
   assert.equal(getR2Board(save).essentialClaimed,11);
   assert.ok(save.equipment?.ownedShipIds?.includes('fragata-sombra-cacadora'));
   assert.equal(save.equipment?.cannonCounts?.['aetherion-mk1'],1);
-  assert.equal(save.ammunition?.['aetherion-seeker'],50);
+  assert.equal(save.ammunition?.['aetherion-seeker'],5000);
 });
 test('arcas da Costa dos Corsários aparecem somente na segunda região',()=>{
   assert.ok(R2_TREASURES.length>=20);
