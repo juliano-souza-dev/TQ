@@ -47,6 +47,8 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
       continue;
     }
     npc.respawnRemainingMs = null;
+    // NPC convocado segura posição até encerrar a salva de arpões.
+    if (npc.monsterAssisting) continue;
     updateCorsair(npc, deltaMs, targets, onFire);
     npc.wanderTimeMs = (npc.wanderTimeMs ?? 0) - deltaMs;
     if (npc.wanderTimeMs <= 0) {
