@@ -178,11 +178,6 @@ async function startWorld() {
   repairAura.innerHTML = '<span>+</span><span>+</span><span>+</span><span>+</span><span>+</span>';
   repairAura.hidden = true;
   root.append(repairAura);
-  const sinkingOverlay = document.createElement('div');
-  sinkingOverlay.className = 'sinking-repair-overlay';
-  sinkingOverlay.hidden = true;
-  sinkingOverlay.textContent = '☠️ Navio afundado! Reparação em andamento. Aguarde a recuperação do casco.';
-  root.append(sinkingOverlay);
   function beginRepairSession(forced = false) {
     const health = Number(readSave().combat?.shipHealth ?? 100);
     if (health >= 100 || readSave().combat?.repairingUntil) return false;
@@ -582,7 +577,6 @@ async function startWorld() {
         if (mathGate.isOpen) mathGate.close(true);
         beginRepairSession(true);
       }
-      sinkingOverlay.hidden = !(recovering && repairIsForced);
       // Marcador visual acompanha a selecao automatica.
       selectedNpcId = navalBattle.targetId;
       hudRefreshElapsed += stepMs;
@@ -674,6 +668,17 @@ async function startWorld() {
         }
       }
       shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom, krakenImpact);
+      if (!repairAura.hidden) {
+        const rect = canvas.getBoundingClientRect();
+        const px = rect.left + rect.width / 2 + (world.camera.x - world.cameraView.x) * world.camera.zoom;
+        const py = rect.top + rect.height / 2 + (world.camera.y - world.cameraView.y) * world.camera.zoom;
+        const sprite = shipRenderer.getFrameWorldSize(world.camera.zoom);
+        const auraSize = Math.max(54, Math.min(210, Math.max(sprite.width, sprite.height) * world.camera.zoom * .75));
+        repairAura.style.left = px + 'px';
+        repairAura.style.top = py + 'px';
+        repairAura.style.width = auraSize + 'px';
+        repairAura.style.height = auraSize + 'px';
+      }
       navalBattle.render(performance.now(),world.cameraView,world.camera.zoom,canvas.clientWidth,canvas.clientHeight);
       minimap.render();
       const gr=glintCanvas.getBoundingClientRect(),gd=Math.min(window.devicePixelRatio||1,2);
