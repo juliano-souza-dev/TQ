@@ -36,7 +36,7 @@ export function armedCannons(save, shipId, events = EVENTS) {
   });
 }
 export function cannonRange(cannon) {
-  return Math.max(1, finite(cannon.caliberPounder) * 15);
+  return Math.max(1, finite(cannon.range) || finite(cannon.caliberPounder) * 15);
 }
 export function effectiveAmmo(ammoId, events = EVENTS) {
   const item = AMMUNITION.find(entry => entry.id === ammoId && isItemVisible(entry, events));
