@@ -1,6 +1,5 @@
 const MESSAGES = Object.freeze({
   mission: 'Aceite uma missão no Porto das Missões para combater.',
-  'target-mission': 'Este alvo só pode ser atacado durante sua missão específica.',
   'no-cannon': 'Equipe um canhão no Estaleiro.',
   'harpoon-ammo': 'Sem Arpões do Marujo para atacar monstros.',
   target: 'Toque num navio inimigo para selecionar o alvo.',

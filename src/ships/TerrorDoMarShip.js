@@ -3,6 +3,7 @@ export const TERROR_DO_MAR_SHIP = Object.freeze({
   id: 'terror-do-mar',
   name: 'Terror do Mar',
   status: 'npc-only',
+  plannedRegion: 'r3',
   playable: false,
   npcEnabled: true,
   shopEnabled: false,

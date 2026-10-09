@@ -66,13 +66,6 @@ export class NavalBattleController {
     return true;
   }
 
-  isTargetAttackUnlocked(target, save=this.readSave()) {
-    const missionId=String(target?.attackMissionId||'');
-    if (!missionId) return true;
-    if (this.getRegionId() !== 'r2') return false;
-    return String(save.r2Campaign?.active||'') === missionId;
-  }
-
   isProtectedInformant(entity) {
     return Boolean(entity?.informantProtected || (entity?.id === 'r2-informant' && entity?.name === 'Corsário Informante'));
   }
@@ -99,10 +92,9 @@ export class NavalBattleController {
       if (this.targetId) this.setTarget(null);
       return false;
     }
-    const save=this.readSave();
     const withinRange = npc => npc && (npc.type === 'npc' || npc.type === 'monster')
-      && npc.health > 0 && !this.isProtectedInformant(npc) && this.isTargetAttackUnlocked(npc,save)
-      && distanceBetween(player, npc) <= (npc.type==='monster' ? equippedHarpoon(save).range : battery.length ? Math.max(...battery.map(({cannon})=>cannonRange(cannon))) : 0);
+      && npc.health > 0 && !this.isProtectedInformant(npc)
+      && distanceBetween(player, npc) <= (npc.type==='monster' ? equippedHarpoon(this.readSave()).range : battery.length ? Math.max(...battery.map(({cannon})=>cannonRange(cannon))) : 0);
     const entities = this.getEntities();
     // Durante o combate, manter o alvo vivo e ao alcance para não interromper ajudantes.
     if (this.firing && withinRange(entities.get(this.targetId))) return false;
@@ -148,9 +140,7 @@ export class NavalBattleController {
       || save.missions?.corsair === 'active'
       || (save.missions?.corsair === 'complete' && (save.campaign?.active?.length ?? 0) > 0);
     let reason = 'ready';
-    const targetMissionLocked=Boolean(target && !this.isTargetAttackUnlocked(target,save));
-    if (targetMissionLocked) reason = 'target-mission';
-    else if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
+    if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
     else if (monsterTarget && distance > harpoon.range) reason = 'range';
     else if (monsterTarget && harpoonStock(save) <= 0) reason = 'harpoon-ammo';
     else if (!monsterTarget && !missionActive) reason = 'mission';
@@ -458,10 +448,6 @@ export class NavalBattleController {
     if (target?.type === 'monster') {
       this.onFeedback('⚓ Monstros são imunes a bolas de canhão. Utilize o arpão.');
       return {kind:'water'};
-    }
-    if (!this.isTargetAttackUnlocked(target)) {
-      this.onFeedback(target?.attackLockedMessage || '🔒 Este alvo só pode ser atacado durante a missão correta.');
-      return { kind: 'water' };
     }
     if (target?.negotiationFrozen) {
       this.onFeedback('💦 O ladrão está protegido durante a negociação.');
