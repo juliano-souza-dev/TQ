@@ -281,7 +281,7 @@ test('Kraken submerso ignora tiro e volta a receber dano ao emergir', () => {
 });
 
 test('Kraken só revida depois de ser atingido e respeita o menor alcance de canhão', () => {
-  assert.equal(KRAKEN_RETALIATION_RANGE, 300);
+  assert.equal(KRAKEN_RETALIATION_RANGE, 850);
   let time=1000;
   const monster={id:'kraken',type:'monster',name:'Kraken',health:1650,maxHealth:1650,state:'idle',x:280,y:0};
   const player={x:0,y:0,heading:0};
@@ -300,7 +300,7 @@ test('Kraken só revida depois de ser atingido e respeita o menor alcance de can
   controller.fireKrakenStrikes(time);
   assert.equal(attacks.length,1,'Kraken atingido reage dentro do alcance');
   time=6000;
-  monster.x=301;
+  monster.x=KRAKEN_RETALIATION_RANGE+1;
   controller.fireKrakenStrikes(time);
   assert.equal(attacks.length,1,'não ataca fora do alcance');
 });
