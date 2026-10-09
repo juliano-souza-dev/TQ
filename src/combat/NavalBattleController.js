@@ -77,14 +77,14 @@ export class NavalBattleController {
     if (this.targetScanElapsedMs < 150) return false;
     this.targetScanElapsedMs = 0;
     const battery = armedCannons(this.readSave(), this.shipId);
-    const maxRange = battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0;
+    const maxRange = Math.max(equippedHarpoon(this.readSave()).range, battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0);
     const player = this.getPlayer();
     if (!maxRange) {
       if (this.targetId) this.setTarget(null);
       return false;
     }
     const withinRange = npc => npc && (npc.type === 'npc' || npc.type === 'monster')
-      && npc.type === 'npc' && npc.health > 0 && distanceBetween(player, npc) <= maxRange;
+      && npc.health > 0 && distanceBetween(player, npc) <= (npc.type==='monster' ? equippedHarpoon(this.readSave()).range : battery.length ? Math.max(...battery.map(({cannon})=>cannonRange(cannon))) : 0);
     const entities = this.getEntities();
     if (this.manualTargetId) {
       const manuallyChosen = entities.get(this.manualTargetId);
