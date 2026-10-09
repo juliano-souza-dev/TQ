@@ -486,6 +486,7 @@ async function startWorld() {
   // Merchant trade is atomic and idempotent: only a confirmed exchange
   // advances the contract, never mere proximity to the merchant.
   let blackMarketUnlocked=false;
+  let marketDismissedNearby=false;
   const marketOverlay=document.createElement('div');
   marketOverlay.className='black-market-overlay';
   marketOverlay.hidden=true;
@@ -504,7 +505,7 @@ async function startWorld() {
   const marketClose=document.createElement('button');
   marketClose.type='button';
   marketClose.textContent='Voltar ao oceano';
-  marketClose.addEventListener('click',()=>{marketOverlay.hidden=true;});
+  marketClose.addEventListener('click',()=>{marketOverlay.hidden=true;marketDismissedNearby=true;});
   marketCard.append(marketHeading,marketDetails,marketPrice,marketTrade,marketClose);
   marketOverlay.append(marketCard);
   root.append(marketOverlay);
@@ -1221,7 +1222,9 @@ async function startWorld() {
             cannonSlots:0,speed:0,
           });
         }
+        if(Math.hypot(world.camera.x-marketX,world.camera.y-marketY)>220)marketDismissedNearby=false;
         if(active?.id==='r2-black-market'
+          && !marketDismissedNearby
           && Math.hypot(world.camera.x-marketX,world.camera.y-marketY)<=180
           && !mathGate.isOpen && marketOverlay.hidden && !islandPanel.isOpen){
           clickNavigation.cancel();
