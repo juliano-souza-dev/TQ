@@ -184,6 +184,14 @@ async function startWorld() {
         id:action.challenge.id+':'+Date.now()
       });
       if(questPatch)writePatch(questPatch);
+      if (action.kind === 'informant' && boardFor(readSave(),'r2').missions
+        .find(m=>m.id==='r2-informant')?.progress?.[1] >= 3) {
+        const save=readSave();
+        const until=save.r2Campaign?.informantTruceUntil || Date.now()+30000;
+        writePatch({r2Campaign:{...save.r2Campaign,informantTruceUntil:until}});
+        const npc=world.entities.get('r2-informant');
+        if(npc){npc.name='Corsário das Velas Rubras';npc.attackProtectedUntil=until;}
+      }
       if(action.kind==='treasure') {
         const treasurePatch=campaignFor(world.region.id).record(readSave(),{type:'treasure',id:action.id});
         if(treasurePatch)writePatch(treasurePatch);
@@ -483,7 +491,7 @@ async function startWorld() {
     const exitActive = campaign.active?.includes('r1-finale')
       && !(campaign.progress?.['r1-finale']?.[0] >= 1) && !mathGate.isOpen;
     const r2 = world.region.id === 'r2' ? getR2Board(readSave()).active[0] : null;
-    const guideTarget = r2?.id === 'r2-informant' ? world.entities.get('r2-informant')
+    const guideTarget = r2?.id === 'r2-informant' && (r2.progress?.[1] ?? 0)<3 ? world.entities.get('r2-informant')
       : r2?.id === 'r2-island' ? world.region.islands.find(i=>i.id==='r2-scenery-north')
       : r2?.id === 'r2-admiral' ? world.entities.get('r2-admiral') : null;
     const target = guideTarget ?? (thiefActive
@@ -740,7 +748,17 @@ async function startWorld() {
             world.entities.delete(ship.id);
             ship.id='r2-informant';ship.name='Corsário Informante';
             ship.x=2500;ship.y=900;ship.health=500;ship.maxHealth=500;
+            ship.attackProtectedUntil=readSave().r2Campaign?.informantTruceUntil || Infinity;
             world.entities.set(ship.id,ship);
+          }
+        }
+        {
+          const npc=world.entities.get('r2-informant');
+          const completed=boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-informant')?.progress?.[1]>=3;
+          const until=readSave().r2Campaign?.informantTruceUntil;
+          if (npc && completed) {
+            npc.name='Corsário das Velas Rubras';
+            npc.attackProtectedUntil=until || Date.now()+30000;
           }
         }
         if (active?.id === 'r2-informant') {
