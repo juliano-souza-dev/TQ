@@ -4,6 +4,45 @@ import { targetNavigationVector } from './WorldNavigationInput.mjs';
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 
+const PLAYER_COLLISION_RADIUS = 32;
+const KRAKEN_COLLISION_RADIUS = 54;
+
+// Resolve movement against living Kraken bodies, keeping sliding along the edge.
+// Sweep the segment to stop fast ships from crossing between two frames.
+export function resolveKrakenMovement(world, fromX, fromY, toX, toY) {
+  const monsters = [...(world?.entities?.values?.() ?? [])]
+    .filter(entity => entity.type === 'monster' && entity.health > 0);
+  let x = toX, y = toY;
+  for (const monster of monsters) {
+    const radius = PLAYER_COLLISION_RADIUS + KRAKEN_COLLISION_RADIUS;
+    const sx = fromX - monster.x, sy = fromY - monster.y;
+    const dx = x - fromX, dy = y - fromY;
+    const before = Math.hypot(sx, sy);
+    const after = Math.hypot(x - monster.x, y - monster.y);
+    // A player already overlapping a Kraken must be able to sail outward.
+    if (before < radius && after > before) continue;
+    const travelSq = dx * dx + dy * dy;
+    const t = travelSq > 0 ? clamp(-(sx * dx + sy * dy) / travelSq, 0, 1) : 0;
+    const closest = Math.hypot(sx + dx * t, sy + dy * t);
+    if (closest >= radius) continue;
+    if (before >= radius) {
+      // Stop just outside the circumference at the first segment intersection.
+      const b = 2 * (sx * dx + sy * dy);
+      const c = sx * sx + sy * sy - radius * radius;
+      const discriminant = b * b - 4 * travelSq * c;
+      const hitT = travelSq > 0 && discriminant >= 0
+        ? clamp((-b - Math.sqrt(discriminant)) / (2 * travelSq) - .002, 0, 1) : 0;
+      x = fromX + dx * hitT;
+      y = fromY + dy * hitT;
+    } else {
+      x = fromX;
+      y = fromY;
+    }
+  }
+  return { x, y };
+}
+
+
 // Cinemática importada do projeto antigo com adaptador para o estado do TQ.
 export function advanceNavigation(world, input, deltaMs, speed = 80) {
   if (!world?.region || !world.camera) throw new TypeError('world required');
@@ -23,7 +62,8 @@ export function advanceNavigation(world, input, deltaMs, speed = 80) {
   const fromX=world.camera.x,fromY=world.camera.y;
   const toX=clamp(fromX+velocity.vx*dt,0,world.region.width);
   const toY=clamp(fromY+velocity.vy*dt,0,world.region.height);
-  const resolved=resolveIslandMovement(world.region,fromX,fromY,toX,toY);
+  const islandResolved=resolveIslandMovement(world.region,fromX,fromY,toX,toY);
+  const resolved=resolveKrakenMovement(world,fromX,fromY,islandResolved.x,islandResolved.y);
   world.camera.x=resolved.x;
   world.camera.y=resolved.y;
   world.navigationVelocity={
