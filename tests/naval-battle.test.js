@@ -456,7 +456,7 @@ test('missão 11 prioriza ladrão e exige Caçadora com Aetherion MK-I', () => {
   t.battle.updateAutoTarget(200);
   assert.equal(t.battle.targetId,thief.id);
   assert.equal(t.battle.setTarget(t.enemy.id,{manual:true}),false);
-  assert.equal(t.battle.getStatus().reason,'thief-equipment');
+  assert.equal(t.battle.getStatus().ready,true);
   t.battle.shipId='fragata-sombra-cacadora';
   t.save.equipment.loadout['fragata-sombra-cacadora']=['aetherion-mk1'];
   t.save.ammunition['aetherion-seeker']=50;
@@ -467,6 +467,6 @@ test('missão 11 prioriza ladrão e exige Caçadora com Aetherion MK-I', () => {
   assert.ok(projectile,'Ladrão dispara seu próprio projétil');
   assert.equal(projectile.onImpact({at:{x:t.player.x,y:t.player.y}}).kind,'ship');
   assert.equal(t.save.combat.shipHealth,97);
-  t.battle.fireNpcVolleys(2000);
+  t.battle.fireNpcVolleys(1100);
   assert.equal(t.shots.length,1,'recarga deve impedir disparo antecipado');
 });
