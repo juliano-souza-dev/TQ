@@ -84,3 +84,15 @@ test('Ladrao da Sombra tem quadros por direcao, com espelhamento apenas onde nec
   assert.equal(getShipFrame(-90, FUGITIVE_FRIGATE_SHIP), 5);
   assert.equal(getShipFrame(360, FUGITIVE_FRIGATE_SHIP), 15);
 });
+
+test('fragata ladra também patrulha a R2 com ID próprio e movimento contínuo', () => {
+  const world = {region:{...region,id:'r2'},camera:{x:1500,y:1500},entities:new Map()};
+  assert.equal(createFugitiveFrigatePopulation(world,()=>.10),true);
+  const frigate=world.entities.get('fugitive-frigate-r2-01');
+  assert.ok(frigate);
+  assert.equal(frigate.archetype,FUGITIVE_FRIGATE_NPC.id);
+  const original={x:frigate.x,y:frigate.y};
+  updateFugitiveFrigatePopulation(world,1000,()=>.5);
+  assert.ok(Math.hypot(frigate.x-original.x,frigate.y-original.y)>0);
+  assert.equal(createFugitiveFrigatePopulation(world,()=>.10),false);
+});
