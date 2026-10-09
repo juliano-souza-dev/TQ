@@ -16,6 +16,7 @@ export const KRAKEN_RETALIATION_RANGE = Math.min(...CANNONS.map(cannon => cannon
 export class NavalBattleController {
   constructor({
     renderer, readSave, writePatch, getPlayer, getEntities, shipId,
+    getRegionId = () => 'r1',
     getMappedMuzzle = () => null,
     onFeedback = () => {}, onVictory = () => {},
     random = Math.random, clock = () => performance.now(),
@@ -24,7 +25,7 @@ export class NavalBattleController {
       throw new TypeError('NavalBattleController requires renderer and world adapters');
     }
     Object.assign(this, {
-      renderer, readSave, writePatch, getPlayer, getEntities, shipId, getMappedMuzzle,
+      renderer, readSave, writePatch, getPlayer, getEntities, shipId, getMappedMuzzle, getRegionId,
       onFeedback, onVictory, random, clock,
     });
     this.targetId = null;
@@ -124,7 +125,9 @@ export class NavalBattleController {
     const monsterTarget = target?.type === 'monster';
     const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon));
     const ammo = ammoStock(save, this.selectedAmmoId);
-    const missionActive = save.missions?.corsair === 'active'
+    // R1 possui um tutorial obrigatório. R2 já começa com combate liberado.
+    const missionActive = this.getRegionId() !== 'r1'
+      || save.missions?.corsair === 'active'
       || (save.missions?.corsair === 'complete' && (save.campaign?.active?.length ?? 0) > 0);
     let reason = 'ready';
     if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
