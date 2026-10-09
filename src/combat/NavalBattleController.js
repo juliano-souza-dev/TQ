@@ -79,8 +79,7 @@ export class NavalBattleController {
   }
 
   canHuntThief() {
-    return this.shipId === 'fragata-sombra-cacadora'
-      && armedCannons(this.readSave(), this.shipId).some(({ cannon }) => cannon.id === 'aetherion-mk1');
+    return this.shipId === 'fragata-sombra-cacadora';
   }
 
   setTarget(id, { manual = false } = {}) {
@@ -160,8 +159,8 @@ export class NavalBattleController {
       || save.missions?.corsair === 'active'
       || (save.missions?.corsair === 'complete' && (save.campaign?.active?.length ?? 0) > 0);
     let reason = 'ready';
-    if (this.getThiefMissionTarget() && !this.canHuntThief()) reason = 'thief-equipment';
-    else if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
+    if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
+
     else if (monsterTarget && distance > harpoon.range) reason = 'range';
     else if (monsterTarget && harpoonStock(save) <= 0) reason = 'harpoon-ammo';
     else if (!monsterTarget && !missionActive) reason = 'mission';
@@ -469,7 +468,6 @@ export class NavalBattleController {
     const target = this.getEntities().get(targetId);
     const lockedThief = this.getThiefMissionTarget();
     if (lockedThief && target?.id !== lockedThief.id) return { kind: 'water' };
-    if (lockedThief && !this.canHuntThief()) return { kind: 'water' };
     if (this.isProtectedInformant(target)) {
       this.onFeedback('🕊️ O informante não pode ser atacado durante a missão.');
       return { kind: 'water' };
