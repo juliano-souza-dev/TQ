@@ -264,6 +264,10 @@ async function startWorld() {
       if (npc.type === 'monster') {
         const gold = monsterGoldReward();
         writePatch({ profile: { ...save.profile, gold: (Number(save.profile?.gold) || 0) + gold } });
+        recordMissionEvent({
+          type: 'defeat', archetype: npc.archetype,
+          id: npc.id + ':' + Date.now() + ':' + performance.now(),
+        });
         navalHud?.setFeedback('🐙 Kraken derrotado! +' + gold + ' ouro.');
         return;
       }
