@@ -287,6 +287,18 @@ async function startWorld() {
       });
     }
   }
+  // Existing campaign saves that skipped the newly inserted hunt supply stop
+  // return to the merchant without replaying completed older contracts.
+  {
+    const save=readSave(),c=save.r2Campaign??{},claimed=c.claimed??[];
+    const later=['r2-monster-meat','r2-mystery-light','r2-dark-voyage'];
+    if(!claimed.includes('r2-hunt-prep') &&
+       (later.includes(c.active)||later.some(id=>claimed.includes(id)))){
+      writePatch({r2Campaign:{...c,active:'r2-hunt-prep',
+        claimed:claimed.filter(id=>!later.includes(id)),
+        progress:{...c.progress,'r2-hunt-prep':[0]}}});
+    }
+  }
   // Repair legacy rewards: Caçadora das Sombras must be owned before
   // the subsequent Preparar a Caçada contract can be completed.
   {
