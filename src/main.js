@@ -740,8 +740,23 @@ async function startWorld() {
         const active = boardFor(readSave(),world.region.id).active[0];
         const island = world.region.islands.find(i=>i.id==='r2-scenery-north');
         if (active?.id === 'r2-island' && island &&
-            Math.hypot(world.camera.x-island.x,world.camera.y-island.y) <= 650)
-          recordMissionEvent({type:'discover',id:island.id});
+            Math.hypot(world.camera.x-island.x,world.camera.y-island.y) <= 650) {
+          if ((active.progress?.[0] ?? 0) < 1)
+            recordMissionEvent({type:'discover',id:island.id});
+          const stage = boardFor(readSave(),'r2').active[0];
+          if (stage?.id === 'r2-island' && (stage.progress?.[1] ?? 0) < 3 &&
+              !mathGate.isOpen && !islandPanel.isOpen) {
+            clickNavigation.cancel();
+            navalBattle.firing=false;
+            mathGate.open({
+              kind:'island-riddle',
+              title:'🏝️ O Segredo da Ilha Esquecida',
+              description:'Decifre três multiplicações para revelar a passagem escondida.',
+              repeatOnSuccess:true,
+              getContinue:()=> (boardFor(readSave(),'r2').active[0]?.progress?.[1] ?? 3)<3,
+            });
+          }
+        }
         if (active?.id === 'r2-informant' && !world.entities.has('r2-informant')) {
           const ship=[...world.entities.values()].find(n=>n.archetype==='red-sail-corsair' && n.health>0);
           if (ship) {
