@@ -150,6 +150,7 @@ export function claimCampaignMission(save = {}, id, events = EVENTS) {
     },
   };
   if(reward.consumables) {
+    next.rewardMigrations={...(save.rewardMigrations??{}),['treasureMap-'+id]:true};
     const consumables=save.consumables??{},quantities=consumables.quantities??{};
     next.consumables={...consumables,quantities:{...quantities,
       ...Object.fromEntries(Object.entries(reward.consumables).map(([id,amount])=>[id,(Number(quantities[id])||0)+amount]))}};
