@@ -1,3 +1,4 @@
+import { cancelHullRecovery } from './HullRepair.js';
 import { equippedHarpoon, harpoonDamage, harpoonStock, HARPOON_AMMO_ID } from './HarpoonCatalog.js';
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
@@ -240,6 +241,8 @@ export class NavalBattleController {
     }
     const status = this.getStatus();
     if (!status.ready) return false;
+    const interruptedRepair=cancelHullRecovery(this.readSave());
+    if(interruptedRepair)this.writePatch(interruptedRepair);
     this.firing = true;
     if (this.getTarget()?.type === 'monster') this.fireHarpoon();
     else this.firePlayerVolley(this.clock());
@@ -573,7 +576,7 @@ export class NavalBattleController {
             ||!shipCollision(at,{...ship,health:this.getHealth()},56))return;
           const save=this.readSave();
           const health=Math.max(0,this.getHealth()-8);
-          if (this.isShieldActive()) return;
+          if (this.isShieldActive() || this.readSave().combat?.repairingUntil) return;
           this.writePatch({combat:{...save.combat,shipHealth:health}});
           this.onFeedback(health>0?'🐙 Kraken atingiu o casco! -8 PV.':'☠️ Kraken afundou seu navio!');
           if(!health)this.firing=false;
@@ -626,7 +629,7 @@ export class NavalBattleController {
     if (!shipCollision(point, { ...player, health: this.getHealth() }, 56)) {
       return { kind: 'water' };
     }
-    if (this.isShieldActive()) return {kind:'ship'};
+    if (this.isShieldActive() || this.readSave().combat?.repairingUntil) return {kind:'ship'};
     const save = this.readSave();
     const health = Math.max(0, this.getHealth() - damage);
     this.writePatch({ combat: { ...save.combat, shipHealth: health } });
