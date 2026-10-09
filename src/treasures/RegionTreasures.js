@@ -88,7 +88,22 @@ export function getVisibleTreasures(save = {}, now = Date.now(), regionId = 'r1'
   const cooldowns = save.treasureCooldowns ?? {};
   // Deterministic 35% density reduction across both maps; stable IDs and cooldowns remain intact.
   const catalog=regionId==='r2'?R2_TREASURES:ALL_R1_TREASURES;
-  return catalog.filter(t => hashId(t.id)%100>=60).flatMap(t => {
+  // Select exactly 40% of the catalog and maximize distance between chests.
+  // Stable per-region selection preserves collected IDs and saved cooldowns.
+  const selected=[];
+  const remaining=[...catalog].sort((a,b)=>hashId(a.id)-hashId(b.id));
+  const wanted=Math.max(1,Math.round(catalog.length*0.4));
+  if(remaining.length)selected.push(remaining.shift());
+  while(selected.length<wanted&&remaining.length){
+    let bestIndex=0,bestDistance=-1;
+    for(let i=0;i<remaining.length;i++){
+      const t=remaining[i];
+      const minDistance=Math.min(...selected.map(s=>Math.hypot(s.x-t.x,s.y-t.y)));
+      if(minDistance>bestDistance){bestDistance=minDistance;bestIndex=i;}
+    }
+    selected.push(remaining.splice(bestIndex,1)[0]);
+  }
+  return selected.flatMap(t => {
     const cycle = nextTreasureCycle(save, t.id);
     const lastClaimedAt = Number(cooldowns[t.id]) || 0;
     if (lastClaimedAt > 0 && now - lastClaimedAt < TREASURE_RESPAWN_MS) return [];
