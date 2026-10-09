@@ -4,7 +4,7 @@ export const PUMPKIN_FLEET_GALLEON_SHIP = Object.freeze({
   id: 'galeao-frota-das-aboboras',
   name: 'Galeão da Frota das Abóboras',
   description: 'Galeão de Halloween com velas roxas e laranjas e portinholas decoradas com abóboras.',
-  status: 'catalog-only',
+  status: 'story-reward',
   cannonSlots: 8,
   cannonLayout: Object.freeze({
     port: 4,
@@ -16,11 +16,11 @@ export const PUMPKIN_FLEET_GALLEON_SHIP = Object.freeze({
   // bordo nas vistas de proa/popa. Os oito slots lógicos são distribuídos
   // ao longo da mesma bateria para nenhum slot cair no hardpoint genérico.
   visualGunports: Object.freeze({ port: 3, starboard: 3 }),
-  speed: Object.freeze({ min: 260, initial: 260, max: 320 }),
-  playable: false,
+  speed: Object.freeze({ min: 300, initial: 400, max: 480 }),
+  playable: true,
   npcEnabled: false,
   shopEnabled: false,
-  rewardEnabled: false,
+  rewardEnabled: true,
   sprite: Object.freeze({
     path: '../../assets/ships/geleao-frota-dos-aboboras.webp',
     frameWidth: 400,
