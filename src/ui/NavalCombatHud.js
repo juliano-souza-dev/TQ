@@ -233,7 +233,8 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     // A imagem indica exatamente o estado retornado pelo controlador de batalha.
     const iconUrl = status.firing ? cancelAttackUrl : startFireUrl;
     if (fireIcon.src !== iconUrl) fireIcon.src = iconUrl;
-    fireIconButton.disabled = !status.ready && !status.firing;
+    // Keep the attack control clickable so unavailable attacks explain the cause.
+    fireIconButton.disabled = false;
     fireIconButton.classList.toggle('is-firing', status.firing);
     fireIconButton.classList.toggle('is-unavailable', !status.ready && !status.firing);
     fireIconButton.setAttribute('aria-label', status.firing ? 'Cancelar ataque' : 'Iniciar disparos');
