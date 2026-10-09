@@ -24,6 +24,7 @@ test('campanha da segunda região tem nove missões sequenciais', () => {
     assert.equal(claimR2Mission(save,mission.id),null);
   }
   assert.equal(getR2Board(save).essentialClaimed,9);
+  assert.ok(save.equipment?.ownedShipIds?.includes('fragata-sombra-cacadora'));
 });
 test('arcas da Costa dos Corsários aparecem somente na segunda região',()=>{
   assert.ok(R2_TREASURES.length>=20);
