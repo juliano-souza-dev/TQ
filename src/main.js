@@ -236,6 +236,21 @@ async function startWorld() {
         ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),'fragata-sombra-cacadora'])]}});
     }
   }
+  // The thief hunt requires a functional Aetherion MK-I in the Shadow Chaser.
+  // Repair existing saves without granting duplicate cannons or touching other ships.
+  function ensureThiefHuntCannon(){
+    const save=readSave(),e=save.equipment??{},ship='fragata-sombra-cacadora';
+    const cannon='aetherion-mk1';
+    if(e.equippedShipId!==ship)return false;
+    if(!e.ownedShipIds?.includes(ship))return false;
+    if(!e.ownedCannonIds?.includes(cannon) && !(Number(e.cannonCounts?.[cannon])>0))return false;
+    const slots=Array.isArray(e.loadout?.[ship])?[...e.loadout[ship]]:[];
+    if(slots.includes(cannon))return true;
+    slots[0]=cannon; // Shadow Chaser has one cannon slot.
+    writePatch({equipment:{...e,loadout:{...(e.loadout??{}),[ship]:slots}}});
+    return true;
+  }
+  if(readSave().r2Campaign?.active==='r2-destroy-thief')ensureThiefHuntCannon();
   // O navio inicial já pertence ao jogador desde o primeiro acesso.
   // Normaliza saves antigos sem excluir equipamentos ou navios conquistados.
   const initialEquipment = readSave().equipment ?? {};
@@ -840,7 +855,15 @@ async function startWorld() {
       getBoard: () => boardFor(readSave(),world.region.id),
       getPedagogy: () => readSave().pedagogy ?? {},
       onAccept: id => world.region.id === 'r2'
-        ? (()=>{const patch=campaignFor(world.region.id).accept(readSave(),id);if(!patch)return false;writePatch(patch);updateMissionHud();return true;})()
+        ? (()=>{
+          if(id==='r2-destroy-thief'&&!ensureThiefHuntCannon()){
+            showOceanReward('⚠️ Equipe a Fragata Caçadora das Sombras e tenha o Canhão Aetherion MK-I para iniciar.');
+            return false;
+          }
+          const patch=campaignFor(world.region.id).accept(readSave(),id);
+          if(!patch)return false;
+          writePatch(patch);updateMissionHud();navalHud?.refresh();return true;
+        })()
         : mathGate.open({
         kind: 'accept-mission', id,
         title: '📜 Aceitar contrato',
