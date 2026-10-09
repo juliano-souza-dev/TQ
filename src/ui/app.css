@@ -769,3 +769,11 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .black-market-card p{line-height:1.6}
 .black-market-card button{margin:8px 8px 0 0;padding:10px 14px;border-radius:9px;border:1px solid #cead66;background:#e9b853;color:#142331;font-weight:800}
 .black-market-card button+button{background:transparent;color:#ffe4ac}
+
+/* Persistent final-world portal rendered by an animated WebGL shader. */
+.dark-waters-portal{
+  position:fixed;z-index:8;pointer-events:none;display:block;
+  transform:translate(-50%,-50%);border-radius:50%;
+  filter:drop-shadow(0 0 22px #3ee4ffbb) drop-shadow(0 0 42px #9950ff99);
+}
+.dark-waters-portal[hidden]{display:none!important}
