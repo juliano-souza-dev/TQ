@@ -1,6 +1,7 @@
 const MESSAGES = Object.freeze({
   mission: 'Aceite uma missão no Porto das Missões para combater.',
   'no-cannon': 'Equipe um canhão no Estaleiro.',
+  'harpoon-ammo': 'Sem Arpões do Marujo para atacar monstros.',
   target: 'Toque num navio inimigo para selecionar o alvo.',
   range: 'Alvo fora do alcance dos seus canhões.',
   ammo: 'Sem munição para disparar.',
@@ -101,7 +102,9 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     }
     ammoSelect.value = status.ammoId;
     ammoSelect.disabled = !choices.some(item => item.amount > 0);
-    ammoQuantity.textContent = '⚫ ' + status.ammo + ' munições';
+    ammoQuantity.textContent = status.harpoonFiring || controller.getTarget()?.type === 'monster'
+      ? '⚓ ' + status.harpoonAmmo + ' Arpões do Marujo'
+      : '⚫ ' + status.ammo + ' munições';
     const equipped = Number(status.equippedCannons);
     const inRange = Number(status.cannonsInRange);
     cannonQuantity.textContent = Number.isFinite(equipped) && Number.isFinite(inRange)
