@@ -156,10 +156,14 @@ async function startWorld() {
   // O navio inicial já pertence ao jogador desde o primeiro acesso.
   // Normaliza saves antigos sem excluir equipamentos ou navios conquistados.
   const initialEquipment = readSave().equipment ?? {};
-  if (!initialEquipment.ownedShipIds?.includes(STARTER_SHIP.id)) {
+  if (!initialEquipment.ownedShipIds?.includes(STARTER_SHIP.id)
+      || !initialEquipment.ownedHarpoonIds?.includes('naval-harpoon-starter')
+      || !initialEquipment.equippedHarpoonId) {
     writePatch({ equipment: {
       ...initialEquipment,
       ownedShipIds: [...new Set([...(initialEquipment.ownedShipIds ?? []), STARTER_SHIP.id])],
+      ownedHarpoonIds: [...new Set([...(initialEquipment.ownedHarpoonIds ?? []), 'naval-harpoon-starter'])],
+      equippedHarpoonId: initialEquipment.equippedHarpoonId || 'naval-harpoon-starter',
     } });
   }
   const { ROSE_GOLD_SHIP } = await import('./ships/RoseGoldShip.js');
