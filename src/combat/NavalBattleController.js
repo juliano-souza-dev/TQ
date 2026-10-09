@@ -635,7 +635,7 @@ export class NavalBattleController {
       if(npc.id==='r2-pumpkin-ally'){
         const morbi=this.getEntities().get('r2-morbi');
         if(this.readSave().r2Campaign?.active==='r2-golden-ii'
-          && morbi?.health>0 && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
+          && morbi?.health>0 && distanceBetween(npc,morbi)<=300 && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
           const muzzle=cannonHardpoint(npc,morbi,npc.heading,0,8);
           const aim={x:morbi.x,y:morbi.y};
           const fired=this.renderer.fire({from:muzzle,to:aim,
@@ -655,7 +655,7 @@ export class NavalBattleController {
       }
       if(npc.id==='r2-morbi' && npc.health>0){
         if(['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active)
-          && distanceBetween(npc,player)<1200
+          && distanceBetween(npc,player)<2400
           && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
           const muzzle=cannonHardpoint(npc,player,npc.heading,0,20);
           const aimed={x:player.x,y:player.y};
@@ -669,7 +669,7 @@ export class NavalBattleController {
               get health(){return controller.getHealth();}
             },trackingSpeed:850}:{}),
             impactKind:'water',startTime:now,
-            onImpact:({at})=>this.resolveNpcImpact(npc.id,at,firstEncounter?999999:150)});
+            onImpact:({at})=>this.resolveNpcImpact(npc.id,at,firstEncounter?999999:300)});
           if(fired)this.nextNpcShot.set(npc.id,now+(firstEncounter?1800:3000));
         }
         continue;
