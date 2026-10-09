@@ -32,8 +32,21 @@ export function resolveKrakenMovement(world, fromX, fromY, toX, toY) {
       const discriminant = b * b - 4 * travelSq * c;
       const hitT = travelSq > 0 && discriminant >= 0
         ? clamp((-b - Math.sqrt(discriminant)) / (2 * travelSq) - .002, 0, 1) : 0;
-      x = fromX + dx * hitT;
-      y = fromY + dy * hitT;
+      const contactX = fromX + dx * hitT;
+      const contactY = fromY + dy * hitT;
+      // Keep the tangential part of movement to slide around the Kraken.
+      const nx = (contactX - monster.x) / Math.max(.001, Math.hypot(contactX - monster.x, contactY - monster.y));
+      const ny = (contactY - monster.y) / Math.max(.001, Math.hypot(contactX - monster.x, contactY - monster.y));
+      const remainingX = dx * (1 - hitT), remainingY = dy * (1 - hitT);
+      const inward = Math.min(0, remainingX * nx + remainingY * ny);
+      const slideX = contactX + remainingX - inward * nx;
+      const slideY = contactY + remainingY - inward * ny;
+      const slideDistance = Math.hypot(slideX - monster.x, slideY - monster.y);
+      if (slideDistance >= radius) {
+        x = slideX; y = slideY;
+      } else {
+        x = contactX; y = contactY;
+      }
     } else {
       x = fromX;
       y = fromY;
