@@ -23,7 +23,7 @@ export class NpcRenderer {
     try { await image.decode(); this.monsterImage = image; } catch (error) { console.warn('Monstro não carregado:', error); }
   }
   hasShipSprite(id) { return this.images.has(id); }
-  render(entities, camera, zoom = 1, selectedId = null) {
+  render(entities, camera, zoom = 1, selectedId = null, krakenAttacks = [], now = performance.now()) {
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.max(1, Math.round(bounds.width * dpr));
@@ -40,12 +40,28 @@ export class NpcRenderer {
         const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
         if (x < -size || x > w + size || y < -size || y > h + size) continue;
         const image = this.monsterImage;
+        const attack = krakenAttacks.find(item => item.from && item.monsterId === npc.id && now >= item.startTime && now - item.startTime < item.duration);
+        const elapsed = attack ? now - attack.startTime : -1;
         if (image) {
           // Atlas idle 4x4: 16 quadros de 400px, 105ms por quadro.
           // A posição no mundo fica fixa: só muda a região da textura desenhada.
           // A fonte pode ser um atlas 1600x1600 ou um WebP animado 400x400.
           // Nunca recortar 4x4 um WebP que já contém frames internos.
           const isAtlas = image.naturalWidth >= 1600 && image.naturalHeight >= 1600;
+          // Submerge, travel invisibly, strike upside down beneath the hull, retreat.
+          const submerged = elapsed >= 300 && elapsed < 750;
+          const sinking = elapsed >= 0 && elapsed < 300;
+          const underHull = elapsed >= 750 && elapsed < 1400;
+          const emergence = Math.min(1, Math.max(0, (elapsed - 750) / 220));
+          const retreat = Math.min(1, Math.max(0, (elapsed - 1130) / 270));
+          const drawX = underHull ? w / 2 + (attack.to.x - camera.x) * zoom * dpr : x;
+          const drawY = underHull ? h / 2 + (attack.to.y - camera.y) * zoom * dpr + (1 - emergence) * 26 * dpr + retreat * 30 * dpr : y;
+          const alpha = sinking ? 1 - .85 * elapsed / 300 : underHull ? (.2 + .65 * emergence) * (1 - retreat) : 1;
+          ctx.save();
+          ctx.globalAlpha *= submerged ? 0 : alpha;
+          if (underHull) { ctx.translate(drawX, drawY); ctx.rotate(Math.PI); }
+          const spriteX = underHull ? -size / 2 : x - size / 2;
+          const spriteY = underHull ? -size / 2 : y - size / 2 + (sinking ? 18 * dpr * elapsed / 300 : 0);
           if (isAtlas) {
             const columns = 4, frameDurationMs = 105;
             const frame = Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
@@ -53,10 +69,12 @@ export class NpcRenderer {
             const frameH = image.naturalHeight / columns;
             ctx.drawImage(image, (frame % columns) * frameW,
               Math.floor(frame / columns) * frameH, frameW, frameH,
-              x - size / 2, y - size / 2, size, size);
+              spriteX, spriteY, size, size);
           } else {
-            ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
+            ctx.drawImage(image, spriteX, spriteY, size, size);
           }
+          ctx.restore();
+          if (underHull || submerged || sinking) continue;
           renderMonsterBlood(ctx, npc, x, y, size, performance.now());
           const barW = size * 0.65;
           ctx.fillStyle = '#152233'; ctx.fillRect(x-barW/2,y-size*0.58,barW,6*dpr);
