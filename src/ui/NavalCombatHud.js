@@ -64,15 +64,6 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   const cancelAttackUrl = new URL('../../assets/ui/hud/cancel_attack.webp', import.meta.url).href;
   fireIcon.src = startFireUrl;
   fireIconButton.append(fireIcon);
-  const harpoonButton = document.createElement('button');
-  harpoonButton.type = 'button';
-  harpoonButton.className = 'naval-harpoon-button';
-  harpoonButton.setAttribute('aria-label','Disparar arpão contra monstro');
-  const harpoonIcon = document.createElement('img');
-  harpoonIcon.src = new URL('../../assets/cannonball/lancador_arpoes_naval.webp',import.meta.url).href;
-  harpoonIcon.alt = '';
-  harpoonIcon.draggable = false;
-  harpoonButton.append(harpoonIcon);
   const feedback = document.createElement('span');
   feedback.className = 'combat-feedback';
   feedback.setAttribute('aria-live', 'polite');
@@ -80,7 +71,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   const attackControls = document.createElement('div');
   attackControls.className = 'combat-attack-controls';
   // Attack moves left, repair takes the original rightmost attack position.
-  attackControls.append(fireButton, fireIconButton, harpoonButton, centerButton, repairButton);
+  attackControls.append(fireButton, fireIconButton, centerButton, repairButton);
   element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
   let optionFingerprint = '';
 
@@ -96,19 +87,6 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     centerButton.setAttribute('aria-disabled', String(!cameraDetached));
     centerButton.title = cameraDetached ? 'Centralizar a câmera no navio' : 'Câmera acompanhando o navio';
     const status = controller.getStatus();
-    const harpoon = controller.getHarpoonStatus?.();
-    if (harpoon) {
-      harpoonButton.disabled = !harpoon.ready;
-      harpoonButton.classList.toggle('is-unavailable',!harpoon.ready);
-      const hint = harpoon.target?.type === 'monster'
-        ? harpoon.cooldownMs > 0 ? 'Recarregando: '+Math.ceil(harpoon.cooldownMs/1000)+'s'
-          : harpoon.distance > harpoon.launcher.range ? 'Monstro fora do alcance'
-          : 'Disparar contra '+harpoon.target.name
-        : 'Selecione um monstro para lançar arpão';
-      harpoonButton.title = '⚓ '+harpoon.launcher.name+' · Alcance '+harpoon.launcher.range
-        +' · Recarga '+harpoon.launcher.reloadSeconds+'s · '+hint;
-    } else harpoonButton.disabled=true;
-
     const choices = status.options.filter(item => item.amount > 0 || item.id === status.ammoId);
     const fingerprint = choices.map(item => item.id + ':' + (item.amount > 0)).join('|');
     if (fingerprint !== optionFingerprint) {
@@ -184,19 +162,6 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   }
   bindFireControl(fireIconButton);
   bindFireControl(fireButton);
-  let lastHarpoonTouch=-Infinity;
-  const launchHarpoon=()=>{controller.fireHarpoon?.();refresh();};
-  harpoonButton.addEventListener('pointerdown',event=>{
-    if(event.pointerType!=='touch'||harpoonButton.disabled)return;
-    lastHarpoonTouch=performance.now();
-    event.preventDefault();
-    launchHarpoon();
-  });
-  harpoonButton.addEventListener('click',event=>{
-    if(event.detail!==0&&performance.now()-lastHarpoonTouch<650)return;
-    if(!harpoonButton.disabled)launchHarpoon();
-  });
-
   let lastCenterTouchAt = -Infinity;
   function centerShip() {
     if (centerButton.disabled) return;
