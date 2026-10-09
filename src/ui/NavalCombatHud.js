@@ -220,14 +220,14 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
       ? '💣 Canhões: ' + equipped + ' equipados · ' + inRange + ' no alcance'
       : '💣 Contagem de canhões indisponível. Atualize o jogo.';
     const recovering = Boolean(controller.readSave?.().combat?.repairingUntil);
-    hull.textContent = '❤️ Casco: ' + Math.round(status.health) + '/100' + (recovering ? ' · curando' : '');
-    const repairAvailable = status.health < 100 && !recovering;
+    hull.textContent = '❤️ Casco: ' + Math.round(status.health) + '/' + controller.getMaxHealth() + (recovering ? ' · curando' : '');
+    const repairAvailable = status.health < controller.getMaxHealth() && !recovering;
     repairButton.disabled = !repairAvailable;
     repairIcon.src = repairAvailable ? repairEnabledUrl : repairBlockedUrl;
     repairButton.classList.toggle('is-available', repairAvailable);
     repairButton.classList.toggle('is-blocked', !repairAvailable);
     repairButton.setAttribute('aria-disabled', String(repairButton.disabled));
-    repairButton.title = recovering ? 'Recuperação em andamento (10 segundos)' : status.health >= 100
+    repairButton.title = recovering ? 'Recuperação em andamento (10 segundos)' : status.health >= controller.getMaxHealth()
       ? 'Navio com vida completa'
       : 'Reparar casco com continha (+20 PV por acerto)';
     // A imagem indica exatamente o estado retornado pelo controlador de batalha.
@@ -310,7 +310,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     if (event.pointerType !== 'touch' || repairButton.disabled) return;
     lastRepairTouchAt = performance.now();
     event.preventDefault();
-    if (controller.getHealth() < 100) onRepair();
+    if (controller.getHealth() < controller.getMaxHealth()) onRepair();
   });
   repairButton.addEventListener('click', event => {
     if (event?.detail !== 0 && performance.now() - lastRepairTouchAt < 650) return;
