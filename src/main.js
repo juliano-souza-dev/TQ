@@ -1228,7 +1228,13 @@ async function startWorld() {
   if (!document.hidden) loop.start();
   // This first local save contains only the minimal world metadata.
   // Gameplay state persistence will be extended alongside the systems.
-  localSaves.save(currentUser.uid, { ...previousSave?.payload, seed: state.seed, regionId: world.region.id, profile: { level: previousSave?.payload?.profile?.level ?? 1, gold: previousSave?.payload?.profile?.gold ?? 10 } });
+  // Never overwrite mission/combat writes performed during async world startup
+  // with an earlier snapshot of the same save.
+  const latestSave=readSave();
+  localSaves.save(currentUser.uid,{
+    ...latestSave,seed:state.seed,regionId:world.region.id,
+    profile:latestSave.profile??{level:1,gold:10},
+  });
 }
 
 function showLogin(error = '') {
