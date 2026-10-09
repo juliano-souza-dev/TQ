@@ -1138,12 +1138,14 @@ async function startWorld() {
         // Stage-I Morbi enters the ocean physically, with 900,000 HP.
         const morbiStage=['r2-golden-i','r2-strengthen-ship','r2-black-market','r2-golden-ii'].includes(active?.id);
         if(morbiStage && !world.entities.has('r2-morbi')){
+          const savedMorbi=readSave().r2MorbiBoss;
           world.entities.set('r2-morbi',{
             id:'r2-morbi',name:'Morbi · Galeão Dourado',type:'npc',
             archetype:'golden-galleon',shipId:'galeao-dourado',
             x:Math.min(world.region.width-280,world.camera.x+650),
             y:Math.min(world.region.height-280,world.camera.y+430),
-            heading:180,health:900000,maxHealth:900000,
+            heading:Number.isFinite(Number(savedMorbi?.heading))?Number(savedMorbi.heading):180,
+            health:Math.max(0,Math.min(900000,Number(savedMorbi?.health??900000))),maxHealth:900000,
             state:'retaliating',aggression:'attack',cannonSlots:20,
             range:1200,damage:150,
           });
