@@ -400,13 +400,13 @@ test('ajuda permite dois NPCs, dez disparos cada e impede reutilização', () =>
   }
   assert.equal(t.shots.length, 21, '20 NPC shots and initial player harpoon');
   assert.equal(t.battle.getAssistStatus().activeCount, 0);
-  assert.equal(helpers[0].monsterAssisting, false);
-  assert.equal(helpers[1].monsterAssisting, false);
-  assert.equal(t.battle.getAssistCandidate()?.id, 'sailor-c');
-  assert.equal(t.battle.enableMonsterAssist(), true);
-  assert.equal(t.battle.getAssistStatus().helper, 'sailor-c');
-  t.battle.cancelMonsterAssists();
   assert.equal(helpers[2].monsterAssisting, false);
+  assert.equal(helpers[1].monsterAssisting, false);
+  assert.equal(t.battle.getAssistCandidate()?.id, 'sailor-a');
+  assert.equal(t.battle.enableMonsterAssist(), true);
+  assert.equal(t.battle.getAssistStatus().helper, 'sailor-a');
+  t.battle.cancelMonsterAssists();
+  assert.equal(helpers[0].monsterAssisting, false);
   assert.equal(t.battle.getAssistStatus().eligible, false, 'none can help the same monster twice');
 });
 
