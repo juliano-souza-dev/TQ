@@ -432,3 +432,24 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 @keyframes hull-repair-plus {0%{opacity:0;transform:translateY(18px) scale(.65);}45%{opacity:1;}100%{opacity:0;transform:translateY(-27px) scale(1.12);}}
 
 @media (prefers-reduced-motion:reduce){.ship-repair-aura,.ship-repair-aura span{animation:none;}}
+
+
+/* Camera follow control: centered between Attack and Repair icons. */
+.combat-hud .combat-attack-controls > .naval-center-button {
+  order:1;display:grid;place-items:center;flex:0 0 76px;width:76px;height:76px;
+  min-width:76px;min-height:76px;padding:0;margin:0;border:0;border-radius:50%;
+  background:transparent;box-shadow:none;touch-action:manipulation;cursor:pointer;
+}
+.combat-hud .naval-center-icon {display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;}
+.combat-hud .combat-attack-controls > .naval-center-button.is-blocked,
+.combat-hud .combat-attack-controls > .naval-center-button:disabled {
+  opacity:.4;filter:saturate(.55) brightness(.65);cursor:not-allowed;
+}
+.combat-hud .combat-attack-controls > .naval-center-button.is-available {opacity:1;filter:none;}
+.combat-hud .combat-attack-controls > .naval-center-button:focus-visible {outline:2px solid #f8cf67;outline-offset:3px;}
+.combat-hud .combat-attack-controls > .naval-repair-button {order:2;}
+@media (max-width:480px) {
+  .combat-hud .combat-attack-controls > .naval-center-button {
+    flex:0 0 64px;width:64px;height:64px;min-width:64px;min-height:64px;
+  }
+}
