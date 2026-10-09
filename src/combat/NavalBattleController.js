@@ -493,7 +493,7 @@ export class NavalBattleController {
       }
       spent++;
       ammoStockById[ammoId] = remaining - 1;
-      this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000));
+      this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000 / (flameBoost ? 5 : 1)));
     }
     if (spent) {
       this.writePatch({ammunition: {...save.ammunition, ...ammoStockById}});
