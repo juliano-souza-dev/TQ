@@ -11,7 +11,7 @@ import { effectiveAmmo } from './combat/NavalBattleRules.js';
 import { NavalCombatWebGLRenderer } from './rendering/NavalCombatWebGLRenderer.mjs';
 import { createNavalCombatHud } from './ui/NavalCombatHud.js';
 import { SEA_GLINTS, collectSeaGlint } from './events/HalloweenSeaGlints.js';
-import { EVENTS } from './items/EquipmentCatalog.js';
+import { EVENTS, CANNONS } from './items/EquipmentCatalog.js';
 import { isHalloweenAtmosphereActive } from './events/HalloweenAtmosphere.js';
 import { HalloweenFogRenderer } from './rendering/HalloweenFogRenderer.js';
 import { getMissionFlow } from './missions/MissionFlow.js';
@@ -312,19 +312,52 @@ async function startWorld() {
     const finalMission = world.region.id === 'r1'
       && readSave().campaign?.active?.includes('r1-finale')
       && !(readSave().campaign?.progress?.['r1-finale']?.[0] >= 1);
-    const targetZoom = cinematicTarget ? Math.max(.27, Math.min(.43,
-      Math.min(canvas.clientWidth || 900, canvas.clientHeight || 600) /
-      Math.max(1300, Math.hypot(world.camera.x-cinematicTarget.x, world.camera.y-cinematicTarget.y)*2.4))) * 1.05 * 1.06
+    const viewportW = canvas.clientWidth || 900;
+    const viewportH = canvas.clientHeight || 600;
+    const mobile = viewportW < 700;
+    const separation = thief ? Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y) : 0;
+    // The shortest equipped cannon range determines when close-combat framing begins.
+    // The Shadow Chaser normally carries one Aetherion MK-I (840 world units).
+    const equipment = hunting ? readSave().equipment ?? {} : null;
+    const slots = equipment?.loadout?.[equipment.equippedShipId] ?? [];
+    const ranges = slots.map(id=>CANNONS.find(c=>c.id===id)?.range)
+      .filter(range=>Number.isFinite(range) && range>0);
+    const effectiveRange = ranges.length ? Math.min(...ranges)
+      : (CANNONS.find(c=>c.id==='aetherion-mk1')?.range ?? 840);
+    const closeBattle = Boolean(thief && separation <= effectiveRange);
+    // Fit both vessels with room for sprites and HUD. Portrait screens reserve
+    // a wider margin, since overlays consume more of the playing area.
+    const horizontalCoverage = mobile ? .61 : .76;
+    const verticalCoverage = mobile ? .52 : .68;
+    const fitZoom = thief ? Math.min(
+      viewportW*horizontalCoverage / Math.max(320,Math.abs(thief.x-world.camera.x)+290),
+      viewportH*verticalCoverage / Math.max(320,Math.abs(thief.y-world.camera.y)+290)
+    ) : normalCameraZoom;
+    const battleZoom = closeBattle ? normalCameraZoom
+      : Math.min(normalCameraZoom,fitZoom);
+    const targetZoom = thief ? Math.max(.12,battleZoom)
+      : cinematicTarget ? Math.max(.27, Math.min(.43,
+          Math.min(viewportW, viewportH) /
+          Math.max(1300, Math.hypot(world.camera.x-cinematicTarget.x, world.camera.y-cinematicTarget.y)*2.4))) * 1.05 * 1.06
       : finalMission ? Math.max(.27, Math.min(.43,
-          Math.min(canvas.clientWidth || 900, canvas.clientHeight || 600) / 1300)) * 1.05 * 1.06
+          Math.min(viewportW, viewportH) / 1300)) * 1.05 * 1.06
       : normalCameraZoom;
     const smoothing = 1-Math.exp(-Math.max(0,stepMs)/450);
     pursuitCameraZoom += (targetZoom-pursuitCameraZoom)*smoothing;
     world.camera.zoom = pursuitCameraZoom;
-    // Keep player centered unless manual camera control is enabled.
-    world.cameraOffset = cinematicTarget && !world.manualCamera
-      ? {x:(cinematicTarget.x-world.camera.x)*.14,y:(cinematicTarget.y-world.camera.y)*.14}
-      : {x:0,y:-65};
+    // Follow the midpoint in a long pursuit, with smooth camera travel.
+    // In close combat return near the player to keep the standard framing.
+    const offsetTarget = thief && !world.manualCamera
+      ? {x:(thief.x-world.camera.x)*(closeBattle?.22:.5),
+         y:(thief.y-world.camera.y)*(closeBattle?.22:.5)}
+      : cinematicTarget && !world.manualCamera
+        ? {x:(cinematicTarget.x-world.camera.x)*.14,y:(cinematicTarget.y-world.camera.y)*.14}
+        : {x:0,y:-65};
+    const previousOffset = world.cameraOffset ?? {x:0,y:-65};
+    world.cameraOffset = {
+      x:previousOffset.x+(offsetTarget.x-previousOffset.x)*smoothing,
+      y:previousOffset.y+(offsetTarget.y-previousOffset.y)*smoothing,
+    };
   }
 
   const { spriteCannonMuzzle } = await import('./ships/CannonMuzzleMap.js');
