@@ -659,7 +659,7 @@ async function startWorld() {
         selectedNpcId = null;
         navalBattle.setTarget(null);
       }
-      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId);
+      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now());
       shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
       navalBattle.render(performance.now(),world.cameraView,world.camera.zoom,canvas.clientWidth,canvas.clientHeight);
       minimap.render();
