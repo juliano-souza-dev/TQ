@@ -33,8 +33,9 @@ export class NavalBattleController {
     this.targetScanElapsedMs = 0;
     this.firing = false;
     this.nextHarpoonAt = -Infinity;
-    this.assist = null;
-    this.nextAssistShotAt = -Infinity;
+    this.assists = new Map();
+    this.usedAssistNpcs = new Map();
+    this.assistMonsterAlive = new Set();
     this.nextBySlot = new Map();
     this.nextNpcShot = new Map();
     this.nextKrakenStrike = new Map();
@@ -66,7 +67,7 @@ export class NavalBattleController {
   }
 
   setTarget(id, { manual = false } = {}) {
-    if (this.targetId !== id) { this.firing = false; this.assist = null; }
+    if (this.targetId !== id) { this.firing = false; this.cancelMonsterAssists(); }
     this.targetId = id || null;
     this.manualTargetId = manual && id ? id : null;
   }
@@ -167,7 +168,7 @@ export class NavalBattleController {
   toggleFire() {
     if (this.firing) {
       this.firing = false;
-      this.assist = null;
+      this.cancelMonsterAssists();
       this.onFeedback('⏹ Disparos interrompidos. Balas em voo continuam.');
       return true;
     }
@@ -179,55 +180,91 @@ export class NavalBattleController {
     return true;
   }
 
-  // Escolhe somente navegantes NPC vivos que estejam perto do monstro.
+  // Cada monstro mantém seu histórico de NPCs convocados durante a batalha.
+  cancelMonsterAssists() {
+    for (const npcId of this.assists.keys()) {
+      const npc = this.getEntities().get(npcId);
+      if (npc) npc.monsterAssisting = false;
+    }
+    this.assists.clear();
+  }
+
   getAssistCandidate() {
-    const monster=this.getTarget();
-    if(!this.firing || monster?.type!=='monster' || monster.health<=0)return null;
-    const choices=[...this.getEntities().values()]
-      .filter(n=>n.type==='npc'&&n.health>0
-        && !n.negotiationFrozen && !n.attackProtectedUntil
-        && distanceBetween(n,monster)<=620)
-      .sort((a,b)=>distanceBetween(a,monster)-distanceBetween(b,monster));
-    return choices[0]??null;
+    const monster = this.getTarget();
+    if (!this.firing || monster?.type !== 'monster' || monster.health <= 0
+      || this.assists.size >= 2) return null;
+    const used = this.usedAssistNpcs.get(monster.id) ?? new Set();
+    return [...this.getEntities().values()]
+      .filter(n => n.type === 'npc' && n.health > 0 && !n.negotiationFrozen
+        && !n.attackProtectedUntil && !n.monsterAssisting
+        && !used.has(n.id) && !this.assists.has(n.id)
+        && distanceBetween(n, monster) <= 620)
+      .sort((a, b) => distanceBetween(a, monster) - distanceBetween(b, monster))[0] ?? null;
   }
 
   getAssistStatus() {
-    const monster=this.getTarget();
-    const candidate=this.getAssistCandidate();
-    return {eligible:!!candidate && !this.assist, active:!!this.assist,
-      npc:candidate, monster, helper:this.assist?.npcId??null};
+    const monster = this.getTarget();
+    const candidate = this.getAssistCandidate();
+    return {
+      eligible: !!candidate, active: this.assists.size > 0,
+      activeCount: this.assists.size, maxHelpers: 2,
+      npc: candidate, monster, helper: this.assists.keys().next().value ?? null,
+    };
   }
 
   enableMonsterAssist() {
-    const candidate=this.getAssistCandidate(),monster=this.getTarget();
-    if (!candidate||!monster||this.assist)return false;
-    this.assist={npcId:candidate.id,monsterId:monster.id};
-    this.nextAssistShotAt=-Infinity;
-    this.onFeedback('🤝 '+candidate.name+' veio ajudar na caça ao monstro!');
+    const candidate = this.getAssistCandidate(), monster = this.getTarget();
+    if (!candidate || !monster || this.assists.size >= 2) return false;
+    let used = this.usedAssistNpcs.get(monster.id);
+    if (!used) {
+      used = new Set();
+      this.usedAssistNpcs.set(monster.id, used);
+    }
+    used.add(candidate.id);
+    this.assists.set(candidate.id, {
+      npcId: candidate.id, monsterId: monster.id, shots: 0, nextShotAt: -Infinity,
+    });
+    candidate.monsterAssisting = true;
+    this.onFeedback('🤝 ' + candidate.name + ' veio ajudar na caça ao monstro!');
     return true;
   }
 
+  finishMonsterAssist(npcId) {
+    const npc = this.getEntities().get(npcId);
+    if (npc) npc.monsterAssisting = false;
+    this.assists.delete(npcId);
+  }
+
   fireAssistHarpoon(now) {
-    if(!this.assist)return;
-    const monster=this.getEntities().get(this.assist.monsterId);
-    const helper=this.getEntities().get(this.assist.npcId);
-    if(!this.firing||!monster||monster.health<=0||!helper||helper.health<=0
-      ||distanceBetween(helper,monster)>620) {
-      this.assist=null;return;
+    for (const assist of [...this.assists.values()]) {
+      const monster = this.getEntities().get(assist.monsterId);
+      const helper = this.getEntities().get(assist.npcId);
+      if (!this.firing || !monster || monster.health <= 0 || !helper || helper.health <= 0
+        || distanceBetween(helper, monster) > 620) {
+        this.finishMonsterAssist(assist.npcId);
+        continue;
+      }
+      if (assist.shots >= 10 || now < assist.nextShotAt) continue;
+      const launcher = equippedHarpoon(this.readSave());
+      const from = { x: helper.x, y: helper.y };
+      const to = interceptPoint(from, monster, this.velocities.get(monster.id), launcher.projectileSpeed);
+      const targetId = monster.id;
+      const fired = this.renderer.fire({
+        from, to, duration: flightDurationMs(from, to, launcher.projectileSpeed),
+        ammo: { id: 'naval-harpoon', size: 1.8, projectileSpeed: launcher.projectileSpeed,
+          fx: { preset: 'rusted-iron', projectile: { texture: launcher.projectileAsset, scale: 1.5 } } },
+        impactKind: 'water', startTime: now,
+        onImpact: ({ at }) => this.resolveHarpoonImpact(targetId, at, 25),
+      });
+      if (fired) {
+        assist.shots += 1;
+        assist.nextShotAt = now + 7000;
+        if (assist.shots === 10) {
+          this.finishMonsterAssist(assist.npcId);
+          this.onFeedback('🤝 ' + helper.name + ' concluiu 10 disparos e voltou a navegar.');
+        }
+      }
     }
-    if(now<this.nextAssistShotAt)return;
-    const launcher=equippedHarpoon(this.readSave());
-    const from={x:helper.x,y:helper.y};
-    const to=interceptPoint(from,monster,this.velocities.get(monster.id),launcher.projectileSpeed);
-    const targetId=monster.id;
-    const fired=this.renderer.fire({
-      from,to,duration:flightDurationMs(from,to,launcher.projectileSpeed),
-      ammo:{id:'naval-harpoon',size:1.8,projectileSpeed:launcher.projectileSpeed,
-        fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
-      impactKind:'water',startTime:now,
-      onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,25),
-    });
-    if(fired)this.nextAssistShotAt=now+7000;
   }
 
   getHarpoonStatus() {
@@ -281,7 +318,7 @@ export class NavalBattleController {
     if(!hit)return {kind:'water'};
     if(monster.health>0)monster.state='retaliating';
     this.onFeedback('⚓ Arpão atingiu '+monster.name+'! -'+hit.damage+' PV.');
-    if(monster.health<=0){this.firing=false;this.assist=null;this.onVictory(monster);}
+    if(monster.health<=0){this.firing=false;this.cancelMonsterAssists();this.onVictory(monster);}
     return {kind:'ship'};
   }
 
@@ -301,13 +338,23 @@ export class NavalBattleController {
 
   update(stepMs, now = this.clock()) {
     this.trackMovement(stepMs);
+    // Ressurgimento reinicia uma nova batalha contra o mesmo ID de monstro.
+    for (const monster of this.getEntities().values()) {
+      if (monster.type !== 'monster') continue;
+      if (monster.health <= 0) {
+        this.assistMonsterAlive.delete(monster.id);
+        this.usedAssistNpcs.delete(monster.id);
+      } else if (!this.assistMonsterAlive.has(monster.id)) {
+        this.assistMonsterAlive.add(monster.id);
+      }
+    }
     this.updateAutoTarget(stepMs);
     // Do not parse localStorage every frame when no cannon is firing.
     if (this.firing) {
       const status = this.getStatus();
       if (!status.ready) {
         this.firing = false;
-        this.assist = null;
+        this.cancelMonsterAssists();
         this.onFeedback(status.reason === 'range'
           ? '⏸ Alvo saiu do alcance.' : '⏹ Disparos interrompidos.');
       } else if (this.getTarget()?.type === 'monster') {
@@ -405,7 +452,7 @@ export class NavalBattleController {
     }
     this.onFeedback('💥 Acertou ' + target.name + '! -' + damage + ' PV.');
     if (target.health <= 0) {
-      if (target.id === this.targetId) { this.firing = false; this.assist = null; }
+      if (target.id === this.targetId) { this.firing = false; this.cancelMonsterAssists(); }
       this.onVictory(target);
     }
     return { kind: 'ship' };
@@ -480,6 +527,7 @@ export class NavalBattleController {
 
   dispose() {
     this.firing = false;
+    this.cancelMonsterAssists();
     this.renderer.destroy();
   }
 }
