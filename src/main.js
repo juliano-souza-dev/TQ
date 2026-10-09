@@ -157,6 +157,31 @@ async function startWorld() {
   let hudRefreshElapsed = 0;
   const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+  // Migração idempotente: jogadores que já resgataram a missão 10
+  // recebem o Aetherion no lugar da recompensa antiga e 5000 orbes.
+  {
+    const save = readSave();
+    const claimed = save.r2Campaign?.claimed?.includes('r2-equip-chaser');
+    const migrationKey = 'aetherionRewardV2';
+    if (claimed && !save.rewardMigrations?.[migrationKey]) {
+      const equipment = save.equipment ?? {};
+      const counts = {...(equipment.cannonCounts ?? {})};
+      const oldReward = Math.min(1, Number(counts['royal-lion']) || 0);
+      if (oldReward) counts['royal-lion'] -= oldReward;
+      counts['aetherion-mk1'] = (Number(counts['aetherion-mk1']) || 0) + 1;
+      const ownedCannonIds = [...new Set([...(equipment.ownedCannonIds ?? []), 'aetherion-mk1'])]
+        .filter(id => id !== 'royal-lion' || counts['royal-lion'] > 0);
+      const loadout = Object.fromEntries(Object.entries(equipment.loadout ?? {})
+        .map(([ship,slots]) => [ship, Array.isArray(slots)
+          ? slots.map(id => id === 'royal-lion' && oldReward ? 'aetherion-mk1' : id)
+          : slots]));
+      writePatch({
+        equipment:{...equipment,cannonCounts:counts,ownedCannonIds,loadout},
+        ammunition:{...(save.ammunition ?? {}),'aetherion-seeker':(Number(save.ammunition?.['aetherion-seeker']) || 0) + 5000},
+        rewardMigrations:{...(save.rewardMigrations ?? {}),[migrationKey]:true},
+      });
+    }
+  }
   // O navio inicial já pertence ao jogador desde o primeiro acesso.
   // Normaliza saves antigos sem excluir equipamentos ou navios conquistados.
   const initialEquipment = readSave().equipment ?? {};
