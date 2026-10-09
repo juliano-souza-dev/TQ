@@ -1011,7 +1011,8 @@ async function startWorld() {
     const exitActive = campaign.active?.includes('r1-finale')
       && !(campaign.progress?.['r1-finale']?.[0] >= 1) && !mathGate.isOpen;
     const r2 = world.region.id === 'r2' ? getR2Board(readSave()).active[0] : null;
-    const guideTarget = r2?.id === 'r2-dark-voyage' && r2.status==='active' ? darkWatersExit
+    const guideTarget = r2?.id === 'r2-meet-forgotten' ? world.region.islands.find(i=>i.id==='r2-scenery-north')
+      : r2?.id === 'r2-dark-voyage' && r2.status==='active' ? darkWatersExit
       : r2?.id === 'r2-black-market' ? {x:world.region.width/2,y:world.region.height/2}
       : r2?.id === 'r2-golden-i' || r2?.id === 'r2-golden-ii' ? world.entities.get('r2-morbi')
       : r2?.id === 'r2-destroy-thief'
