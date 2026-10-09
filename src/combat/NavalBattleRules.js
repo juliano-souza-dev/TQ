@@ -54,7 +54,16 @@ export function effectiveAmmo(ammoId, events = EVENTS) {
     trackingDurationMs: rules.trackingDurationMs ?? 0,
     damageFactor: rules.damageFactor,
     // The original game's ammunition FX presets and texture pipeline.
-    fx: { preset: rules.preset, projectile: { texture: getAmmunitionAssetUrl(item) } },
+    fx: ammoId === 'aetherion-seeker' ? {
+      preset:'piercing',
+      muzzle:{color:'#ff284c',coreColor:'#72eeff',accentColor:'#ff465e',size:68,starburst:1.35,sparks:30,intensity:1.6},
+      projectile:{texture:getAmmunitionAssetUrl(item),color:'#138dff',coreColor:'#ffffff',accentColor:'#ff234b',glow:2.2,
+        auraScale:2.5,auraOpacity:.9,orbitCount:6,sparkle:1.35,pulseSpeed:2.4,echoCount:3},
+      trail:{color:'#068cff',secondaryColor:'#ff214d',width:17,length:23,opacity:.95,ribbon:1.15,sparkle:1.25,beads:1.1},
+      impactShip:{color:'#ff2553',coreColor:'#faffff',accentColor:'#00b8ff',size:156,sparks:45,fireworks:1.35,
+        ringCount:3,shock:1.4,flash:1.3},
+      impactWater:{color:'#00adff',coreColor:'#ffffff',accentColor:'#ff315a',size:148,magic:1.35,ringCount:3},
+    } : { preset: rules.preset, projectile: { texture: getAmmunitionAssetUrl(item) } },
   };
 }
 export function shotDamage(cannon, ammoId) {
