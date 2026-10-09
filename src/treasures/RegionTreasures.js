@@ -68,7 +68,7 @@ function nextTreasureCycle(save, baseId) {
     if (id === baseId) next = Math.max(next, 1);
     else if (typeof id === 'string' && id.startsWith(prefix)) {
       const suffix = id.slice(prefix.length);
-      if (/^\\d+$/.test(suffix)) next = Math.max(next, Number(suffix) + 1);
+      if (/^\d+$/.test(suffix)) next = Math.max(next, Number(suffix) + 1);
     }
   }
   return next;
