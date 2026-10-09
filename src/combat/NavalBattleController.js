@@ -702,6 +702,7 @@ export class NavalBattleController {
   }
 
   resolveNpcImpact(npcId, point, damage = 5) {
+    if(npcId==='r2-morbi' && !['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active))return {kind:'water'};
     const player = this.getPlayer();
     if (!shipCollision(point, { ...player, health: this.getHealth() }, 56)) {
       return { kind: 'water' };
