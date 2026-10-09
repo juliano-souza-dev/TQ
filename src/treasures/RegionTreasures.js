@@ -44,6 +44,14 @@ for (const y of [300, 800, 1050, 1300, 1800, 2300, 2550, 2800, 3300, 3800]) {
   if (EXTRA_TREASURES.length === 48) break;
 }
 export const ALL_R1_TREASURES = Object.freeze([...REGION_ONE_TREASURES, ...EXTRA_TREASURES].map(Object.freeze));
+// Arcas próprias da Costa dos Corsários, independentes da Enseada.
+export const R2_TREASURES = Object.freeze(Array.from({length:60},(_,i)=>{
+  const col=i%10,row=Math.floor(i/10);
+  return Object.freeze({id:'r2-treasure-'+String(i+1).padStart(2,'0'),x:260+col*375,y:245+row*830});
+}).filter(t=>!([
+  [1070,1450,820,690],[3000,1650,820,690],
+  [1200,3580,900,740],[3180,4200,850,690],
+].some(([x,y,w,h])=>Math.abs(t.x-x)<w/2+120&&Math.abs(t.y-y)<h/2+120))));
 export const TREASURE_RESPAWN_MS = 180000;
 
 function hashId(id) {
@@ -60,6 +68,9 @@ export function treasureReward(id) {
 }
 // IDs de ciclos são históricos: nunca reutilizar uma arca já coletada,
  // mesmo em saves antigos ou após uma sincronização parcial.
+function treasureCatalog(id) {
+  return String(id).startsWith('r2-treasure-') ? R2_TREASURES : ALL_R1_TREASURES;
+}
 function nextTreasureCycle(save, baseId) {
   const opened = save.openedTreasures ?? [];
   const prefix = baseId + '-cycle-';
@@ -73,9 +84,9 @@ function nextTreasureCycle(save, baseId) {
   }
   return next;
 }
-export function getVisibleTreasures(save = {}, now = Date.now()) {
+export function getVisibleTreasures(save = {}, now = Date.now(), regionId = 'r1') {
   const cooldowns = save.treasureCooldowns ?? {};
-  return ALL_R1_TREASURES.flatMap(t => {
+  return (regionId === 'r2' ? R2_TREASURES : ALL_R1_TREASURES).flatMap(t => {
     const cycle = nextTreasureCycle(save, t.id);
     const lastClaimedAt = Number(cooldowns[t.id]) || 0;
     if (lastClaimedAt > 0 && now - lastClaimedAt < TREASURE_RESPAWN_MS) return [];
@@ -92,9 +103,10 @@ export function findTreasureNearPoint(treasures, x, y, radius = 90) {
   return closest;
 }
 export function claimTreasure(save = {}, id, now = Date.now()) {
-  const treasure = getVisibleTreasures(save, now).find(t => t.id === id);
+  const regionId = String(id).startsWith('r2-treasure-') ? 'r2' : 'r1';
+  const treasure = getVisibleTreasures(save, now, regionId).find(t => t.id === id);
   if (!treasure || (save.openedTreasures ?? []).includes(id)) return null;
-  const base = ALL_R1_TREASURES.find(t => treasure.id === t.id || treasure.id.startsWith(t.id + '-cycle-'))?.id;
+  const base = treasureCatalog(id).find(t => treasure.id === t.id || treasure.id.startsWith(t.id + '-cycle-'))?.id;
   if (!base) return null;
   const counts = save.treasureClaimCounts ?? {};
   const already = nextTreasureCycle(save, base);
