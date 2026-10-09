@@ -1,9 +1,10 @@
 // Navio registrado exclusivamente no catálogo. Não integrar à frota, NPCs ou recompensas.
 export const HALLOWEEN_TABUADA_SHIP = Object.freeze({
   id: 'galeao-halloween-tabuada',
-  name: 'Galeão Halloween da Tabuada',
+  name: 'Terror da Tabuada',
   description: 'Galeão pirata de Halloween com velas ilustradas por multiplicações.',
-  status: 'catalog-only',
+  status: 'reward',
+  maxHealth: 120,
   cannonSlots: 7,
   cannonLayout: Object.freeze({
     port: 7,
@@ -12,10 +13,10 @@ export const HALLOWEEN_TABUADA_SHIP = Object.freeze({
     stern: 0,
   }),
   speed: Object.freeze({ min: 300, initial: 300, max: 360 }),
-  playable: false,
-  npcEnabled: false,
+  playable: true,
+  npcEnabled: true,
   shopEnabled: false,
-  rewardEnabled: false,
+  rewardEnabled: true,
   sprite: Object.freeze({
     path: '../../assets/ships/navio_pirata_halloween_tabuada_400x400.webp',
     frameWidth: 400,
