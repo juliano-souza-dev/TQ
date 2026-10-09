@@ -1050,6 +1050,10 @@ async function startWorld() {
       getPedagogy: () => readSave().pedagogy ?? {},
       onAccept: id => world.region.id === 'r2'
         ? (()=>{
+          if(id==='r2-why-help'&&activeShip.id!=='galeao-halloween-tabuada'){
+            showOceanReward('⚠️ Para descobrir quem o ajudou, equipe o Terror da Tabuada no Estaleiro.');
+            return false;
+          }
           if(id==='r2-destroy-thief'&&!ensureThiefHuntCannon()){
             showOceanReward('⚠️ Equipe a Fragata Caçadora das Sombras e tenha o Canhão Aetherion MK-I para iniciar.');
             return false;
@@ -1104,7 +1108,7 @@ async function startWorld() {
       onEquipShip: async shipId => {
         const save = readSave();
         const ship = playableShips.find(item => item.id === shipId);
-        if (!ship || (ship.id !== STARTER_SHIP.id && !save.equipment?.ownedShipIds?.includes(shipId))) return false;
+        if (!ship || (save.storyFlags?.terrorTabuadaDestroyed && shipId==='galeao-halloween-tabuada') || (ship.id !== STARTER_SHIP.id && !save.equipment?.ownedShipIds?.includes(shipId))) return false;
         if (ship.id === activeShip.id) {
            if (world.region.id==='r2' && ship.id==='fragata-sombra-cacadora') recordMissionEvent({type:'equip-ship',ship:ship.id});
            return true;
@@ -1267,6 +1271,83 @@ async function startWorld() {
     else if (flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
   }
   updateMissionHud();
+  // The ambush must be transactional: inventory loss and campaign progress are
+  // persisted together, so refreshing cannot repeat the destruction.
+  let pumpkinAmbushElapsed=0;
+  let pumpkinAmbushStarted=false;
+  function finishPumpkinAmbush(){
+    const save=readSave();
+    if(save.r2Campaign?.active!=='r2-why-help'||save.storyFlags?.pumpkinAmbushResolved)return;
+    const shipId='galeao-halloween-tabuada';
+    const rescueId='galeao-frota-das-aboboras';
+    const e=save.equipment??{};
+    const nextOwned=[...new Set([...(e.ownedShipIds??[]).filter(id=>id!==shipId),rescueId])];
+    const loadout={[rescueId]:['aetherion-mk1','aetherion-mk1']};
+    const campaign=save.r2Campaign;
+    const claimed=[...new Set([...(campaign.claimed??[]),'r2-why-help'])];
+    const nextCampaign={...campaign,active:'r2-search-clues',claimed,
+      progress:{...(campaign.progress??{}),'r2-why-help':[1],'r2-search-clues':[0]}};
+    writePatch({
+      storyFlags:{...(save.storyFlags??{}),pumpkinAmbushResolved:true,terrorTabuadaDestroyed:true},
+      r2Campaign:nextCampaign,
+      profile:{...save.profile,gold:0,rubies:0},
+      ammunition:{'aetherion-seeker':1000,'rusted-iron':0},
+      harpoonAmmo:{'harpoon-mariner':1000,'harpoon-armor-piercing':0},
+      equipment:{...e,equippedShipId:rescueId,ownedShipIds:nextOwned,
+        cannonCounts:{'aetherion-mk1':2},ownedCannonIds:['aetherion-mk1'],
+        loadout,ownedHarpoonIds:['naval-harpoon-starter'],
+        equippedHarpoonId:'naval-harpoon-starter'},
+      consumables:{...save.consumables,quantities:{}},
+      combat:{...save.combat,shipHealth:100},
+      playerPosition:{x:world.region.islands.find(i=>i.kind==='shipyard')?.x+480||3400,
+        y:world.region.islands.find(i=>i.kind==='shipyard')?.y+60||1620},
+    });
+    for(let i=0;i<50;i++)world.entities.delete('pumpkin-ambush-'+i);
+    const next=playableShips.find(ship=>ship.id===rescueId);
+    if(next){
+      activeShip=next;
+      shipRenderer.definition=next;
+      shipRenderer.init().catch(console.error);
+      navalBattle.shipId=next.id;
+      shipSpeed=getShipSpeed(next);
+      navalBattle.firing=false;
+      navalBattle.selectedAmmoId=navalBattle.resolveSelectedAmmo();
+    }
+    const dock=world.region.islands.find(i=>i.kind==='shipyard');
+    if(dock){world.camera.x=Math.min(world.region.width-75,dock.x+480);world.camera.y=dock.y+60;}
+    world.manualCamera=null;
+    clickNavigation.cancel();
+    missionCompleteOverlay.hidden=true;
+    updateMissionHud();
+    navalHud?.refresh();
+    showOceanReward('☠️ O Terror da Tabuada foi destruído! Sua frota e suprimentos foram perdidos. Nova missão: Em Busca de Pistas.');
+    islandPanel.open('shipyard');
+  }
+  function updatePumpkinAmbush(stepMs){
+    if(world.region.id!=='r2'||readSave().r2Campaign?.active!=='r2-why-help')return;
+    if(activeShip.id!=='galeao-halloween-tabuada')return;
+    if(readSave().storyFlags?.pumpkinAmbushResolved)return;
+    pumpkinAmbushElapsed+=Math.max(0,stepMs);
+    if(!pumpkinAmbushStarted){
+      pumpkinAmbushStarted=true;
+      clickNavigation.cancel();navalBattle.firing=false;
+      showOceanReward('🎃 A frota das 50 abóboras surgiu! Eles vieram destruir o Terror da Tabuada!');
+    }
+    const center=world.camera;
+    for(let i=0;i<50;i++){
+      const angle=i*2*Math.PI/50+Math.PI/4;
+      const radius=Math.max(120,780-pumpkinAmbushElapsed*.18);
+      const x=Math.max(75,Math.min(world.region.width-75,center.x+Math.cos(angle)*radius));
+      const y=Math.max(75,Math.min(world.region.height-75,center.y+Math.sin(angle)*radius));
+      const id='pumpkin-ambush-'+i;
+      const npc=world.entities.get(id);
+      if(npc){npc.x=x;npc.y=y;npc.heading=(Math.atan2(center.x-x,-(center.y-y))*180/Math.PI+360)%360;}
+      else world.entities.set(id,{id,type:'npc',archetype:'pumpkin-ambush',shipId:'galeao-frota-das-aboboras',
+        name:'Frota do Mestre do Terror',x,y,heading:0,health:100000,maxHealth:100000,
+        aggression:'neutral',attackProtectedUntil:Infinity,damage:0,range:0,cannonSlots:0});
+    }
+    if(pumpkinAmbushElapsed>=4800)finishPumpkinAmbush();
+  }
   let positionSaveElapsed = 0;
   function persistPlayerPosition(stepMs) {
     positionSaveElapsed += stepMs;
@@ -1281,6 +1362,7 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       if (world.region.id === 'r2') {
+        updatePumpkinAmbush(stepMs);
         const active = boardFor(readSave(),world.region.id).active[0];
         const island = world.region.islands.find(i=>i.id==='r2-scenery-north');
         // The Black Market merchant is stationary at the exact map center.
