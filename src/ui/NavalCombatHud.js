@@ -74,14 +74,37 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   const attackControls = document.createElement('div');
   attackControls.className = 'combat-attack-controls';
   // Attack moves left, repair takes the original rightmost attack position.
+  const consumablesWrap = document.createElement('div');
+  consumablesWrap.className = 'naval-consumables-wrap';
   const consumablesButton = document.createElement('button');
   consumablesButton.type = 'button';
   consumablesButton.className = 'naval-consumables-button';
-  consumablesButton.setAttribute('aria-label', 'Consumíveis');
-  consumablesButton.title = 'Consumíveis (em preparação)';
-  // Moldura vazia: o item consumível equipado será desenhado aqui futuramente.
-  consumablesButton.addEventListener('click', () => setFeedback('🧪 Consumíveis: em preparação.'));
-  attackControls.append(fireButton, fireIconButton, centerButton, repairButton, consumablesButton);
+  consumablesButton.setAttribute('aria-label', 'Selecionar consumível');
+  const frame = document.createElement('img');
+  frame.className = 'naval-consumables-frame';
+  frame.src = new URL('../../assets/ui/hud/consumiveis_slot.png',import.meta.url).href;
+  frame.alt = '';
+  const selectedIcon = document.createElement('img');
+  selectedIcon.className = 'naval-consumables-icon';
+  selectedIcon.src = new URL('../../assets/consumables/5X em Chamas.png',import.meta.url).href;
+  selectedIcon.alt = '';
+  const countLabel = document.createElement('span');
+  countLabel.className = 'naval-consumables-count';
+  consumablesButton.append(frame,selectedIcon,countLabel);
+  const picker = document.createElement('div');
+  picker.className = 'naval-consumables-picker';
+  picker.hidden = true;
+  const noneOption = document.createElement('button');
+  noneOption.type = 'button';
+  noneOption.textContent = '🔒 Nenhum consumível';
+  const flameOption = document.createElement('button');
+  flameOption.type = 'button';
+  const activateOption = document.createElement('button');
+  activateOption.type = 'button';
+  activateOption.className = 'naval-consumables-activate';
+  picker.append(noneOption,flameOption,activateOption);
+  consumablesWrap.append(consumablesButton,picker);
+  attackControls.append(fireButton, fireIconButton, consumablesWrap, centerButton, repairButton);
   element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
   let optionFingerprint = '';
 
@@ -90,7 +113,16 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   }
 
   function refresh() {
-    const cameraDetached = Boolean(isCameraDetached());
+    const consumable = controller.getConsumables();
+    const remaining = Math.max(0,Math.ceil((consumable.cooldownUntil-Date.now())/1000));
+    const active = Math.max(0,Math.ceil((consumable.activeUntil-Date.now())/1000));
+    const qty = Math.max(0,Number(consumable.quantities['flame-5x'])||0);
+    selectedIcon.hidden = consumable.selectedId === 'none';
+    countLabel.textContent = consumable.selectedId === 'none' ? '🔒' : String(qty);
+    flameOption.textContent = '🔥 5X em Chamas · '+qty+' unidades';
+    activateOption.textContent = active ? '🔥 Ativo: '+active+'s' : remaining ? '⏳ Recarga: '+remaining+'s' : '🔥 Ativar 5X por 60s';
+    activateOption.disabled = active>0 || remaining>0 || qty<=0 || consumable.selectedId==='none';
+        const cameraDetached = Boolean(isCameraDetached());
     centerButton.disabled = !cameraDetached;
     centerButton.classList.toggle('is-available', cameraDetached);
     centerButton.classList.toggle('is-blocked', !cameraDetached);
@@ -150,7 +182,16 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     }
   }
 
-  // Em telas touch, o evento click de um segundo dedo pode ser suprimido
+  consumablesButton.addEventListener('click', () => { picker.hidden = !picker.hidden; refresh(); });
+  noneOption.addEventListener('click', () => {controller.selectConsumable('none');picker.hidden=true;refresh();});
+  flameOption.addEventListener('click', () => {controller.selectConsumable('flame-5x');picker.hidden=false;refresh();});
+  activateOption.addEventListener('click', () => {
+    const result = controller.activateConsumable();
+    setFeedback(result.reason);
+    picker.hidden = result.ok;
+    refresh();
+  });
+    // Em telas touch, o evento click de um segundo dedo pode ser suprimido
   // pelo navegador enquanto o primeiro dedo mantém o joystick pressionado.
   // Capturamos cada toque diretamente no botão, sem capturar o ponteiro do
   // joystick. Mouse, teclado e tecnologias assistivas continuam usando click.
