@@ -11,9 +11,9 @@ export const SHADOW_CHASER_SHIP = Object.freeze({
   maxHealth: FUGITIVE_FRIGATE_SHIP.maxHealth,
   cannonSlots: 1,
   speed: Object.freeze({
-    min: FUGITIVE_FRIGATE_SHIP.speed.min * 1.05,
-    initial: FUGITIVE_FRIGATE_SHIP.speed.initial * 1.05,
-    max: FUGITIVE_FRIGATE_SHIP.speed.max * 1.05,
+    min: FUGITIVE_FRIGATE_SHIP.speed.min * 1.05 * 1.05,
+    initial: FUGITIVE_FRIGATE_SHIP.speed.initial * 1.05 * 1.05,
+    max: FUGITIVE_FRIGATE_SHIP.speed.max * 1.05 * 1.05,
   }),
   acceleration: FUGITIVE_FRIGATE_SHIP.acceleration,
   sprite: FUGITIVE_FRIGATE_SHIP.sprite,
