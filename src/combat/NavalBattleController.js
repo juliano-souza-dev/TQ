@@ -243,6 +243,14 @@ export class NavalBattleController {
       this.onFeedback('💦 O ladrão está protegido durante a negociação.');
       return { kind: 'water' };
     }
+    if (target?.attackProtectedUntil && Date.now() < target.attackProtectedUntil) {
+      const remaining = Number.isFinite(target.attackProtectedUntil)
+        ? Math.ceil((target.attackProtectedUntil - Date.now()) / 1000) : null;
+      this.onFeedback(remaining === null
+        ? '🕊️ O informante está protegido durante a negociação.'
+        : '🕊️ Trégua do informante: ' + remaining + 's para liberar o combate.');
+      return { kind: 'water' };
+    }
     // Submerged Kraken cannot be hit: projectiles splash in the ocean.
     const underwater = target?.type === 'monster' && (this.renderer.getKrakenAttacks?.() ?? [])
       .some(attack => attack.monsterId === targetId && this.clock() >= attack.startTime + 300
