@@ -941,10 +941,15 @@ async function startWorld() {
     const save=readSave();
     if(world.region.id==='r2') {
       const active=save.r2Campaign?.active;
-      return Boolean(active && [
+      // Only an unfinished combat contract blocks docking. Once its
+      // objectives are complete, the player must be able to enter the
+      // Mission Port to claim the reward and accept the next contract.
+      const current=boardFor(save,world.region.id).missions.find(m=>m.id===active);
+      if(!current || current.status!=='active')return false;
+      return [
         'r2-thieves','r2-informant','r2-admiral','r2-shadow-materials',
         'r2-shadow-trials','r2-destroy-thief',
-      ].includes(active));
+      ].includes(active);
     }
     return false;
   }
