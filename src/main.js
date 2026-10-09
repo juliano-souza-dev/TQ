@@ -310,26 +310,17 @@ async function startWorld() {
   repairAura.hidden = true;
   root.append(repairAura);
   function beginRepairSession(forced = false) {
-    const health = Number(readSave().combat?.shipHealth ?? 100);
-    if (health >= 100 || readSave().combat?.repairingUntil) return false;
-    repairIsForced = forced;
+    const health=Number(readSave().combat?.shipHealth??100);
+    if(health>=100||readSave().combat?.repairingUntil)return false;
+    repairIsForced=forced;
     return mathGate.open({
-      kind: 'repair',
-      title: forced ? '☠️ Navio afundado! Reparação obrigatória' : '🔧 Consertar o casco',
-      description: forced ? 'Você afundou! Acumule 100 PV acertando continhas. Não é possível fechar até completar.' : 'Cada acerto acumula 20 PV. Saia quando quiser para iniciar a restauração em 10 segundos.',
-      repeatOnSuccess: true,
-      locked: forced,
-      getLocked: () => (readSave().combat?.repairPending ?? 0) < 100,
-      getContinue: () => {
-        const combat = readSave().combat ?? {};
-        const required = forced ? 100 : 100 - Number(combat.shipHealth ?? 100);
-        return (combat.repairPending ?? 0) < required;
-      },
-      onClose: () => {
-        const patch = beginHullRecovery(readSave());
-        if (patch) writePatch(patch);
-        navalHud?.refresh();
-      },
+      kind:'repair',
+      title:forced?'☠️ Navio afundado! Resolva para reparar':'🔧 Consertar o casco',
+      description:'Acerte uma multiplicação para iniciar a recuperação automática de 25% da vida total por segundo.',
+      repeatOnSuccess:false,
+      // A successful answer dismisses the math gate automatically.
+      locked:false,
+      afterSuccess:()=>navalHud?.refresh(),
     });
   }
   let voyageDistance = 0;
