@@ -859,12 +859,19 @@ async function startWorld() {
         const thiefMission = readSave().r2Campaign?.active === 'r2-destroy-thief';
         for (const npc of world.entities.values()) {
           if (npc.archetype !== 'fugitive-frigate') continue;
-          if (thiefMission && npc.health > 0 && npc.maxHealth !== 100000) {
-            npc.maxHealth = 100000;
-            npc.health = 100000;
+          if (thiefMission) {
+            // Inicializar uma única vez: nunca repor PV após os disparos.
+            if (!npc.thiefBossInitialized && npc.health > 0) {
+              npc.maxHealth = 100000;
+              npc.health = 100000;
+              npc.thiefBossInitialized = true;
+            }
             npc.cannonSlots = 1;
             npc.range = 840;
             npc.damage = 3;
+            npc.keepAwayFromEdges = true;
+          } else {
+            npc.keepAwayFromEdges = false;
           }
         }
       }
