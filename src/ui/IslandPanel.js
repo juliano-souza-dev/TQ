@@ -5,7 +5,7 @@ const CONTENT = {
   shipyard: { title: '⚓ Estaleiro', description: 'Aqui você poderá trocar de navio e equipar canhões.', items: ['Trocar navio', 'Equipar canhões'] },
   missions: { title: '📜 Missões', description: 'O quadro de missões desta região.', items: ['Missões disponíveis em breve'] },
 };
-export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {}, getMissionState = () => ({}), getMissionFlow = () => ({stage:'welcome'}), onRequestNextMission = () => false, getLearningProgress = () => ({}), onLearningAttempt = () => {}, missionBoardOptions = {} } = {}) {
+export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMissionAccepted = () => false, shipyardOptions = {}, getMissionState = () => ({}), getMissionFlow = () => ({stage:'welcome'}), onRequestNextMission = () => false, getLearningProgress = () => ({}), onLearningAttempt = () => {}, missionBoardOptions = {}, getRegionId = () => 'r1' } = {}) {
   const panel = document.createElement('section');
   panel.className = 'island-panel';
   panel.hidden = true;
@@ -107,11 +107,11 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       else card.insertBefore(missionBoard.element, close);
       shipyard.element.hidden = kind !== 'shipyard';
       list.hidden = kind === 'shipyard';
-      acceptMission.hidden = kind !== 'missions' || isFirstMissionAccepted();
+      acceptMission.hidden = kind !== 'missions' || getRegionId() === 'r2' || isFirstMissionAccepted();
       const flow = getMissionFlow();
-      mathBox.hidden = kind !== 'missions' || flow.stage !== 'mission';
+      mathBox.hidden = kind !== 'missions' || getRegionId() === 'r2' || flow.stage !== 'mission';
       if (!mathBox.hidden) prepareChallenge();
-      const freePlay = kind === 'missions' && ['free', 'ready2', 'stage2'].includes(flow.stage);
+      const freePlay = kind === 'missions' && (getRegionId() === 'r2' || ['free', 'ready2', 'stage2'].includes(flow.stage));
       if (freePlay) missionBoard.show();
       missionBoard.setHidden(!freePlay);
       list.hidden = kind === 'shipyard' || freePlay;
