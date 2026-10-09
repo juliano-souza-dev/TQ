@@ -12,7 +12,7 @@ test('campanha da segunda região tem dez missões sequenciais', () => {
     save = { ...save, ...accepted };
     for (const task of mission.objectives) {
       for (let i=0; i<task.count; i++) {
-        const event = recordR2Event(save, {type:task.kind,id:mission.id+':'+task.kind+':'+i});
+        const event = recordR2Event(save, {type:task.kind,id:mission.id+':'+task.kind+':'+i,ship:task.ship});
         assert.ok(event);
         save = { ...save, ...event };
       }
