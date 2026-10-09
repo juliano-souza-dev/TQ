@@ -5,6 +5,7 @@ import { ROSE_GOLD_SHIP } from '../src/ships/RoseGoldShip.js';
 import { TERROR_DO_MAR_SHIP } from '../src/ships/TerrorDoMarShip.js';
 import { PUMPKIN_FLEET_GALLEON_SHIP } from '../src/ships/PumpkinFleetGalleonShip.js';
 import { HALLOWEEN_TABUADA_SHIP } from '../src/ships/HalloweenTabuadaShip.js';
+import { GOLDEN_GALLEON_SHIP } from '../src/ships/GoldenGalleonShip.js';
 import { STARTER_SHIP } from '../src/ships/StarterShip.js';
 import { getShipFrame } from '../src/ships/ShipRegistry.js';
 
@@ -89,6 +90,22 @@ test('Halloween da Tabuada mapeia os sete slots em todos os quadros laterais', (
   assert.equal(spriteCannonMuzzle(HALLOWEEN_TABUADA_SHIP, player, targetOnSide(0, 'starboard'), 0, 0, size), null);
   assert.equal(spriteCannonMuzzle(HALLOWEEN_TABUADA_SHIP, player, targetOnSide(180, 'port'), 180, 0, size), null);
 });
+test('Galeão Dourado mapeia os sete slots em todos os quadros laterais', () => {
+  for (const [frame, side] of frameSides) {
+    const heading = ((frame - 4 + 16) % 16) * 22.5;
+    assert.equal(getShipFrame(heading, GOLDEN_GALLEON_SHIP), frame);
+    const muzzles = GOLDEN_GALLEON_SHIP.sprite.cannonMuzzles[frame]?.[side];
+    assert.equal(muzzles?.length, 7, 'sete origens no quadro ' + frame);
+    const target = targetOnSide(heading, side);
+    for (let slot = 0; slot < GOLDEN_GALLEON_SHIP.cannonSlots; slot++) {
+      assert.ok(spriteCannonMuzzle(GOLDEN_GALLEON_SHIP, player, target, heading, slot, size),
+        'Galeão Dourado quadro ' + frame + ', slot ' + slot);
+    }
+  }
+  assert.equal(spriteCannonMuzzle(GOLDEN_GALLEON_SHIP, player, targetOnSide(0, 'starboard'), 0, 0, size), null);
+  assert.equal(spriteCannonMuzzle(GOLDEN_GALLEON_SHIP, player, targetOnSide(180, 'port'), 180, 0, size), null);
+});
+
 test('sem mapeamento mantém o hardpoint padrão (null)', () => {
   assert.equal(spriteCannonMuzzle(ROSE_GOLD_SHIP, player, { x: 600, y: 100 }, 0, 0, size), null,
     'Norte é quadro 4: vista de popa sem bocas verificáveis');
