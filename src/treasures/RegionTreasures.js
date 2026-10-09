@@ -88,7 +88,7 @@ export function getVisibleTreasures(save = {}, now = Date.now(), regionId = 'r1'
   const cooldowns = save.treasureCooldowns ?? {};
   // Deterministic 35% density reduction across both maps; stable IDs and cooldowns remain intact.
   const catalog=regionId==='r2'?R2_TREASURES:ALL_R1_TREASURES;
-  return catalog.filter(t => hashId(t.id)%100>=35).flatMap(t => {
+  return catalog.filter(t => hashId(t.id)%100>=60).flatMap(t => {
     const cycle = nextTreasureCycle(save, t.id);
     const lastClaimedAt = Number(cooldowns[t.id]) || 0;
     if (lastClaimedAt > 0 && now - lastClaimedAt < TREASURE_RESPAWN_MS) return [];
