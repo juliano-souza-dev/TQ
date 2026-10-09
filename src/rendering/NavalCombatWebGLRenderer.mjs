@@ -373,8 +373,8 @@ export class NavalCombatWebGLRenderer{
     return true;
   }
 
-  // Animated tentacle lash: WebGL point sprites, no extra textures or canvas.
-  attackKraken({from,to,startTime=performance.now(),duration=900,onImpact=null}={}){
+  // Underwater ambush shared with the Kraken sprite renderer.
+  attackKraken({from,to,startTime=performance.now(),duration=1400,onImpact=null}={}){
     if(!from||!to||!this.init())return false;
     if(this.krakenAttacks.length>=(this.reducedFx?3:8))return false;
     this.krakenAttacks.push({
@@ -443,7 +443,7 @@ export class NavalCombatWebGLRenderer{
       }
     }
     for(const attack of this.krakenAttacks){
-      if(!attack.impactSpawned && now-attack.startTime>=attack.duration*.76){
+      if(!attack.impactSpawned && now-attack.startTime>=970){
         attack.impactSpawned=true;
         try{attack.onImpact?.({at:attack.to});}catch(error){console.warn("[TabuadaQuest] Kraken impact failed:",error);}
       }
@@ -512,31 +512,29 @@ export class NavalCombatWebGLRenderer{
       gl.drawArrays(gl.POINTS,0,1);
     };
 
-    // Kraken tentacle lash. Teal links arc out and slam into the target; water
-    // shockwave and foam mark impact. Mobile uses fewer points.
+    // Low-visibility underwater shadow, then a foam ring where the hull is struck.
     for(const attack of this.krakenAttacks){
-      const t=clamp((now-attack.startTime)/attack.duration,0,1);
-      const reach=smoothstep(0,.74,t);
-      const dx=attack.to.x-attack.from.x,dy=attack.to.y-attack.from.y;
-      const length=Math.max(1,Math.hypot(dx,dy));
-      const perpendicular={x:-dy/length,y:dx/length};
-      const links=this.reducedFx?9:18;
-      const visible=t<.76?reach:1-smoothstep(.76,1,t);
-      for(let i=0;i<links;i++){
-        const u=i/(links-1);
-        if(u>visible)continue;
-        const bend=Math.sin(u*Math.PI)*(26*Math.sin(t*6.28+u*3.2));
-        const x=attack.from.x+dx*u+perpendicular.x*bend;
-        const y=attack.from.y+dy*u+perpendicular.y*bend;
-        const size=(22-u*12)*(Number(zoom)||1);
-        drawPoint(x,y,size,0,0,false,{color:"#075e61",coreColor:"#37cdb3",glow:.35,opacity:.94});
-        if(!this.reducedFx&&i%3===0)drawPoint(x,y,size*.33,0,0,true,{color:"#67ffcf",coreColor:"#e1fff5",glow:.8,opacity:.65});
-      }
-      if(t>.68){
-        const p=clamp((t-.68)/.32,0,1);
-        const size=clamp(140*(Number(zoom)||1),40,240);
-        drawPoint(attack.to.x,attack.to.y,size,7,p,false,{color:"#32bfc0",coreColor:"#d9fff6",glow:1.2,opacity:1-p});
-        drawPoint(attack.to.x,attack.to.y,size*.72,5,p,true,{color:"#00aebf",coreColor:"#ddfff6",glow:1.1,opacity:.8*(1-p)});
+      const elapsed=now-attack.startTime;
+      if(elapsed<300){
+        const p=clamp(elapsed/300,0,1);
+        drawPoint(attack.from.x,attack.from.y,112*zoom,0,0,false,{
+          color:"#063f48",coreColor:"#096c6b",glow:0,opacity:.38*(1-p)});
+        drawPoint(attack.from.x,attack.from.y,140*zoom,7,p,false,{
+          color:"#127b88",coreColor:"#9de9db",glow:.3,opacity:.42*(1-p)});
+      }else if(elapsed<750){
+        const p=clamp((elapsed-300)/450,0,1);
+        const x=attack.from.x+(attack.to.x-attack.from.x)*p;
+        const y=attack.from.y+(attack.to.y-attack.from.y)*p;
+        drawPoint(x,y,118*zoom,0,0,false,{
+          color:"#042a35",coreColor:"#075567",glow:0,opacity:.18});
+        if(!this.reducedFx)drawPoint(x,y,120*zoom,7,p,false,{
+          color:"#1a7483",coreColor:"#57b3b8",glow:.15,opacity:.11});
+      }else if(elapsed>=940 && elapsed<1400){
+        const p=clamp((elapsed-940)/460,0,1);
+        drawPoint(attack.to.x,attack.to.y,170*zoom,7,p,false,{
+          color:"#38a9b6",coreColor:"#c7fcf3",glow:1,opacity:(1-p)*.9});
+        if(elapsed<1120)drawPoint(attack.to.x,attack.to.y,100*zoom,5,p,true,{
+          color:"#4ac9d0",coreColor:"#ffffff",glow:1,opacity:1-p});
       }
     }
 
@@ -1099,6 +1097,8 @@ export class NavalCombatWebGLRenderer{
     }
     return true;
   }
+
+  getKrakenAttacks(){ return this.krakenAttacks; }
 
   clear(){
     this.shots.length=0;
