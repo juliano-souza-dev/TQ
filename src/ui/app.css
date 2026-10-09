@@ -488,3 +488,19 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .region-exit-card p {line-height:1.5;margin:0 0 18px;}
 .region-exit-card > div {display:flex;flex-wrap:wrap;justify-content:center;gap:10px;}
 .region-exit-card button {min-height:46px;}
+
+
+/* Portal marítimo visível somente depois de liberar a missão da passagem. */
+.region-exit-beacon[hidden]{display:none!important;}
+.region-exit-beacon{position:fixed;z-index:9;pointer-events:none;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:5px;color:#ffe5a1;
+  text-shadow:0 2px 7px #061927,0 0 14px #fff0b8;
+  font:900 12px/1.3 system-ui,sans-serif;white-space:nowrap;}
+.region-exit-beacon-ring{display:grid;place-items:center;width:88px;height:88px;
+  border:3px solid #fae7a2;border-radius:50%;
+  background:radial-gradient(ellipse,#b5f2ed55 0%,#1a8298a0 38%,#0b3453b8 68%,transparent 72%);
+  box-shadow:0 0 15px 5px #8de7ed90,inset 0 0 19px #d9ffffa0;
+  color:#ffe4a3;font-size:38px;animation:exit-gate-pulse 2s ease-in-out infinite alternate;}
+.region-exit-beacon-label{background:#07263cde;border:1px solid #f9d681aa;padding:4px 9px;border-radius:10px;}
+@keyframes exit-gate-pulse {from{scale:.94;opacity:.76;}to{scale:1.07;opacity:1;}}
+@media(prefers-reduced-motion:reduce){.region-exit-beacon-ring{animation:none;}}
