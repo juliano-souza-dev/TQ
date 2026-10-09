@@ -564,7 +564,7 @@ export class NavalBattleController {
           impactKind: 'water', startTime: now,
           onImpact: ({ at }) => this.resolveNpcImpact(npc.id, at, 3),
         });
-        if (fired) this.nextNpcShot.set(npc.id, now + 1150);
+        if (fired) this.nextNpcShot.set(npc.id, now + 1173);
         continue;
       }
       if (npc.type !== 'npc' || npc.health <= 0 || npc.state !== 'retaliating' ||
