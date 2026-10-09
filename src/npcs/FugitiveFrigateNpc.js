@@ -122,6 +122,8 @@ export function updateNegotiationFrigate(world, save = {}) {
   const mission = save.campaign ?? {};
   const frozen = mission.active?.includes('r1-negotiation') && !mission.negotiationRobbed;
   if (frozen) {
+    if (npc.health <= 0) npc.health = npc.maxHealth;
+    npc.respawnRemainingMs = null;
     npc.x = NEGOTIATION_ANCHOR.x;
     npc.y = NEGOTIATION_ANCHOR.y;
     npc.heading = 90;
