@@ -223,6 +223,25 @@ async function startWorld() {
       });
     }
   }
+  // One-time retroactive Shadow Thief rewards for accounts that claimed it
+  // before the new consumables, Aetherion ammo and armor-piercing harpoons.
+  {
+    const save=readSave();
+    if(save.r2Campaign?.claimed?.includes('r2-destroy-thief')
+      && !save.rewardMigrations?.shadowThiefRewardV2){
+      const c=save.consumables??{},q=c.quantities??{};
+      const bonus={'flame-5x':10,shield:10,'speed-plus':10,'treasure-map':10};
+      writePatch({
+        consumables:{...c,quantities:{...q,...Object.fromEntries(
+          Object.entries(bonus).map(([id,amount])=>[id,(Number(q[id])||0)+amount]))}},
+        ammunition:{...(save.ammunition??{}),
+          'aetherion-seeker':(Number(save.ammunition?.['aetherion-seeker'])||0)+1500},
+        harpoonAmmo:{...(save.harpoonAmmo??{}),
+          'harpoon-armor-piercing':(Number(save.harpoonAmmo?.['harpoon-armor-piercing'])||0)+1500},
+        rewardMigrations:{...(save.rewardMigrations??{}),shadowThiefRewardV2:true},
+      });
+    }
+  }
   // Repair legacy rewards: Caçadora das Sombras must be owned before
   // the subsequent Preparar a Caçada contract can be completed.
   {
