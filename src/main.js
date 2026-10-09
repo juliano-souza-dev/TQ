@@ -809,7 +809,7 @@ async function startWorld() {
       } else if (world.region.id === 'r2' && npc.id === 'r2-admiral') {
         recordMissionEvent({type:'admiral',id:npc.id});
         recordMissionEvent({type:'defeat',id:npc.id+':'+Date.now()});
-        showOceanReward('🏴‍☠️ Almirante dos Ladrões derrotado!');
+        showOceanReward('🏴‍☠️ Baltazar Ferrugem derrotado!');
       } else if (world.region.id === 'r1' && save.missions?.corsair === 'active' && npc.archetype === 'red-sail-corsair') {
         writePatch({ missions: { ...save.missions, corsair: 'complete' } });
         updateMissionHud();
@@ -1631,7 +1631,7 @@ async function startWorld() {
           const ship=[...world.entities.values()].find(n=>n.archetype==='red-sail-corsair' && n.health>0);
           if (ship) {
             world.entities.delete(ship.id);
-            ship.id='r2-informant';ship.name='Corsário Informante';
+            ship.id='r2-informant';ship.name='Gaspar Sussurro';
             ship.x=2500;ship.y=900;ship.health=500;ship.maxHealth=500;
             ship.attackProtectedUntil=readSave().r2Campaign?.informantTruceUntil || Infinity;
             ship.informantProtected = true;
@@ -1655,7 +1655,7 @@ async function startWorld() {
             clickNavigation.cancel();
             navalBattle.firing=false;
             mathGate.open({
-              kind:'informant',title:'🏴‍☠️ O Corsário Informante',
+              kind:'informant',title:'🏴‍☠️ Gaspar Sussurro, o Informante',
               description:'O capitão só revelará a pista depois de três multiplicações corretas.',
               repeatOnSuccess:true,
               getContinue:()=> (boardFor(readSave(),world.region.id).active[0]?.progress[1]??3)<3,
@@ -1666,7 +1666,7 @@ async function startWorld() {
           const ship=[...world.entities.values()].find(n=>n.archetype==='red-sail-corsair' && n.health>0);
           if (ship) {
             world.entities.delete(ship.id);
-            ship.id='r2-admiral';ship.name='Almirante dos Ladrões';
+            ship.id='r2-admiral';ship.name='Capitão Baltazar Ferrugem';
             ship.health=800;ship.maxHealth=800;
             world.entities.set(ship.id,ship);
           }
