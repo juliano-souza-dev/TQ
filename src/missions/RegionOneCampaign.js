@@ -17,10 +17,11 @@ export const R1_MISSIONS = Object.freeze([
   { id:'r1-roses',name:'Corsário das Rosas de Ouro',description:'A derrota do Kraken abre caminho para um corsário lendário: o capitão das Rosas de Ouro. Afunde seu galeão e reivindique o navio que se tornou símbolo de poder na enseada.',objectives:[{kind:'defeat',archetype:'rose-gold-corsair',count:1,label:'Afundar o Corsário das Rosas de Ouro'}],reward:{ships:['galeao-rosas-de-ouro']}},
   { id:'r1-equip-roses',name:'Para o Estaleiro',description:'O Galeão Rosas de Ouro agora pertence à sua frota, mas uma conquista só vira força quando está pronta para zarpar. Visite o estaleiro e assuma o comando da nova embarcação.',objectives:[{kind:'equip-ship',ship:'galeao-rosas-de-ouro',count:1,label:'Equipar o navio Rosas de Ouro'}],requires:['r1-roses'],reward:{ammo:{'rusted-iron':1000}}},
   { id:'r1-three-winds',name:'A Prova dos Três Ventos',description:'Três ventos se cruzam na saída da enseada, trazendo corsários e arcas à deriva. Vença uma última grande campanha de batalhas e exploração para provar seu domínio do oceano.',objectives:[{kind:'defeat',archetype:'red-sail-corsair',count:25,label:'Afundar 25 corsários'},{kind:'treasure',count:15,label:'Resgatar 15 tesouros'}],reward:{ammo:{'halloween-purple-ball':15000}}},
+  { id:'r1-negotiation',name:'A Negociação, o Golpe',description:'Perto do Estaleiro, a fragata veloz finalmente parou. Seu capitão oferece um acordo para a travessia. Aproxime-se e vença cinco desafios de multiplicação; ao fim, o ladrão revela o golpe: leva todo o ouro e os canhões menos poderosos, poupando apenas seu melhor armamento, antes de fugir rumo à Costa dos Corsários.',objectives:[{kind:'negotiate',count:5,label:'Resolver 5 continhas diante da fragata fugitiva'}],requires:['r1-negotiation'],reward:{}},
   { id:'r1-finale',name:'Despedida da Enseada dos Aprendizes',description:'Com a enseada a salvo, o farol da Costa dos Corsários finalmente acende. Navegue até a passagem indicada, deixe para trás seu porto de origem e comece o próximo capítulo.',objectives:[{kind:'exit',count:1,label:'Alcançar a saída para a Costa dos Corsários'}],requires:['r1-three-winds'],reward:{}},
   { id:'r1-halloween-sparks',name:'Brilhos do Mar Assombrado',description:'Em noites de névoa, brilhos misteriosos dançam entre as ondas. Os marinheiros dizem que são lembranças de um mar assombrado. Recolha dois deles antes que desapareçam.',event:'halloween',optional:true,objectives:[{kind:'collect',count:2,label:'Coletar 2 brilhos'}],reward:{gold:60,iron:40,ammo:{'halloween-purple-ball':35}}},
 ].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze)),reward:Object.freeze(m.reward)})));
-export const REQUIRED_R1_CONTRACTS = 15;
+export const REQUIRED_R1_CONTRACTS = 16;
 
 export function campaignState(save = {}) {
   const input = save.campaign ?? {};
@@ -96,7 +97,7 @@ function applies(task, event) {
   return true;
 }
 export function recordCampaignEvent(save = {}, event, events = EVENTS) {
-  if (!event || !['defeat', 'study', 'travel', 'visit', 'collect', 'treasure', 'equip', 'equip-ship', 'exit'].includes(event.type)) return null;
+  if (!event || !['defeat', 'study', 'travel', 'visit', 'collect', 'treasure', 'equip', 'equip-ship', 'negotiate', 'exit'].includes(event.type)) return null;
   if (save.missions?.corsair !== 'complete') return null;
   const campaign = campaignState(save);
   const dedup = event.id ? event.type + ':' + String(event.id) : null;
