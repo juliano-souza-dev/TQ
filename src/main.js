@@ -1268,7 +1268,7 @@ async function startWorld() {
             heading:Number.isFinite(Number(savedMorbi?.heading))?Number(savedMorbi.heading):180,
             health:Math.max(0,Math.min(900000,Number(savedMorbi?.health??900000))),maxHealth:900000,
             state:'retaliating',aggression:'attack',cannonSlots:20,
-            range:1200,damage:150,
+            range:2400,damage:300,
           });
         }
         const morbi=world.entities.get('r2-morbi');
@@ -1309,6 +1309,21 @@ async function startWorld() {
             heading:90,health:100000,maxHealth:100000,state:'ally',
             aggression:'ally',cannonSlots:8,
           });
+        }
+        if(active?.id==='r2-golden-ii'){
+          const ally=world.entities.get('r2-pumpkin-ally');
+          const boss=world.entities.get('r2-morbi');
+          if(ally && boss?.health>0){
+            const dx=boss.x-ally.x,dy=boss.y-ally.y;
+            const distance=Math.hypot(dx,dy);
+            const desiredDistance=220;
+            if(distance>desiredDistance){
+              const travel=Math.min(distance-desiredDistance,Math.max(0,stepMs)*.55);
+              ally.x+=dx/distance*travel;
+              ally.y+=dy/distance*travel;
+            }
+            ally.heading=(Math.atan2(boss.x-ally.x,-(boss.y-ally.y))*180/Math.PI+360)%360;
+          }
         }
         if(active?.id!=='r2-golden-ii')world.entities.delete('r2-pumpkin-ally');
         if (active?.id === 'r2-island' && island &&
