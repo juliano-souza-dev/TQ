@@ -57,8 +57,8 @@ export function createMathGate({
     }
     vibrate(correct ? 35 : [45, 55, 45]);
   }
-  function close() {
-    if (pending?.locked && pending?.getLocked?.()) return false;
+  function close(force = false) {
+    if (!force && pending?.locked && pending?.getLocked?.()) return false;
     const completed = pending;
     if (closeTimer !== null) clearTimeout(closeTimer);
     closeTimer = null;
@@ -163,5 +163,5 @@ export function createMathGate({
     else answers.querySelector?.('button')?.focus?.();
     return true;
   }
-  return { element, open, close, get isOpen() { return !element.hidden; } };
+  return { element, open, close, get isOpen() { return !element.hidden; }, get activeKind() { return pending?.kind ?? null; } };
 }
