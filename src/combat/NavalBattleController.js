@@ -89,6 +89,8 @@ export class NavalBattleController {
     const withinRange = npc => npc && (npc.type === 'npc' || npc.type === 'monster')
       && npc.health > 0 && distanceBetween(player, npc) <= (npc.type==='monster' ? equippedHarpoon(this.readSave()).range : battery.length ? Math.max(...battery.map(({cannon})=>cannonRange(cannon))) : 0);
     const entities = this.getEntities();
+    // Durante o combate, manter o alvo vivo e ao alcance para não interromper ajudantes.
+    if (this.firing && withinRange(entities.get(this.targetId))) return false;
     if (this.manualTargetId) {
       const manuallyChosen = entities.get(this.manualTargetId);
       if (withinRange(manuallyChosen)) return false;
