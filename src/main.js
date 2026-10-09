@@ -1335,9 +1335,6 @@ async function startWorld() {
             if(distance>preferredDistance+tolerance){
               const travel=Math.min(distance-preferredDistance,Math.max(0,stepMs)*.22);
               morbi.x+=dx/distance*travel;morbi.y+=dy/distance*travel;
-            } else if(active?.id==='r2-golden-ii' && distance<preferredDistance-tolerance && distance>1){
-              const travel=Math.min(preferredDistance-distance,Math.max(0,stepMs)*.22);
-              morbi.x-=dx/distance*travel;morbi.y-=dy/distance*travel;
             }
             if(distance>1)morbi.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
             }
