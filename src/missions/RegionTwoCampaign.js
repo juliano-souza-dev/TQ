@@ -9,6 +9,7 @@ export const R2_MISSIONS = Object.freeze([
   {id:'r2-shadow-plans',name:'Os Planos da Fragata',description:'As pistas revelam o modelo do navio do ladrão: uma fragata veloz. Recupere as plantas roubadas nas arcas dos corsários.',objectives:[{kind:'treasure',count:12,label:'Recuperar 12 arcas com peças dos planos'}],reward:{gold:900,iron:900}},
   {id:'r2-shadow-materials',name:'Madeira e Pólvora',description:'A velocidade exige um casco leve e artilharia preparada. Afunde os corsários que guardam as peças para construir sua própria fragata.',objectives:[{kind:'defeat',count:25,label:'Afundar 25 corsários para reunir materiais'}],reward:{gold:1200,iron:1800}},
   {id:'r2-shadow-trials',name:'A Caçadora das Sombras',description:'O mestre do estaleiro terminou sua fragata. Prove que sabe navegar: resgate cinco arcas e vença dez corsários antes de receber o navio.',objectives:[{kind:'treasure',count:5,label:'Resgatar 5 arcas de suprimentos'},{kind:'defeat',count:10,label:'Derrotar 10 corsários na prova final'}],reward:{gold:500,ships:['fragata-sombra-cacadora']}},
+  {id:'r2-equip-chaser',name:'Preparar a Caçadora',description:'A fragata está pronta! Siga a orientação até o Estaleiro e equipe a Fragata Caçadora das Sombras. O mestre lhe entregará um Canhão Real Dourado com Leão, de longo alcance.',objectives:[{kind:'equip-ship',count:1,ship:'fragata-sombra-cacadora',label:'Equipar a Fragata Caçadora das Sombras no Estaleiro'}],reward:{cannons:{'royal-lion':1}}},
 ].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze))})));
 
 const stateOf = save => save.r2Campaign ?? {active:null,claimed:[],progress:{},processed:[]};
@@ -37,7 +38,7 @@ export function recordR2Event(save,event) {
   const current=state.progress?.[mission.id]??mission.objectives.map(()=>0);
   let changed=false;
   const progress=mission.objectives.map((task,i)=>{
-    if(task.kind!==event.type||current[i]>=task.count)return current[i];
+    if(task.kind!==event.type||current[i]>=task.count||task.ship&&task.ship!==event.ship)return current[i];
     changed=true;
     return Math.min(task.count,current[i]+1);
   });
@@ -47,5 +48,7 @@ export function claimR2Mission(save,id) {
   const mission=getR2Board(save).missions.find(m=>m.id===id);
   if(mission?.status!=='ready')return null;
   const state=stateOf(save),ammo=save.ammunition??{},equipment=save.equipment??{};
-  return {mission,patch:{r2Campaign:{...state,active:null,claimed:[...state.claimed,id]},profile:{...save.profile,gold:(Number(save.profile?.gold)||0)+(mission.reward.gold||0)},ammunition:{...ammo,'rusted-iron':(Number(ammo['rusted-iron'])||0)+(mission.reward.iron||0)},...(mission.reward.ships?.length?{equipment:{...equipment,ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),...mission.reward.ships])]}}:{})}};
+  const cannonCounts={...(equipment.cannonCounts??{})};
+  for(const [cannonId,amount] of Object.entries(mission.reward.cannons??{}))cannonCounts[cannonId]=(Number(cannonCounts[cannonId])||0)+amount;
+  return {mission,patch:{r2Campaign:{...state,active:null,claimed:[...state.claimed,id]},profile:{...save.profile,gold:(Number(save.profile?.gold)||0)+(mission.reward.gold||0)},ammunition:{...ammo,'rusted-iron':(Number(ammo['rusted-iron'])||0)+(mission.reward.iron||0)},...(mission.reward.ships?.length||mission.reward.cannons?{equipment:{...equipment,cannonCounts,ownedCannonIds:[...new Set([...(equipment.ownedCannonIds??[]),...Object.keys(mission.reward.cannons??{})])],ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),...(mission.reward.ships??[])])]}}:{})}};
 }
