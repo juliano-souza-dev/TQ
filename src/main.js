@@ -242,6 +242,26 @@ async function startWorld() {
       });
     }
   }
+  // Recover old Black Market completions that never granted the advertised cannons.
+  // Roll the last two campaign stages back to the purchase; preserve all inventory.
+  {
+    const save=readSave(),state=save.r2Campaign??{};
+    const claimed=state.claimed??[],counts=save.equipment?.cannonCounts??{};
+    const marketCompleted=claimed.includes('r2-black-market')
+      || claimed.includes('r2-golden-ii') || state.active==='r2-golden-ii';
+    const missingPackage=(Number(counts['aetherion-mk1'])||0)<1
+      || (Number(counts['royal-lion'])||0)<8;
+    if(marketCompleted && missingPackage && !save.rewardMigrations?.blackMarketRollbackV1){
+      const rolledBack=['r2-black-market','r2-golden-ii'];
+      writePatch({
+        r2Campaign:{...state,active:'r2-black-market',
+          claimed:claimed.filter(id=>!rolledBack.includes(id)),
+          progress:{...(state.progress??{}),'r2-black-market':[0],'r2-golden-ii':[0]},
+          processed:(state.processed??[]).filter(id=>id!=='black-market:market-trade-completed')},
+        rewardMigrations:{...(save.rewardMigrations??{}),blackMarketRollbackV1:true},
+      });
+    }
+  }
   // Repair legacy rewards: Caçadora das Sombras must be owned before
   // the subsequent Preparar a Caçada contract can be completed.
   {
