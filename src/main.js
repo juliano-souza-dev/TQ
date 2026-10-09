@@ -486,8 +486,8 @@ async function startWorld() {
       onStartRegion2: () => {
         const patch = activateNextRegion(readSave());
         if (!patch) return false;
-        writePatch(patch);
-        updateMissionHud();
+        writePatch({ ...patch, playerPosition: { x:180, y:1100 } });
+        startWorld();
         return true;
       },
     },
@@ -754,11 +754,15 @@ async function startWorld() {
           advanceNavigation(world, { x: 0, y: 0 }, stepMs, shipSpeed);
         }
       }
-      const finale = readSave().campaign ?? {};
-      if (finale.active?.includes('r1-finale') && !(finale.progress?.['r1-finale']?.[0] >= 1)) {
+      if (world.region.id === 'r1') {
         const exit = world.region.exitPoint;
-        if (exit && Math.hypot(world.camera.x-exit.x,world.camera.y-exit.y) <= exit.radius) {
-          recordMissionEvent({type:'exit',id:'r1-exit-east'});
+        const distanceToExit = exit ? Math.hypot(world.camera.x-exit.x,world.camera.y-exit.y) : Infinity;
+        if (distanceToExit > (exit?.radius ?? 0) + 45) exitDismissed = false;
+        const board = getCampaignBoard(readSave());
+        const finalMission = board.missions.find(m => m.id === 'r1-finale');
+        const canUsePassage = finalMission && ['active','ready','claimed'].includes(finalMission.status);
+        if (canUsePassage && distanceToExit <= exit.radius) {
+          if (finalMission.status === 'active') recordMissionEvent({type:'exit',id:'r1-exit-east'});
           clickNavigation.cancel();
           if (!exitDismissed && exitDialog.hidden && !mathGate.isOpen && !islandPanel.isOpen) {
             exitDialog.hidden = false;
