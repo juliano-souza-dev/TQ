@@ -530,10 +530,41 @@ export class NavalCombatWebGLRenderer{
           color:"#042a35",coreColor:"#075567",glow:0,opacity:.18});
         if(!this.reducedFx)drawPoint(x,y,120*zoom,7,p,false,{
           color:"#1a7483",coreColor:"#57b3b8",glow:.15,opacity:.11});
-      }else if(elapsed>=940 && elapsed<1400){
-        const p=clamp((elapsed-940)/460,0,1);
+      }else if(elapsed>=750 && elapsed<1400){
+        const pre=clamp((elapsed-750)/220,0,1);
+        // Water bulges from below before the Kraken collides with the hull.
+        if(elapsed<970){
+          drawPoint(attack.to.x,attack.to.y,110*zoom,7,pre*.42,false,{
+            color:"#0a5361",coreColor:"#48b8be",glow:.45,opacity:.32*pre});
+          drawPoint(attack.to.x,attack.to.y,65*zoom,0,0,false,{
+            color:"#126a70",coreColor:"#6bd4c8",glow:.2,opacity:.19*pre});
+        }
+      }
+      if(elapsed>=970 && elapsed<1400){
+        const p=clamp((elapsed-970)/430,0,1);
         drawPoint(attack.to.x,attack.to.y,170*zoom,7,p,false,{
           color:"#38a9b6",coreColor:"#c7fcf3",glow:1,opacity:(1-p)*.9});
+        // Staggered water ripples, foam and rising droplets. Cheap on mobile.
+        const ringCount=this.reducedFx?2:4;
+        for(let ring=0;ring<ringCount;ring++){
+          const rp=clamp((elapsed-970-ring*70)/Math.max(1,430-ring*40),0,1);
+          if(elapsed<970+ring*70)continue;
+          drawPoint(attack.to.x,attack.to.y,(135+ring*36)*zoom,7,rp,false,{
+            color:ring%2?"#2a8492":"#63d6d4",coreColor:"#e5fff5",
+            glow:.65,opacity:(1-rp)*(.7-ring*.1)});
+        }
+        const drops=this.reducedFx?6:15;
+        for(let i=0;i<drops;i++){
+          const seed=i*2.39996323+attack.startTime*.00023;
+          const radius=(17+(i%5)*13+105*p)*zoom;
+          const up=Math.sin(Math.PI*p)*(9+(i%4)*7)*zoom;
+          drawPoint(
+            attack.to.x+Math.cos(seed)*radius,
+            attack.to.y+Math.sin(seed)*radius*.55-up,
+            (3+(i%4)*2)*(1-p)*zoom,0,p,true,
+            {color:"#6bced2",coreColor:"#ecffff",glow:.8,opacity:.9*(1-p)}
+          );
+        }
         if(elapsed<1120)drawPoint(attack.to.x,attack.to.y,100*zoom,5,p,true,{
           color:"#4ac9d0",coreColor:"#ffffff",glow:1,opacity:1-p});
       }
