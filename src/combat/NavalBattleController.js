@@ -193,6 +193,17 @@ export class NavalBattleController {
     return true;
   }
 
+  // A ajuda termina quando restam 3% da vida máxima do monstro.
+  monsterAssistComplete(monster) {
+    return !monster || monster.health <= 0 || monster.health <= monster.maxHealth * 0.03;
+  }
+
+  finishMonsterAssistsFor(monsterId) {
+    for (const assist of [...this.assists.values()]) {
+      if (assist.monsterId === monsterId) this.finishMonsterAssist(assist.npcId);
+    }
+  }
+
   // Cada monstro mantém seu histórico de NPCs convocados durante a batalha.
   cancelMonsterAssists() {
     for (const npcId of this.assists.keys()) {
@@ -204,7 +215,7 @@ export class NavalBattleController {
 
   getAssistCandidate() {
     const monster = this.getTarget();
-    if (!this.firing || monster?.type !== 'monster' || monster.health <= 0
+    if (!this.firing || monster?.type !== 'monster' || this.monsterAssistComplete(monster)
       || this.assists.size >= 2) return null;
     const used = this.usedAssistNpcs.get(monster.id) ?? new Set();
     return [...this.getEntities().values()]
@@ -235,7 +246,7 @@ export class NavalBattleController {
     }
     used.add(candidate.id);
     this.assists.set(candidate.id, {
-      npcId: candidate.id, monsterId: monster.id, shots: 0, nextShotAt: -Infinity,
+      npcId: candidate.id, monsterId: monster.id, nextShotAt: -Infinity,
     });
     candidate.monsterAssisting = true;
     this.onFeedback('🤝 ' + candidate.name + ' veio ajudar na caça ao monstro!');
@@ -252,12 +263,12 @@ export class NavalBattleController {
     for (const assist of [...this.assists.values()]) {
       const monster = this.getEntities().get(assist.monsterId);
       const helper = this.getEntities().get(assist.npcId);
-      if (!this.firing || !monster || monster.health <= 0 || !helper || helper.health <= 0
+      if (!this.firing || this.monsterAssistComplete(monster) || !helper || helper.health <= 0
         || distanceBetween(helper, monster) > 620) {
         this.finishMonsterAssist(assist.npcId);
         continue;
       }
-      if (assist.shots >= 10 || now < assist.nextShotAt) continue;
+      if (now < assist.nextShotAt) continue;
       const launcher = equippedHarpoon(this.readSave());
       const from = { x: helper.x, y: helper.y };
       const to = interceptPoint(from, monster, this.velocities.get(monster.id), launcher.projectileSpeed);
@@ -267,15 +278,20 @@ export class NavalBattleController {
         ammo: { id: 'naval-harpoon', size: 1.8, projectileSpeed: launcher.projectileSpeed,
           fx: { preset: 'rusted-iron', projectile: { texture: launcher.projectileAsset, scale: 1.5 } } },
         impactKind: 'water', startTime: now,
-        onImpact: ({ at }) => this.resolveHarpoonImpact(targetId, at, 25),
+        onImpact: ({ at }) => {
+          const current = this.getEntities().get(targetId);
+          if (this.monsterAssistComplete(current)) return { kind: 'water' };
+          const remaining = current.health - current.maxHealth * 0.03;
+          const outcome = this.resolveHarpoonImpact(targetId, at, Math.min(25, remaining));
+          if (this.monsterAssistComplete(current)) {
+            this.finishMonsterAssistsFor(targetId);
+            this.onFeedback('🤝 Monstro com 3% de vida. Ajudantes voltaram a navegar.');
+          }
+          return outcome;
+        },
       });
       if (fired) {
-        assist.shots += 1;
         assist.nextShotAt = now + 7000;
-        if (assist.shots === 10) {
-          this.finishMonsterAssist(assist.npcId);
-          this.onFeedback('🤝 ' + helper.name + ' concluiu 10 disparos e voltou a navegar.');
-        }
       }
     }
   }
@@ -331,6 +347,7 @@ export class NavalBattleController {
     if(!hit)return {kind:'water'};
     if(monster.health>0)monster.state='retaliating';
     this.onFeedback('⚓ Arpão atingiu '+monster.name+'! -'+hit.damage+' PV.');
+    if(this.monsterAssistComplete(monster)) this.finishMonsterAssistsFor(targetId);
     if(monster.health<=0){this.firing=false;this.cancelMonsterAssists();this.onVictory(monster);}
     return {kind:'ship'};
   }
