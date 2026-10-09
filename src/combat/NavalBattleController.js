@@ -549,6 +549,16 @@ export class NavalBattleController {
       target.state = target.health ? (target.aggression === 'flee' ? 'fleeing' : 'retaliating') : 'sunk';
       target.lastAttackerId = 'player';
     }
+    // Persist boss HP immediately on each impact, not only on periodic autosave.
+    // This survives refresh even if the player has not yet defeated the boss.
+    if (this.getRegionId()==='r2' && target.archetype==='fugitive-frigate'
+      && this.readSave().r2Campaign?.active==='r2-destroy-thief') {
+      const snapshot=this.readSave().r2ThiefBoss??{};
+      this.writePatch({r2ThiefBoss:{...snapshot,missionId:'r2-destroy-thief',
+        health:Math.max(0,Number(target.health)||0),maxHealth:100000,
+        x:Number(target.x)||0,y:Number(target.y)||0,
+        heading:Number(target.heading)||0,updatedAt:Date.now()}});
+    }
     this.onFeedback('💥 Acertou ' + target.name + '! -' + damage + ' PV.');
     if (target.health <= 0) {
       if (target.id === this.targetId) { this.firing = false; this.cancelMonsterAssists(); }
