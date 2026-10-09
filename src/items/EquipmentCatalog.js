@@ -2,11 +2,11 @@
 // An event becoming active never awards an event item.
 export const EVENTS = Object.freeze({ halloween: true });
 export const CANNONS = Object.freeze([
-  { id:'blue-gold-pirate', name:'Canhão Pirata Ornamentado em Azul e Ouro', asset:'Canhão Pirata Ornamentado em Azul e Ouro.webp', reloadSeconds:1.2, accuracy:0.8, damageMultiplier:1, caliberPounder:20, range:850, acquisition:{type:'starter'}, event:null },
-  { id:'spiked-war', name:'Canhão de Guerra Espinhoso Fantástico', asset:'Canhão de Guerra Espinhoso Fantástico.webp', reloadSeconds:1.25, accuracy:0.8, damageMultiplier:1.6, caliberPounder:24, range:1100, acquisition:{type:'unconfigured'}, event:null },
-  { id:'royal-lion', name:'Canhão Real Dourado com Leão', asset:'Canhão Real Dourado com Leão.webp', reloadSeconds:1.15, accuracy:0.85, damageMultiplier:2, caliberPounder:28, range:1200, acquisition:{type:'unconfigured'}, event:null },
-  { id:'spectral-necromancer', name:'Canhão Espectral Necromântico', asset:'Canhão Espectral Necromântico.webp', reloadSeconds:1, accuracy:0.84, damageMultiplier:2.2, caliberPounder:26, range:1050, acquisition:{type:'event-reward',event:'halloween',condition:null}, event:'halloween' },
-  { id:'pumpkin-terror', name:'Canhão Terror da Abóbora', asset:'canhao terror da abóbora.webp', reloadSeconds:1, accuracy:0.84, damageMultiplier:2.2, caliberPounder:26, range:1050, acquisition:{type:'event-reward',event:'halloween',condition:null}, event:'halloween' },
+  { id:'blue-gold-pirate', name:'Canhão Pirata Ornamentado em Azul e Ouro', asset:'Canhão Pirata Ornamentado em Azul e Ouro.webp', reloadSeconds:1.2, accuracy:0.8, damageMultiplier:1, caliberPounder:20, range:595, acquisition:{type:'starter'}, event:null },
+  { id:'spiked-war', name:'Canhão de Guerra Espinhoso Fantástico', asset:'Canhão de Guerra Espinhoso Fantástico.webp', reloadSeconds:1.25, accuracy:0.8, damageMultiplier:1.6, caliberPounder:24, range:770, acquisition:{type:'unconfigured'}, event:null },
+  { id:'royal-lion', name:'Canhão Real Dourado com Leão', asset:'Canhão Real Dourado com Leão.webp', reloadSeconds:1.15, accuracy:0.85, damageMultiplier:2, caliberPounder:28, range:840, acquisition:{type:'unconfigured'}, event:null },
+  { id:'spectral-necromancer', name:'Canhão Espectral Necromântico', asset:'Canhão Espectral Necromântico.webp', reloadSeconds:1, accuracy:0.84, damageMultiplier:2.2, caliberPounder:26, range:735, acquisition:{type:'event-reward',event:'halloween',condition:null}, event:'halloween' },
+  { id:'pumpkin-terror', name:'Canhão Terror da Abóbora', asset:'canhao terror da abóbora.webp', reloadSeconds:1, accuracy:0.84, damageMultiplier:2.2, caliberPounder:26, range:735, acquisition:{type:'event-reward',event:'halloween',condition:null}, event:'halloween' },
 ].map(item=>Object.freeze(item)));
 export const AMMUNITION = Object.freeze([
   {id:'rusted-iron',name:'Bola de Canhão de Ferro Enferrujado',asset:'Bola de Canhão de Ferro Enferrujado.webp',event:null,acquisition:{type:'unconfigured'}},
