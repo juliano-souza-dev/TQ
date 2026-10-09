@@ -44,6 +44,7 @@ let minimapElement = null;
 let islandPanelElement = null;
 let clickNavigation = null;
 let keyboardCamera = null;
+let fireKeyCleanup = null;
 let firstVoyageGuide = null;
 let worldGeneration = 0;
 const GUEST_UID = 'local-guest';
@@ -52,6 +53,8 @@ let guestMode = false;
 
 function stopWorld() {
   worldGeneration++;
+  fireKeyCleanup?.();
+  fireKeyCleanup = null;
   if (loop) loop.stop();
   loop = null;
   if (oceanRenderer) oceanRenderer.dispose();
@@ -360,6 +363,17 @@ async function startWorld() {
     },
   });
   root.append(navalHud.element);
+  // F inicia ou cancela o mesmo ciclo de ataque do HUD.
+  // KeyboardEvent.code independe de maiúsculas, Shift e Caps Lock.
+  const onFireKey = event => {
+    if (event.code !== 'KeyF' || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+    event.preventDefault();
+    navalBattle.toggleFire();
+    navalHud.refresh();
+  };
+  document.addEventListener('keydown', onFireKey);
+  fireKeyCleanup = () => document.removeEventListener('keydown', onFireKey);
   // A opção contextual não altera os botões existentes do HUD.
   const assistButton=document.createElement('button');
   assistButton.type='button';
