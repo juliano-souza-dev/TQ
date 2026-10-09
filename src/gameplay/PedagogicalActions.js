@@ -57,7 +57,7 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
     const outcome = accumulateHullRepair(save, Number(save.combat?.shipHealth) <= 0);
     if (!outcome) return null;
     patch = outcome.patch;
-    message = 'Reparo acumulado: ' + outcome.pending + '/' + outcome.required + ' PV.';
+    message = 'Reparação iniciada! +25% da vida máxima por segundo.';
   } else if (type === 'negotiation') {
     const campaign = save.campaign ?? {};
     if (!campaign.active?.includes('r1-negotiation') || campaign.negotiationRobbed) return null;
