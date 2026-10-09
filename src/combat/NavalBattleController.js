@@ -76,7 +76,7 @@ export class NavalBattleController {
     if (cooldownUntil>now)return {ok:false,reason:'Aguarde '+Math.ceil((cooldownUntil-now)/1000)+'s para reutilizar.'};
     const count=Math.max(0,Math.floor(Number(c.quantities[c.selectedId])||0));
     if (!count)return {ok:false,reason:'Você não possui este consumível.'};
-    const duration=shield?45000:60000,cooldown=shield?180000:300000;
+    const duration=shield?56250:75000,cooldown=shield?180000:150000;
     this.writePatch({consumables:{...(save.consumables??{}),
       quantities:{...c.quantities,[c.selectedId]:count-1},
       ...(shield?{shieldActiveUntil:now+duration,shieldCooldownUntil:now+cooldown}
