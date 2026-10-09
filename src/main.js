@@ -281,6 +281,12 @@ async function startWorld() {
   });
   navalHud = createNavalCombatHud(navalBattle, {
     onRepair: () => beginRepairSession(false),
+    isCameraDetached: () => world.manualCamera !== null && world.manualCamera !== undefined,
+    onCenterShip: () => {
+      world.manualCamera = null;
+      updateCamera(world, canvas.clientWidth, canvas.clientHeight);
+      return true;
+    },
   });
   root.append(navalHud.element);
   clickNavigation = createClickNavigation(canvas, world, point => {
