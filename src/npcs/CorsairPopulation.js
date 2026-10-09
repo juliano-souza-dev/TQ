@@ -20,7 +20,7 @@ export function createCorsairPopulation(world, random = Math.random) {
   for (let i = 0; i < CORSAIR_POPULATION; i++) {
     const id = 'corsair-r1-' + String(i + 1).padStart(2, '0');
     const position = spawnPosition(world.region, world.camera, random);
-    const npc = i === 0
+    const npc = world.region.id === 'r1' && i === 0
       ? createRoseGoldCorsair(id, position.x, position.y, random() * 360)
       : createRedSailCorsair(id, position.x, position.y, random() * 360);
     npc.wanderTimeMs = 800 + random() * 2400;
