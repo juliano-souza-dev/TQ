@@ -360,6 +360,34 @@ async function startWorld() {
   missionHud.className = 'mission-progress-hud';
   missionHud.setAttribute('aria-live', 'polite');
   root.append(missionHud);
+  const thiefGuide = document.createElement('div');
+  thiefGuide.className = 'thief-guide';
+  thiefGuide.hidden = true;
+  thiefGuide.setAttribute('aria-label', 'Direção da fragata fugitiva');
+  thiefGuide.innerHTML = '<span class="thief-guide-arrow">➤</span><span class="thief-guide-label">Ladrão</span>';
+  root.append(thiefGuide);
+  function updateThiefGuide() {
+    const campaign = readSave().campaign ?? {};
+    const active = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed && !mathGate.isOpen;
+    const target = active ? [...world.entities.values()].find(npc => npc.archetype === 'fugitive-frigate' && npc.health > 0) : null;
+    if (!target) { thiefGuide.hidden = true; return; }
+    const width = canvas.clientWidth, height = canvas.clientHeight;
+    if (!width || !height) { thiefGuide.hidden = true; return; }
+    const x = width / 2 + (target.x - world.cameraView.x) * world.camera.zoom;
+    const y = height / 2 + (target.y - world.cameraView.y) * world.camera.zoom;
+    const margin = Math.min(75, Math.max(35, Math.min(width,height)*.12));
+    const inView = x > margin && x < width - margin && y > margin && y < height - margin;
+    const px = inView ? x : Math.max(margin, Math.min(width - margin, x));
+    const py = inView ? Math.max(margin, y - 72) : Math.max(margin, Math.min(height - margin, y));
+    thiefGuide.style.left = px + 'px';
+    thiefGuide.style.top = py + 'px';
+    thiefGuide.style.setProperty('--thief-angle', (inView ? 90 : Math.atan2(y-py, x-px)*180/Math.PI) + 'deg');
+    thiefGuide.classList.toggle('is-visible-target', inView);
+    thiefGuide.querySelector('.thief-guide-label').textContent =
+      'Ladrão · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
+    thiefGuide.hidden = false;
+  }
+
   const updateMissionHud = () => {
     const flow = getMissionFlow(readSave(), activeShip.id);
     missionHud.hidden = false;
@@ -712,6 +740,7 @@ async function startWorld() {
       }
       navalBattle.render(performance.now(),world.cameraView,world.camera.zoom,canvas.clientWidth,canvas.clientHeight);
       minimap.render();
+      updateThiefGuide();
       const gr=glintCanvas.getBoundingClientRect(),gd=Math.min(window.devicePixelRatio||1,2);
       const gw=Math.max(1,Math.round(gr.width*gd)),gh=Math.max(1,Math.round(gr.height*gd));
       if(glintCanvas.width!==gw||glintCanvas.height!==gh){glintCanvas.width=gw;glintCanvas.height=gh;}
