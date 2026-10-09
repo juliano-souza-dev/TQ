@@ -1327,11 +1327,19 @@ async function startWorld() {
             if(morbiStage){
             const dx=world.camera.x-morbi.x,dy=world.camera.y-morbi.y;
             const distance=Math.hypot(dx,dy);
-            if(distance>220){
-              const travel=Math.min(distance-220,Math.max(0,stepMs)*.22);
+            // Stage II: fight at the outer range of the penultimate cannon
+            // (Canhão Real Dourado com Leão, 840 world units), not at point blank.
+            const preferredDistance=active?.id==='r2-golden-ii'
+              ? (CANNONS.find(c=>c.id==='royal-lion')?.range??840) : 220;
+            const tolerance=active?.id==='r2-golden-ii'?24:0;
+            if(distance>preferredDistance+tolerance){
+              const travel=Math.min(distance-preferredDistance,Math.max(0,stepMs)*.22);
               morbi.x+=dx/distance*travel;morbi.y+=dy/distance*travel;
-              morbi.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+            } else if(active?.id==='r2-golden-ii' && distance<preferredDistance-tolerance && distance>1){
+              const travel=Math.min(preferredDistance-distance,Math.max(0,stepMs)*.22);
+              morbi.x-=dx/distance*travel;morbi.y-=dy/distance*travel;
             }
+            if(distance>1)morbi.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
             }
           }
         }
