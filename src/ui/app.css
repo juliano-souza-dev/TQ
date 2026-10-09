@@ -504,3 +504,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .region-exit-beacon-label{background:#07263cde;border:1px solid #f9d681aa;padding:4px 9px;border-radius:10px;}
 @keyframes exit-gate-pulse {from{scale:.94;opacity:.76;}to{scale:1.07;opacity:1;}}
 @media(prefers-reduced-motion:reduce){.region-exit-beacon-ring{animation:none;}}
+
+
+/* Costa dos Corsários: nuvens leves sobre o oceano, abaixo do HUD. */
+.cloud-layer{position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;opacity:.95;}
