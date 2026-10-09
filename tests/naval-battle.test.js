@@ -276,7 +276,7 @@ test('Kraken submerso ignora arpão e volta a receber dano ao emergir', () => {
   assert.equal(monster.health,1650);
   assert.equal(feedback.length,0);
   time=2800;
-  assert.equal(controller.resolvePlayerImpact('kraken',{x:20,y:20},50).kind,'ship');
+  assert.equal(controller.resolveHarpoonImpact('kraken',{x:20,y:20},50).kind,'ship');
   assert.equal(monster.health,1600);
 });
 
