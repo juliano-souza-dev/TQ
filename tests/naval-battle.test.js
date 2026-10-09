@@ -377,3 +377,52 @@ test('NPCs podem ser atacados em R2 sem depender de progresso do tutorial da R1'
   assert.equal(t.shots.length,1);
   assert.equal(t.save.ammunition['rusted-iron'],19);
 });
+
+test('ajuda permite dois NPCs, dez disparos cada e impede reutilização', () => {
+  const t = battleHarness();
+  t.enemy.type = 'monster';
+  t.enemy.health = 10000;
+  t.enemy.maxHealth = 10000;
+  const helpers = ['a', 'b', 'c'].map((id, i) => ({
+    id: 'sailor-' + id, name: 'Navegador ' + id,
+    type: 'npc', health: 100, x: 300 + i * 10, y: 130,
+  }));
+  const entities = new Map([[t.enemy.id, t.enemy], ...helpers.map(n => [n.id, n])]);
+  t.battle.getEntities = () => entities;
+  assert.equal(t.battle.toggleFire(), true);
+  assert.equal(t.battle.enableMonsterAssist(), true);
+  assert.equal(t.battle.enableMonsterAssist(), true);
+  assert.equal(t.battle.getAssistStatus().activeCount, 2);
+  assert.equal(t.battle.enableMonsterAssist(), false, 'no more than two simultaneous helpers');
+  for (let i = 0; i < 10; i++) {
+    t.time = 1200 + i * 7000;
+    t.battle.fireAssistHarpoon(1200 + i * 7000);
+  }
+  assert.equal(t.shots.length, 21, '20 NPC shots and initial player harpoon');
+  assert.equal(t.battle.getAssistStatus().activeCount, 0);
+  assert.equal(helpers[0].monsterAssisting, false);
+  assert.equal(helpers[1].monsterAssisting, false);
+  assert.equal(t.battle.getAssistCandidate()?.id, 'sailor-c');
+  assert.equal(t.battle.enableMonsterAssist(), true);
+  assert.equal(t.battle.getAssistStatus().helper, 'sailor-c');
+  t.battle.cancelMonsterAssists();
+  assert.equal(helpers[2].monsterAssisting, false);
+  assert.equal(t.battle.getAssistStatus().eligible, false, 'none can help the same monster twice');
+});
+
+test('encerrar o combate libera navegação dos ajudantes sem reiniciar seus contadores', () => {
+  const t = battleHarness();
+  t.enemy.type = 'monster';
+  t.enemy.health = 10000;
+  t.enemy.maxHealth = 10000;
+  const helper = { id: 'sailor-a', name: 'Navegador', type: 'npc', health: 100, x: 300, y: 120 };
+  t.battle.getEntities = () => new Map([[t.enemy.id,t.enemy],[helper.id,helper]]);
+  t.battle.toggleFire();
+  t.battle.enableMonsterAssist();
+  assert.equal(helper.monsterAssisting, true);
+  t.battle.toggleFire();
+  assert.equal(helper.monsterAssisting, false);
+  assert.equal(t.battle.getAssistStatus().activeCount, 0);
+  t.battle.toggleFire();
+  assert.equal(t.battle.getAssistStatus().eligible, false);
+});
