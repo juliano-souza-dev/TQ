@@ -27,16 +27,10 @@ export const FUGITIVE_FRIGATE_SHIP = Object.freeze({
     rows: 4,
     frameCount: 16,
     angleStepDegrees: 22.5,
-    // Mapeamento inspecionado no atlas 4x4 (índices 0..15, linha a linha).
-    // 0: proa para baixo (Sul); 5: proa para esquerda (Oeste);
-    // 11: proa para cima/direita (Nordeste); 15: popa próxima (Norte).
-    // A folha não contém 16 ângulos uniformes de 360°. Alguns quadros
-    // são reutilizados e refletidos para cobrir o lado ausente.
-    // Heading: N, NNE, NE, ENE, L, ESE, SE, SSE, S, SSW, SO, OSO, O, ONO, NO, NNO.
-    framesByHeading: Object.freeze([15,13,11,10,5,3,2,1,0,1,2,3,5,7,9,13]),
-    flipXByHeading: Object.freeze([
-      false,false,false,false,true,true,true,true,
-      false,false,false,false,false,false,false,true,
-    ]),
+    // Novo atlas 4x4: quadro 0 aponta para Oeste (270 graus),
+    // avançando 22,5 graus por célula na ordem das linhas.
+    // Heading: N, NNE, NE, ENE, E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW.
+    framesByHeading: Object.freeze([4,5,6,7,8,9,10,11,12,13,14,15,0,1,2,3]),
+    flipXByHeading: Object.freeze(Array(16).fill(false)),
   }),
 });
