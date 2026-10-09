@@ -8,6 +8,13 @@ export const HARPOON_LAUNCHERS=Object.freeze([
     reloadSeconds:7, range:620, damageMultiplier:0, baseDamage:30,
     projectileSpeed:650, accuracy:.95,
   }),
+  Object.freeze({
+    id:'harpoon-armor-breaker-launcher',name:'Arpoeiro Quebra-Couraça',
+    asset:new URL('../../assets/cannonball/lancador_arpoes_naval.webp',import.meta.url).href,
+    projectileAsset:new URL('../../assets/cannons/arpao_naval_simples.webp',import.meta.url).href,
+    reloadSeconds:7,range:730,damageMultiplier:0,baseDamage:700,
+    projectileSpeed:760,accuracy:.96,dotDamage:25,dotIntervalMs:3000,
+  }),
 ]);
 export const STARTER_HARPOON=HARPOON_LAUNCHERS[0];
 export const STARTER_HARPOON_AMMO=500;
