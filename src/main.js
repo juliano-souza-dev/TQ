@@ -576,6 +576,14 @@ async function startWorld() {
     onFeedback: message => navalHud?.setFeedback(message),
     onPlayerSunk: npcId => {
       if(npcId!=='r2-morbi'||readSave().r2Campaign?.active!=='r2-golden-i')return;
+      const defeatedMorbi=world.entities.get('r2-morbi');
+      if(defeatedMorbi){
+        defeatedMorbi.escapeAfterSinking=true;
+        defeatedMorbi.state='escaping';
+        defeatedMorbi.aggression='flee';
+        defeatedMorbi.speed=950;
+        defeatedMorbi.escapeHeading=defeatedMorbi.heading;
+      }
       recordMissionEvent({type:'morbi-defeat-player',id:'first-sinking'});
       missionCompleteOverlay.hidden=true;
       const outcome=campaignFor('r2').claim(readSave(),'r2-golden-i');
@@ -1153,7 +1161,7 @@ async function startWorld() {
           recordMissionEvent({type:'black-market',id:'r2-black-market-merchant'});
         }
         // Stage-I Morbi enters the ocean physically, with 900,000 HP.
-        const morbiStage=['r2-golden-i','r2-strengthen-ship','r2-black-market','r2-golden-ii'].includes(active?.id);
+        const morbiStage=['r2-golden-i','r2-golden-ii'].includes(active?.id);
         if(morbiStage && !world.entities.has('r2-morbi')){
           const savedMorbi=readSave().r2MorbiBoss;
           world.entities.set('r2-morbi',{
@@ -1167,18 +1175,33 @@ async function startWorld() {
             range:1200,damage:150,
           });
         }
-        if(!morbiStage)world.entities.delete('r2-morbi');
         const morbi=world.entities.get('r2-morbi');
         if(morbi){
-          // In the intermediary missions Morbi survives but cannot be attacked or retaliate.
-          morbi.state=active?.id==='r2-golden-i'||active?.id==='r2-golden-ii'?'retaliating':'idle';
-          if(active?.id==='r2-golden-i'||active?.id==='r2-golden-ii'){
+          if(morbi.escapeAfterSinking){
+            // Morbi flees immediately after sinking the player, then leaves the map.
+            const dt=Math.min(64,Math.max(0,stepMs))/1000;
+            const awayX=morbi.x-world.camera.x,awayY=morbi.y-world.camera.y;
+            const length=Math.max(1,Math.hypot(awayX,awayY));
+            morbi.escapeHeading=(Math.atan2(awayX,-awayY)*180/Math.PI+360)%360;
+            const radians=morbi.escapeHeading*Math.PI/180;
+            morbi.heading=morbi.escapeHeading;
+            morbi.x+=Math.sin(radians)*950*dt;
+            morbi.y-=Math.cos(radians)*950*dt;
+            morbi.state='escaping';
+            morbi.aggression='flee';
+            if(morbi.x < -350 || morbi.y < -350
+              || morbi.x > world.region.width+350 || morbi.y > world.region.height+350)
+              world.entities.delete('r2-morbi');
+          } else {
+            morbi.state=morbiStage?'retaliating':'idle';
+            if(morbiStage){
             const dx=world.camera.x-morbi.x,dy=world.camera.y-morbi.y;
             const distance=Math.hypot(dx,dy);
             if(distance>220){
               const travel=Math.min(distance-220,Math.max(0,stepMs)*.22);
               morbi.x+=dx/distance*travel;morbi.y+=dy/distance*travel;
               morbi.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+            }
             }
           }
         }
