@@ -170,21 +170,39 @@ test('accepting a two-port mission immediately credits the port where the captai
     'the player must not need to leave and re-enter the mission port');
 });
 
-test('mission 12 is Para o Estaleiro, grants 1000 basic balls only after equipping Rosas de Ouro', () => {
-  assert.equal(R1_MISSIONS[11].id, 'r1-equip-roses');
-  const predecessors = R1_MISSIONS.slice(0,11).map(m => m.id);
+test('mission 13 is Para o Estaleiro, grants 1000 basic balls only after equipping Rosas de Ouro', () => {
+  assert.equal(R1_MISSIONS[12].id, 'r1-equip-roses');
+  const predecessors = R1_MISSIONS.slice(0,12).map(m => m.id);
   let save = initial();
   save.campaign.claimed = predecessors;
   save.equipment = { ...save.equipment, ownedShipIds:['galeao-rosas-de-ouro'] };
   save = apply(save, acceptCampaignMission(save,'r1-equip-roses'));
-  assert.equal(getCampaignBoard(save).missions[11].ready,false);
+  assert.equal(getCampaignBoard(save).missions[12].ready,false);
   assert.equal(recordCampaignEvent(save,{type:'equip-ship',ship:'starter'}),null);
   assert.equal(claimCampaignMission(save,'r1-equip-roses'),null);
   save.equipment.equippedShipId = 'galeao-rosas-de-ouro';
   save = apply(save, recordCampaignEvent(save,{type:'equip-ship',ship:'galeao-rosas-de-ouro'}));
-  assert.equal(getCampaignBoard(save).missions[11].ready,true);
+  assert.equal(getCampaignBoard(save).missions[12].ready,true);
   const award = claimCampaignMission(save,'r1-equip-roses');
   assert.equal(award.patch.ammunition['rusted-iron'],1020);
   save = apply(save, award.patch);
   assert.equal(claimCampaignMission(save,'r1-equip-roses'),null);
+});
+
+test('Hora da Caça é a missão 11, recompensa mil munições e exige Kraken derrotado', () => {
+  assert.equal(R1_MISSIONS[10].id, 'r1-kraken-hunt');
+  assert.equal(R1_MISSIONS.filter(m => !m.optional).length, 15);
+  assert.ok(R1_MISSIONS.every(m => m.description.length > 90), 'cada missão recebe narrativa');
+  let save = initial();
+  save.campaign.claimed = R1_MISSIONS.slice(0, 10).map(m => m.id);
+  const accepted = acceptCampaignMission(save, 'r1-kraken-hunt');
+  assert.ok(accepted);
+  save = apply(save, accepted);
+  assert.equal(recordCampaignEvent(save, { type:'defeat', archetype:'red-sail-corsair', id:'other' }), null);
+  const progress = recordCampaignEvent(save, { type:'defeat', archetype:'sea-monster-kraken', id:'kraken-1' });
+  assert.ok(progress);
+  save = apply(save, progress);
+  const reward = claimCampaignMission(save, 'r1-kraken-hunt');
+  assert.ok(reward);
+  assert.equal(reward.patch.ammunition['rusted-iron'], 1020);
 });
