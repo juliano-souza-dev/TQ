@@ -980,13 +980,15 @@ async function startWorld() {
     startWorld();
   });
 
+  const darkWatersExit={x:Math.min(world.region.width-160,3930),y:Math.min(world.region.height-180,3890)};
   function updateThiefGuide() {
     const campaign = readSave().campaign ?? {};
     const thiefActive = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed && !mathGate.isOpen;
     const exitActive = campaign.active?.includes('r1-finale')
       && !(campaign.progress?.['r1-finale']?.[0] >= 1) && !mathGate.isOpen;
     const r2 = world.region.id === 'r2' ? getR2Board(readSave()).active[0] : null;
-    const guideTarget = r2?.id === 'r2-black-market' ? {x:world.region.width/2,y:world.region.height/2}
+    const guideTarget = r2?.id === 'r2-dark-voyage' && r2.status==='active' ? darkWatersExit
+      : r2?.id === 'r2-black-market' ? {x:world.region.width/2,y:world.region.height/2}
       : r2?.id === 'r2-golden-i' || r2?.id === 'r2-golden-ii' ? world.entities.get('r2-morbi')
       : r2?.id === 'r2-destroy-thief'
       ? [...world.entities.values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0)
@@ -1375,6 +1377,11 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       if (world.region.id === 'r2') {
+        if(readSave().r2Campaign?.active==='r2-dark-voyage'
+          && Math.hypot(world.camera.x-darkWatersExit.x,world.camera.y-darkWatersExit.y)<145){
+          recordMissionEvent({type:'exit',id:'r2-dark-waters-passage'});
+          showOceanReward('🌑 A jornada continua nas Águas Escuras do Capitão Terror. Fim da campanha deste mapa!');
+        }
         updatePumpkinAmbush(stepMs);
         const active = boardFor(readSave(),world.region.id).active[0];
         const island = world.region.islands.find(i=>i.id==='r2-scenery-north');
