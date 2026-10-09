@@ -6,7 +6,7 @@ import { navalShotDamage } from './NavalCombatRules.mjs';
 // Stable catalog IDs come from EquipmentCatalog. Combat numbers and FX never
 // modify inventory item ownership or asset metadata.
 export const NAVAL_AMMO = Object.freeze({
-  'aetherion-seeker': { damageFactor: 1, damagePerShot: 10, speed: 420, preset: 'piercing', trackingDurationMs: 9000 },
+  'aetherion-seeker': { damageFactor: 1, damagePerShot: 10, speed: 700, preset: 'piercing', trackingDurationMs: 9000 },
   'rusted-iron': { damageFactor: 1, damagePerShot: 10, speed: 420, preset: 'rusted-iron' },
   'violet-crystal': { damageFactor: 1.5, damagePerShot: 10, speed: 460, preset: 'violet-crystal' },
   'ocean-pearl': { damageFactor: 1.2, damagePerShot: 10, speed: 460, preset: 'ocean-pearl' },
