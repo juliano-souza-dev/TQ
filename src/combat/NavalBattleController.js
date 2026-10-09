@@ -1,4 +1,4 @@
-import { cancelHullRecovery } from './HullRepair.js';
+import { cancelHullRecovery, getMaxHullHealth } from './HullRepair.js';
 import { equippedHarpoon, harpoonDamage, harpoonStock, HARPOON_AMMO_ID, ARMOR_PIERCING_HARPOON_ID, ARMOR_PIERCING_HARPOON_DAMAGE, armorPiercingHarpoonStock } from './HarpoonCatalog.js';
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
@@ -236,9 +236,11 @@ export class NavalBattleController {
     };
   }
 
+  getMaxHealth() { return getMaxHullHealth(this.readSave()); }
   getHealth() {
     const value = this.readSave().combat?.shipHealth;
-    return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 100));
+    const max=this.getMaxHealth();
+    return Math.max(0, Math.min(max, Number.isFinite(value) ? value : max));
   }
 
   toggleFire() {
