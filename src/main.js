@@ -189,7 +189,7 @@ async function startWorld() {
     const result = resolvePedagogicalAction(readSave(), action, action.challenge, cleanAnswer);
     if (!result) return false;
     writePatch(result.patch);
-    if (world.region.id === 'r2') {
+    if (world.region.id === 'r2' && action.kind !== 'monster-assist') {
       const questPatch=campaignFor(world.region.id).record(readSave(),{
         type: action.kind === 'informant' ? 'informant' : 'study',
         id:action.challenge.id+':'+Date.now()
@@ -355,6 +355,23 @@ async function startWorld() {
     },
   });
   root.append(navalHud.element);
+  // A opção contextual não altera os botões existentes do HUD.
+  const assistButton=document.createElement('button');
+  assistButton.type='button';
+  assistButton.className='monster-assist-button primary-button';
+  assistButton.textContent='🤝 Receber ajuda';
+  assistButton.hidden=true;
+  root.append(assistButton);
+  assistButton.addEventListener('click',()=>{
+    if (!navalBattle.getAssistStatus().eligible || mathGate.isOpen)return;
+    mathGate.open({
+      kind:'monster-assist',
+      title:'🤝 Receber ajuda',
+      description:'Resolva uma multiplicação para pedir ajuda ao navegador mais próximo do monstro.',
+      afterSuccess:()=>{navalBattle.enableMonsterAssist();assistButton.hidden=true;navalHud.refresh();},
+    });
+  });
+
   clickNavigation = createClickNavigation(canvas, world, point => {
     const npc = findNpcAtPoint(world.entities, point.x, point.y);
     if (npc) {
@@ -878,6 +895,7 @@ async function startWorld() {
       if (hudRefreshElapsed >= 160) {
         hudRefreshElapsed = 0;
         navalHud.refresh();
+        assistButton.hidden = !navalBattle.getAssistStatus().eligible || mathGate.isOpen || islandPanel.isOpen;
         const near = findTreasureNearPoint(getVisibleTreasures(readSave(),Date.now(),world.region.id), world.camera.x, world.camera.y, 125);
         treasurePrompt.hidden = !near || mathGate.isOpen || islandPanel.isOpen;
       }
