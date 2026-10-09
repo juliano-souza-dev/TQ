@@ -81,7 +81,7 @@ export class NavalBattleController {
       quantities:{...c.quantities,[c.selectedId]:count-1},
       ...(shield?{shieldActiveUntil:now+duration,shieldCooldownUntil:now+cooldown}
         :{activeUntil:now+duration,cooldownUntil:now+cooldown})}});
-    return {ok:true,reason:shield?'🛡️ Escudo ativo por 45 segundos!':'🔥 5X em Chamas ativo por 60 segundos!'};
+    return {ok:true,reason:shield?'🛡️ Escudo ativo por 56,25 segundos!':'🔥 5X em Chamas ativo por 75 segundos!'};
   }
 
   resolveSelectedAmmo() {
