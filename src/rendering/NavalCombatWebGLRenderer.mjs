@@ -415,13 +415,13 @@ export class NavalCombatWebGLRenderer{
     for(const shot of this.shots){
       if(shot.trackingTarget && !shot.impactSpawned) {
         const target=shot.trackingTarget;
-        const dt=Math.max(0,Math.min(0.1,(now-shot.trackingLastTime)/1000));
+        const dt=Math.max(0,(now-shot.trackingLastTime)/1000);
         shot.trackingLastTime=now;
         if(target.health>0 && dt>0) {
           const dx=target.x-shot.current.x,dy=target.y-shot.current.y;
           const dist=Math.hypot(dx,dy);
           const step=shot.trackingSpeed*dt;
-          if(dist<=Math.max(56,step)) {
+          if(dist<=Math.max(30,step)) {
             shot.current.x=target.x;
             shot.current.y=target.y;
             shot.to={...shot.current};
@@ -684,8 +684,8 @@ export class NavalCombatWebGLRenderer{
             if(trailT>=t)continue;
             const te=1-Math.pow(1-trailT,2);
             const tw=Math.sin(trailT*Math.PI*8)*fx.projectile.wobble*18;
-            const tx=shot.from.x+dx*te+(-dy/length)*tw;
-            const ty=shot.from.y+dy*te+(dx/length)*tw;
+            const tx=shot.trackingTarget ? x-(x-shot.from.x)*ratio*.14 : shot.from.x+dx*te+(-dy/length)*tw;
+            const ty=shot.trackingTarget ? y-(y-shot.from.y)*ratio*.14 : shot.from.y+dy*te+(dx/length)*tw;
             const taper=1-ratio*fx.trail.taper;
             const beadGate=fx.trail.beads>0
               ?(.62+.38*Math.max(0,Math.sin((step*2.35)+(shot.startTime*.0017))))
