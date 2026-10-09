@@ -423,7 +423,7 @@ export class NavalBattleController {
         projectileSpeed:launcher.projectileSpeed,
         fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
       impactKind:'water',startTime:now,flameBoost,
-      onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:harpoonDamage(launcher))*(flameBoost?5:1)),
+      onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,(launcher.dotDamage?harpoonDamage(launcher):(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:harpoonDamage(launcher)))*(flameBoost?5:1),launcher),
     });
     if (!accepted) {this.onFeedback('⚠️ Disparo de arpão indisponível.');return false;}
     this.writePatch({harpoonAmmo:{...(save.harpoonAmmo??{}),[harpoonAmmoId]:(piercing?armorPiercingHarpoonStock(save):harpoonStock(save))-1}});
@@ -432,7 +432,7 @@ export class NavalBattleController {
     return true;
   }
 
-  resolveHarpoonImpact(targetId,point,damage) {
+  resolveHarpoonImpact(targetId,point,damage,launcher=null) {
     const monster=this.getEntities().get(targetId);
     if (!monster||monster.type!=='monster'||monster.health<=0)return {kind:'water'};
     if (!shipCollision(point,monster,56))return {kind:'water'};
@@ -442,6 +442,10 @@ export class NavalBattleController {
     const hit=damageMonster(monster,damage,this.clock());
     if(!hit)return {kind:'water'};
     if(monster.health>0)monster.state='retaliating';
+    if(launcher?.dotDamage && monster.health>0){
+      monster.armorBreakerDot={damage:launcher.dotDamage,interval:launcher.dotIntervalMs||3000,
+        nextAt:this.clock()+(launcher.dotIntervalMs||3000)};
+    }
     this.onFeedback('⚓ Arpão atingiu '+monster.name+'! -'+hit.damage+' PV.');
     if(this.monsterAssistComplete(monster)) this.finishMonsterAssistsFor(targetId);
     if(monster.health<=0){this.firing=false;this.cancelMonsterAssists();this.onVictory(monster);}
@@ -472,6 +476,17 @@ export class NavalBattleController {
         this.usedAssistNpcs.delete(monster.id);
       } else if (!this.assistMonsterAlive.has(monster.id)) {
         this.assistMonsterAlive.add(monster.id);
+      }
+    }
+    // Armor Breaker DOT: 25 actual HP every 3 seconds until the monster dies.
+    for(const monster of this.getEntities().values()){
+      const dot=monster.armorBreakerDot;
+      if(monster.type!=='monster'||!dot||monster.health<=0)continue;
+      if(now>=dot.nextAt){
+        const ticks=Math.min(10,1+Math.floor((now-dot.nextAt)/dot.interval));
+        dot.nextAt+=ticks*dot.interval;
+        const hit=damageMonster(monster,dot.damage*ticks,now);
+        if(hit?.defeated){delete monster.armorBreakerDot;this.firing=false;this.cancelMonsterAssists();this.onVictory(monster);}
       }
     }
     this.updateAutoTarget(stepMs);
