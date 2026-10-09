@@ -163,6 +163,7 @@ export class NavalCombatWebGLRenderer{
     this.muzzles=[];
     this.impacts=[];
     this.destructions=[];
+    this.krakenAttacks=[];
     this.ready=false;
     this.failed=false;
     this.pixelRatio=1;
@@ -372,6 +373,19 @@ export class NavalCombatWebGLRenderer{
     return true;
   }
 
+  // Animated tentacle lash: WebGL point sprites, no extra textures or canvas.
+  attackKraken({from,to,startTime=performance.now(),duration=900,onImpact=null}={}){
+    if(!from||!to||!this.init())return false;
+    if(this.krakenAttacks.length>=(this.reducedFx?3:8))return false;
+    this.krakenAttacks.push({
+      from:{x:Number(from.x)||0,y:Number(from.y)||0},
+      to:{x:Number(to.x)||0,y:Number(to.y)||0},
+      startTime,duration,impactSpawned:false,
+      onImpact:typeof onImpact==="function"?onImpact:null
+    });
+    return true;
+  }
+
   destroyShip({at,size=180,duration=1100,startTime=performance.now()}={}){
     if(!this.init()||!at)return false;
     this.destructions.push({
@@ -428,6 +442,12 @@ export class NavalCombatWebGLRenderer{
         }
       }
     }
+    for(const attack of this.krakenAttacks){
+      if(!attack.impactSpawned && now-attack.startTime>=attack.duration*.76){
+        attack.impactSpawned=true;
+        try{attack.onImpact?.({at:attack.to});}catch(error){console.warn("[TabuadaQuest] Kraken impact failed:",error);}
+      }
+    }
     const compactActive=(list,isActive)=>{
       let write=0;
       for(let read=0;read<list.length;read++){
@@ -442,6 +462,7 @@ export class NavalCombatWebGLRenderer{
     compactActive(this.muzzles,effect=>now-effect.startTime<=effect.duration);
     compactActive(this.impacts,impact=>now-impact.startTime<=impact.duration);
     compactActive(this.destructions,effect=>now-effect.startTime<=effect.duration);
+    compactActive(this.krakenAttacks,attack=>now-attack.startTime<=attack.duration);
 
     const visibleDamage=[];
     if(Array.isArray(damagedShips)){
@@ -456,7 +477,7 @@ export class NavalCombatWebGLRenderer{
         if(item&&Number.isFinite(Number(item.x))&&Number.isFinite(Number(item.y)))visibleTreasures.push(item);
       }
     }
-    if(!this.shots.length&&!this.muzzles.length&&!this.impacts.length&&!this.destructions.length&&!visibleDamage.length&&!visibleTreasures.length)return true;
+    if(!this.shots.length&&!this.muzzles.length&&!this.impacts.length&&!this.destructions.length&&!visibleDamage.length&&!visibleTreasures.length&&!this.krakenAttacks.length)return true;
 
     gl.useProgram(this.program);
     gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);
@@ -490,6 +511,34 @@ export class NavalCombatWebGLRenderer{
       gl.blendFunc(gl.SRC_ALPHA,additive?gl.ONE:gl.ONE_MINUS_SRC_ALPHA);
       gl.drawArrays(gl.POINTS,0,1);
     };
+
+    // Kraken tentacle lash. Teal links arc out and slam into the target; water
+    // shockwave and foam mark impact. Mobile uses fewer points.
+    for(const attack of this.krakenAttacks){
+      const t=clamp((now-attack.startTime)/attack.duration,0,1);
+      const reach=smoothstep(0,.74,t);
+      const dx=attack.to.x-attack.from.x,dy=attack.to.y-attack.from.y;
+      const length=Math.max(1,Math.hypot(dx,dy));
+      const perpendicular={x:-dy/length,y:dx/length};
+      const links=this.reducedFx?9:18;
+      const visible=t<.76?reach:1-smoothstep(.76,1,t);
+      for(let i=0;i<links;i++){
+        const u=i/(links-1);
+        if(u>visible)continue;
+        const bend=Math.sin(u*Math.PI)*(26*Math.sin(t*6.28+u*3.2));
+        const x=attack.from.x+dx*u+perpendicular.x*bend;
+        const y=attack.from.y+dy*u+perpendicular.y*bend;
+        const size=(22-u*12)*(Number(zoom)||1);
+        drawPoint(x,y,size,0,0,false,{color:"#075e61",coreColor:"#37cdb3",glow:.35,opacity:.94});
+        if(!this.reducedFx&&i%3===0)drawPoint(x,y,size*.33,0,0,true,{color:"#67ffcf",coreColor:"#e1fff5",glow:.8,opacity:.65});
+      }
+      if(t>.68){
+        const p=clamp((t-.68)/.32,0,1);
+        const size=clamp(140*(Number(zoom)||1),40,240);
+        drawPoint(attack.to.x,attack.to.y,size,7,p,false,{color:"#32bfc0",coreColor:"#d9fff6",glow:1.2,opacity:1-p});
+        drawPoint(attack.to.x,attack.to.y,size*.72,5,p,true,{color:"#00aebf",coreColor:"#ddfff6",glow:1.1,opacity:.8*(1-p)});
+      }
+    }
 
     // Persistent treasure glow. It uses the same additive WebGL pass as combat FX,
     // so treasure sprites remain untouched and no extra canvas/filter layer is needed.
