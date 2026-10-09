@@ -316,7 +316,7 @@ async function startWorld() {
     return mathGate.open({
       kind:'repair',
       title:forced?'☠️ Navio afundado! Resolva para reparar':'🔧 Consertar o casco',
-      description:'Acerte uma multiplicação para iniciar a recuperação automática de 25% da vida total por segundo.',
+      description:'Acerte uma multiplicação para iniciar a recuperação automática de 10% da vida total por segundo.',
       repeatOnSuccess:false,
       // A successful answer dismisses the math gate automatically.
       locked:false,
@@ -1062,7 +1062,9 @@ async function startWorld() {
       }
       persistPlayerPosition(stepMs);
       firstVoyageGuide?.update();
-      if (sunk || (recovering && repairIsForced)) {
+      // Only a truly sunk ship that has NOT started regeneration is immobilized.
+      // During recovery (including 0 HP immediately after solving), navigation stays enabled.
+      if (sunk && !recovering) {
         clickNavigation.cancel();
         renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
         updateCamera(world, canvas.clientWidth, canvas.clientHeight);
