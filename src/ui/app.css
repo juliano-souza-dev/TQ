@@ -740,3 +740,23 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 /* Island panels must honor native hidden even when grid/flex CSS is defined. */
 .island-panel [hidden], .island-panel[hidden] { display: none !important; }
+
+/* Shipyard opens from the top with paged ships, never a tall scroll list. */
+.island-panel[data-island="shipyard"]{align-items:start;justify-items:center;padding-top:max(8px,env(safe-area-inset-top))}
+.island-panel[data-island="shipyard"] .island-panel-card{box-sizing:border-box;max-height:calc(100dvh - 16px);overflow-y:hidden;display:flex;flex-direction:column;gap:5px;padding:clamp(10px,2vw,17px)}
+.island-panel[data-island="shipyard"] .island-panel-card > h2{margin:0 0 3px}
+.island-panel[data-island="shipyard"] .island-panel-card > p{margin:0 0 3px}
+.island-panel[data-island="shipyard"] .shipyard{min-height:0;display:flex;flex-direction:column}
+.island-panel[data-island="shipyard"] .shipyard-content{min-height:0}
+.island-panel[data-island="shipyard"] .shipyard-view > h3{margin:5px 0}
+.island-panel[data-island="shipyard"] .shipyard-ship-card{margin:5px 0;padding:8px}
+.island-panel[data-island="shipyard"] .shipyard-ship-body{margin-top:4px;grid-template-columns:minmax(80px,27%) minmax(0,1fr)}
+.island-panel[data-island="shipyard"] .shipyard-preview{aspect-ratio:1;max-height:min(24dvh,185px)}
+.island-panel[data-island="shipyard"] .shipyard-stat{font-size:11px;padding-bottom:2px}
+.island-panel[data-island="shipyard"] .shipyard-stats{gap:3px}
+.island-panel[data-island="shipyard"] .island-panel-card button{margin-top:4px}
+.shipyard-ship-pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0}
+.shipyard-page-button{cursor:pointer;border:1px solid #ad864d;border-radius:8px;background:#123b52;color:#ffdd9c;padding:6px 10px;font:700 12px system-ui,sans-serif}
+.shipyard-page-button:disabled{opacity:.4;cursor:default}
+.shipyard-page-indicator{color:#ffe2a9;font:800 12px system-ui,sans-serif}
+@media(max-height:650px){.island-panel[data-island="shipyard"] .shipyard-preview{max-height:100px}.island-panel[data-island="shipyard"] .shipyard-ship-body{grid-template-columns:90px 1fr}}
