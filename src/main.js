@@ -1290,7 +1290,7 @@ async function startWorld() {
     const save=readSave();
     if(save.r2Campaign?.active!=='r2-why-help'||save.storyFlags?.pumpkinAmbushResolved)return;
     const shipId='galeao-halloween-tabuada';
-    const rescueId='galeao-frota-das-aboboras';
+    const rescueId='fragata-sombra-cacadora';
     const e=save.equipment??{};
     const nextOwned=[...new Set([...(e.ownedShipIds??[]).filter(id=>id!==shipId),rescueId])];
     const loadout={[rescueId]:['aetherion-mk1','aetherion-mk1']};
