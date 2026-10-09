@@ -144,6 +144,8 @@ async function startWorld() {
   createCorsairPopulation(world);
   const { createFugitiveFrigatePopulation, updateFugitiveFrigatePopulation, updateNegotiationFrigate, NEGOTIATION_APPROACH_RADIUS } =
     await import('./npcs/FugitiveFrigateNpc.js');
+  const { createTerrorDoMarPopulation, updateTerrorDoMarPopulation } =
+    await import('./npcs/TerrorDoMarNpc.js');
   const { createMonsterPopulation, updateMonsterPopulation, monsterGoldReward } = await import('./monsters/MonsterPopulation.js');
   createMonsterPopulation(world);
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
@@ -330,7 +332,10 @@ async function startWorld() {
         navalHud?.setFeedback('🐙 Kraken derrotado! +' + gold + ' ouro.');
         return;
       }
-      if (world.region.id === 'r2' && npc.id === 'r2-admiral') {
+      if (world.region.id === 'r2' && npc.id === 'r2-terror-do-mar') {
+        recordMissionEvent({type:'terror-do-mar',id:npc.id});
+        navalHud?.setFeedback('☠️ Terror do Mar derrotado!');
+      } else if (world.region.id === 'r2' && npc.id === 'r2-admiral') {
         recordMissionEvent({type:'admiral',id:npc.id});
         recordMissionEvent({type:'defeat',id:npc.id+':'+Date.now()});
         navalHud?.setFeedback('🏴‍☠️ Almirante dos Ladrões derrotado!');
@@ -741,6 +746,12 @@ async function startWorld() {
   if (world.region.id === 'r1' && npcRenderer.hasShipSprite('fragata-sombra-fugitiva')) {
     createFugitiveFrigatePopulation(world);
   }
+  if (world.region.id === 'r2' && npcRenderer.hasShipSprite('terror-do-mar')) {
+    const terrorMission=boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-terror-do-mar');
+    if (!terrorMission?.claimed && (terrorMission?.progress?.[0] ?? 0) < 1) {
+      createTerrorDoMarPopulation(world);
+    }
+  }
   const previousSave = localSaves.load(currentUser.uid);
   const flow = getMissionFlow(previousSave?.payload ?? {}, STARTER_SHIP.id);
   if ((world.region.id === 'r2' && !readSave().progression?.r2PortVisited)
@@ -833,6 +844,7 @@ async function startWorld() {
       updateCorsairPopulation(world, stepMs);
       updateNegotiationFrigate(world, readSave());
       updateFugitiveFrigatePopulation(world, stepMs);
+      updateTerrorDoMarPopulation(world, stepMs);
       updateMonsterPopulation(world, stepMs);
       glintElapsed+=stepMs;
       if(EVENTS.halloween){

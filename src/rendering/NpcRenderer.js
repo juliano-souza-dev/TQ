@@ -1,6 +1,7 @@
 import { STARTER_SHIP, getShipFrame } from '../ships/ShipRegistry.js';
 import { ROSE_GOLD_SHIP } from '../ships/RoseGoldShip.js';
 import { FUGITIVE_FRIGATE_SHIP } from '../ships/FugitiveFrigateShip.js';
+import { TERROR_DO_MAR_SHIP } from '../ships/TerrorDoMarShip.js';
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 import { renderMonsterBlood } from '../monsters/MonsterBloodRenderer.js';
 export class NpcRenderer {
@@ -18,6 +19,9 @@ export class NpcRenderer {
     await loadShipSprite(FUGITIVE_FRIGATE_SHIP)
       .then(image => this.images.set(FUGITIVE_FRIGATE_SHIP.id, image))
       .catch(() => console.warn('Fragata Sombra Fugitiva aguardando sprite no repositório.'));
+    await loadShipSprite(TERROR_DO_MAR_SHIP)
+      .then(image => this.images.set(TERROR_DO_MAR_SHIP.id, image))
+      .catch(() => console.warn('Terror do Mar aguardando sprite no repositório.'));
     const image = new Image();
     image.src = new URL('../../assets/monsters/sea_monster_kraken.webp', import.meta.url).href;
     try { await image.decode(); this.monsterImage = image; } catch (error) { console.warn('Monstro não carregado:', error); }
@@ -81,6 +85,7 @@ export class NpcRenderer {
         continue;
       }
       const ship = npc.shipId === FUGITIVE_FRIGATE_SHIP.id ? FUGITIVE_FRIGATE_SHIP
+        : npc.shipId === TERROR_DO_MAR_SHIP.id ? TERROR_DO_MAR_SHIP
         : npc.shipId === ROSE_GOLD_SHIP.id ? ROSE_GOLD_SHIP : STARTER_SHIP;
       const image = this.images.get(ship.id);
       if (!image) continue;

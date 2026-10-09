@@ -8,12 +8,14 @@ import { ECLIPSE_SHIP } from './EclipseShip.js';
 export { ECLIPSE_SHIP };
 import { SHADOW_CHASER_SHIP } from './ShadowChaserShip.js';
 export { SHADOW_CHASER_SHIP };
+import { TERROR_DO_MAR_SHIP } from './TerrorDoMarShip.js';
+export { TERROR_DO_MAR_SHIP };
 export const SHIP_CATALOG = Object.freeze([HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP, ECLIPSE_SHIP, SHADOW_CHASER_SHIP]);
 
 import { FUGITIVE_FRIGATE_SHIP } from './FugitiveFrigateShip.js';
 export { FUGITIVE_FRIGATE_SHIP };
 // Catálogo NPC separado da frota que o jogador pode adquirir.
-export const NPC_SHIP_CATALOG = Object.freeze([FUGITIVE_FRIGATE_SHIP]);
+export const NPC_SHIP_CATALOG = Object.freeze([FUGITIVE_FRIGATE_SHIP, TERROR_DO_MAR_SHIP]);
 
 import { STARTER_SHIP } from './StarterShip.js';
 export { STARTER_SHIP };
