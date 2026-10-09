@@ -439,8 +439,11 @@ export class NavalBattleController {
       const duration = flightDurationMs(muzzle, destination, speed);
       const damage = shotDamage(cannon, ammo.id);
       const targetId = target.id;
+      const tracking = ammo.trackingDurationMs > 0;
       const accepted = this.renderer.fire({
-        from: muzzle, to: destination, duration, ammo,
+        from: muzzle, to: destination, duration: tracking ? ammo.trackingDurationMs : duration, ammo,
+        // Tracking keeps its original target; never switches to secondary ships.
+        ...(tracking ? { trackingTarget: target, trackingSpeed: speed } : {}),
         impactKind: 'water', startTime: now,
         onImpact: ({ at }) => this.resolvePlayerImpact(targetId, at, damage),
       });
