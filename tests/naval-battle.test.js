@@ -9,6 +9,7 @@ function battleHarness({ renderAccepted = true, mission = 'active', ammoCount = 
     missions: { corsair: mission },
     equipment: { loadout: { starter: ['blue-gold-pirate'] } },
     ammunition: { 'rusted-iron': ammoCount },
+    harpoonAmmo: {'harpoon-mariner':500},
     combat: { shipHealth: 100 },
   };
   const enemy = {
@@ -318,6 +319,7 @@ test('canhão não fere monstro e arpão só fere monstro, com recarga e sem con
   assert.equal(t.shots.length,1);
   assert.equal(t.battle.getStatus().harpoonFiring,true);
   assert.equal(t.save.ammunition['rusted-iron'],20);
+  assert.equal(t.save.harpoonAmmo['harpoon-mariner'],499);
   assert.equal(t.shots[0].onImpact({at:{x:320,y:100}}).kind,'ship');
   assert.equal(t.enemy.health,135);
   t.time=2000;
@@ -326,6 +328,7 @@ test('canhão não fere monstro e arpão só fere monstro, com recarga e sem con
   t.time=3600;
   t.battle.update(16,3600);
   assert.equal(t.shots.length,2);
+  assert.equal(t.save.harpoonAmmo['harpoon-mariner'],498);
   t.battle.setTarget(null);
   assert.equal(t.battle.fireHarpoon(),false);
 });
@@ -333,4 +336,14 @@ test('um único arpão inicial é equipado mesmo em save legado',async()=>{
   const {equippedHarpoon,STARTER_HARPOON}=await import('../src/combat/HarpoonCatalog.js');
   assert.equal(equippedHarpoon({}).id,STARTER_HARPOON.id);
   assert.equal(equippedHarpoon({equipment:{equippedHarpoonId:'unknown',ownedHarpoonIds:['unknown']}}).id,STARTER_HARPOON.id);
+});
+
+test('sem arpões o ataque em monstro é bloqueado sem gastar balas',()=>{
+  const t=battleHarness();
+  t.enemy.type='monster';t.enemy.health=200;
+  t.save.harpoonAmmo['harpoon-mariner']=0;
+  assert.equal(t.battle.getStatus().reason,'harpoon-ammo');
+  assert.equal(t.battle.toggleFire(),false);
+  assert.equal(t.shots.length,0);
+  assert.equal(t.save.ammunition['rusted-iron'],20);
 });
