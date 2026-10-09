@@ -259,3 +259,23 @@ test('multiple cannons use remaining ammo only and never create free shots', () 
   assert.equal(t.shots.length, 2);
   assert.equal(t.save.ammunition['rusted-iron'], 0);
 });
+
+test('Kraken submerso ignora tiro e volta a receber dano ao emergir', () => {
+  let time=1000;
+  const monster={ id:'kraken',type:'monster',health:1650,maxHealth:1650,x:20,y:20 };
+  const attacks=[{monsterId:'kraken',startTime:1000,duration:1720}];
+  const feedback=[];
+  const controller=new NavalBattleController({
+    renderer:{prepareAmmo(){},getKrakenAttacks:()=>attacks,destroy(){}},
+    shipId:'starter',readSave:()=>({combat:{shipHealth:100}}),writePatch(){},
+    getPlayer:()=>({x:0,y:0}),getEntities:()=>new Map([['kraken',monster]]),
+    onFeedback:value=>feedback.push(value),clock:()=>time,
+  });
+  time=1400;
+  assert.equal(controller.resolvePlayerImpact('kraken',{x:20,y:20},50).kind,'water');
+  assert.equal(monster.health,1650);
+  assert.match(feedback.at(-1),/água/);
+  time=2800;
+  assert.equal(controller.resolvePlayerImpact('kraken',{x:20,y:20},50).kind,'ship');
+  assert.equal(monster.health,1600);
+});
