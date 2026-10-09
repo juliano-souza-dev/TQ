@@ -191,7 +191,7 @@ test('mission 13 is Para o Estaleiro, grants 1000 basic balls only after equippi
 
 test('Hora da Caça é a missão 11, recompensa mil munições e exige Kraken derrotado', () => {
   assert.equal(R1_MISSIONS[10].id, 'r1-kraken-hunt');
-  assert.equal(R1_MISSIONS.filter(m => !m.optional).length, 15);
+  assert.equal(R1_MISSIONS.filter(m => !m.optional).length, 16);
   assert.ok(R1_MISSIONS.every(m => m.description.length > 90), 'cada missão recebe narrativa');
   let save = initial();
   save.campaign.claimed = R1_MISSIONS.slice(0, 10).map(m => m.id);
@@ -205,4 +205,33 @@ test('Hora da Caça é a missão 11, recompensa mil munições e exige Kraken de
   const reward = claimCampaignMission(save, 'r1-kraken-hunt');
   assert.ok(reward);
   assert.equal(reward.patch.ammunition['rusted-iron'], 1020);
+});
+
+test('A Negociação, o Golpe encerra a campanha com cinco respostas e roubo único', () => {
+  assert.equal(R1_MISSIONS.at(-2).id,'r1-finale');
+  assert.equal(R1_MISSIONS.at(-3).id,'r1-negotiation');
+  let save = initial();
+  save.campaign.claimed = R1_MISSIONS.filter(m => !m.optional && m.id !== 'r1-negotiation' && m.id !== 'r1-finale').map(m=>m.id);
+  save.profile.gold = 9999;
+  save.equipment = {
+    ...save.equipment, ownedCannonIds:['blue-gold-pirate','royal-lion'],
+    cannonCounts:{'blue-gold-pirate':3,'royal-lion':2},
+    loadout:{starter:['blue-gold-pirate','royal-lion','royal-lion']},
+  };
+  const started=acceptCampaignMission(save,'r1-negotiation');
+  assert.ok(started);
+  save=apply(save,started);
+  for(let i=1;i<=5;i++){
+    const result=resolvePedagogicalAction(save,{kind:'negotiation'},challenge(2,i),true);
+    assert.ok(result);
+    save=apply(save,result.patch);
+    assert.equal(save.campaign.progress['r1-negotiation'][0],i);
+    if(i<5)assert.equal(save.profile.gold,9999);
+  }
+  assert.equal(save.profile.gold,0);
+  assert.deepEqual(save.equipment.ownedCannonIds,['royal-lion']);
+  assert.equal(save.equipment.cannonCounts['royal-lion'],2);
+  assert.deepEqual(save.equipment.loadout.starter,[null,'royal-lion','royal-lion']);
+  assert.equal(resolvePedagogicalAction(save,{kind:'negotiation'},challenge(2,8),true),null);
+  assert.equal(getCampaignBoard(save).missions.find(m=>m.id==='r1-negotiation').status,'ready');
 });
