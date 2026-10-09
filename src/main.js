@@ -31,6 +31,8 @@ let loop = null;
 let oceanRenderer = null;
 let halloweenFogRenderer = null;
 let halloweenFogCanvas = null;
+let cloudCanvas = null;
+let cloudRenderer = null;
 let shipCanvas = null;
 let islandCanvas = null;
 let npcCanvas = null;
@@ -56,6 +58,10 @@ function stopWorld() {
   halloweenFogRenderer = null;
   if (halloweenFogCanvas) halloweenFogCanvas.remove();
   halloweenFogCanvas = null;
+  cloudRenderer?.dispose();
+  cloudRenderer = null;
+  cloudCanvas?.remove();
+  cloudCanvas = null;
   if (navalBattle) navalBattle.dispose();
   navalBattle = null;
   if (navalCanvas) navalCanvas.remove();
@@ -236,7 +242,7 @@ async function startWorld() {
 
   // The regular ocean, missions and ship renderers are never modified for
   // seasonal cosmetics. Disabling the Halloween event removes this entire layer.
-  if (isHalloweenAtmosphereActive(EVENTS)) {
+  if (world.region.id === 'r1' && isHalloweenAtmosphereActive(EVENTS)) {
     halloweenFogCanvas = document.createElement('canvas');
     halloweenFogCanvas.className = 'halloween-fog-layer';
     halloweenFogCanvas.setAttribute('aria-hidden', 'true');
@@ -250,6 +256,15 @@ async function startWorld() {
     }
   }
 
+  if (world.region.id === 'r2') {
+    const { CloudLayerRenderer } = await import('./rendering/CloudLayerRenderer.js');
+    if (generation !== worldGeneration) return;
+    cloudCanvas = document.createElement('canvas');
+    cloudCanvas.className = 'cloud-layer';
+    cloudCanvas.setAttribute('aria-hidden', 'true');
+    root.append(cloudCanvas);
+    cloudRenderer = new CloudLayerRenderer(cloudCanvas);
+  }
   const glintCanvas=document.createElement('canvas');
   glintCanvas.className='glint-layer';
   root.append(glintCanvas);
@@ -892,6 +907,7 @@ async function startWorld() {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       renderer.render(world, oceanTimeMs);
       halloweenFogRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
+      cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
       treasureRenderer.render(getVisibleTreasures(readSave(),Date.now(),world.region.id),world.cameraView,world.camera.zoom,oceanTimeMs);
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
