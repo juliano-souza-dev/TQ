@@ -660,7 +660,20 @@ async function startWorld() {
         navalBattle.setTarget(null);
       }
       npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now());
-      shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom);
+      // Rock the player ship only at the underwater impact, then damp the motion.
+      const renderNow = performance.now();
+      let krakenImpact = null;
+      for (const attack of navalRenderer.getKrakenAttacks()) {
+        const elapsed = renderNow - attack.startTime - 970;
+        if (elapsed < 0 || elapsed > 620) continue;
+        const distance = Math.hypot(world.camera.x - attack.to.x, world.camera.y - attack.to.y);
+        if (distance > 65) continue;
+        const strength = Math.sin(Math.PI * elapsed / 620) * (1 - elapsed / 620);
+        if (!krakenImpact || strength > krakenImpact.strength) {
+          krakenImpact = { strength, phase: elapsed / 100 };
+        }
+      }
+      shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom, krakenImpact);
       navalBattle.render(performance.now(),world.cameraView,world.camera.zoom,canvas.clientWidth,canvas.clientHeight);
       minimap.render();
       const gr=glintCanvas.getBoundingClientRect(),gd=Math.min(window.devicePixelRatio||1,2);
