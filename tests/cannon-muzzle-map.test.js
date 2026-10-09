@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spriteCannonMuzzle } from '../src/ships/CannonMuzzleMap.js';
 import { ROSE_GOLD_SHIP } from '../src/ships/RoseGoldShip.js';
+import { TERROR_DO_MAR_SHIP } from '../src/ships/TerrorDoMarShip.js';
+import { PUMPKIN_FLEET_GALLEON_SHIP } from '../src/ships/PumpkinFleetGalleonShip.js';
 import { STARTER_SHIP } from '../src/ships/StarterShip.js';
 import { getShipFrame } from '../src/ships/ShipRegistry.js';
 
@@ -32,6 +34,41 @@ test('Rosas de Ouro utiliza as cinco bocas visíveis de cada quadro marcado', ()
       assert.ok(mapped, 'Boca presente, quadro ' + frame + ', slot ' + slot);
       assert.ok(Math.abs(mapped.x - (player.x + (muzzles[slot][0] / 400 - .5) * size.width)) < .001);
       assert.ok(Math.abs(mapped.y - (player.y + (muzzles[slot][1] / 400 - .5) * size.height)) < .001);
+    }
+  }
+});
+test('Terror do Mar mapeia os dez slots em todos os quadros laterais', () => {
+  for (const [frame, side] of frameSides) {
+    const heading = ((frame - 4 + 16) % 16) * 22.5;
+    assert.equal(getShipFrame(heading, TERROR_DO_MAR_SHIP), frame);
+    const muzzles = TERROR_DO_MAR_SHIP.sprite.cannonMuzzles[frame]?.[side];
+    assert.equal(muzzles?.length, 10, 'dez origens no quadro ' + frame);
+    const target = targetOnSide(heading, side);
+    for (let slot = 0; slot < TERROR_DO_MAR_SHIP.cannonSlots; slot++) {
+      assert.ok(spriteCannonMuzzle(TERROR_DO_MAR_SHIP, player, target, heading, slot, size),
+        'Terror do Mar quadro ' + frame + ', slot ' + slot);
+    }
+  }
+  assert.equal(spriteCannonMuzzle(TERROR_DO_MAR_SHIP, player, targetOnSide(0, 'starboard'), 0, 0, size), null,
+    'vista N usa fallback porque o quadro físico 4 não expõe a bateria');
+  assert.equal(spriteCannonMuzzle(TERROR_DO_MAR_SHIP, player, targetOnSide(180, 'port'), 180, 0, size), null,
+    'vista S usa fallback porque o quadro físico 12 não expõe a bateria');
+});
+test('Frota das Abóboras mapeia os oito slots em todo o giro', () => {
+  for (let frame = 0; frame < 16; frame++) {
+    const heading = frame * 22.5;
+    assert.equal(getShipFrame(heading, PUMPKIN_FLEET_GALLEON_SHIP), frame);
+    const sides = frame === 0 || frame === 8
+      ? ['port', 'starboard']
+      : frame < 8 ? ['starboard'] : ['port'];
+    for (const side of sides) {
+      const muzzles = PUMPKIN_FLEET_GALLEON_SHIP.sprite.cannonMuzzles[frame]?.[side];
+      assert.equal(muzzles?.length, 8, 'oito origens no quadro ' + frame + ' / ' + side);
+      const target = targetOnSide(heading, side);
+      for (let slot = 0; slot < PUMPKIN_FLEET_GALLEON_SHIP.cannonSlots; slot++) {
+        assert.ok(spriteCannonMuzzle(PUMPKIN_FLEET_GALLEON_SHIP, player, target, heading, slot, size),
+          'Frota das Abóboras quadro ' + frame + ', ' + side + ', slot ' + slot);
+      }
     }
   }
 });
