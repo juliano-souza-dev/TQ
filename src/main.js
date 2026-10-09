@@ -262,24 +262,29 @@ async function startWorld() {
       });
     }
   }
-  // Campaign migration: the Forgotten Island rendezvous was inserted after
-  // Golden Galleon II. Older saves must play it before the ambush, without
-  // forfeiting any already-earned rewards or equipment.
+  // Retroactively enforce the new rendezvous even for players who already
+  // reached "Em Busca de Pistas" through the older direct ambush flow.
   {
-    const save=readSave(),state=save.r2Campaign??{};
-    const claimed=state.claimed??[];
-    const arrivedAtAmbush=['r2-why-help','r2-search-clues','r2-do-me-favor',
+    const save=readSave(),state=save.r2Campaign??{},claimed=state.claimed??[];
+    const later=['r2-why-help','r2-search-clues','r2-do-me-favor',
       'r2-monster-meat','r2-mystery-light','r2-dark-voyage'];
-    const advanced=claimed.includes('r2-golden-ii') &&
-      (arrivedAtAmbush.includes(state.active) ||
-        arrivedAtAmbush.some(id=>claimed.includes(id)));
-    const meetingFinished=claimed.includes('r2-meet-forgotten')
-      || save.storyFlags?.pumpkinAmbushResolved;
-    if(advanced && !meetingFinished){
-      writePatch({r2Campaign:{...state,active:'r2-meet-forgotten',
-        claimed:claimed.filter(id=>!arrivedAtAmbush.includes(id)),
-        progress:{...state.progress,'r2-meet-forgotten':[0]},
-        processed:(state.processed??[]).filter(id=>!id.startsWith('forgotten-meeting:'))}});
+    const skippedMeeting=!claimed.includes('r2-meet-forgotten')
+      && (later.includes(state.active)||later.some(id=>claimed.includes(id)));
+    if(skippedMeeting){
+      const equipment=save.equipment??{};
+      const terrorId='galeao-halloween-tabuada';
+      writePatch({
+        r2Campaign:{...state,active:'r2-meet-forgotten',
+          claimed:claimed.filter(id=>!later.includes(id)),
+          progress:{...state.progress,'r2-meet-forgotten':[0]},
+          processed:(state.processed??[]).filter(id=>!id.startsWith('forgotten-meeting:'))},
+        // Players caught by the old ambush must be able to sail to the island
+        // on the required ship, without deleting their current inventory.
+        equipment:{...equipment,equippedShipId:terrorId,
+          ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),terrorId])]},
+        storyFlags:{...save.storyFlags,pumpkinAmbushResolved:false,terrorTabuadaDestroyed:false},
+        combat:{...save.combat,shipHealth:Math.max(100,Number(save.combat?.shipHealth)||0)},
+      });
     }
   }
   // Repair legacy rewards: Caçadora das Sombras must be owned before
