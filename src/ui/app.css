@@ -475,3 +475,16 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .thief-guide.is-visible-target .thief-guide-arrow {width:37px;height:37px;font-size:29px;}
 @keyframes thief-guide-glow {from {box-shadow:0 0 0 3px #062b3699,0 0 8px #f1bf5860;}to {box-shadow:0 0 0 3px #062b3699,0 0 19px #ffe390bd;}}
 @media(prefers-reduced-motion:reduce){.thief-guide-arrow{animation:none;}}
+
+
+/* Confirmação da passagem marítima no limite entre regiões. */
+.region-exit-dialog[hidden] {display:none!important;}
+.region-exit-dialog {position:fixed;inset:0;z-index:75;display:grid;place-items:center;
+  padding:18px;background:rgba(1,18,29,.72);backdrop-filter:blur(4px);}
+.region-exit-card {width:min(100%,430px);padding:26px 20px;border:2px solid #e7bc69;border-radius:20px;
+  background:linear-gradient(160deg,#143e59,#091e35);color:#ffefc8;text-align:center;
+  box-shadow:0 20px 55px #000a,inset 0 0 22px #e3b85819;}
+.region-exit-card h2 {margin:0 0 12px;font-size:clamp(22px,5vw,28px);}
+.region-exit-card p {line-height:1.5;margin:0 0 18px;}
+.region-exit-card > div {display:flex;flex-wrap:wrap;justify-content:center;gap:10px;}
+.region-exit-card button {min-height:46px;}
