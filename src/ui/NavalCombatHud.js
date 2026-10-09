@@ -86,7 +86,9 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   frame.alt = '';
   const selectedIcon = document.createElement('img');
   selectedIcon.className = 'naval-consumables-icon';
-  selectedIcon.src = new URL('../../assets/consumables/5X em Chamas.png',import.meta.url).href;
+  selectedIcon.src = new URL('../../assets/consumables/5X-em-Chamas.png',import.meta.url).href;
+  // Compatibility while the hyphenated asset is being uploaded to the repository.
+  selectedIcon.onerror = () => { selectedIcon.onerror=null; selectedIcon.src=new URL('../../assets/consumables/5X em Chamas.png',import.meta.url).href; };
   selectedIcon.alt = '';
   const countLabel = document.createElement('span');
   countLabel.className = 'naval-consumables-count';
@@ -99,10 +101,12 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   noneOption.textContent = '🔒 Nenhum consumível';
   const flameOption = document.createElement('button');
   flameOption.type = 'button';
+  const shieldOption = document.createElement('button');
+  shieldOption.type='button';
   const activateOption = document.createElement('button');
   activateOption.type = 'button';
   activateOption.className = 'naval-consumables-activate';
-  picker.append(noneOption,flameOption,activateOption);
+  picker.append(noneOption,flameOption,shieldOption,activateOption);
   consumablesWrap.append(consumablesButton,picker);
   attackControls.append(fireButton, fireIconButton, consumablesWrap, centerButton, repairButton);
   element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
@@ -113,15 +117,18 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   }
 
   function refresh() {
-    const consumable = controller.getConsumables();
-    const remaining = Math.max(0,Math.ceil((consumable.cooldownUntil-Date.now())/1000));
-    const active = Math.max(0,Math.ceil((consumable.activeUntil-Date.now())/1000));
-    const qty = Math.max(0,Number(consumable.quantities['flame-5x'])||0);
-    selectedIcon.hidden = consumable.selectedId === 'none';
-    countLabel.textContent = consumable.selectedId === 'none' ? '🔒' : String(qty);
-    flameOption.textContent = '🔥 5X em Chamas · '+qty+' unidades';
-    activateOption.textContent = active ? '🔥 Ativo: '+active+'s' : remaining ? '⏳ Recarga: '+remaining+'s' : '🔥 Ativar 5X por 60s';
-    activateOption.disabled = active>0 || remaining>0 || qty<=0 || consumable.selectedId==='none';
+    const consumable=controller.getConsumables();
+    const shieldSelected=consumable.selectedId==='shield',noneSelected=consumable.selectedId==='none';
+    const now=Date.now();
+    const remaining=Math.max(0,Math.ceil(((shieldSelected?consumable.shieldCooldownUntil:consumable.cooldownUntil)-now)/1000));
+    const active=Math.max(0,Math.ceil(((shieldSelected?consumable.shieldActiveUntil:consumable.activeUntil)-now)/1000));
+    const qty=Math.max(0,Number(consumable.quantities[consumable.selectedId])||0);
+    selectedIcon.hidden=noneSelected||shieldSelected;
+    countLabel.textContent=noneSelected?'🔒':shieldSelected?'🛡️ '+qty:String(qty);
+    flameOption.textContent='🔥 5X em Chamas · '+(consumable.quantities['flame-5x']||0)+' unidades';
+    shieldOption.textContent='🛡️ Escudo · '+(consumable.quantities.shield||0)+' unidades';
+    activateOption.textContent=active?'Ativo: '+active+'s':remaining?'⏳ Recarga: '+remaining+'s':shieldSelected?'🛡️ Ativar escudo (45s)':'🔥 Ativar 5X (60s)';
+    activateOption.disabled=active>0||remaining>0||qty<=0||noneSelected;
         const cameraDetached = Boolean(isCameraDetached());
     centerButton.disabled = !cameraDetached;
     centerButton.classList.toggle('is-available', cameraDetached);
@@ -185,6 +192,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   consumablesButton.addEventListener('click', () => { picker.hidden = !picker.hidden; refresh(); });
   noneOption.addEventListener('click', () => {controller.selectConsumable('none');picker.hidden=true;refresh();});
   flameOption.addEventListener('click', () => {controller.selectConsumable('flame-5x');picker.hidden=false;refresh();});
+  shieldOption.addEventListener('click',()=>{controller.selectConsumable('shield');refresh();});
   activateOption.addEventListener('click', () => {
     const result = controller.activateConsumable();
     setFeedback(result.reason);
