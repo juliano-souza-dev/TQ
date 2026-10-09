@@ -106,7 +106,7 @@ export function updateFugitiveFrigate(npc, player, region, deltaMs, random = Mat
 }
 
 export function createFugitiveFrigatePopulation(world, random = Math.random) {
-  const id = 'fugitive-frigate-r1-01';
+  const id = 'fugitive-frigate-' + world.region.id + '-01';
   if (world.entities.has(id)) return false;
   const point = spawnPosition(world.region, world.camera, random);
   if (!point) return false;
