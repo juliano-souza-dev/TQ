@@ -1,3 +1,4 @@
+import { BLACK_MARKET_SHIP } from '../ships/BlackMarketShip.js';
 import { GOLDEN_GALLEON_SHIP, PUMPKIN_FLEET_GALLEON_SHIP } from '../ships/ShipRegistry.js';
 import { STARTER_SHIP, getShipFrame } from '../ships/ShipRegistry.js';
 import { HALLOWEEN_TABUADA_SHIP } from '../ships/HalloweenTabuadaShip.js';
@@ -19,7 +20,7 @@ export class NpcRenderer {
     await loadShipSprite(FUGITIVE_FRIGATE_SHIP)
       .then(image => this.images.set(FUGITIVE_FRIGATE_SHIP.id, image))
       .catch(() => console.warn('Fragata Sombra Fugitiva aguardando sprite no repositório.'));
-    await Promise.all([GOLDEN_GALLEON_SHIP,PUMPKIN_FLEET_GALLEON_SHIP].map(ship=>
+    await Promise.all([GOLDEN_GALLEON_SHIP,PUMPKIN_FLEET_GALLEON_SHIP,BLACK_MARKET_SHIP].map(ship=>
       loadShipSprite(ship).then(image=>this.images.set(ship.id,image))
         .catch(()=>console.warn('NPC aguardando sprite:',ship.id))));
     const image = new Image();
@@ -84,7 +85,8 @@ export class NpcRenderer {
         }
         continue;
       }
-      const ship = npc.shipId === GOLDEN_GALLEON_SHIP.id ? GOLDEN_GALLEON_SHIP
+      const ship = npc.shipId === BLACK_MARKET_SHIP.id ? BLACK_MARKET_SHIP
+        : npc.shipId === GOLDEN_GALLEON_SHIP.id ? GOLDEN_GALLEON_SHIP
         : npc.shipId === PUMPKIN_FLEET_GALLEON_SHIP.id ? PUMPKIN_FLEET_GALLEON_SHIP
         : npc.shipId === FUGITIVE_FRIGATE_SHIP.id ? FUGITIVE_FRIGATE_SHIP
         : npc.shipId === HALLOWEEN_TABUADA_SHIP.id ? HALLOWEEN_TABUADA_SHIP : STARTER_SHIP;
