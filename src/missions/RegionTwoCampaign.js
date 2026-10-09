@@ -1,0 +1,47 @@
+// Campanha independente da Costa dos Corsários.
+export const R2_MISSIONS = Object.freeze([
+  {id:'r2-thieves',name:'Frota dos Ladrões',description:'Alguns corsários juraram lealdade ao ladrão que fugiu com suas riquezas. Destrua a frota e recupere as arcas que escondem pistas do Grande Tesouro.',objectives:[{kind:'defeat',count:50,label:'Destruir 50 corsários'},{kind:'treasure',count:20,label:'Resgatar 20 tesouros'}],reward:{gold:750,iron:2000}},
+  {id:'r2-informant',name:'O Corsário Informante',description:'Um capitão conhece o esconderijo do ladrão. Afunde cinco navios da escolta e resolva três desafios para obter sua informação.',objectives:[{kind:'defeat',count:5,label:'Derrotar 5 navios da escolta'},{kind:'study',count:3,label:'Resolver 3 multiplicações'}],reward:{gold:200,iron:2000}},
+  {id:'r2-map',name:'O Mapa Rasgado',description:'O informante revelou um mapa dividido em três partes. Resgate três arcas para recuperar seus fragmentos.',objectives:[{kind:'treasure',count:3,label:'Encontrar 3 fragmentos em arcas'}],reward:{gold:500,iron:500}},
+  {id:'r2-island',name:'A Ilha Esquecida',description:'Os fragmentos indicam uma ilha esquecida. Navegue até ela e decifre três desafios para revelar o esconderijo.',objectives:[{kind:'discover',count:1,label:'Encontrar a Ilha Esquecida'},{kind:'study',count:3,label:'Decifrar 3 multiplicações'}],reward:{gold:700,iron:800}},
+  {id:'r2-admiral',name:'O Almirante dos Ladrões',description:'O ladrão serve a um poderoso almirante. Rompa a guarda e destrua o navio do comandante para recuperar parte da fortuna.',objectives:[{kind:'defeat',count:10,label:'Destruir 10 navios da guarda'},{kind:'admiral',count:1,label:'Afundar o Almirante dos Ladrões'}],reward:{gold:2000,iron:3000}},
+].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze))})));
+
+const stateOf = save => save.r2Campaign ?? {active:null,claimed:[],progress:{},processed:[]};
+export function getR2Board(save={}) {
+  const state=stateOf(save);
+  const missions=R2_MISSIONS.map((m,i)=>{
+    const progress=m.objectives.map((o,j)=>Math.min(o.count,Number(state.progress?.[m.id]?.[j])||0));
+    const claimed=state.claimed.includes(m.id);
+    const active=state.active===m.id;
+    const status=claimed?'claimed':active?(progress.every((v,j)=>v>=m.objectives[j].count)?'ready':'active'):i===0||state.claimed.includes(R2_MISSIONS[i-1].id)?'available':'locked';
+    return {...m,progress,status,claimed,active,ready:status==='ready'};
+  });
+  return {missions,essentialClaimed:state.claimed.length,unlockedRegion:1,activeRegion:2,active:missions.filter(m=>m.active),claimable:missions.filter(m=>m.ready),available:missions.filter(m=>m.status==='available')};
+}
+export function acceptR2Mission(save,id) {
+  const board=getR2Board(save), mission=board.missions.find(m=>m.id===id);
+  if(!mission||mission.status!=='available'||board.active.length)return null;
+  const state=stateOf(save);
+  return {r2Campaign:{...state,active:id,progress:{...state.progress,[id]:mission.objectives.map(()=>0)}}};
+}
+export function recordR2Event(save,event) {
+  const state=stateOf(save),mission=R2_MISSIONS.find(m=>m.id===state.active);
+  if(!mission)return null;
+  const key=event.id?event.type+':'+event.id:null;
+  if(key&&state.processed?.includes(key))return null;
+  const current=state.progress?.[mission.id]??mission.objectives.map(()=>0);
+  let changed=false;
+  const progress=mission.objectives.map((task,i)=>{
+    if(task.kind!==event.type||current[i]>=task.count)return current[i];
+    changed=true;
+    return Math.min(task.count,current[i]+1);
+  });
+  return changed?{r2Campaign:{...state,progress:{...state.progress,[mission.id]:progress},processed:key?[...(state.processed??[]).slice(-299),key]:state.processed??[]}}:null;
+}
+export function claimR2Mission(save,id) {
+  const mission=getR2Board(save).missions.find(m=>m.id===id);
+  if(mission?.status!=='ready')return null;
+  const state=stateOf(save),ammo=save.ammunition??{};
+  return {mission,patch:{r2Campaign:{...state,active:null,claimed:[...state.claimed,id]},profile:{...save.profile,gold:(Number(save.profile?.gold)||0)+(mission.reward.gold||0)},ammunition:{...ammo,'rusted-iron':(Number(ammo['rusted-iron'])||0)+(mission.reward.iron||0)}}};
+}
