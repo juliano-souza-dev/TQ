@@ -574,6 +574,19 @@ async function startWorld() {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getEntities: () => world.entities,
     onFeedback: message => navalHud?.setFeedback(message),
+    onPlayerSunk: npcId => {
+      if(npcId!=='r2-morbi'||readSave().r2Campaign?.active!=='r2-golden-i')return;
+      recordMissionEvent({type:'morbi-defeat-player',id:'first-sinking'});
+      const outcome=campaignFor('r2').claim(readSave(),'r2-golden-i');
+      if(outcome)writePatch(outcome.patch);
+      const mission=campaignFor('r2').accept(readSave(),'r2-strengthen-ship');
+      if(mission)writePatch(mission);
+      const save=readSave();
+      writePatch({combat:{...(save.combat??{}),shipHealth:100}});
+      navalBattle.firing=false;
+      showOceanReward('☠️ Morbi afundou seu navio! Reúna recursos para reforçá-lo.');
+      updateMissionHud();
+    },
     onVictory: npc => {
       const save = readSave();
       if (npc.type === 'monster') {
@@ -1112,6 +1125,20 @@ async function startWorld() {
       if (world.region.id === 'r2') {
         const active = boardFor(readSave(),world.region.id).active[0];
         const island = world.region.islands.find(i=>i.id==='r2-scenery-north');
+        // Stage-I Morbi enters the ocean physically, with 900,000 HP.
+        const morbiStage=['r2-golden-i','r2-strengthen-ship','r2-black-market','r2-golden-ii'].includes(active?.id);
+        if(morbiStage && !world.entities.has('r2-morbi')){
+          world.entities.set('r2-morbi',{
+            id:'r2-morbi',name:'Morbi · Galeão Dourado',type:'npc',
+            archetype:'golden-galleon',shipId:'galeao-dourado',
+            x:Math.min(world.region.width-280,world.camera.x+650),
+            y:Math.min(world.region.height-280,world.camera.y+430),
+            heading:180,health:900000,maxHealth:900000,
+            state:'retaliating',aggression:'attack',cannonSlots:20,
+            range:1200,damage:150,
+          });
+        }
+        if(!morbiStage)world.entities.delete('r2-morbi');
         if (active?.id === 'r2-island' && island &&
             Math.hypot(world.camera.x-island.x,world.camera.y-island.y) <= 650) {
           if ((active.progress?.[0] ?? 0) < 1)
