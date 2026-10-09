@@ -924,7 +924,7 @@ async function startWorld() {
         if(result.mission.reward?.shipUpgrade){
           const upgraded=readSave();
           writePatch({shipUpgrades:{...(upgraded.shipUpgrades??{}),masterShipwright:true},
-            combat:{...(upgraded.combat??{}),shipHealth:Math.max(1500,Number(upgraded.combat?.shipHealth)||0)}});
+            combat:{...(upgraded.combat??{}),shipHealth:upgraded.equipment?.equippedShipId==='fragata-sombra-cacadora' ? Math.max(100,Math.min(600,Number(upgraded.combat?.shipHealth)||0)) : Math.max(1500,Number(upgraded.combat?.shipHealth)||0)}});
           showOceanReward('🔨 Mestre construtor contratado! Cascos reforçados e novos espaços de canhão.');
         }
         navalHud.refresh();
@@ -952,7 +952,7 @@ async function startWorld() {
       ships: playableShips,
       loadout: equipment.loadout ?? {},
       ownedCannonIds: equipment.ownedCannonIds ?? [],
-      getEquipment: () => readSave().equipment ?? {},
+      getEquipment: () => ({...(readSave().equipment??{}),masterShipwright:Boolean(readSave().shipUpgrades?.masterShipwright)}),
       equippedShipId: initialShip.id,
       onEquipShip: async shipId => {
         const save = readSave();
