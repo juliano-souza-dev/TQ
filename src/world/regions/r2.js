@@ -22,5 +22,12 @@ export const R2 = Object.freeze({
     scenery('r2-scenery-north', 1200, 3580, 1080, 900, 740),
     scenery('r2-scenery-south', 3180, 4200, 1020, 850, 690),
   ]),
-  ocean: Object.freeze({ ...R1.ocean }),
+  ocean: Object.freeze({
+    ...R1.ocean,
+    // Parâmetros efetivamente consumidos pelo WebGL do oceano.
+    brightness: 115, saturation: 110, contrast: 93,
+    tintR: 99, tintG: 123, tintB: 133,
+    speed: 35, swell: 32, foamMix: 32,
+    sparkleIntensity: 28,
+  }),
 });
