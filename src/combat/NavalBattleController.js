@@ -235,6 +235,14 @@ export class NavalBattleController {
 
   resolvePlayerImpact(targetId, at, damage) {
     const target = this.getEntities().get(targetId);
+    // Submerged Kraken cannot be hit: projectiles splash in the ocean.
+    const underwater = target?.type === 'monster' && (this.renderer.getKrakenAttacks?.() ?? [])
+      .some(attack => attack.monsterId === targetId && this.clock() >= attack.startTime + 300
+        && this.clock() < attack.startTime + 1720);
+    if (underwater) {
+      this.onFeedback('💦 Kraken submerso! A bala caiu na água.');
+      return { kind: 'water' };
+    }
     if (!shipCollision(at, target, 56)) {
       this.onFeedback('💦 A bala caiu na água.');
       return { kind: 'water' };
@@ -266,7 +274,7 @@ export class NavalBattleController {
       if(now<(this.nextKrakenStrike.get(monster.id)??-Infinity))continue;
       const destination={x:player.x,y:player.y};
       const accepted=this.renderer.attackKraken?.({
-        from:monster,to:destination,monsterId:monster.id,startTime:now,duration:1400,
+        from:monster,to:destination,monsterId:monster.id,startTime:now,duration:1720,
         onImpact:({at})=>{
           const ship=this.getPlayer();
           const current=this.getEntities().get(monster.id);
