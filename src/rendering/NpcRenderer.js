@@ -89,14 +89,15 @@ export class NpcRenderer {
       const frameW = image.width / columns;
       const frameH = image.height / rows;
       const frame = getShipFrame(npc.heading ?? 0, ship);
+      const shipSize = ship.id === FUGITIVE_FRIGATE_SHIP.id ? size * 0.7 : size;
       const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
       const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
-      if (x < -size || x > w + size || y < -size || y > h + size) continue;
+      if (x < -shipSize || x > w + shipSize || y < -shipSize || y > h + shipSize) continue;
       if (npc.id === selectedId) {
         ctx.save();
         ctx.strokeStyle = '#ffd36c'; ctx.lineWidth = 3 * dpr;
         ctx.shadowColor = '#ffd36c'; ctx.shadowBlur = 12 * dpr;
-        ctx.beginPath(); ctx.ellipse(x, y + size * 0.20, size * 0.37, size * 0.17, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(x, y + shipSize * 0.20, shipSize * 0.37, shipSize * 0.17, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
       }
       // Espelhamento opcional, exclusivamente no desenho do sprite.
@@ -110,24 +111,24 @@ export class NpcRenderer {
         ctx.translate(x, y);
         ctx.scale(-1, 1);
         ctx.drawImage(image, (frame % columns) * frameW, Math.floor(frame / columns) * frameH,
-          frameW, frameH, -size / 2, -size / 2, size, size);
+          frameW, frameH, -shipSize / 2, -shipSize / 2, shipSize, shipSize);
         ctx.restore();
       } else {
         ctx.drawImage(image, (frame % columns) * frameW, Math.floor(frame / columns) * frameH,
-          frameW, frameH, x - size / 2, y - size / 2, size, size);
+          frameW, frameH, x - shipSize / 2, y - shipSize / 2, shipSize, shipSize);
       }
       {
         ctx.save();
         ctx.font = 'bold ' + Math.round(13 * dpr) + 'px system-ui';
         ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
         ctx.lineWidth = 4 * dpr; ctx.strokeStyle = '#061729';
-        ctx.strokeText(npc.name, x, y - size * 0.57);
-        ctx.fillStyle = '#fff0bc'; ctx.fillText(npc.name, x, y - size * 0.57);
+        ctx.strokeText(npc.name, x, y - shipSize * 0.57);
+        ctx.fillStyle = '#fff0bc'; ctx.fillText(npc.name, x, y - shipSize * 0.57);
         ctx.restore();
       }
-      const barW = size * 0.55;
-      ctx.fillStyle = '#152233'; ctx.fillRect(x - barW / 2, y - size * 0.52, barW, 5 * dpr);
-      ctx.fillStyle = '#e45e52'; ctx.fillRect(x - barW / 2, y - size * 0.52, barW * npc.health / npc.maxHealth, 5 * dpr);
+      const barW = shipSize * 0.55;
+      ctx.fillStyle = '#152233'; ctx.fillRect(x - barW / 2, y - shipSize * 0.52, barW, 5 * dpr);
+      ctx.fillStyle = '#e45e52'; ctx.fillRect(x - barW / 2, y - shipSize * 0.52, barW * npc.health / npc.maxHealth, 5 * dpr);
     }
   }
 }
