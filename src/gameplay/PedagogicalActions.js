@@ -67,6 +67,9 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
     message = completed === 5
       ? '☠️ Era um golpe! O ladrão levou todo o ouro e os canhões mais fracos. Seu melhor canhão foi poupado.'
       : 'Acordo em andamento: ' + completed + '/5 continhas.';
+  } else if (type === 'informant') {
+    patch = {};
+    message = 'O informante revela mais uma pista.';
   } else if (type === 'practice') {
     patch = {};
     message = 'Tabuada praticada.';
