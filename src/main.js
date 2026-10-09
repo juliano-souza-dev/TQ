@@ -1118,6 +1118,11 @@ async function startWorld() {
         navalBattle.selectedAmmoId = navalBattle.resolveSelectedAmmo();
         navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
         navalHud?.refresh();
+        if(world.region.id==='r2' && readSave().r2Campaign?.active==='r2-equip-market'
+          && getIslandContact(world.region,world.camera.x,world.camera.y,42)?.kind==='shipyard'
+          && (loadout[activeShip.id]??[]).some(id=>id==='aetherion-mk1'||id==='royal-lion')){
+          recordMissionEvent({type:'market-equip',id:'market-cannons-equipped'});
+        }
         const slots = loadout[STARTER_SHIP.id] ?? [];
         if (slots.filter(Boolean).length >= STARTER_SHIP.cannonSlots)
           recordMissionEvent({ type: 'equip' });
