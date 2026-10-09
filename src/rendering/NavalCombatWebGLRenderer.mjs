@@ -313,7 +313,7 @@ export class NavalCombatWebGLRenderer{
     return {src,ready:entry?.ready===true,failed:entry?.failed===true};
   }
 
-  fire({from,to,duration=620,startTime=performance.now(),onImpact=null,ammo=null,impactKind="ship"}={}){
+  fire({from,to,duration=620,startTime=performance.now(),onImpact=null,ammo=null,impactKind="ship",trackingTarget=null,trackingSpeed=420}={}){
     if(!this.init())return false;
     if(!from||!to)return false;
     const normalizedAmmo=ammo&&typeof ammo==="object"?ammo:{};
@@ -328,7 +328,11 @@ export class NavalCombatWebGLRenderer{
       // Optional live target keeps the visual projectile attached to the same
       // collision result while ships are moving.
       target:to?.target&&typeof to.target==="object"?to.target:null,
-      duration:clamp(Number(duration)||620,80,8000),
+      duration:clamp(Number(duration)||620,80,trackingTarget?9000:8000),
+      trackingTarget,
+      trackingSpeed:Math.max(1,Number(trackingSpeed)||420),
+      current:{x:Number(from.x)||0,y:Number(from.y)||0},
+      trackingLastTime:Number(startTime)||performance.now(),
       startTime:Number(startTime)||performance.now(),
       impactSpawned:false,
       impactKind:impactKind==="water"?"water":(impactKind==="monster"?"monster":"ship"),
@@ -409,6 +413,30 @@ export class NavalCombatWebGLRenderer{
     const now=Number(time)||performance.now();
 
     for(const shot of this.shots){
+      if(shot.trackingTarget && !shot.impactSpawned) {
+        const target=shot.trackingTarget;
+        const dt=Math.max(0,Math.min(0.1,(now-shot.trackingLastTime)/1000));
+        shot.trackingLastTime=now;
+        if(target.health>0 && dt>0) {
+          const dx=target.x-shot.current.x,dy=target.y-shot.current.y;
+          const dist=Math.hypot(dx,dy);
+          const step=shot.trackingSpeed*dt;
+          if(dist<=Math.max(56,step)) {
+            shot.current.x=target.x;
+            shot.current.y=target.y;
+            shot.to={...shot.current};
+            shot.duration=Math.max(80,now-shot.startTime);
+          } else {
+            shot.current.x+=dx/dist*step;
+            shot.current.y+=dy/dist*step;
+          }
+        }
+        if(target.health<=0) {
+          shot.to={...shot.current};
+          shot.duration=Math.max(80,now-shot.startTime);
+        }
+        if(now-shot.startTime>=shot.duration) shot.to={...shot.current};
+      }
       if(shot.target){
         shot.to.x=Number(shot.target.visualX??shot.target.x??shot.to.x)||shot.to.x;
         shot.to.y=Number(shot.target.visualY??shot.target.y??shot.to.y)||shot.to.y;
@@ -646,8 +674,8 @@ export class NavalCombatWebGLRenderer{
         const dx=shot.to.x-shot.from.x,dy=shot.to.y-shot.from.y;
         const length=Math.max(1,Math.hypot(dx,dy));
         const wobble=Math.sin(t*Math.PI*8)*fx.projectile.wobble*18;
-        const x=shot.from.x+dx*eased+(-dy/length)*wobble;
-        const y=shot.from.y+dy*eased+(dx/length)*wobble;
+        const x=shot.trackingTarget?shot.current.x:shot.from.x+dx*eased+(-dy/length)*wobble;
+        const y=shot.trackingTarget?shot.current.y:shot.from.y+dy*eased+(dx/length)*wobble;
         if(fx.trail.enabled&&fx.trail.length>0){
           const trailSteps=this.reducedFx?Math.min(4,Math.max(1,Math.ceil(fx.trail.length*.18))):Math.min(10,Math.max(0,Math.ceil(fx.trail.length*.45)));
           for(let step=trailSteps;step>=1;step--){
