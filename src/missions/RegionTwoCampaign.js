@@ -6,6 +6,9 @@ export const R2_MISSIONS = Object.freeze([
   {id:'r2-island',name:'A Ilha Esquecida',description:'Os fragmentos indicam uma ilha esquecida. Navegue até ela e decifre três desafios para revelar o esconderijo.',objectives:[{kind:'discover',count:1,label:'Encontrar a Ilha Esquecida'},{kind:'study',count:3,label:'Decifrar 3 multiplicações'}],reward:{gold:700,iron:800}},
   {id:'r2-admiral',name:'O Almirante dos Ladrões',description:'O ladrão serve a um poderoso almirante. Rompa a guarda e destrua o navio do comandante para recuperar parte da fortuna.',objectives:[{kind:'defeat',count:10,label:'Destruir 10 navios da guarda'},{kind:'admiral',count:1,label:'Afundar o Almirante dos Ladrões'}],reward:{gold:2000,iron:3000}},
   {id:'r2-false-admiral',name:'O Falso Almirante',description:'Entre os destroços, uma revelação: o capitão derrotado era um impostor. O verdadeiro Almirante nem sequer navega por estas águas. Vasculhe as arcas da Costa dos Corsários e encontre pistas de seu paradeiro.',objectives:[{kind:'treasure',count:15,label:'Coletar 15 tesouros em busca de pistas'}],reward:{gold:650,iron:1200}},
+  {id:'r2-shadow-plans',name:'Os Planos da Fragata',description:'As pistas revelam o modelo do navio do ladrão: uma fragata veloz. Recupere as plantas roubadas nas arcas dos corsários.',objectives:[{kind:'treasure',count:12,label:'Recuperar 12 arcas com peças dos planos'}],reward:{gold:900,iron:900}},
+  {id:'r2-shadow-materials',name:'Madeira e Pólvora',description:'A velocidade exige um casco leve e artilharia preparada. Afunde os corsários que guardam as peças para construir sua própria fragata.',objectives:[{kind:'defeat',count:25,label:'Afundar 25 corsários para reunir materiais'}],reward:{gold:1200,iron:1800}},
+  {id:'r2-shadow-trials',name:'A Caçadora das Sombras',description:'O mestre do estaleiro terminou sua fragata. Prove que sabe navegar: resgate cinco arcas e vença dez corsários antes de receber o navio.',objectives:[{kind:'treasure',count:5,label:'Resgatar 5 arcas de suprimentos'},{kind:'defeat',count:10,label:'Derrotar 10 corsários na prova final'}],reward:{gold:500,ships:['fragata-sombra-cacadora']}},
 ].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze))})));
 
 const stateOf = save => save.r2Campaign ?? {active:null,claimed:[],progress:{},processed:[]};
@@ -43,6 +46,6 @@ export function recordR2Event(save,event) {
 export function claimR2Mission(save,id) {
   const mission=getR2Board(save).missions.find(m=>m.id===id);
   if(mission?.status!=='ready')return null;
-  const state=stateOf(save),ammo=save.ammunition??{};
-  return {mission,patch:{r2Campaign:{...state,active:null,claimed:[...state.claimed,id]},profile:{...save.profile,gold:(Number(save.profile?.gold)||0)+(mission.reward.gold||0)},ammunition:{...ammo,'rusted-iron':(Number(ammo['rusted-iron'])||0)+(mission.reward.iron||0)}}};
+  const state=stateOf(save),ammo=save.ammunition??{},equipment=save.equipment??{};
+  return {mission,patch:{r2Campaign:{...state,active:null,claimed:[...state.claimed,id]},profile:{...save.profile,gold:(Number(save.profile?.gold)||0)+(mission.reward.gold||0)},ammunition:{...ammo,'rusted-iron':(Number(ammo['rusted-iron'])||0)+(mission.reward.iron||0)},...(mission.reward.ships?.length?{equipment:{...equipment,ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),...mission.reward.ships])]}}:{})}};
 }
