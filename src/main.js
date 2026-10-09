@@ -1083,6 +1083,7 @@ async function startWorld() {
       && (Number(save.equipment?.cannonCounts?.['royal-lion'])||0)>=8;
   }
   const islandPanel = createIslandPanel({
+    getRegionId: () => world.region.id,
     missionBoardOptions: {
       getBoard: () => boardFor(readSave(),world.region.id),
       getPedagogy: () => readSave().pedagogy ?? {},
