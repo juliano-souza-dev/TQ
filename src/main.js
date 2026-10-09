@@ -395,6 +395,28 @@ async function startWorld() {
   exitCard.append(exitHeading,exitDescription,exitActions);
   exitDialog.append(exitCard);
   root.append(exitDialog);
+  const exitBeacon = document.createElement('div');
+  exitBeacon.className = 'region-exit-beacon';
+  exitBeacon.hidden = true;
+  exitBeacon.setAttribute('aria-hidden','true');
+  exitBeacon.innerHTML = '<span class="region-exit-beacon-ring">✦</span><span class="region-exit-beacon-label">Costa dos Corsários</span>';
+  root.append(exitBeacon);
+  function updateExitBeacon() {
+    const mission = getCampaignBoard(readSave()).missions.find(item => item.id === 'r1-finale');
+    const target = world.region.id === 'r1' && mission && ['active','ready','claimed'].includes(mission.status)
+      ? world.region.exitPoint : null;
+    if (!target) { exitBeacon.hidden = true; return; }
+    const x = canvas.clientWidth / 2 + (target.x - world.cameraView.x) * world.camera.zoom;
+    const y = canvas.clientHeight / 2 + (target.y - world.cameraView.y) * world.camera.zoom;
+    if (x < -100 || x > canvas.clientWidth+100 || y < -100 || y > canvas.clientHeight+100) {
+      exitBeacon.hidden = true;
+      return;
+    }
+    exitBeacon.style.left = x + 'px';
+    exitBeacon.style.top = y + 'px';
+    exitBeacon.hidden = false;
+  }
+
   let exitDismissed = false;
   exitStay.addEventListener('click',()=>{exitDialog.hidden=true;exitDismissed=true;});
   exitTravel.addEventListener('click',()=>{
@@ -815,6 +837,7 @@ async function startWorld() {
       navalBattle.render(performance.now(),world.cameraView,world.camera.zoom,canvas.clientWidth,canvas.clientHeight);
       minimap.render();
       updateThiefGuide();
+      updateExitBeacon();
       const gr=glintCanvas.getBoundingClientRect(),gd=Math.min(window.devicePixelRatio||1,2);
       const gw=Math.max(1,Math.round(gr.width*gd)),gh=Math.max(1,Math.round(gr.height*gd));
       if(glintCanvas.width!==gw||glintCanvas.height!==gh){glintCanvas.width=gw;glintCanvas.height=gh;}
