@@ -445,3 +445,26 @@ test('informante ativo não é selecionável nem recebe dano de disparos em voo'
   assert.equal(t.battle.setTarget(t.enemy.id, { manual: true }), true);
   assert.equal(t.battle.getTarget()?.id, 'r2-informant');
 });
+
+test('missão 11 prioriza ladrão e exige Caçadora com Canhão Real Dourado', () => {
+  const t = battleHarness();
+  const thief = {id:'fugitive-frigate-r2-01',type:'npc',archetype:'fugitive-frigate',name:'Ladrão da Sombra',
+    x:300,y:100,heading:0,health:100000,maxHealth:100000,state:'fleeing',aggression:'flee',cannonSlots:1};
+  t.battle.getRegionId=()=> 'r2';
+  t.save.r2Campaign={active:'r2-destroy-thief'};
+  t.battle.getEntities=()=>new Map([[thief.id,thief],[t.enemy.id,t.enemy]]);
+  t.battle.updateAutoTarget(200);
+  assert.equal(t.battle.targetId,thief.id);
+  assert.equal(t.battle.setTarget(t.enemy.id,{manual:true}),false);
+  assert.equal(t.battle.getStatus().reason,'thief-equipment');
+  t.battle.shipId='fragata-sombra-cacadora';
+  t.save.equipment.loadout['fragata-sombra-cacadora']=['royal-lion'];
+  assert.equal(t.battle.getStatus().ready,true);
+  t.battle.fireNpcVolleys(1000);
+  const projectile=t.shots.at(-1);
+  assert.ok(projectile,'Ladrão dispara seu próprio projétil');
+  assert.equal(projectile.onImpact({at:{x:t.player.x,y:t.player.y}}).kind,'ship');
+  assert.equal(t.save.combat.shipHealth,97);
+  t.battle.fireNpcVolleys(2000);
+  assert.equal(t.shots.length,1,'recarga deve impedir disparo antecipado');
+});
