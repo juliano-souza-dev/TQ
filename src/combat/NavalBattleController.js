@@ -70,7 +70,19 @@ export class NavalBattleController {
     return Boolean(entity?.informantProtected || (entity?.id === 'r2-informant' && entity?.name === 'Corsário Informante'));
   }
 
+  getThiefMissionTarget() {
+    if (this.getRegionId() !== 'r2' || this.readSave().r2Campaign?.active !== 'r2-destroy-thief') return null;
+    return [...this.getEntities().values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0) ?? null;
+  }
+
+  canHuntThief() {
+    return this.shipId === 'fragata-sombra-cacadora'
+      && armedCannons(this.readSave(), this.shipId).some(({ cannon }) => cannon.id === 'royal-lion');
+  }
+
   setTarget(id, { manual = false } = {}) {
+    const thief = this.getThiefMissionTarget();
+    if (thief && id && id !== thief.id) return false;
     if (id && this.isProtectedInformant(this.getEntities().get(id))) return false;
     if (this.targetId !== id) { this.firing = false; this.cancelMonsterAssists(); }
     this.targetId = id || null;
@@ -85,6 +97,11 @@ export class NavalBattleController {
     this.targetScanElapsedMs += Math.max(0, stepMs);
     if (this.targetScanElapsedMs < 150) return false;
     this.targetScanElapsedMs = 0;
+    const thief = this.getThiefMissionTarget();
+    if (thief) {
+      if (this.targetId !== thief.id) this.setTarget(thief.id, { manual: true });
+      return true;
+    }
     const battery = armedCannons(this.readSave(), this.shipId);
     const maxRange = Math.max(equippedHarpoon(this.readSave()).range, battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0);
     const player = this.getPlayer();
@@ -140,7 +157,8 @@ export class NavalBattleController {
       || save.missions?.corsair === 'active'
       || (save.missions?.corsair === 'complete' && (save.campaign?.active?.length ?? 0) > 0);
     let reason = 'ready';
-    if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
+    if (this.getThiefMissionTarget() && !this.canHuntThief()) reason = 'thief-equipment';
+    else if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
     else if (monsterTarget && distance > harpoon.range) reason = 'range';
     else if (monsterTarget && harpoonStock(save) <= 0) reason = 'harpoon-ammo';
     else if (!monsterTarget && !missionActive) reason = 'mission';
@@ -441,6 +459,9 @@ export class NavalBattleController {
 
   resolvePlayerImpact(targetId, at, damage) {
     const target = this.getEntities().get(targetId);
+    const lockedThief = this.getThiefMissionTarget();
+    if (lockedThief && target?.id !== lockedThief.id) return { kind: 'water' };
+    if (lockedThief && !this.canHuntThief()) return { kind: 'water' };
     if (this.isProtectedInformant(target)) {
       this.onFeedback('🕊️ O informante não pode ser atacado durante a missão.');
       return { kind: 'water' };
@@ -520,6 +541,18 @@ export class NavalBattleController {
     const player = this.getPlayer();
     if (this.getHealth() <= 0) return;
     for (const npc of this.getEntities().values()) {
+      if (npc.archetype === 'fugitive-frigate' && this.getThiefMissionTarget()?.id === npc.id) {
+        if (distanceBetween(npc, player) > 840 || now < (this.nextNpcShot.get(npc.id) ?? -Infinity)) continue;
+        const muzzle = cannonHardpoint(npc, player, npc.heading, 0, 1);
+        const aim = aimWithAccuracy(player, muzzle, .68, this.random);
+        const fired = this.renderer.fire({
+          from: muzzle, to: aim, duration: flightDurationMs(muzzle, aim, 400),
+          ammo: this.enemyAmmo, impactKind: 'water', startTime: now,
+          onImpact: ({ at }) => this.resolveNpcImpact(npc.id, at, 3),
+        });
+        if (fired) this.nextNpcShot.set(npc.id, now + 3000);
+        continue;
+      }
       if (npc.type !== 'npc' || npc.health <= 0 || npc.state !== 'retaliating' ||
         npc.aggression === 'flee' || npc.cannonSlots === 0) continue;
       if (distanceBetween(npc, player) > 340) continue;
@@ -535,15 +568,15 @@ export class NavalBattleController {
     }
   }
 
-  resolveNpcImpact(npcId, point) {
+  resolveNpcImpact(npcId, point, damage = 5) {
     const player = this.getPlayer();
     if (!shipCollision(point, { ...player, health: this.getHealth() }, 56)) {
       return { kind: 'water' };
     }
     const save = this.readSave();
-    const health = Math.max(0, this.getHealth() - 5);
+    const health = Math.max(0, this.getHealth() - damage);
     this.writePatch({ combat: { ...save.combat, shipHealth: health } });
-    this.onFeedback('💥 Corsário acertou seu casco! ' + health + '/100 PV.');
+    this.onFeedback('💥 Navio inimigo acertou seu casco! -' + damage + ' PV. ' + health + '/100 PV.');
     if (!health) {
       this.firing = false;
       this.onFeedback('☠️ Navio destruído. Procure reparos.');
