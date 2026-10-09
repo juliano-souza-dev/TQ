@@ -440,7 +440,7 @@ async function startWorld() {
       exitDescription.textContent = 'Conclua as missões anteriores para liberar a travessia.';
       return;
     }
-    writePatch({ ...patch, playerPosition:{x:650,y:950} });
+    writePatch({ ...patch, playerPosition:{x:650,y:1020} });
     exitDialog.hidden=true;
     startWorld();
   });
