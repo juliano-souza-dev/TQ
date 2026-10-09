@@ -5,7 +5,7 @@ import { targetNavigationVector } from './WorldNavigationInput.mjs';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 
 const PLAYER_COLLISION_RADIUS = 32;
-const KRAKEN_COLLISION_RADIUS = 54;
+const KRAKEN_COLLISION_RADIUS = 54 * 1.75;
 
 // Resolve movement against living Kraken bodies, keeping sliding along the edge.
 // Sweep the segment to stop fast ships from crossing between two frames.
