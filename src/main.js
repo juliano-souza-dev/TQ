@@ -989,10 +989,19 @@ async function startWorld() {
           if (npc.archetype !== 'fugitive-frigate') continue;
           if (thiefMission) {
             // Inicializar uma única vez: nunca repor PV após os disparos.
-            if (!npc.thiefBossInitialized && npc.health > 0) {
-              npc.maxHealth = 100000;
-              npc.health = 100000;
-              npc.thiefBossInitialized = true;
+            if (!npc.thiefBossInitialized) {
+              const savedBoss=readSave().r2ThiefBoss;
+              const hp=Number(savedBoss?.health);
+              npc.maxHealth=100000;
+              npc.health=savedBoss?.missionId==='r2-destroy-thief' && Number.isFinite(hp)
+                ? Math.max(0,Math.min(100000,hp)) : 100000;
+              if (savedBoss?.missionId==='r2-destroy-thief') {
+                if(Number.isFinite(Number(savedBoss.x)))npc.x=Number(savedBoss.x);
+                if(Number.isFinite(Number(savedBoss.y)))npc.y=Number(savedBoss.y);
+                if(Number.isFinite(Number(savedBoss.heading)))npc.heading=Number(savedBoss.heading);
+              }
+              npc.thiefBossInitialized=true;
+              if(npc.health<=0)npc.state='sunk';
             }
             npc.cannonSlots = 1;
             npc.range = 840;
