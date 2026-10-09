@@ -15,9 +15,9 @@ export const R2 = Object.freeze({
   name: 'Costa dos Corsários',
   width: 4096,
   height: 5120,
-  spawn: Object.freeze({ x: 180, y: 1100 }),
+  spawn: Object.freeze({ x: 650, y: 950 }),
   islands: Object.freeze([
-    port('missions', 1150, 1450),
+    port('missions', 1070, 1450),
     port('shipyard', 3000, 1650),
     scenery('r2-scenery-north', 1200, 3580, 1080, 900, 740),
     scenery('r2-scenery-south', 3180, 4200, 1020, 850, 690),
