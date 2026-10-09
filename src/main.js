@@ -116,6 +116,13 @@ async function startWorld() {
     : (await import('./world/regions/r1.js')).R1;
   const world = createWorldState(region);
   const savedPosition = localSaves.load(currentUser.uid)?.payload?.playerPosition;
+  // Saves da primeira versão de R2 entravam em mar vazio (180, 1100).
+  // Migre apenas esse ponto exato, sem sobrescrever a navegação já realizada.
+  if (world.region.id === 'r2' && savedPosition &&
+      Math.hypot(savedPosition.x - 180, savedPosition.y - 1100) < 5) {
+    savedPosition.x = world.region.spawn.x;
+    savedPosition.y = world.region.spawn.y;
+  }
   if (savedPosition && Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y)) {
     const { collidesWithIsland } = await import('./world/IslandCollision.js');
     if (savedPosition.x >= 0 && savedPosition.x <= world.region.width && savedPosition.y >= 0 && savedPosition.y <= world.region.height && !collidesWithIsland(world.region, savedPosition.x, savedPosition.y, 32)) {
@@ -433,7 +440,7 @@ async function startWorld() {
       exitDescription.textContent = 'Conclua as missões anteriores para liberar a travessia.';
       return;
     }
-    writePatch({ ...patch, playerPosition:{x:180,y:1100} });
+    writePatch({ ...patch, playerPosition:{x:650,y:950} });
     exitDialog.hidden=true;
     startWorld();
   });
@@ -517,7 +524,7 @@ async function startWorld() {
       onStartRegion2: () => {
         const patch = activateNextRegion(readSave());
         if (!patch) return false;
-        writePatch({ ...patch, playerPosition: { x:180, y:1100 } });
+        writePatch({ ...patch, playerPosition: { x:650, y:950 } });
         startWorld();
         return true;
       },
