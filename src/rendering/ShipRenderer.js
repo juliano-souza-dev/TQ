@@ -38,7 +38,7 @@ export class ShipRenderer {
     const factor = targetSize / Math.max(frameWidth, frameHeight) / (Math.max(.001, zoom) * dpr);
     return { width: frameWidth * factor, height: frameHeight * factor };
   }
-  render(headingDegrees, shipPosition, cameraView, zoom = 1) {
+  render(headingDegrees, shipPosition, cameraView, zoom = 1, impact = null) {
     const ctx = this.ctx;
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -57,8 +57,22 @@ export class ShipRenderer {
     const scale = targetSize / Math.max(frameWidth, frameHeight);
     const drawW = frameWidth * scale;
     const drawH = frameHeight * scale;
+    const centerX = w / 2 + (shipPosition.x - cameraView.x) * zoom * dpr;
+    const centerY = h / 2 + (shipPosition.y - cameraView.y) * zoom * dpr;
+    // Temporary roll/pitch from a Kraken hit; sprite heading and cannon pivots stay unchanged.
+    const strength = Math.max(0, Math.min(1, Number(impact?.strength) || 0));
+    const phase = Number(impact?.phase) || 0;
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    if (strength > 0) {
+      ctx.translate(Math.sin(phase * 2.6) * 3 * strength * dpr,
+        -Math.sin(phase * 3.2) * 6 * strength * dpr);
+      ctx.rotate(Math.sin(phase * 2.2) * .065 * strength);
+      ctx.scale(1 + Math.sin(phase * 4.1) * .026 * strength,
+        1 - Math.sin(phase * 4.1) * .026 * strength);
+    }
     ctx.drawImage(this.image, (frame % columns) * frameWidth, Math.floor(frame / columns) * frameHeight,
-      frameWidth, frameHeight, (w - drawW) / 2 + (shipPosition.x - cameraView.x) * zoom * dpr,
-      (h - drawH) / 2 + (shipPosition.y - cameraView.y) * zoom * dpr, drawW, drawH);
+      frameWidth, frameHeight, -drawW / 2, -drawH / 2, drawW, drawH);
+    ctx.restore();
   }
 }
