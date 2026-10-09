@@ -410,3 +410,29 @@ button:disabled { opacity: .55; cursor: not-allowed; }
     flex:0 0 64px;width:64px;height:64px;min-width:64px;min-height:64px;
   }
 }
+
+
+/* Reparo naval: a aura acompanha visualmente o navio durante os 10 segundos de cura. */
+.ship-repair-aura[hidden], .sinking-repair-overlay[hidden] {display:none!important;}
+.ship-repair-aura {
+  position:fixed;left:50%;top:50%;z-index:6;pointer-events:none;
+  width:140px;height:140px;transform:translate(-50%,-50%);
+  border:3px solid rgba(66,255,132,.7);border-radius:50%;
+  background:radial-gradient(circle,rgba(67,255,122,.2),transparent 70%);
+  box-shadow:0 0 28px 9px rgba(56,255,119,.36),inset 0 0 24px rgba(88,255,130,.3);
+  animation:hull-repair-pulse 1.4s ease-in-out infinite alternate;
+}
+.ship-repair-aura span {position:absolute;color:#8cffab;font:900 36px/1 system-ui,sans-serif;text-shadow:0 0 14px #42ff70;animation:hull-repair-plus 1.9s ease-in-out infinite;}
+.ship-repair-aura span:nth-child(1){left:5%;top:60%;animation-delay:0s;}
+.ship-repair-aura span:nth-child(2){left:78%;top:24%;animation-delay:.35s;}
+.ship-repair-aura span:nth-child(3){left:34%;top:0%;animation-delay:.7s;}
+.ship-repair-aura span:nth-child(4){left:70%;top:79%;animation-delay:1.05s;}
+.ship-repair-aura span:nth-child(5){left:12%;top:20%;animation-delay:1.4s;}
+@keyframes hull-repair-pulse {from{opacity:.68;scale:.94;}to{opacity:1;scale:1.12;}}
+@keyframes hull-repair-plus {0%{opacity:0;transform:translateY(18px) scale(.65);}45%{opacity:1;}100%{opacity:0;transform:translateY(-27px) scale(1.12);}}
+.sinking-repair-overlay {
+  position:fixed;inset:0;z-index:74;background:rgba(0,10,15,.76);display:grid;
+  place-items:center;padding:20px;text-align:center;
+  color:#bdffcb;font:800 clamp(18px,5vw,28px)/1.5 system-ui,sans-serif;
+}
+@media (prefers-reduced-motion:reduce){.ship-repair-aura,.ship-repair-aura span{animation:none;}}
