@@ -777,8 +777,12 @@ async function startWorld() {
   clickNavigation = createClickNavigation(canvas, world, point => {
     const npc = findNpcAtPoint(world.entities, point.x, point.y);
     if (npc) {
+      if(!navalBattle.setTarget(npc.id, { manual: true })){
+        if(world.region.id==='r2' && readSave().r2Campaign?.active==='r2-golden-ii')
+          navalHud.setFeedback('🎯 Durante o Galeão Dourado II, apenas Morbi pode ser selecionado.');
+        return true;
+      }
       selectedNpcId = npc.id;
-      navalBattle.setTarget(npc.id, { manual: true });
       navalHud.setFeedback('🎯 Alvo selecionado: ' + npc.name);
       navalHud.refresh();
       return true;
