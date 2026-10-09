@@ -170,7 +170,7 @@ async function startWorld() {
     onSolved: (action, clean) => resolveMathAction(action, clean),
   });
   root.append(mathGate.element);
-  let repairIsForced = false;
+  let repairIsForced = Number(readSave().combat?.repairingFrom) === 0 && Boolean(readSave().combat?.repairingUntil);
   let repairTickMs = 0;
   const repairAura = document.createElement('div');
   repairAura.className = 'ship-repair-aura';
@@ -581,7 +581,7 @@ async function startWorld() {
         navalBattle.firing = false;
         beginRepairSession(true);
       }
-      sinkingOverlay.hidden = !sunk || !recovering;
+      sinkingOverlay.hidden = !(recovering && repairIsForced);
       // Marcador visual acompanha a selecao automatica.
       selectedNpcId = navalBattle.targetId;
       hudRefreshElapsed += stepMs;
