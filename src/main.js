@@ -603,6 +603,9 @@ async function startWorld() {
         && save.r2Campaign?.active === 'r2-destroy-thief') {
         recordMissionEvent({type:'thief',id:npc.id});
         showOceanReward('🏴‍☠️ Ladrão das Sombras afundado!');
+      } else if (world.region.id === 'r2' && npc.id === 'r2-morbi' && save.r2Campaign?.active === 'r2-golden-ii') {
+        recordMissionEvent({type:'morbi-defeat',id:npc.id});
+        showOceanReward('🏆 Galeão Dourado afundado! Morbi foi derrotado.');
       } else if (world.region.id === 'r2' && npc.id === 'r2-admiral') {
         recordMissionEvent({type:'admiral',id:npc.id});
         recordMissionEvent({type:'defeat',id:npc.id+':'+Date.now()});
@@ -1145,6 +1148,30 @@ async function startWorld() {
           });
         }
         if(!morbiStage)world.entities.delete('r2-morbi');
+        const morbi=world.entities.get('r2-morbi');
+        if(morbi){
+          // In the intermediary missions Morbi survives but cannot be attacked or retaliate.
+          morbi.state=active?.id==='r2-golden-i'||active?.id==='r2-golden-ii'?'retaliating':'idle';
+          if(active?.id==='r2-golden-ii'){
+            const dx=world.camera.x-morbi.x,dy=world.camera.y-morbi.y;
+            const distance=Math.hypot(dx,dy);
+            if(distance>220){
+              const travel=Math.min(distance-220,Math.max(0,stepMs)*.22);
+              morbi.x+=dx/distance*travel;morbi.y+=dy/distance*travel;
+              morbi.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+            }
+          }
+        }
+        if(active?.id==='r2-golden-ii'&&!world.entities.has('r2-pumpkin-ally')){
+          world.entities.set('r2-pumpkin-ally',{
+            id:'r2-pumpkin-ally',name:'Galeão da Frota das Abóboras',
+            type:'npc',archetype:'pumpkin-ally',shipId:'galeao-frota-das-aboboras',
+            x:Math.max(150,world.camera.x-260),y:Math.max(150,world.camera.y-180),
+            heading:90,health:100000,maxHealth:100000,state:'ally',
+            aggression:'ally',cannonSlots:8,
+          });
+        }
+        if(active?.id!=='r2-golden-ii')world.entities.delete('r2-pumpkin-ally');
         if (active?.id === 'r2-island' && island &&
             Math.hypot(world.camera.x-island.x,world.camera.y-island.y) <= 650) {
           if ((active.progress?.[0] ?? 0) < 1)
