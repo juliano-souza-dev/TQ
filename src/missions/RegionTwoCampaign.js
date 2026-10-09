@@ -16,6 +16,12 @@ export const R2_MISSIONS = Object.freeze([
   {id:'r2-black-market',name:'Mercado Negro',description:'Encontre o mercador, resolva a multiplicação e negocie o lote especial. A missão só avança depois de confirmar a troca de todo o ouro e munição comum.',objectives:[{kind:'black-market',count:1,label:'Comprar o pacote do Mercador do Mercado Negro'}],reward:{}},
   {id:'r2-equip-market',name:'Preparar a Revanche',description:'Após a troca no Mercado Negro, navegue até o Estaleiro e equipe no seu navio os canhões recebidos antes de enfrentar Morbi novamente.',objectives:[{kind:'market-equip',count:1,label:'Ir ao Estaleiro e equipar os canhões do pacote do Mercado Negro'}],reward:{}},
   {id:'r2-golden-ii',name:'Galeão Dourado II',description:'Morbi retornou e caça sua embarcação pelo mapa. Enfrente o Galeão Dourado com o apoio do Galeão da Frota das Abóboras.',objectives:[{kind:'morbi-defeat',count:1,label:'Afundar o Galeão Dourado'}],reward:{gold:1500,ships:['galeao-dourado']}},
+
+  {id:'r2-why-help',name:'Por que me ajudou?',description:'A bordo do Terror da Tabuada, descubra por que o Galeão da Frota das Abóboras o ajudou. Uma frota de 50 navios surge antes que você obtenha respostas.',objectives:[{kind:'pumpkin-ambush',count:1,label:'Enfrentar a emboscada dos 50 galeões da frota'}],reward:{}},
+  {id:'r2-search-clues',name:'Em Busca de Pistas',description:'O Terror da Tabuada foi destruído. A bordo do veloz Galeão da Frota das Abóboras, procure pistas sobre os atacantes.',objectives:[{kind:'treasure',count:10,label:'Coletar 10 tesouros'}],reward:{gold:250}},
+  {id:'r2-do-me-favor',name:'Me Faça um Favor',description:'Trabalhe como matador para ganhar informações: elimine 25 navios inimigos.',objectives:[{kind:'defeat',count:25,label:'Afundar 25 NPCs'}],reward:{}},
+  {id:'r2-monster-meat',name:'Carne de Monstro',description:'O próximo favor exige carne de monstro. Encontre e derrote um monstro marinho.',objectives:[{kind:'defeat',count:1,archetype:'kraken',label:'Derrotar 1 monstro marinho'}],reward:{}},
+  {id:'r2-mystery-light',name:'Uma Luz para o Mistério',description:'As pistas apontam para a identidade da Frota do Mestre do Terror e para as águas escuras do Capitão Terror.',objectives:[{kind:'study',count:1,label:'Resolver a última multiplicação e descobrir o destino'}],reward:{}},
 ].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze))})));
 
 const stateOf = save => save.r2Campaign ?? {active:null,claimed:[],progress:{},processed:[]};
@@ -44,7 +50,7 @@ export function recordR2Event(save,event) {
   const current=state.progress?.[mission.id]??mission.objectives.map(()=>0);
   let changed=false;
   const progress=mission.objectives.map((task,i)=>{
-    if(task.kind!==event.type||current[i]>=task.count||task.ship&&task.ship!==event.ship)return current[i];
+    if(task.kind!==event.type||current[i]>=task.count||task.ship&&task.ship!==event.ship||task.archetype&&task.archetype!==event.archetype)return current[i];
     changed=true;
     return Math.min(task.count,current[i]+1);
   });
