@@ -289,11 +289,64 @@ async function startWorld() {
   }
 
   const { spriteCannonMuzzle } = await import('./ships/CannonMuzzleMap.js');
+  // Reward notifications belong to the ocean viewport, not the combat menu.
+  const rewardToastLayer=document.createElement('div');
+  rewardToastLayer.className='ocean-reward-toast-layer';
+  rewardToastLayer.setAttribute('aria-live','polite');
+  root.append(rewardToastLayer);
+  function showOceanReward(message){
+    const toast=document.createElement('div');
+    toast.className='ocean-reward-toast';
+    toast.textContent=String(message);
+    rewardToastLayer.append(toast);
+    setTimeout(()=>toast.remove(),3500);
+  }
+  const missionCompleteOverlay=document.createElement('div');
+  missionCompleteOverlay.className='mission-complete-overlay';
+  missionCompleteOverlay.hidden=true;
+  const missionCompleteCard=document.createElement('section');
+  missionCompleteCard.className='mission-complete-card';
+  missionCompleteCard.setAttribute('role','dialog');
+  missionCompleteCard.setAttribute('aria-modal','true');
+  const missionCompleteTitle=document.createElement('h2');
+  const missionCompleteText=document.createElement('p');
+  const goShipyard=document.createElement('button');
+  goShipyard.className='primary-button';goShipyard.type='button';
+  goShipyard.textContent='⚓ Voltar ao Estaleiro';
+  const keepSailing=document.createElement('button');
+  keepSailing.className='secondary-button';keepSailing.type='button';
+  keepSailing.textContent='Continuar navegando';
+  missionCompleteCard.append(missionCompleteTitle,missionCompleteText,goShipyard,keepSailing);
+  missionCompleteOverlay.append(missionCompleteCard);root.append(missionCompleteOverlay);
+  keepSailing.addEventListener('click',()=>{missionCompleteOverlay.hidden=true;});
+  goShipyard.addEventListener('click',()=>{
+    missionCompleteOverlay.hidden=true;
+    const island=world.region.islands.find(i=>i.kind==='shipyard');
+    if(!island)return;
+    // Stop just outside the island artwork, on the side nearest the player.
+    const horizontal=Math.abs(world.camera.x-island.x)>Math.abs(world.camera.y-island.y);
+    const destination=horizontal
+      ?{x:island.x+Math.sign(world.camera.x-island.x||1)*(Number(island.width||820)/2+20),y:island.y}
+      :{x:island.x,y:island.y+Math.sign(world.camera.y-island.y||1)*(Number(island.height||690)/2+20)};
+    world.manualCamera=null;
+    clickNavigation?.setDestination(destination);
+    showOceanReward('⚓ Rota para o Estaleiro definida!');
+  });
+  function announceMissionCompletion(name){
+    if(!missionCompleteOverlay.hidden)return;
+    missionCompleteTitle.textContent='🏆 Missão concluída!';
+    missionCompleteText.textContent=name+' · Objetivo alcançado. Sua recompensa aguarda resgate no Porto das Missões.';
+    missionCompleteOverlay.hidden=false;
+  }
   function recordMissionEvent(event) {
+    const before=boardFor(readSave(),world.region.id);
     const patch = campaignFor(world.region.id).record(readSave(), event);
     if (!patch) return false;
     writePatch(patch);
     updateMissionHud();
+    const after=boardFor(readSave(),world.region.id);
+    const finished=after.missions.find(m=>m.status==='ready' && before.missions.find(old=>old.id===m.id)?.status!=='ready');
+    if(finished){showOceanReward('🏆 Missão concluída: '+finished.name);announceMissionCompletion(finished.name);}
     return true;
   }
   const supplyChest = {x:2035,y:1550};
@@ -307,6 +360,7 @@ async function startWorld() {
       writePatch({consumables:{...c,chaseChestClaimed:true,
         quantities:{...q,'flame-5x':(Number(q['flame-5x'])||0)+10,shield:(Number(q.shield)||0)+10}}});
       navalHud?.refresh();
+      showOceanReward('🧰 +10 5X em Chamas · +10 Escudos');
       return 'Baú resgatado: +10 5X em Chamas e +10 Escudos!';
     }
     const result = resolvePedagogicalAction(readSave(), action, action.challenge, cleanAnswer);
@@ -333,7 +387,7 @@ async function startWorld() {
     }
     updateMissionHud();
     navalHud?.refresh();
-    navalHud?.setFeedback('🧮 ' + result.message);
+    if (['treasure','repair','accept-mission'].includes(action.kind))showOceanReward(result.message);
     return result.message;
   }
   const mathGate = createMathGate({
@@ -441,21 +495,21 @@ async function startWorld() {
           type: 'defeat', archetype: npc.archetype,
           id: npc.id + ':' + Date.now() + ':' + performance.now(),
         });
-        navalHud?.setFeedback('🐙 Kraken derrotado! +' + gold + ' ouro.');
+        showOceanReward('🐙 Kraken derrotado! +'+gold+' ouro');
         return;
       }
       if (world.region.id === 'r2' && npc.archetype === 'fugitive-frigate'
         && save.r2Campaign?.active === 'r2-destroy-thief') {
         recordMissionEvent({type:'thief',id:npc.id});
-        navalHud?.setFeedback('🏴‍☠️ Ladrão das Sombras afundado! Missão cumprida.');
+        showOceanReward('🏴‍☠️ Ladrão das Sombras afundado!');
       } else if (world.region.id === 'r2' && npc.id === 'r2-admiral') {
         recordMissionEvent({type:'admiral',id:npc.id});
         recordMissionEvent({type:'defeat',id:npc.id+':'+Date.now()});
-        navalHud?.setFeedback('🏴‍☠️ Almirante dos Ladrões derrotado!');
+        showOceanReward('🏴‍☠️ Almirante dos Ladrões derrotado!');
       } else if (world.region.id === 'r1' && save.missions?.corsair === 'active' && npc.archetype === 'red-sail-corsair') {
         writePatch({ missions: { ...save.missions, corsair: 'complete' } });
         updateMissionHud();
-        navalHud?.setFeedback('🏆 ' + npc.name + ' afundado! Agora explore as missões livremente.');
+        showOceanReward('🏆 '+npc.name+' afundado!');
       } else {
         recordMissionEvent({
           type: 'defeat', archetype: npc.archetype,
@@ -759,8 +813,7 @@ async function startWorld() {
         writePatch(result.patch);
         navalHud.refresh();
         updateMissionHud();
-        if (result.region2Unlocked) navalHud.setFeedback('🎉 Etapa 2 desbloqueada! Agora visite o quadro de missões.');
-        else navalHud.setFeedback('🎁 Recompensa recebida: ' + result.mission.name);
+        showOceanReward(result.region2Unlocked?'🎉 Região 2 desbloqueada!':'🎁 Recompensa recebida: '+result.mission.name);
         return true;
       },
       onPracticeAnswer: (challenge, firstTry) => {
@@ -1063,7 +1116,7 @@ async function startWorld() {
           if(result){
             writePatch(result.patch);
             recordMissionEvent({ type:'collect', id:nearby.id });
-            navalHud.setFeedback('🎃 Brilho coletado! +'+result.rewards.simple+' ferro · +'+result.rewards.special+' Halloween · +'+result.rewards.gold+' ouro');
+            showOceanReward('🎃 +'+result.rewards.simple+' ferro · +'+result.rewards.special+' Halloween · +'+result.rewards.gold+' ouro');
           }
         }
       }

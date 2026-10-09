@@ -183,31 +183,6 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
       slotsBox.append(slot);
     }
     view.append(slotsBox);
-    view.append(el('h4', '', 'Canhões no inventário'));
-    for (const cannon of ownedCannons) {
-      const card = el('article', 'shipyard-cannon-card');
-      const image = el('img', 'shipyard-cannon-image');
-      image.src = getCannonAssetUrl(cannon);
-      image.alt = cannon.name;
-      image.loading = 'lazy';
-      image.style.cssText = 'width:76px;height:76px;object-fit:contain;flex-shrink:0';
-      const info = el('div', 'shipyard-cannon-info');
-      info.append(el('strong', '', cannon.name));
-      const stats=el('div','shipyard-cannon-stat-badges');
-      stats.append(
-        el('span','shipyard-cannon-chip','📦 '+(Number(currentCannonCounts[cannon.id]) || (cannon.acquisition?.type === 'starter' ? 1 : 0))+' no inventário'),
-        el('span','shipyard-cannon-chip','⚓ '+(usedCounts[cannon.id] || 0)+' equipados'));
-      if(cannon.reloadSeconds != null)stats.append(
-        el('span','shipyard-cannon-chip','⏱ '+cannon.reloadSeconds+'s'),
-        el('span','shipyard-cannon-chip','🎯 '+Math.round(cannon.accuracy*100)+'%'),
-        el('span','shipyard-cannon-chip','💥 ×'+cannon.damageMultiplier),
-        el('span','shipyard-cannon-chip','🔩 '+cannon.caliberPounder));
-      info.append(stats);
-      card.append(image, info);
-      view.append(card);
-    }
-    if (!ownedCannons.length) view.append(el('p', 'shipyard-note', 'Nenhum canhão no inventário.'));
-
   }
   root.append(tabs, content);
   return {
