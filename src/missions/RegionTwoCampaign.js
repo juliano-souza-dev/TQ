@@ -20,7 +20,7 @@ export const R2_MISSIONS = Object.freeze([
   {id:'r2-why-help',name:'Por que me ajudou?',description:'A bordo do Terror da Tabuada, descubra por que o Galeão da Frota das Abóboras o ajudou. Uma frota de 50 navios surge antes que você obtenha respostas.',objectives:[{kind:'pumpkin-ambush',count:1,label:'Enfrentar a emboscada dos 50 galeões da frota'}],reward:{}},
   {id:'r2-search-clues',name:'Em Busca de Pistas',description:'O Terror da Tabuada foi destruído. A bordo do veloz Galeão da Frota das Abóboras, procure pistas sobre os atacantes.',objectives:[{kind:'treasure',count:10,label:'Coletar 10 tesouros'}],reward:{gold:250}},
   {id:'r2-do-me-favor',name:'Me Faça um Favor',description:'Trabalhe como matador para ganhar informações: elimine 25 navios inimigos.',objectives:[{kind:'defeat',count:25,label:'Afundar 25 NPCs'}],reward:{}},
-  {id:'r2-monster-meat',name:'Carne de Monstro',description:'O próximo favor exige carne de monstro. Encontre e derrote um monstro marinho.',objectives:[{kind:'defeat',count:1,archetype:'kraken',label:'Derrotar 1 monstro marinho'}],reward:{}},
+  {id:'r2-monster-meat',name:'Carne de Monstro',description:'O próximo favor exige carne de monstro. Encontre e derrote um monstro marinho.',objectives:[{kind:'defeat',count:1,archetype:'sea-monster-kraken',label:'Derrotar 1 monstro marinho'}],reward:{}},
   {id:'r2-mystery-light',name:'Uma Luz para o Mistério',description:'As pistas apontam para a identidade da Frota do Mestre do Terror e para as águas escuras do Capitão Terror.',objectives:[{kind:'study',count:1,label:'Resolver a última multiplicação e descobrir o destino'}],reward:{}},
 ].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze))})));
 
