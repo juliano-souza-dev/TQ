@@ -291,7 +291,11 @@ async function startWorld() {
         navalHud?.setFeedback('🐙 Kraken derrotado! +' + gold + ' ouro.');
         return;
       }
-      if (save.missions?.corsair === 'active' && npc.archetype === 'red-sail-corsair') {
+      if (world.region.id === 'r2' && npc.id === 'r2-admiral') {
+        recordMissionEvent({type:'admiral',id:npc.id});
+        recordMissionEvent({type:'defeat',id:npc.id+':'+Date.now()});
+        navalHud?.setFeedback('🏴‍☠️ Almirante dos Ladrões derrotado!');
+      } else if (world.region.id === 'r1' && save.missions?.corsair === 'active' && npc.archetype === 'red-sail-corsair') {
         writePatch({ missions: { ...save.missions, corsair: 'complete' } });
         updateMissionHud();
         navalHud?.setFeedback('🏆 ' + npc.name + ' afundado! Agora explore as missões livremente.');
@@ -322,7 +326,7 @@ async function startWorld() {
       navalHud.refresh();
       return true;
     }
-    const treasure = findTreasureNearPoint(getVisibleTreasures(readSave()), point.x, point.y);
+    const treasure = findTreasureNearPoint(getVisibleTreasures(readSave(),Date.now(),world.region.id), point.x, point.y);
     if (treasure && Math.hypot(world.camera.x - treasure.x, world.camera.y - treasure.y) < 125) {
       mathGate.open({
         kind: 'treasure', id: treasure.id,
@@ -352,7 +356,7 @@ async function startWorld() {
   const minimap = createMinimap(world, {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
-    getTreasures: () => getVisibleTreasures(readSave()),
+    getTreasures: () => getVisibleTreasures(readSave(),Date.now(),world.region.id),
     hasTreasureSense: () => Boolean(world.treasureSenseActive),
   });
   minimapElement = minimap.element;
@@ -649,7 +653,7 @@ async function startWorld() {
       if (world.region.id === 'r2' && contact.kind==='missions') {
         islandPanel.refreshMissionBoard();
       }
-      if (world.region.id === 'r2' && contact.id==='r2-scenery-north') recordMissionEvent({type:'discover',id:contact.id});
+
       updateMissionHud();
     }
   }
@@ -699,6 +703,22 @@ async function startWorld() {
     update: (stepMs) => {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
+      if (world.region.id === 'r2') {
+        const active = getR2Board(readSave()).active[0];
+        const island = world.region.islands.find(i=>i.id==='r2-scenery-north');
+        if (active?.id === 'r2-island' && island &&
+            Math.hypot(world.camera.x-island.x,world.camera.y-island.y) <= 650)
+          recordMissionEvent({type:'discover',id:island.id});
+        if (active?.id === 'r2-admiral' && !world.entities.has('r2-admiral')) {
+          const ship=world.entities.values().find(n=>n.archetype==='red-sail-corsair' && n.health>0);
+          if (ship) {
+            world.entities.delete(ship.id);
+            ship.id='r2-admiral';ship.name='Almirante dos Ladrões';
+            ship.health=800;ship.maxHealth=800;
+            world.entities.set(ship.id,ship);
+          }
+        }
+      }
       updateCorsairPopulation(world, stepMs);
       updateNegotiationFrigate(world, readSave());
       updateFugitiveFrigatePopulation(world, stepMs);
@@ -759,7 +779,7 @@ async function startWorld() {
       if (hudRefreshElapsed >= 160) {
         hudRefreshElapsed = 0;
         navalHud.refresh();
-        const near = findTreasureNearPoint(getVisibleTreasures(readSave()), world.camera.x, world.camera.y, 125);
+        const near = findTreasureNearPoint(getVisibleTreasures(readSave(),Date.now(),world.region.id), world.camera.x, world.camera.y, 125);
         treasurePrompt.hidden = !near || mathGate.isOpen || islandPanel.isOpen;
       }
       persistPlayerPosition(stepMs);
@@ -843,7 +863,7 @@ async function startWorld() {
       renderer.render(world, oceanTimeMs);
       halloweenFogRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
-      treasureRenderer.render(getVisibleTreasures(readSave()),world.cameraView,world.camera.zoom,oceanTimeMs);
+      treasureRenderer.render(getVisibleTreasures(readSave(),Date.now(),world.region.id),world.cameraView,world.camera.zoom,oceanTimeMs);
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
         selectedNpcId = null;
         navalBattle.setTarget(null);
