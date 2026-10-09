@@ -1310,6 +1310,7 @@ async function startWorld() {
         y:world.region.islands.find(i=>i.kind==='shipyard')?.y+60||1620},
     });
     for(let i=0;i<50;i++)world.entities.delete('pumpkin-ambush-'+i);
+    shipCanvas.style.transition='none';shipCanvas.style.opacity='1';
     const next=playableShips.find(ship=>ship.id===rescueId);
     if(next){
       activeShip=next;
@@ -1335,6 +1336,11 @@ async function startWorld() {
     if(activeShip.id!=='galeao-halloween-tabuada')return;
     if(readSave().storyFlags?.pumpkinAmbushResolved)return;
     pumpkinAmbushElapsed+=Math.max(0,stepMs);
+    if(pumpkinAmbushElapsed>=3900 && shipCanvas.style.opacity!=='0'){
+      shipCanvas.style.transition='opacity 900ms ease-in';
+      shipCanvas.style.opacity='0';
+      showOceanReward('💥 O Terror da Tabuada está afundando!');
+    }
     if(!pumpkinAmbushStarted){
       pumpkinAmbushStarted=true;
       clickNavigation.cancel();navalBattle.firing=false;
@@ -1474,7 +1480,7 @@ async function startWorld() {
           }
         }
         if(active?.id!=='r2-golden-ii')world.entities.delete('r2-pumpkin-ally');
-        if(active?.id==='r2-mystery-light' && !mathGate.isOpen && !islandPanel.isOpen){
+        if(active?.id==='r2-mystery-light' && active.status==='active' && !mathGate.isOpen && !islandPanel.isOpen){
           clickNavigation.cancel();navalBattle.firing=false;
           mathGate.open({kind:'r2-mystery-light',title:'🌑 Uma Luz para o Mistério',
             description:'A Frota do Mestre do Terror deixou um rastro. Resolva a multiplicação final para descobrir o caminho às águas escuras do Capitão Terror.'});
