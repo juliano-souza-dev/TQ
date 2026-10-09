@@ -120,7 +120,7 @@ async function startWorld() {
     }
   }
   createCorsairPopulation(world);
-  const { createFugitiveFrigatePopulation, updateFugitiveFrigatePopulation } =
+  const { createFugitiveFrigatePopulation, updateFugitiveFrigatePopulation, updateNegotiationFrigate, NEGOTIATION_APPROACH_RADIUS } =
     await import('./npcs/FugitiveFrigateNpc.js');
   const { createMonsterPopulation, updateMonsterPopulation, monsterGoldReward } = await import('./monsters/MonsterPopulation.js');
   createMonsterPopulation(world);
@@ -555,6 +555,7 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       updateCorsairPopulation(world, stepMs);
+      updateNegotiationFrigate(world, readSave());
       updateFugitiveFrigatePopulation(world, stepMs);
       updateMonsterPopulation(world, stepMs);
       glintElapsed+=stepMs;
@@ -568,6 +569,26 @@ async function startWorld() {
             recordMissionEvent({ type:'collect', id:nearby.id });
             navalHud.setFeedback('🎃 Brilho coletado! +'+result.rewards.simple+' ferro · +'+result.rewards.special+' Halloween · +'+result.rewards.gold+' ouro');
           }
+        }
+      }
+      const campaign = readSave().campaign ?? {};
+      const negotiationActive = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed;
+      if (negotiationActive && !mathGate.isOpen && !islandPanel.isOpen) {
+        const thief = [...world.entities.values()].find(npc => npc.archetype === 'fugitive-frigate');
+        if (thief && Math.hypot(world.camera.x - thief.x, world.camera.y - thief.y) <= NEGOTIATION_APPROACH_RADIUS) {
+          clickNavigation.cancel();
+          navalBattle.firing = false;
+          mathGate.open({
+            kind: 'negotiation',
+            title: '🏴‍☠️ A Negociação, o Golpe',
+            description: 'O capitão exige cinco multiplicações para liberar a passagem. Cada resposta certa aproxima o acordo.',
+            repeatOnSuccess: true,
+            locked: true,
+            getLocked: () => (readSave().campaign?.progress?.['r1-negotiation']?.[0] ?? 0) < 5,
+            getContinue: () => (readSave().campaign?.progress?.['r1-negotiation']?.[0] ?? 0) < 5,
+            afterSuccess: () => { updateNegotiationFrigate(world, readSave()); updateMissionHud(); navalHud.refresh(); },
+            onClose: () => { updateNegotiationFrigate(world, readSave()); updateMissionHud(); navalHud.refresh(); },
+          });
         }
       }
       navalBattle.update(stepMs,performance.now());
