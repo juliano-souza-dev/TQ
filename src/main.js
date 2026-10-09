@@ -307,6 +307,7 @@ async function startWorld() {
   navalBattle = new NavalBattleController({
     renderer: navalRenderer,
     shipId: activeShip.id,
+    getRegionId: () => world.region.id,
     // Fallback automático no controlador quando não existe mapeamento de boca.
     getMappedMuzzle: ({ player, target, heading, slot }) => spriteCannonMuzzle(
       activeShip, player, target, heading, slot,
@@ -598,13 +599,7 @@ async function startWorld() {
         updateMissionHud();
         return true;
       },
-      onStartRegion2: () => {
-        const patch = activateNextRegion(readSave());
-        if (!patch) return false;
-        writePatch({ ...patch, playerPosition: { x:420, y:860 } });
-        startWorld();
-        return true;
-      },
+      // A travessia é feita exclusivamente no ponto de saída do mundo, nunca no quadro.
     },
     getMissionState: () => readSave().missions ?? {},
     getMissionFlow: () => getMissionFlow(readSave(), STARTER_SHIP.id),
