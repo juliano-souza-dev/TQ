@@ -28,7 +28,18 @@ export function createMinimap(world, { getPlayer, getNpcs = () => [], getTreasur
       dot(island.x, island.y, island.kind === 'decoration' ? '#7b9988' : '#f0c66a', island.kind === 'decoration' ? 4 : 6);
     }
     for (const npc of getNpcs()) dot(npc.x, npc.y, '#ef665e', 4);
-    if (hasTreasureSense()) for (const treasure of getTreasures()) dot(treasure.x, treasure.y, '#a9f477', 4);
+    // Treasure-map effect: unmistakable chest icons rather than generic green dots.
+    if (hasTreasureSense()) for (const treasure of getTreasures()) {
+      const p=point(treasure.x,treasure.y);
+      ctx.save();ctx.translate(p.x,p.y);
+      ctx.shadowColor='#ffc44c';ctx.shadowBlur=5;
+      ctx.fillStyle='#5b3212';ctx.strokeStyle='#ffe18a';ctx.lineWidth=1.3;
+      ctx.fillRect(-5,-2,10,8);ctx.strokeRect(-5,-2,10,8);
+      ctx.beginPath();ctx.moveTo(-5,-2);ctx.quadraticCurveTo(0,-8,5,-2);ctx.closePath();
+      ctx.fillStyle='#b76d20';ctx.fill();ctx.stroke();
+      ctx.fillStyle='#ffe56e';ctx.fillRect(-1.2,-3,2.4,8);
+      ctx.restore();
+    }
     const player = getPlayer();
     if (player) {
       const p = point(player.x, player.y);
