@@ -127,9 +127,15 @@ export class NavalBattleController {
     return this.shipId === 'fragata-sombra-cacadora';
   }
 
+  getGoldenGalleonTarget() {
+    if(this.getRegionId()!=='r2'||this.readSave().r2Campaign?.active!=='r2-golden-ii')return null;
+    return this.getEntities().get('r2-morbi') ?? null;
+  }
+
   setTarget(id, { manual = false } = {}) {
     const thief = this.getThiefMissionTarget();
     if (thief && id && id !== thief.id) return false;
+    if (this.getGoldenGalleonTarget() && id && id !== 'r2-morbi') return false;
     if (id && this.isProtectedInformant(this.getEntities().get(id))) return false;
     if (this.targetId !== id) { this.firing = false; this.cancelMonsterAssists(); }
     this.targetId = id || null;
@@ -147,6 +153,12 @@ export class NavalBattleController {
     const thief = this.getThiefMissionTarget();
     if (thief) {
       if (this.targetId !== thief.id) this.setTarget(thief.id, { manual: true });
+      return true;
+    }
+    const morbi=this.getGoldenGalleonTarget();
+    if(morbi){
+      const next=morbi.health>0 ? morbi.id : null;
+      if(this.targetId!==next)this.setTarget(next);
       return true;
     }
     const battery = armedCannons(this.readSave(), this.shipId);
@@ -186,6 +198,7 @@ export class NavalBattleController {
 
   getTarget() {
     const entity = this.getEntities().get(this.targetId);
+    if(this.getGoldenGalleonTarget() && entity?.id!=='r2-morbi')return null;
     return (entity?.type === 'npc' || entity?.type === 'monster') && entity.health > 0 && !this.isProtectedInformant(entity) ? entity : null;
   }
 
