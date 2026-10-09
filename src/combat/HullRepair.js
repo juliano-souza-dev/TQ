@@ -19,3 +19,36 @@ export function repairHull(save = {}, bonusPercent = 0) {
     patch: { combat: { ...save.combat, shipHealth: after } },
   };
 }
+
+export const REPAIR_DURATION_MS = 10000;
+
+// Repairs are a reserve: questions never directly heal the hull.
+export function accumulateHullRepair(save = {}, forced = false) {
+  const combat = save.combat ?? {};
+  const health = Math.max(0, Math.min(100, Number(combat.shipHealth) || 0));
+  if (health >= 100 || combat.repairingUntil) return null;
+  const required = forced || health <= 0 ? 100 : 100 - health;
+  const pending = Math.min(required, Math.max(0, Number(combat.repairPending) || 0) + BASE_REPAIR_PERCENT);
+  return { patch: { combat: { ...combat, repairPending: pending } }, pending, required };
+}
+export function beginHullRecovery(save = {}, now = Date.now()) {
+  const combat = save.combat ?? {};
+  const health = Math.max(0, Math.min(100, Number(combat.shipHealth) || 0));
+  const pending = Math.max(0, Number(combat.repairPending) || 0);
+  if (!pending || combat.repairingUntil) return null;
+  const required = health <= 0 ? 100 : 100 - health;
+  if (health <= 0 && pending < required) return null;
+  const target = Math.min(100, health + pending);
+  return { combat: { ...combat, repairPending: 0, repairingFrom: health,
+    repairingTo: target, repairingStartedAt: now, repairingUntil: now + REPAIR_DURATION_MS } };
+}
+export function advanceHullRecovery(save = {}, now = Date.now()) {
+  const combat = save.combat ?? {};
+  if (!combat.repairingUntil) return null;
+  const duration = Math.max(1, combat.repairingUntil - combat.repairingStartedAt);
+  const progress = Math.max(0, Math.min(1, (now - combat.repairingStartedAt) / duration));
+  const health = combat.repairingFrom + (combat.repairingTo - combat.repairingFrom) * progress;
+  return { combat: { ...combat, shipHealth: Math.min(100, health),
+    ...(progress >= 1 ? { repairingUntil: null, repairingStartedAt: null,
+      repairingFrom: null, repairingTo: null } : {}) } };
+}
