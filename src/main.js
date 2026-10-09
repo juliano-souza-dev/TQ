@@ -538,6 +538,7 @@ async function startWorld() {
   function refreshTargetAndHealthHud() {
     const npc = navalBattle?.getTarget();
     targetHud.hidden = !npc || npc.health <= 0;
+    if (!targetHud.hidden) targetHud.style.top = Math.ceil(missionHud.getBoundingClientRect().bottom + 7) + 'px';
     if (!targetHud.hidden) {
       const max = Math.max(1,Number(npc.maxHealth)||Number(npc.health)||1);
       const hp = Math.max(0,Number(npc.health)||0);
