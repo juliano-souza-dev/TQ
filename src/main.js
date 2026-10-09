@@ -528,7 +528,7 @@ async function startWorld() {
       return 'Destino revelado: águas escuras do Capitão Terror!';
     }
     if(action.kind==='black-market'){
-      if(world.region.id!=='r2'||boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-black-market')?.status!=='active')return false;
+      if(world.region.id!=='r2'||!['r2-black-market','r2-hunt-prep'].some(id=>boardFor(readSave(),'r2').missions.find(m=>m.id===id)?.status==='active'))return false;
       blackMarketUnlocked=true;
       return 'Acesso ao Mercado Negro liberado!';
     }
@@ -595,16 +595,40 @@ async function startWorld() {
   marketOverlay.append(marketCard);
   root.append(marketOverlay);
   function showBlackMarket(){
-    if(boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-black-market')?.status!=='active')return;
+    if(!['r2-black-market','r2-hunt-prep'].some(id=>boardFor(readSave(),'r2').missions.find(m=>m.id===id)?.status==='active'))return;
     const save=readSave();
     const gold=Math.max(0,Math.floor(Number(save.profile?.gold)||0));
     const iron=Math.max(0,Math.floor(Number(save.ammunition?.['rusted-iron'])||0));
+    if(save.r2Campaign?.active==='r2-hunt-prep'){
+      marketDetails.textContent='Pacote de Caça: 10 unidades de cada consumível, 2.000 Orbes Autoguiados, 1 Arpoeiro Quebra-Couraça e 1.000 arpões. O lançador causa 700 de dano e mais 25 a cada 3 segundos.';
+      marketPrice.textContent='Preço: todo o ouro disponível ('+gold.toLocaleString('pt-BR')+'). Depois: 0 ouro.';
+      marketTrade.disabled=false;
+      marketOverlay.hidden=false;
+      return;
+    }
     marketDetails.textContent='Lote único: 1 Canhão Aetherion MK-I de energia, 10.000 Orbes Autoguiados e 8 Canhões Reais Dourados com Leão.';
     marketPrice.textContent='Preço da troca: '+gold.toLocaleString('pt-BR')+' ouro + '+iron.toLocaleString('pt-BR')+' munições comuns. Após a troca, ambos ficarão em 0.';
     marketTrade.disabled=gold===0&&iron===0;
     marketOverlay.hidden=false;
   }
   marketTrade.addEventListener('click',()=>{
+    if(blackMarketUnlocked && boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-hunt-prep')?.status==='active'){
+      const save=readSave(),e=save.equipment??{},q=save.consumables?.quantities??{};
+      const items=['flame-5x','shield','speed-plus','treasure-map'];
+      writePatch({
+        profile:{...save.profile,gold:0},
+        ammunition:{...save.ammunition,'aetherion-seeker':(Number(save.ammunition?.['aetherion-seeker'])||0)+2000},
+        harpoonAmmo:{...save.harpoonAmmo,'harpoon-armor-piercing':(Number(save.harpoonAmmo?.['harpoon-armor-piercing'])||0)+1000},
+        equipment:{...e,ownedHarpoonIds:[...new Set([...(e.ownedHarpoonIds??[]),'harpoon-armor-breaker-launcher'])],
+          equippedHarpoonId:'harpoon-armor-breaker-launcher'},
+        consumables:{...save.consumables,quantities:{...q,...Object.fromEntries(items.map(id=>[id,(Number(q[id])||0)+10]))}},
+      });
+      recordMissionEvent({type:'hunt-supplies',id:'hunt-prep-purchased'});
+      marketOverlay.hidden=true;blackMarketUnlocked=false;marketDismissedNearby=true;
+      navalHud?.refresh();updateMissionHud();
+      showOceanReward('🐙 Caçada preparada! +2.000 orbes, +1.000 arpões e Arpoeiro Quebra-Couraça equipado!');
+      return;
+    }
     if(!blackMarketUnlocked||boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-black-market')?.status!=='active')return;
     const save=readSave(),eq=save.equipment??{},counts=eq.cannonCounts??{};
     const gold=Math.max(0,Math.floor(Number(save.profile?.gold)||0));
@@ -1018,7 +1042,7 @@ async function startWorld() {
     const r2 = world.region.id === 'r2' ? getR2Board(readSave()).active[0] : null;
     const guideTarget = r2?.id === 'r2-meet-forgotten' ? world.region.islands.find(i=>i.id==='r2-scenery-north')
       : r2?.id === 'r2-dark-voyage' && r2.status==='active' ? darkWatersExit
-      : r2?.id === 'r2-black-market' ? {x:world.region.width/2,y:world.region.height/2}
+      : ['r2-black-market','r2-hunt-prep'].includes(r2?.id) ? {x:world.region.width/2,y:world.region.height/2}
       : r2?.id === 'r2-golden-i' || r2?.id === 'r2-golden-ii' ? world.entities.get('r2-morbi')
       : r2?.id === 'r2-destroy-thief'
       ? [...world.entities.values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0)
@@ -1470,7 +1494,7 @@ async function startWorld() {
           });
         }
         if(Math.hypot(world.camera.x-marketX,world.camera.y-marketY)>220)marketDismissedNearby=false;
-        if(active?.id==='r2-black-market'
+        if(['r2-black-market','r2-hunt-prep'].includes(active?.id)
           && active.status==='active'
           && !marketDismissedNearby
           && Math.hypot(world.camera.x-marketX,world.camera.y-marketY)<=180
