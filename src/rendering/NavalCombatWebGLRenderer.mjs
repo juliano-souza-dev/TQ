@@ -313,7 +313,7 @@ export class NavalCombatWebGLRenderer{
     return {src,ready:entry?.ready===true,failed:entry?.failed===true};
   }
 
-  fire({from,to,duration=620,startTime=performance.now(),onImpact=null,ammo=null,impactKind="ship",trackingTarget=null,trackingSpeed=420}={}){
+  fire({from,to,duration=620,startTime=performance.now(),onImpact=null,ammo=null,impactKind="ship",trackingTarget=null,trackingSpeed=420,flameBoost=false}={}){
     if(!this.init())return false;
     if(!from||!to)return false;
     const normalizedAmmo=ammo&&typeof ammo==="object"?ammo:{};
@@ -330,6 +330,7 @@ export class NavalCombatWebGLRenderer{
       target:to?.target&&typeof to.target==="object"?to.target:null,
       duration:clamp(Number(duration)||620,80,trackingTarget?9000:8000),
       trackingTarget,
+      flameBoost:Boolean(flameBoost),
       trackingSpeed:Math.max(1,Number(trackingSpeed)||420),
       current:{x:Number(from.x)||0,y:Number(from.y)||0},
       trackingLastTime:Number(startTime)||performance.now(),
@@ -760,6 +761,31 @@ export class NavalCombatWebGLRenderer{
                 }
               );
             }
+          }
+        }
+        if(shot.flameBoost) {
+          // Layered orange/red flames on top of ordinary and guided ammo FX.
+          const flamePulse=.83+.17*Math.sin(now*.021+shot.startTime*.002);
+          const fireRadius=11*flamePulse/Math.max(.4,Number(zoom)||1);
+          drawPoint(x,y,fireRadius*2.4,0,0,true,{
+            color:'#ff3200',coreColor:'#ffd43b',glow:2.4,opacity:.78});
+          drawPoint(x,y,fireRadius*1.2,4,(now*.002)%1,true,{
+            color:'#ff7700',coreColor:'#fff3a2',glow:2.5,opacity:.9});
+          for(let i=0;i<(this.reducedFx?3:7);i++){
+            const a=now*.008+i*2.399,spread=fireRadius*(.7+.4*Math.sin(now*.014+i));
+            drawPoint(x+Math.cos(a)*spread,y+Math.sin(a)*spread,
+              Math.max(2,fireRadius*.24),0,0,true,{
+                color:i%2?'#ff1e00':'#ffb11b',coreColor:'#fff8b5',
+                glow:2.3,opacity:.85});
+          }
+          const trail=shot.trackingTarget?shot.trackingHistory:null;
+          for(let j=1;j<=(this.reducedFx?3:8);j++){
+            const point=trail?.length ? trail[Math.max(0,trail.length-1-j*2)] : {
+              x:x-(x-shot.from.x)*j*.065,y:y-(y-shot.from.y)*j*.065};
+            if(!point)continue;
+            drawPoint(point.x,point.y,Math.max(2,fireRadius*(1-j*.075)),0,0,true,{
+              color:j%2?'#f62209':'#ffad19',coreColor:'#ffe88c',
+              glow:1.8,opacity:Math.max(.12,.68-j*.068)});
           }
         }
         if(shot.trackingTarget) {
