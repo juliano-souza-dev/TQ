@@ -333,8 +333,9 @@ async function startWorld() {
       viewportW*horizontalCoverage / Math.max(320,Math.abs(thief.x-world.camera.x)+290),
       viewportH*verticalCoverage / Math.max(320,Math.abs(thief.y-world.camera.y)+290)
     ) : normalCameraZoom;
-    const battleZoom = closeBattle ? normalCameraZoom
-      : Math.min(normalCameraZoom,fitZoom);
+    const battleZoom = Math.min(normalCameraZoom,fitZoom);
+    // Within cannon range the cap remains the ordinary camera zoom;
+    // fitting both ships still takes priority if the screen is narrow.
     const targetZoom = thief ? Math.max(.12,battleZoom)
       : cinematicTarget ? Math.max(.27, Math.min(.43,
           Math.min(viewportW, viewportH) /
@@ -348,8 +349,8 @@ async function startWorld() {
     // Follow the midpoint in a long pursuit, with smooth camera travel.
     // In close combat return near the player to keep the standard framing.
     const offsetTarget = thief && !world.manualCamera
-      ? {x:(thief.x-world.camera.x)*(closeBattle?.22:.5),
-         y:(thief.y-world.camera.y)*(closeBattle?.22:.5)}
+      ? {x:(thief.x-world.camera.x)*.5,
+         y:(thief.y-world.camera.y)*.5}
       : cinematicTarget && !world.manualCamera
         ? {x:(cinematicTarget.x-world.camera.x)*.14,y:(cinematicTarget.y-world.camera.y)*.14}
         : {x:0,y:-65};
