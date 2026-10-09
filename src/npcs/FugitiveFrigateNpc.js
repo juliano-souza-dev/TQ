@@ -147,7 +147,7 @@ export function updateFugitiveFrigatePopulation(world, deltaMs, random = Math.ra
     if (npc.archetype !== FUGITIVE_FRIGATE_NPC.id) continue;
     if (npc.health > 0) {
       npc.respawnRemainingMs = null;
-      if (npc.negotiationFrozen) continue;
+      if (npc.negotiationFrozen || npc.monsterAssisting) continue;
       if (npc.negotiationEscaping) {
         npc.heading = 90;
         npc.x = Math.min(world.region.width + 160, npc.x + FUGITIVE_FRIGATE_SHIP.speed.max * Math.min(64,deltaMs)/1000);
