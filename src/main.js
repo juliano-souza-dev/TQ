@@ -1305,7 +1305,8 @@ async function startWorld() {
           world.entities.set('r2-pumpkin-ally',{
             id:'r2-pumpkin-ally',name:'Galeão da Frota das Abóboras',
             type:'npc',archetype:'pumpkin-ally',shipId:'galeao-frota-das-aboboras',
-            x:Math.max(150,world.camera.x-260),y:Math.max(150,world.camera.y-180),
+            x:(world.entities.get('r2-morbi')?.x??world.camera.x)-220,
+            y:world.entities.get('r2-morbi')?.y??world.camera.y,
             heading:90,health:100000,maxHealth:100000,state:'ally',
             aggression:'ally',cannonSlots:8,
           });
