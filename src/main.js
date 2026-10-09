@@ -368,9 +368,14 @@ async function startWorld() {
   root.append(thiefGuide);
   function updateThiefGuide() {
     const campaign = readSave().campaign ?? {};
-    const active = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed && !mathGate.isOpen;
-    const target = active ? [...world.entities.values()].find(npc => npc.archetype === 'fugitive-frigate' && npc.health > 0) : null;
+    const thiefActive = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed && !mathGate.isOpen;
+    const exitActive = campaign.active?.includes('r1-finale')
+      && !(campaign.progress?.['r1-finale']?.[0] >= 1) && !mathGate.isOpen;
+    const target = thiefActive
+      ? [...world.entities.values()].find(npc => npc.archetype === 'fugitive-frigate' && npc.health > 0)
+      : exitActive ? world.region.exitPoint : null;
     if (!target) { thiefGuide.hidden = true; return; }
+    thiefGuide.setAttribute('aria-label', exitActive ? 'Direção da saída para Costa dos Corsários' : 'Direção do ladrão');
     const width = canvas.clientWidth, height = canvas.clientHeight;
     if (!width || !height) { thiefGuide.hidden = true; return; }
     const x = width / 2 + (target.x - world.cameraView.x) * world.camera.zoom;
@@ -384,7 +389,7 @@ async function startWorld() {
     thiefGuide.style.setProperty('--thief-angle', (inView ? 90 : Math.atan2(y-py, x-px)*180/Math.PI) + 'deg');
     thiefGuide.classList.toggle('is-visible-target', inView);
     thiefGuide.querySelector('.thief-guide-label').textContent =
-      'Ladrão · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
+      (exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
     thiefGuide.hidden = false;
   }
 
@@ -697,6 +702,16 @@ async function startWorld() {
         } else {
           // Desaceleração por inércia da cinemática do projeto anterior.
           advanceNavigation(world, { x: 0, y: 0 }, stepMs, shipSpeed);
+        }
+      }
+      const finale = readSave().campaign ?? {};
+      if (finale.active?.includes('r1-finale') && !(finale.progress?.['r1-finale']?.[0] >= 1)) {
+        const exit = world.region.exitPoint;
+        if (exit && Math.hypot(world.camera.x-exit.x,world.camera.y-exit.y) <= exit.radius) {
+          if (recordMissionEvent({type:'exit',id:'r1-exit-east'})) {
+            clickNavigation.cancel();
+            navalHud.setFeedback('🧭 Passagem encontrada! Resgate a missão no Porto das Missões.');
+          }
         }
       }
       renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
