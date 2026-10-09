@@ -577,6 +577,7 @@ async function startWorld() {
     onPlayerSunk: npcId => {
       if(npcId!=='r2-morbi'||readSave().r2Campaign?.active!=='r2-golden-i')return;
       recordMissionEvent({type:'morbi-defeat-player',id:'first-sinking'});
+      missionCompleteOverlay.hidden=true;
       const outcome=campaignFor('r2').claim(readSave(),'r2-golden-i');
       if(outcome)writePatch(outcome.patch);
       const mission=campaignFor('r2').accept(readSave(),'r2-strengthen-ship');
@@ -927,7 +928,7 @@ async function startWorld() {
         if(result.mission.reward?.shipUpgrade){
           const upgraded=readSave();
           writePatch({shipUpgrades:{...(upgraded.shipUpgrades??{}),masterShipwright:true},
-            combat:{...(upgraded.combat??{}),shipHealth:upgraded.equipment?.equippedShipId==='fragata-sombra-cacadora' ? Math.max(100,Math.min(600,Number(upgraded.combat?.shipHealth)||0)) : Math.max(1500,Number(upgraded.combat?.shipHealth)||0)}});
+            combat:{...(upgraded.combat??{}),shipHealth:upgraded.equipment?.equippedShipId==='fragata-sombra-cacadora' ? Math.min(600,(Number(upgraded.combat?.shipHealth)||100)+500) : Math.max(1500,Number(upgraded.combat?.shipHealth)||0)}});
           showOceanReward('🔨 Mestre construtor contratado! Cascos reforçados e novos espaços de canhão.');
         }
         navalHud.refresh();
@@ -1152,7 +1153,7 @@ async function startWorld() {
         if(morbi){
           // In the intermediary missions Morbi survives but cannot be attacked or retaliate.
           morbi.state=active?.id==='r2-golden-i'||active?.id==='r2-golden-ii'?'retaliating':'idle';
-          if(active?.id==='r2-golden-ii'){
+          if(active?.id==='r2-golden-i'||active?.id==='r2-golden-ii'){
             const dx=world.camera.x-morbi.x,dy=world.camera.y-morbi.y;
             const distance=Math.hypot(dx,dy);
             if(distance>220){
