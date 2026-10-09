@@ -1,3 +1,4 @@
+import { equippedHarpoon, harpoonDamage } from './HarpoonCatalog.js';
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
@@ -30,6 +31,8 @@ export class NavalBattleController {
     this.manualTargetId = null;
     this.targetScanElapsedMs = 0;
     this.firing = false;
+    this.harpoonFiring = false;
+    this.nextHarpoonAt = -Infinity;
     this.nextBySlot = new Map();
     this.nextNpcShot = new Map();
     this.nextKrakenStrike = new Map();
@@ -81,7 +84,7 @@ export class NavalBattleController {
       return false;
     }
     const withinRange = npc => npc && (npc.type === 'npc' || npc.type === 'monster')
-      && npc.health > 0 && distanceBetween(player, npc) <= maxRange;
+      && npc.type === 'npc' && npc.health > 0 && distanceBetween(player, npc) <= maxRange;
     const entities = this.getEntities();
     if (this.manualTargetId) {
       const manuallyChosen = entities.get(this.manualTargetId);
@@ -116,12 +119,15 @@ export class NavalBattleController {
     const player = this.getPlayer();
     const target = this.getTarget();
     const distance = target ? distanceBetween(player, target) : Infinity;
+    const harpoon = equippedHarpoon(save);
+    const monsterTarget = target?.type === 'monster';
     const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon));
     const ammo = ammoStock(save, this.selectedAmmoId);
     const missionActive = save.missions?.corsair === 'active'
       || (save.missions?.corsair === 'complete' && (save.campaign?.active?.length ?? 0) > 0);
     let reason = 'ready';
-    if (!missionActive) reason = 'mission';
+    if (monsterTarget) reason = 'harpoon-only';
+    else if (!missionActive) reason = 'mission';
     else if (!battery.length) reason = 'no-cannon';
     else if (!target) reason = 'target';
     else if (!inRangeCannons.length) reason = 'range';
@@ -129,6 +135,10 @@ export class NavalBattleController {
     else if (this.getHealth() <= 0) reason = 'sunk';
     return {
       firing: this.firing,
+      harpoonFiring: this.harpoonFiring,
+      harpoonName: harpoon.name,
+      harpoonRange: harpoon.range,
+      harpoonReloadSeconds: harpoon.reloadSeconds,
       ready: reason === 'ready',
       reason, distance,
       range: battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0,
@@ -158,6 +168,57 @@ export class NavalBattleController {
     this.firing = true;
     this.firePlayerVolley(this.clock());
     return true;
+  }
+
+  getHarpoonStatus() {
+    const target=this.getTarget();
+    const launcher=equippedHarpoon(this.readSave());
+    const distance=target?distanceBetween(this.getPlayer(),target):Infinity;
+    const now=this.clock();
+    return {launcher, target, distance, cooldownMs:Math.max(0,this.nextHarpoonAt-now),
+      ready: target?.type==='monster' && target.health>0
+        && distance<=launcher.range && this.getHealth()>0 && now>=this.nextHarpoonAt};
+  }
+
+  fireHarpoon() {
+    const status=this.getHarpoonStatus();
+    if (!status.ready) {
+      this.onFeedback(status.cooldownMs>0
+        ? '⚓ Arpão recarregando: '+Math.ceil(status.cooldownMs/1000)+'s.'
+        : '⚓ Arpões atingem apenas monstros vivos dentro do alcance.');
+      return false;
+    }
+    const {launcher,target}=status;
+    const player=this.getPlayer(),now=this.clock();
+    const from={x:player.x,y:player.y};
+    const destination=aimWithAccuracy(target,from,launcher.accuracy,this.random);
+    const targetId=target.id;
+    const accepted=this.renderer.fire({
+      from,to:destination,duration:flightDurationMs(from,destination,launcher.projectileSpeed),
+      ammo:{id:'naval-harpoon',name:'Arpão Naval Simples',asset:launcher.projectileAsset,
+        projectileSpeed:launcher.projectileSpeed},
+      impactKind:'water',startTime:now,
+      onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,harpoonDamage(launcher)),
+    });
+    if (!accepted) {this.onFeedback('⚠️ Disparo de arpão indisponível.');return false;}
+    this.nextHarpoonAt=now+launcher.reloadSeconds*1000;
+    this.onFeedback('⚓ Arpão lançado contra '+target.name+'!');
+    return true;
+  }
+
+  resolveHarpoonImpact(targetId,point,damage) {
+    const monster=this.getEntities().get(targetId);
+    if (!monster||monster.type!=='monster'||monster.health<=0)return {kind:'water'};
+    if (!shipCollision(point,monster,56))return {kind:'water'};
+    const underwater=(this.renderer.getKrakenAttacks?.()??[])
+      .some(a=>a.monsterId===targetId&&this.clock()>=a.startTime+300&&this.clock()<a.startTime+1720);
+    if (underwater)return {kind:'water'};
+    const hit=damageMonster(monster,damage,this.clock());
+    if(!hit)return {kind:'water'};
+    if(monster.health>0)monster.state='retaliating';
+    this.onFeedback('⚓ Arpão atingiu '+monster.name+'! -'+hit.damage+' PV.');
+    if(monster.health<=0)this.onVictory(monster);
+    return {kind:'ship'};
   }
 
   trackMovement(stepMs) {
@@ -239,6 +300,10 @@ export class NavalBattleController {
 
   resolvePlayerImpact(targetId, at, damage) {
     const target = this.getEntities().get(targetId);
+    if (target?.type === 'monster') {
+      this.onFeedback('⚓ Monstros são imunes a bolas de canhão. Utilize o arpão.');
+      return {kind:'water'};
+    }
     if (target?.negotiationFrozen) {
       this.onFeedback('💦 O ladrão está protegido durante a negociação.');
       return { kind: 'water' };
@@ -263,10 +328,7 @@ export class NavalBattleController {
       this.onFeedback('💦 A bala caiu na água.');
       return { kind: 'water' };
     }
-    if (target.type === 'monster') {
-      const hit = damageMonster(target, damage, this.clock());
-      if (hit && target.health > 0) target.state = 'retaliating';
-    } else if (target.archetype === RED_SAIL_CORSAIR.id) {
+    if (target.archetype === RED_SAIL_CORSAIR.id) {
       damageCorsair(target, damage, 'player');
     } else {
       target.health = Math.max(0, target.health - damage);
