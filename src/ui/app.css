@@ -760,3 +760,12 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .shipyard-page-button:disabled{opacity:.4;cursor:default}
 .shipyard-page-indicator{color:#ffe2a9;font:800 12px system-ui,sans-serif}
 @media(max-height:650px){.island-panel[data-island="shipyard"] .shipyard-preview{max-height:100px}.island-panel[data-island="shipyard"] .shipyard-ship-body{grid-template-columns:90px 1fr}}
+
+/* Black Market trading dialogue; overlays the ocean without modifying HUD. */
+.black-market-overlay{position:fixed;inset:0;z-index:115;display:grid;place-items:center;padding:16px;background:#020e1bc9}
+.black-market-overlay[hidden]{display:none!important}
+.black-market-card{width:min(95vw,510px);padding:22px;border:2px solid #b98b50;border-radius:16px;background:#10283b;color:#ffe4ac;box-shadow:0 20px 65px #000b}
+.black-market-card h2{margin:0 0 14px;font-size:23px}
+.black-market-card p{line-height:1.6}
+.black-market-card button{margin:8px 8px 0 0;padding:10px 14px;border-radius:9px;border:1px solid #cead66;background:#e9b853;color:#142331;font-weight:800}
+.black-market-card button+button{background:transparent;color:#ffe4ac}
