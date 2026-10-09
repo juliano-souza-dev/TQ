@@ -9,7 +9,7 @@ const world = () => ({
   camera:{x:3400,y:3500},
   entities:new Map(),
 });
-test('cria exatamente dez monstros estacionários e sem colisão com NPCs',()=>{
+test('cria exatamente dois monstros estacionários e sem colisão com NPCs',()=>{
  const w=world();
  createMonsterPopulation(w,()=>0.28);
  assert.equal([...w.entities.values()].filter(m=>m.type==='monster').length,MONSTERS_PER_MAP);
@@ -17,16 +17,17 @@ test('cria exatamente dez monstros estacionários e sem colisão com NPCs',()=>{
  updateMonsterPopulation(w,5000);
  assert.deepEqual([...w.entities.values()].map(m=>[m.x,m.y]),before);
 });
-test('respawn acontece apenas após quinze segundos de morte',()=>{
+test('respawn acontece apenas após sessenta segundos de morte',()=>{
  const w=world();createMonsterPopulation(w,()=>0.32);
  const m=w.entities.values().next().value;
  m.health=0;
  updateMonsterPopulation(w,1000);
  assert.equal(m.health,0);
- updateMonsterPopulation(w,14999);
+ updateMonsterPopulation(w,59999);
  assert.equal(m.health,0);
  updateMonsterPopulation(w,1);
- assert.equal(m.health,m.maxHealth);
+ assert.equal(m.health,1650);
+ assert.equal(m.maxHealth,1650);
  assert.equal(m.state,'idle');
 });
 test('recompensa aleatória fica dentro do intervalo configurado',()=>{
@@ -38,7 +39,7 @@ test('Kraken impede atravessar o corpo, mas permite afastar-se e passar após de
   const w=world();
   w.entities.set('kraken',{id:'kraken',type:'monster',health:1500,x:200,y:200});
   const stopped=resolveKrakenMovement(w,50,200,380,200);
-  assert.ok(Math.hypot(stopped.x-200,stopped.y-200)>=85);
+  assert.ok(Math.hypot(stopped.x-200,stopped.y-200)>=125);
   assert.ok(stopped.x<200,'movimento não atravessa o monstro');
   const escaping=resolveKrakenMovement(w,200,200,100,200);
   assert.equal(escaping.x,100,'é possível escapar quando já há sobreposição');
