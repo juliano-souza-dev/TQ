@@ -511,8 +511,9 @@ export class NavalBattleController {
         onImpact: ({ at }) => this.resolvePlayerImpact(target.id, at, damage),
       });
       if (!accepted) {
-        this.firing = false;
-        this.onFeedback('⚠️ Renderizador naval indisponível. Munição preservada.');
+        // A full projectile buffer is temporary, especially with 5X + guided ammo.
+        // Keep the continuous attack active and retry next update without spending ammo.
+        // Stop only when combat state or targeting becomes invalid in update().
         break;
       }
       spent++;
