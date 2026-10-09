@@ -4,7 +4,7 @@ import {
   claimCampaignMission, startRegion2,
 } from '../missions/RegionOneCampaign.js';
 import { claimTreasure } from '../treasures/RegionTreasures.js';
-import { repairHull } from '../combat/HullRepair.js';
+import { accumulateHullRepair } from '../combat/HullRepair.js';
 
 // Pure transaction: validate the action, record its pedagogical attempt,
 // update concurrent quest objectives, and return ONE patch to persist.
@@ -28,10 +28,10 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
     message = 'Tesouro resgatado! +' + outcome.reward.gold
       + ' ouro e +' + outcome.reward.iron + ' munições de ferro.';
   } else if (type === 'repair') {
-    const outcome = repairHull(save, 0);
+    const outcome = accumulateHullRepair(save, Number(save.combat?.shipHealth) <= 0);
     if (!outcome) return null;
     patch = outcome.patch;
-    message = 'Casco consertado! +' + Math.round(outcome.restored) + ' PV.';
+    message = 'Reparo acumulado: ' + outcome.pending + '/' + outcome.required + ' PV.';
   } else if (type === 'practice') {
     patch = {};
     message = 'Tabuada praticada.';
