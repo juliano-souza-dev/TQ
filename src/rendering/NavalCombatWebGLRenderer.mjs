@@ -374,12 +374,13 @@ export class NavalCombatWebGLRenderer{
   }
 
   // Underwater ambush shared with the Kraken sprite renderer.
-  attackKraken({from,to,startTime=performance.now(),duration=1400,onImpact=null}={}){
+  attackKraken({from,to,monsterId=null,startTime=performance.now(),duration=1400,onImpact=null}={}){
     if(!from||!to||!this.init())return false;
     if(this.krakenAttacks.length>=(this.reducedFx?3:8))return false;
     this.krakenAttacks.push({
       from:{x:Number(from.x)||0,y:Number(from.y)||0},
       to:{x:Number(to.x)||0,y:Number(to.y)||0},
+      monsterId,
       startTime,duration,impactSpawned:false,
       onImpact:typeof onImpact==="function"?onImpact:null
     });
