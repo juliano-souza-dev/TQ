@@ -30,7 +30,7 @@ export const REGION_ONE_TREASURES = Object.freeze([
 ]);
 // 48 pontos adicionais navegáveis: total de 72 arcas distribuídas pela enseada.
 const EXTRA_TREASURES = [];
-for (const y of [300, 800, 1300, 1800, 2300, 2800, 3300, 3800]) {
+for (const y of [300, 800, 1050, 1300, 1800, 2300, 2550, 2800, 3300, 3800]) {
   for (const x of [260, 670, 1080, 1490, 1900, 2310, 2720, 3130, 3540, 3920]) {
     const onIsland = [
       [1430, 1650, 820, 690],
