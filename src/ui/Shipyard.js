@@ -108,40 +108,77 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     const ownedCannons = cannons.filter(cannon => isItemVisible(cannon, events) && (isItemOwned(cannon, currentOwnedCannonIds) || (Number(currentCannonCounts[cannon.id]) || 0) > 0));
     const ownedIds = ownedCannons.map(cannon => cannon.id);
     const usedCounts = slots.filter(Boolean).reduce((counts, id) => { counts[id] = (counts[id] || 0) + 1; return counts; }, {});
-    const slotsBox = el('div', 'shipyard-cannon-slots');
-    for (let index = 0; index < capacity; index++) {
-      const cannonId = slots[index] ?? null;
-      const cannon = ownedCannons.find(item => item.id === cannonId);
-      const slot = el('div', 'shipyard-cannon-slot');
-      slot.append(el('strong', '', '⚓ Posição ' + (index + 1)));
+    const slotsBox=el('div','shipyard-cannon-slots');
+    const strength=c=>Number(c.damageMultiplier)||1;
+    const sortedAvailable=()=>ownedCannons.filter(c=>
+      (Number(currentCannonCounts[c.id])||(c.acquisition?.type==='starter'?1:0))>(usedCounts[c.id]||0))
+      .sort((a,b)=>strength(b)-strength(a)||(Number(b.range)||0)-(Number(a.range)||0));
+    function chooseCannon(index){
+      const overlay=el('div','shipyard-cannon-dialog-backdrop');
+      const dialog=el('section','shipyard-cannon-dialog');
+      dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');
+      dialog.setAttribute('aria-label','Equipar canhão na posição '+(index+1));
+      const header=el('div','shipyard-cannon-dialog-header');
+      const heading=el('h3','','⚓ Escolha um canhão · Posição '+(index+1));
+      const close=el('button','shipyard-cannon-dialog-close','✕');
+      close.type='button';close.setAttribute('aria-label','Fechar seleção');
+      const dismiss=()=>{overlay.remove();document.removeEventListener('keydown',onKey);};
+      const onKey=e=>{if(e.key==='Escape')dismiss();};
+      close.addEventListener('click',dismiss);
+      overlay.addEventListener('click',e=>{if(e.target===overlay)dismiss();});
+      document.addEventListener('keydown',onKey);
+      header.append(heading,close);dialog.append(header);
+      const available=sortedAvailable();
+      if(!available.length)dialog.append(el('p','shipyard-note','Nenhum canhão livre no inventário.'));
+      for(const item of available){
+        const option=el('button','shipyard-cannon-choice');
+        option.type='button';
+        const art=el('img','shipyard-cannon-choice-art');
+        art.src=getCannonAssetUrl(item);art.alt='';
+        const details=el('div','shipyard-cannon-choice-details');
+        details.append(el('strong','',item.name));
+        const relative=Math.max(1,Math.min(5,Math.ceil(strength(item)/2.2*5)));
+        const tier=el('span','shipyard-cannon-tier tier-'+relative,'▲'.repeat(relative));
+        tier.setAttribute('aria-label','Força nível '+relative+' de 5');
+        details.append(tier);
+        const meta=el('div','shipyard-cannon-choice-stats');
+        meta.append(el('span','','💥 ×'+item.damageMultiplier),
+          el('span','','🎯 '+(item.range??'?')+' m'),
+          el('span','','⏱ '+item.reloadSeconds+' s'));
+        details.append(meta);option.append(art,details);
+        option.addEventListener('click',()=>{
+          const availableCounts={...currentCannonCounts,
+            'blue-gold-pirate':Number(currentCannonCounts['blue-gold-pirate'])||1};
+          const updated=equipCannon(currentLoadout,currentEquippedShipId,index,item.id,capacity,ownedIds,availableCounts);
+          if(updated===currentLoadout)return;
+          currentLoadout=updated;onLoadoutChange(currentLoadout);
+          dismiss();renderCannons();
+        });
+        dialog.append(option);
+      }
+      overlay.append(dialog);document.body.append(overlay);close.focus();
+    }
+    for(let index=0;index<capacity;index++){
+      const cannonId=slots[index]??null;
+      const cannon=ownedCannons.find(item=>item.id===cannonId);
+      const slot=el('div','shipyard-cannon-slot'+(cannon?' is-equipped':' is-empty'));
+      slot.append(el('strong','shipyard-slot-heading','SLOT '+(index+1)));
       if(cannon){
-        const art=el('img','shipyard-slot-cannon-art');
-        art.src=getCannonAssetUrl(cannon);art.alt='';
+        const art=el('img','shipyard-slot-cannon-art');art.src=getCannonAssetUrl(cannon);art.alt=cannon.name;
         slot.append(art,el('span','shipyard-slot-cannon-name',cannon.name));
-      }else slot.append(el('span','shipyard-slot-empty','＋ Disponível'));
-      if (cannon) {
-        const remove = el('button', 'primary-button', 'Desequipar');
-        remove.type = 'button';
-        remove.addEventListener('click', () => {
-          currentLoadout = unequipCannon(currentLoadout, currentEquippedShipId, index, capacity);
-          onLoadoutChange(currentLoadout);
-          renderCannons();
+        const remove=el('button','shipyard-slot-remove','Desequipar');
+        remove.type='button';
+        remove.addEventListener('click',()=>{
+          currentLoadout=unequipCannon(currentLoadout,currentEquippedShipId,index,capacity);
+          onLoadoutChange(currentLoadout);renderCannons();
         });
         slot.append(remove);
-      } else {
-        const select = el('select', 'shipyard-cannon-select');
-        select.setAttribute('aria-label', 'Equipar canhão no slot ' + (index + 1));
-        select.append(new Option('Escolha um canhão', ''));
-        for (const available of ownedCannons.filter(item => (Number(currentCannonCounts[item.id]) || (item.acquisition?.type === 'starter' ? 1 : 0)) > (usedCounts[item.id] || 0))) {
-          select.append(new Option(available.name, available.id));
-        }
-        select.addEventListener('change', () => {
-          if (!select.value) return;
-          currentLoadout = equipCannon(currentLoadout, currentEquippedShipId, index, select.value, capacity, ownedIds, { ...currentCannonCounts, 'blue-gold-pirate': Number(currentCannonCounts['blue-gold-pirate']) || 1 });
-          onLoadoutChange(currentLoadout);
-          renderCannons();
-        });
-        slot.append(select);
+      }else{
+        const add=el('button','shipyard-slot-add','＋');
+        add.type='button';add.setAttribute('aria-label','Equipar canhão no slot '+(index+1));
+        add.title='Escolher canhão';
+        add.addEventListener('click',()=>chooseCannon(index));
+        slot.append(add,el('span','shipyard-slot-empty','Equipar canhão'));
       }
       slotsBox.append(slot);
     }
