@@ -383,19 +383,20 @@ export class NavalBattleController {
     const aim=interceptPoint(from,target,this.velocities.get(target.id),launcher.projectileSpeed);
     const destination=aimWithAccuracy(aim,from,launcher.accuracy,this.random);
     const targetId=target.id;
+    const flameBoost=this.isFlameActive();
     const accepted=this.renderer.fire({
       from,to:destination,duration:flightDurationMs(from,destination,launcher.projectileSpeed),
       ammo:{id:'naval-harpoon',name:'Arpão do Marujo',size:1.8,
         projectileSpeed:launcher.projectileSpeed,
         fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
-      impactKind:'water',startTime:now,
-      onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,harpoonDamage(launcher)),
+      impactKind:'water',startTime:now,flameBoost,
+      onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,harpoonDamage(launcher)*(flameBoost?5:1)),
     });
     if (!accepted) {this.onFeedback('⚠️ Disparo de arpão indisponível.');return false;}
     const save=this.readSave();
     this.writePatch({harpoonAmmo:{...(save.harpoonAmmo??{}),[HARPOON_AMMO_ID]:harpoonStock(save)-1}});
-    this.nextHarpoonAt=now+launcher.reloadSeconds*1000;
-    this.onFeedback('⚓ Arpão lançado contra '+target.name+'!');
+    this.nextHarpoonAt=now+Math.max(100,launcher.reloadSeconds*1000/(flameBoost?5:1));
+    this.onFeedback((flameBoost?'🔥 Arpão em chamas':'⚓ Arpão')+' lançado contra '+target.name+'!');
     return true;
   }
 
