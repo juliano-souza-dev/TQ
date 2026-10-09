@@ -1045,7 +1045,29 @@ async function startWorld() {
     startWorld();
   });
 
+  const {createDarkWatersPortal}=await import('./rendering/DarkWatersPortal.js');
   const darkWatersExit={x:Math.min(world.region.width-160,3930),y:Math.min(world.region.height-180,3890)};
+  const darkPortal=document.createElement('canvas');
+  darkPortal.className='dark-waters-portal';
+  darkPortal.hidden=true;darkPortal.setAttribute('aria-label','Portal para as Águas Escuras');
+  root.append(darkPortal);
+  const darkPortalEffect=createDarkWatersPortal(darkPortal);
+  function darkPortalUnlocked(){
+    if(world.region.id!=='r2')return false;
+    const m=getR2Board(readSave()).missions.find(item=>item.id==='r2-dark-voyage');
+    return !!m && ['active','ready','claimed'].includes(m.status);
+  }
+  function updateDarkPortal(now){
+    if(!darkPortalUnlocked()){darkPortal.hidden=true;return;}
+    const x=canvas.clientWidth*.5+(darkWatersExit.x-world.cameraView.x)*world.camera.zoom;
+    const y=canvas.clientHeight*.5+(darkWatersExit.y-world.cameraView.y)*world.camera.zoom;
+    const diameter=Math.max(110,Math.min(420,260*world.camera.zoom));
+    darkPortal.hidden=x< -diameter||y< -diameter||x>canvas.clientWidth+diameter||y>canvas.clientHeight+diameter;
+    if(darkPortal.hidden)return;
+    darkPortal.style.left=x+'px';darkPortal.style.top=y+'px';
+    darkPortal.style.width=diameter+'px';darkPortal.style.height=diameter+'px';
+    darkPortalEffect.render(now);
+  }
   function updateThiefGuide() {
     const campaign = readSave().campaign ?? {};
     const thiefActive = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed && !mathGate.isOpen;
@@ -1054,9 +1076,8 @@ async function startWorld() {
     const r2Board = world.region.id === 'r2' ? getR2Board(readSave()) : null;
     const r2 = r2Board?.active[0] ?? null;
     const darkPassageMission=r2Board?.missions.find(m=>m.id==='r2-dark-voyage');
-    const darkPassageActive=darkPassageMission?.status==='active'
-      || (readSave().r2Campaign?.active==='r2-dark-voyage'
-        && darkPassageMission?.status!=='claimed');
+    const darkPassageActive=!!darkPassageMission
+      && ['active','ready','claimed'].includes(darkPassageMission.status);
     const guideTarget = r2?.id === 'r2-meet-forgotten' ? world.region.islands.find(i=>i.id==='r2-scenery-north')
       : darkPassageActive ? darkWatersExit
       : ['r2-black-market','r2-hunt-prep'].includes(r2?.id) ? {x:world.region.width/2,y:world.region.height/2}
@@ -1912,6 +1933,7 @@ async function startWorld() {
       minimap.render();
       updateThiefGuide();
       updateExitBeacon();
+      updateDarkPortal(performance.now());
       const gr=glintCanvas.getBoundingClientRect(),gd=Math.min(window.devicePixelRatio||1,2);
       const gw=Math.max(1,Math.round(gr.width*gd)),gh=Math.max(1,Math.round(gr.height*gd));
       if(glintCanvas.width!==gw||glintCanvas.height!==gh){glintCanvas.width=gw;glintCanvas.height=gh;}
