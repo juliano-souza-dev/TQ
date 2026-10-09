@@ -318,24 +318,39 @@ async function startWorld() {
   let pursuitCameraZoom = normalCameraZoom;
   const pursuitHiddenEntities = new Map();
   function updatePursuitPopulation() {
-    const hunting = world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief';
-    if (!hunting) {
-      for (const [id, entity] of pursuitHiddenEntities) {
-        if (!world.entities.has(id)) world.entities.set(id, entity);
+    const mission=world.region.id==='r2' ? readSave().r2Campaign?.active : null;
+    const hunting=mission==='r2-destroy-thief';
+    const goldenBattle=mission==='r2-golden-ii';
+    if(!hunting && !goldenBattle){
+      for(const [id,entity] of pursuitHiddenEntities){
+        if(!world.entities.has(id))world.entities.set(id,entity);
       }
       pursuitHiddenEntities.clear();
       return;
     }
-    const corsairs = [...world.entities.values()].filter(n => n.type === 'npc'
-      && n.archetype !== 'fugitive-frigate' && n.id !== 'r2-informant');
-    // 95% fewer ordinary NPCs; the mission boss and informant stay untouched.
-    const keep = new Set(corsairs.slice(0, Math.max(1, Math.ceil(corsairs.length*.05))).map(n => n.id));
-    for (const [id, entity] of world.entities) {
-      if (entity.type === 'monster' || (entity.type === 'npc'
-        && entity.archetype !== 'fugitive-frigate' && id !== 'r2-informant' && !keep.has(id))) {
-        pursuitHiddenEntities.set(id, entity);
+    // Count hidden and visible NPCs together to avoid removing another 95%
+    // every update. Keep the same stable 5% throughout the encounter.
+    const protectedNpc=id=>goldenBattle
+      ? ['r2-morbi','r2-pumpkin-ally','r2-black-market-merchant'].includes(id)
+      : id==='r2-informant';
+    const candidates=new Map([...pursuitHiddenEntities,...world.entities]);
+    const ordinary=[...candidates.entries()]
+      .filter(([id,n])=>n.type==='npc' && !protectedNpc(id)
+        && !(hunting && n.archetype==='fugitive-frigate'))
+      .sort(([a],[b])=>String(a).localeCompare(String(b)));
+    const keep=new Set(ordinary.slice(0,Math.ceil(ordinary.length*.05)).map(([id])=>id));
+    for(const [id,entity] of [...world.entities]){
+      if(protectedNpc(id) || (hunting && entity.archetype==='fugitive-frigate'))continue;
+      if(entity.type==='monster' || (entity.type==='npc'&&!keep.has(id))){
+        pursuitHiddenEntities.set(id,entity);
         world.entities.delete(id);
       }
+    }
+    // Restore the chosen 5% if they were hidden during a prior update.
+    for(const id of keep){
+      const entity=pursuitHiddenEntities.get(id);
+      if(entity && !world.entities.has(id))world.entities.set(id,entity);
+      pursuitHiddenEntities.delete(id);
     }
   }
 
@@ -787,7 +802,7 @@ async function startWorld() {
       navalHud.refresh();
       return true;
     }
-    const treasure = findTreasureNearPoint((world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief') ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id), point.x, point.y);
+    const treasure = findTreasureNearPoint((world.region.id === 'r2' && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active)) ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id), point.x, point.y);
     if (treasure && Math.hypot(world.camera.x - treasure.x, world.camera.y - treasure.y) < 125) {
       mathGate.open({
         kind: 'treasure', id: treasure.id,
@@ -817,7 +832,7 @@ async function startWorld() {
   const minimap = createMinimap(world, {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
-    getTreasures: () => (world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief') ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),
+    getTreasures: () => (world.region.id === 'r2' && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active)) ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),
     hasTreasureSense: () => Boolean(world.treasureSenseActive || navalBattle?.isTreasureMapActive()),
   });
   minimapElement = minimap.element;
@@ -1532,7 +1547,7 @@ async function startWorld() {
         navalHud.refresh();
         refreshTargetAndHealthHud();
         assistButton.hidden = !navalBattle.getAssistStatus().eligible || mathGate.isOpen || islandPanel.isOpen;
-        const near = findTreasureNearPoint((world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief') ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id), world.camera.x, world.camera.y, 125);
+        const near = findTreasureNearPoint((world.region.id === 'r2' && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active)) ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id), world.camera.x, world.camera.y, 125);
         treasurePrompt.hidden = !near || mathGate.isOpen || islandPanel.isOpen;
       }
       persistPlayerPosition(stepMs);
@@ -1621,7 +1636,7 @@ async function startWorld() {
       cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
       const hidePursuitTreasures = world.region.id === 'r2'
-        && readSave().r2Campaign?.active === 'r2-destroy-thief';
+        && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active);
       treasureRenderer.render(hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),world.cameraView,world.camera.zoom,oceanTimeMs);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
