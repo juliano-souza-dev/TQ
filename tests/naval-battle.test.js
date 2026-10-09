@@ -368,3 +368,12 @@ test('navegador mais próximo só ajuda durante ataque a monstro, com 25 de dano
   t.battle.toggleFire();
   assert.equal(t.battle.getAssistStatus().active,false);
 });
+
+test('NPCs podem ser atacados em R2 sem depender de progresso do tutorial da R1',()=>{
+  const t=battleHarness({mission:'none'});
+  t.battle.getRegionId=()=> 'r2';
+  assert.equal(t.battle.getStatus().ready,true);
+  assert.equal(t.battle.toggleFire(),true);
+  assert.equal(t.shots.length,1);
+  assert.equal(t.save.ammunition['rusted-iron'],19);
+});
