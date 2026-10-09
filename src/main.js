@@ -262,6 +262,26 @@ async function startWorld() {
       });
     }
   }
+  // Campaign migration: the Forgotten Island rendezvous was inserted after
+  // Golden Galleon II. Older saves must play it before the ambush, without
+  // forfeiting any already-earned rewards or equipment.
+  {
+    const save=readSave(),state=save.r2Campaign??{};
+    const claimed=state.claimed??[];
+    const arrivedAtAmbush=['r2-why-help','r2-search-clues','r2-do-me-favor',
+      'r2-monster-meat','r2-mystery-light','r2-dark-voyage'];
+    const advanced=claimed.includes('r2-golden-ii') &&
+      (arrivedAtAmbush.includes(state.active) ||
+        arrivedAtAmbush.some(id=>claimed.includes(id)));
+    const meetingFinished=claimed.includes('r2-meet-forgotten')
+      || save.storyFlags?.pumpkinAmbushResolved;
+    if(advanced && !meetingFinished){
+      writePatch({r2Campaign:{...state,active:'r2-meet-forgotten',
+        claimed:claimed.filter(id=>!arrivedAtAmbush.includes(id)),
+        progress:{...state.progress,'r2-meet-forgotten':[0]},
+        processed:(state.processed??[]).filter(id=>!id.startsWith('forgotten-meeting:'))}});
+    }
+  }
   // Repair legacy rewards: Caçadora das Sombras must be owned before
   // the subsequent Preparar a Caçada contract can be completed.
   {
