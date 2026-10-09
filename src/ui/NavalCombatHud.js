@@ -7,7 +7,7 @@ const MESSAGES = Object.freeze({
   sunk: 'O casco está destruído. Repare o navio.',
 });
 
-export function createNavalCombatHud(controller, { onRepair = () => false } = {}) {
+export function createNavalCombatHud(controller, { onRepair = () => false, onCenterShip = () => false, isCameraDetached = () => false } = {}) {
   const element = document.createElement('aside');
   element.className = 'combat-hud';
   element.setAttribute('aria-label', 'Combate naval');
@@ -28,6 +28,16 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   repairButton.append(repairIcon);
   repairButton.setAttribute('aria-label', 'Reparar navio resolvendo uma continha');
   repairButton.title = 'Reparar casco: 20% da vida máxima por continha';
+  const centerButton = document.createElement('button');
+  centerButton.type = 'button';
+  centerButton.className = 'naval-center-button';
+  centerButton.setAttribute('aria-label', 'Centralizar câmera no navio');
+  const centerIcon = document.createElement('img');
+  centerIcon.className = 'naval-center-icon';
+  centerIcon.alt = '';
+  centerIcon.draggable = false;
+  centerIcon.src = new URL('../../assets/ui/hud/centralizar_navio.webp', import.meta.url).href;
+  centerButton.append(centerIcon);
   const hullRow = document.createElement('div');
   hullRow.className = 'combat-hull-row';
   hullRow.append(hull);
@@ -61,7 +71,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   const attackControls = document.createElement('div');
   attackControls.className = 'combat-attack-controls';
   // Attack moves left, repair takes the original rightmost attack position.
-  attackControls.append(fireButton, fireIconButton, repairButton);
+  attackControls.append(fireButton, fireIconButton, centerButton, repairButton);
   element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
   let optionFingerprint = '';
 
@@ -70,6 +80,12 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   }
 
   function refresh() {
+    const cameraDetached = Boolean(isCameraDetached());
+    centerButton.disabled = !cameraDetached;
+    centerButton.classList.toggle('is-available', cameraDetached);
+    centerButton.classList.toggle('is-blocked', !cameraDetached);
+    centerButton.setAttribute('aria-disabled', String(!cameraDetached));
+    centerButton.title = cameraDetached ? 'Centralizar a câmera no navio' : 'Câmera acompanhando o navio';
     const status = controller.getStatus();
     const choices = status.options.filter(item => item.amount > 0 || item.id === status.ammoId);
     const fingerprint = choices.map(item => item.id + ':' + (item.amount > 0)).join('|');
@@ -146,6 +162,22 @@ export function createNavalCombatHud(controller, { onRepair = () => false } = {}
   }
   bindFireControl(fireIconButton);
   bindFireControl(fireButton);
+  let lastCenterTouchAt = -Infinity;
+  function centerShip() {
+    if (centerButton.disabled) return;
+    onCenterShip();
+    refresh();
+  }
+  centerButton.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'touch' || centerButton.disabled) return;
+    lastCenterTouchAt = performance.now();
+    event.preventDefault();
+    centerShip();
+  });
+  centerButton.addEventListener('click', event => {
+    if (event.detail !== 0 && performance.now() - lastCenterTouchAt < 650) return;
+    centerShip();
+  });
   // Separate pointer from the joystick: the second finger can repair while sailing.
   let lastRepairTouchAt = -Infinity;
   repairButton.addEventListener('pointerdown', event => {
