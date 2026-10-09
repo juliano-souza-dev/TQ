@@ -48,31 +48,39 @@ export class NavalBattleController {
 
   getConsumables() {
     const c = this.readSave().consumables ?? {};
-    return { selectedId: c.selectedId ?? 'flame-5x',
-      quantities: c.quantities ?? {}, activeUntil: Number(c.activeUntil)||0,
-      cooldownUntil: Number(c.cooldownUntil)||0 };
+    return {
+      selectedId:c.selectedId ?? 'flame-5x',
+      quantities:c.quantities ?? {},
+      activeUntil:Number(c.activeUntil)||0,
+      cooldownUntil:Number(c.cooldownUntil)||0,
+      shieldActiveUntil:Number(c.shieldActiveUntil)||0,
+      shieldCooldownUntil:Number(c.shieldCooldownUntil)||0,
+    };
   }
-  isFlameActive() {
-    const c = this.getConsumables();
-    return Date.now() < c.activeUntil;
-  }
+  isFlameActive() { return Date.now() < this.getConsumables().activeUntil; }
+  isShieldActive() { return Date.now() < this.getConsumables().shieldActiveUntil; }
   selectConsumable(id) {
-    if (id !== 'none' && id !== 'flame-5x') return false;
-    const save = this.readSave();
-    this.writePatch({consumables:{...(save.consumables??{}), selectedId:id}});
+    if (!['none','flame-5x','shield'].includes(id)) return false;
+    const save=this.readSave();
+    this.writePatch({consumables:{...(save.consumables??{}),selectedId:id}});
     return true;
   }
   activateConsumable() {
-    const save = this.readSave(), c = this.getConsumables(), now = Date.now();
-    if (c.selectedId !== 'flame-5x') return {ok:false,reason:'Selecione o consumível 5X em Chamas.'};
-    if (c.activeUntil > now) return {ok:false,reason:'5X em Chamas já está ativo.'};
-    if (c.cooldownUntil > now) return {ok:false,reason:'Aguarde '+Math.ceil((c.cooldownUntil-now)/1000)+'s para reutilizar.'};
-    const count = Math.max(0,Math.floor(Number(c.quantities['flame-5x'])||0));
-    if (!count) return {ok:false,reason:'Você não possui 5X em Chamas.'};
-    this.writePatch({consumables:{...(save.consumables??{}),selectedId:c.selectedId,
-      quantities:{...c.quantities,'flame-5x':count-1},
-      activeUntil:now+60000,cooldownUntil:now+300000}});
-    return {ok:true,reason:'🔥 5X em Chamas ativo por 60 segundos!'};
+    const save=this.readSave(),c=this.getConsumables(),now=Date.now();
+    const shield=c.selectedId==='shield', flame=c.selectedId==='flame-5x';
+    if (!shield&&!flame) return {ok:false,reason:'Selecione um consumível.'};
+    const activeUntil=shield?c.shieldActiveUntil:c.activeUntil;
+    const cooldownUntil=shield?c.shieldCooldownUntil:c.cooldownUntil;
+    if (activeUntil>now)return {ok:false,reason:'Consumível já ativo.'};
+    if (cooldownUntil>now)return {ok:false,reason:'Aguarde '+Math.ceil((cooldownUntil-now)/1000)+'s para reutilizar.'};
+    const count=Math.max(0,Math.floor(Number(c.quantities[c.selectedId])||0));
+    if (!count)return {ok:false,reason:'Você não possui este consumível.'};
+    const duration=shield?45000:60000,cooldown=shield?180000:300000;
+    this.writePatch({consumables:{...(save.consumables??{}),
+      quantities:{...c.quantities,[c.selectedId]:count-1},
+      ...(shield?{shieldActiveUntil:now+duration,shieldCooldownUntil:now+cooldown}
+        :{activeUntil:now+duration,cooldownUntil:now+cooldown})}});
+    return {ok:true,reason:shield?'🛡️ Escudo ativo por 45 segundos!':'🔥 5X em Chamas ativo por 60 segundos!'};
   }
 
   resolveSelectedAmmo() {
@@ -565,6 +573,7 @@ export class NavalBattleController {
             ||!shipCollision(at,{...ship,health:this.getHealth()},56))return;
           const save=this.readSave();
           const health=Math.max(0,this.getHealth()-8);
+          if (this.isShieldActive()) return;
           this.writePatch({combat:{...save.combat,shipHealth:health}});
           this.onFeedback(health>0?'🐙 Kraken atingiu o casco! -8 PV.':'☠️ Kraken afundou seu navio!');
           if(!health)this.firing=false;
@@ -617,6 +626,7 @@ export class NavalBattleController {
     if (!shipCollision(point, { ...player, health: this.getHealth() }, 56)) {
       return { kind: 'water' };
     }
+    if (this.isShieldActive()) return {kind:'ship'};
     const save = this.readSave();
     const health = Math.max(0, this.getHealth() - damage);
     this.writePatch({ combat: { ...save.combat, shipHealth: health } });
