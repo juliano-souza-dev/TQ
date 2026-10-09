@@ -5,7 +5,7 @@ import {campaignFor,boardFor,missionReady} from '../src/missions/CampaignEngine.
 test('motor único resolve campanhas das duas regiões',()=>{
   assert.equal(typeof campaignFor('r1').board,'function');
   assert.equal(typeof campaignFor('r2').board,'function');
-  assert.equal(boardFor({},'r2').missions.length,6);
+  assert.equal(boardFor({},'r2').missions.length,9);
 });
 test('R2 muda de em andamento para recompensa aguardando e depois resgatada',()=>{
   let save={r2Campaign:{active:null,claimed:[],progress:{},processed:[]}};
