@@ -58,17 +58,30 @@ export function treasureReward(id) {
   const seed = hashId(id);
   return { gold: 12 + (seed % 24), iron: 16 + ((seed >>> 6) % 29) };
 }
+// IDs de ciclos são históricos: nunca reutilizar uma arca já coletada,
+ // mesmo em saves antigos ou após uma sincronização parcial.
+function nextTreasureCycle(save, baseId) {
+  const opened = save.openedTreasures ?? [];
+  const prefix = baseId + '-cycle-';
+  let next = Math.max(0, Math.floor(Number(save.treasureClaimCounts?.[baseId]) || 0));
+  for (const id of opened) {
+    if (id === baseId) next = Math.max(next, 1);
+    else if (typeof id === 'string' && id.startsWith(prefix)) {
+      const suffix = id.slice(prefix.length);
+      if (/^\\d+$/.test(suffix)) next = Math.max(next, Number(suffix) + 1);
+    }
+  }
+  return next;
+}
 export function getVisibleTreasures(save = {}, now = Date.now()) {
-  const opened = new Set(save.openedTreasures ?? []);
-  const counts = save.treasureClaimCounts ?? {};
   const cooldowns = save.treasureCooldowns ?? {};
-  return ALL_R1_TREASURES.map(t => {
-    const legacyClaim = opened.has(t.id) ? 1 : 0;
-    const cycle = Math.max(legacyClaim, Math.max(0, Number(counts[t.id]) || 0));
+  return ALL_R1_TREASURES.flatMap(t => {
+    const cycle = nextTreasureCycle(save, t.id);
     const lastClaimedAt = Number(cooldowns[t.id]) || 0;
-    if (lastClaimedAt && now - lastClaimedAt < TREASURE_RESPAWN_MS) return null;
-    return { ...t, id: cycle ? t.id + '-cycle-' + cycle : t.id };
-  }).filter(Boolean);
+    if (lastClaimedAt > 0 && now - lastClaimedAt < TREASURE_RESPAWN_MS) return [];
+    const id = cycle ? t.id + '-cycle-' + cycle : t.id;
+    return [{ ...t, id }];
+  });
 }
 export function findTreasureNearPoint(treasures, x, y, radius = 90) {
   let closest = null, best = radius;
@@ -84,7 +97,7 @@ export function claimTreasure(save = {}, id, now = Date.now()) {
   const base = ALL_R1_TREASURES.find(t => treasure.id === t.id || treasure.id.startsWith(t.id + '-cycle-'))?.id;
   if (!base) return null;
   const counts = save.treasureClaimCounts ?? {};
-  const already = Math.max(Number(counts[base]) || 0, (save.openedTreasures ?? []).includes(base) ? 1 : 0);
+  const already = nextTreasureCycle(save, base);
   const reward = treasureReward(id);
   return {
     reward,
