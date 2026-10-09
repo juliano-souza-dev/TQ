@@ -822,7 +822,19 @@ async function startWorld() {
   root.append(islandPanelElement);
   let contactId = null;
   let shipSpeed = getShipSpeed(activeShip);
+  function combatMissionBlocksPorts() {
+    const save=readSave();
+    if(world.region.id==='r2') {
+      const active=save.r2Campaign?.active;
+      return Boolean(active && [
+        'r2-thieves','r2-informant','r2-admiral','r2-shadow-materials',
+        'r2-shadow-trials','r2-destroy-thief',
+      ].includes(active));
+    }
+    return false;
+  }
   function checkDockContact(fromX, fromY, inputX, inputY, stepMs) {
+    if(combatMissionBlocksPorts()) { contactId=null; return; }
     const magnitude = Math.hypot(inputX, inputY);
     const step = shipSpeed * stepMs / 1000;
     const contact = magnitude > 0.01 ? getIslandContact(world.region,
