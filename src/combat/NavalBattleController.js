@@ -152,7 +152,7 @@ export class NavalBattleController {
     const distance = target ? distanceBetween(player, target) : Infinity;
     const harpoon = equippedHarpoon(save);
     const monsterTarget = target?.type === 'monster';
-    const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon) && cannonAcceptsAmmo(cannon, this.selectedAmmoId));
+    const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon) && (cannon.exclusiveAmmoId ? ammoStock(save,cannon.exclusiveAmmoId)>0 : cannonAcceptsAmmo(cannon,this.selectedAmmoId) && ammoStock(save,this.selectedAmmoId)>0));
     const ammo = ammoStock(save, this.selectedAmmoId);
     // R1 possui um tutorial obrigatório. R2 já começa com combate liberado.
     const missionActive = this.getRegionId() !== 'r1'
@@ -166,8 +166,8 @@ export class NavalBattleController {
     else if (!monsterTarget && !missionActive) reason = 'mission';
     else if (!monsterTarget && !battery.length) reason = 'no-cannon';
     else if (!target) reason = 'target';
-    else if (!monsterTarget && !inRangeCannons.length) reason = battery.some(({ cannon }) => cannonAcceptsAmmo(cannon, this.selectedAmmoId)) ? 'range' : 'ammo-type';
-    else if (!monsterTarget && (!ammo || !effectiveAmmo(this.selectedAmmoId))) reason = 'ammo';
+    else if (!monsterTarget && !inRangeCannons.length) reason = battery.some(({ cannon }) => distance <= cannonRange(cannon)) ? 'ammo' : 'range';
+
     else if (this.getHealth() <= 0) reason = 'sunk';
     return {
       firing: this.firing,
@@ -418,33 +418,34 @@ export class NavalBattleController {
     const player = this.getPlayer(), target = this.getTarget();
     const save = this.readSave();
     const battery = armedCannons(save, this.shipId)
-      .filter(({ cannon }) => distanceBetween(player, target) <= cannonRange(cannon) && cannonAcceptsAmmo(cannon, this.selectedAmmoId));
-    const ammo = effectiveAmmo(this.selectedAmmoId);
-    if (!ammo || !battery.length) return 0;
-
-    let remaining = ammoStock(save, ammo.id);
+      .filter(({ cannon }) => distanceBetween(player, target) <= cannonRange(cannon));
+    const ammoStockById = {...(save.ammunition ?? {})};
     let spent = 0;
     for (const [batteryIndex, { slot, cannon }] of battery.entries()) {
-      if (!remaining) break;
       if (now < (this.nextBySlot.get(slot) ?? -Infinity)) continue;
+      // One synchronized volley; each cannon chooses only its compatible ammunition.
+      const ammoId = cannon.exclusiveAmmoId || (cannonAcceptsAmmo(cannon, this.selectedAmmoId)
+        ? this.selectedAmmoId : this.resolveSelectedAmmo());
+      if (!cannonAcceptsAmmo(cannon, ammoId)) continue;
+      const remaining = ammoStockById[ammoId] === undefined ? ammoStock(save, ammoId) : ammoStockById[ammoId];
+      if (remaining <= 0) continue;
+      const ammo = effectiveAmmo(ammoId);
+      if (!ammo) continue;
       const muzzle = this.getMappedMuzzle({
         player, target, heading: player.heading, slot, cannon,
       }) ?? cannonHardpoint(player, target, player.heading, batteryIndex, battery.length);
       const speed = ammo.projectileSpeed;
       const intercepted = interceptPoint(muzzle, target, this.velocities.get(target.id), speed);
-      // Fast mission boss needs predictive accuracy to register real projectile impacts.
       const accuracy = target.archetype === 'fugitive-frigate' && this.getThiefMissionTarget() ? 1 : cannon.accuracy;
       const destination = aimWithAccuracy(intercepted, muzzle, accuracy, this.random);
-      const duration = flightDurationMs(muzzle, destination, speed);
       const damage = shotDamage(cannon, ammo.id);
-      const targetId = target.id;
       const tracking = ammo.trackingDurationMs > 0;
       const accepted = this.renderer.fire({
-        from: muzzle, to: destination, duration: tracking ? ammo.trackingDurationMs : duration, ammo,
-        // Tracking keeps its original target; never switches to secondary ships.
-        ...(tracking ? { trackingTarget: target, trackingSpeed: speed } : {}),
+        from: muzzle, to: destination,
+        duration: tracking ? ammo.trackingDurationMs : flightDurationMs(muzzle, destination, speed),
+        ammo, ...(tracking ? { trackingTarget: target, trackingSpeed: speed } : {}),
         impactKind: 'water', startTime: now,
-        onImpact: ({ at }) => this.resolvePlayerImpact(targetId, at, damage),
+        onImpact: ({ at }) => this.resolvePlayerImpact(target.id, at, damage),
       });
       if (!accepted) {
         this.firing = false;
@@ -452,13 +453,11 @@ export class NavalBattleController {
         break;
       }
       spent++;
-      remaining--;
+      ammoStockById[ammoId] = remaining - 1;
       this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000));
     }
     if (spent) {
-      this.writePatch({
-        ammunition: { ...save.ammunition, [ammo.id]: remaining },
-      });
+      this.writePatch({ammunition: {...save.ammunition, ...ammoStockById}});
       this.onFeedback('💥 ' + spent + (spent === 1 ? ' bala disparada.' : ' balas disparadas.'));
     }
     return spent;
@@ -551,13 +550,20 @@ export class NavalBattleController {
       if (npc.archetype === 'fugitive-frigate' && this.getThiefMissionTarget()?.id === npc.id) {
         if (distanceBetween(npc, player) > 840 || now < (this.nextNpcShot.get(npc.id) ?? -Infinity)) continue;
         const muzzle = cannonHardpoint(npc, player, npc.heading, 0, 1);
-        const aim = aimWithAccuracy(player, muzzle, .68, this.random);
+        const aim = {x: player.x, y: player.y};
+        const controller = this;
         const fired = this.renderer.fire({
-          from: muzzle, to: aim, duration: flightDurationMs(muzzle, aim, 400),
-          ammo: this.enemyAmmo, impactKind: 'water', startTime: now,
+          from: muzzle, to: aim, duration: 9000,
+          trackingTarget: {
+            get x(){return controller.getPlayer().x;},
+            get y(){return controller.getPlayer().y;},
+            get health(){return controller.getHealth();}
+          },
+          trackingSpeed: 700, ammo: effectiveAmmo('aetherion-seeker'),
+          impactKind: 'water', startTime: now,
           onImpact: ({ at }) => this.resolveNpcImpact(npc.id, at, 3),
         });
-        if (fired) this.nextNpcShot.set(npc.id, now + 3000);
+        if (fired) this.nextNpcShot.set(npc.id, now + 1150);
         continue;
       }
       if (npc.type !== 'npc' || npc.health <= 0 || npc.state !== 'retaliating' ||
