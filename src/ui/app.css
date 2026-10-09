@@ -737,3 +737,6 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .mission-complete-card p{font:500 14px/1.5 system-ui,sans-serif}
 .mission-complete-card button{display:block;margin:10px auto 0;max-width:100%;cursor:pointer}
 @media(prefers-reduced-motion:reduce){.ocean-reward-toast{animation:none}}
+
+/* Island panels must honor native hidden even when grid/flex CSS is defined. */
+.island-panel [hidden], .island-panel[hidden] { display: none !important; }
