@@ -157,6 +157,15 @@ async function startWorld() {
   let hudRefreshElapsed = 0;
   const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+  // Grant Veloz+ only once per player, never reset inventory on reload.
+  {
+    const save=readSave(),c=save.consumables??{};
+    if(!c.starterSpeedGranted){
+      writePatch({consumables:{...c,starterSpeedGranted:true,
+        quantities:{...(c.quantities??{}),
+          'speed-plus':(Number(c.quantities?.['speed-plus'])||0)+10}}});
+    }
+  }
   // Migração idempotente: jogadores que já resgataram a missão 10
   // recebem o Aetherion no lugar da recompensa antiga e 5000 orbes.
   {
@@ -179,6 +188,22 @@ async function startWorld() {
         equipment:{...equipment,cannonCounts:counts,ownedCannonIds,loadout},
         ammunition:{...(save.ammunition ?? {}),'aetherion-seeker':(Number(save.ammunition?.['aetherion-seeker']) || 0) + 5000},
         rewardMigrations:{...(save.rewardMigrations ?? {}),[migrationKey]:true},
+      });
+    }
+  }
+  // Upgrade previously claimed mission-10 rewards exactly once.
+  {
+    const save=readSave(),claimed=save.r2Campaign?.claimed?.includes('r2-equip-chaser');
+    if(claimed&&!save.rewardMigrations?.aetherionRewardV3){
+      const e=save.equipment??{},counts={...(e.cannonCounts??{})};
+      counts['aetherion-mk1']=(Number(counts['aetherion-mk1'])||0)+1;
+      const c=save.consumables??{},q=c.quantities??{};
+      writePatch({
+        equipment:{...e,cannonCounts:counts,ownedCannonIds:[...new Set([...(e.ownedCannonIds??[]),'aetherion-mk1'])]},
+        ammunition:{...(save.ammunition??{}),'aetherion-seeker':(Number(save.ammunition?.['aetherion-seeker'])||0)+10000},
+        consumables:{...c,quantities:{...q,'flame-5x':(Number(q['flame-5x'])||0)+10,
+          shield:(Number(q.shield)||0)+10,'speed-plus':(Number(q['speed-plus'])||0)+10}},
+        rewardMigrations:{...(save.rewardMigrations??{}),aetherionRewardV3:true},
       });
     }
   }
@@ -1116,7 +1141,7 @@ async function startWorld() {
         clickNavigation.cancel();
         heading = (Math.atan2(input.x, -input.y) * 180 / Math.PI + 360) % 360;
         const fromX = world.camera.x, fromY = world.camera.y;
-        advanceNavigation(world, input, stepMs, shipSpeed);
+        advanceNavigation(world, input, stepMs, shipSpeed*(navalBattle?.isSpeedActive()?1.1:1));
         trackVoyage(fromX, fromY);
         persistPlayerPosition(stepMs);
         checkDockContact(fromX, fromY, input.x, input.y, stepMs);
@@ -1126,7 +1151,7 @@ async function startWorld() {
           const fromX = world.camera.x, fromY = world.camera.y;
           const dx = destination.x - fromX, dy = destination.y - fromY;
           const distance = Math.hypot(dx, dy);
-          const result = advanceTowardDestination(world, destination, stepMs, shipSpeed);
+          const result = advanceTowardDestination(world, destination, stepMs, shipSpeed*(navalBattle?.isSpeedActive()?1.1:1));
           trackVoyage(fromX, fromY);
           persistPlayerPosition(stepMs);
           if (distance > 0) checkDockContact(fromX, fromY, dx / distance, dy / distance, stepMs);
@@ -1134,7 +1159,7 @@ async function startWorld() {
           if (result.arrived) clickNavigation.cancel();
         } else {
           // Desaceleração por inércia da cinemática do projeto anterior.
-          advanceNavigation(world, { x: 0, y: 0 }, stepMs, shipSpeed);
+          advanceNavigation(world, { x: 0, y: 0 }, stepMs, shipSpeed*(navalBattle?.isSpeedActive()?1.1:1));
         }
       }
       if (world.region.id === 'r1') {
