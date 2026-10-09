@@ -9,7 +9,7 @@ import {
   recordCampaignEvent, claimCampaignMission, startRegion2,
 } from '../src/missions/RegionOneCampaign.js';
 import { resolvePedagogicalAction } from '../src/gameplay/PedagogicalActions.js';
-import { repairHull } from '../src/combat/HullRepair.js';
+import { repairHull, accumulateHullRepair, beginHullRecovery, advanceHullRecovery } from '../src/combat/HullRepair.js';
 import {
   REGION_ONE_TREASURES, getVisibleTreasures, claimTreasure,
 } from '../src/treasures/RegionTreasures.js';
@@ -80,17 +80,34 @@ test('treasure grants inventory only once, and answers are recorded for mastery'
   assert.equal(resolvePedagogicalAction(save, { kind: 'treasure', id }, challenge(5, 3), true), null);
 });
 
-test('one repair question restores twenty hull points, never exceeding 100', () => {
+test('voluntary repair accumulates points and heals over ten seconds after leaving', () => {
   let save = initial();
   const result = resolvePedagogicalAction(save, { kind: 'repair' }, challenge(10, 7), true);
   assert.ok(result);
   save = apply(save, result.patch);
+  assert.equal(save.combat.shipHealth, 40, 'math never restores life immediately');
+  assert.equal(save.combat.repairPending, 20);
+  save = apply(save, beginHullRecovery(save, 1000));
+  assert.equal(save.combat.shipHealth, 40);
+  save = apply(save, advanceHullRecovery(save, 6000));
+  assert.equal(save.combat.shipHealth, 50);
+  save = apply(save, advanceHullRecovery(save, 11000));
   assert.equal(save.combat.shipHealth, 60);
-  save = apply(save, repairHull(save, 10).patch);
-  assert.equal(save.combat.shipHealth, 90);
-  save = apply(save, repairHull(save, 10).patch);
+  assert.equal(save.combat.repairingUntil, null);
+});
+
+test('a sunk ship must earn 100 repair points before recovering', () => {
+  let save = { ...initial(), combat: { shipHealth: 0 } };
+  for (let i = 0; i < 4; i++) {
+    save = apply(save, accumulateHullRepair(save, true).patch);
+    assert.equal(beginHullRecovery(save, 1000), null);
+  }
+  save = apply(save, accumulateHullRepair(save, true).patch);
+  assert.equal(save.combat.repairPending, 100);
+  save = apply(save, beginHullRecovery(save, 1000));
+  assert.equal(save.combat.shipHealth, 0);
+  save = apply(save, advanceHullRecovery(save, 11000));
   assert.equal(save.combat.shipHealth, 100);
-  assert.equal(repairHull(save, 0), null);
 });
 
 test('victories, navigation and visits apply only to active missions', () => {
