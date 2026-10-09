@@ -576,9 +576,10 @@ async function startWorld() {
       const recovering = Boolean(repairState.repairingUntil);
       repairAura.hidden = !recovering;
       const sunk = Number(repairState.shipHealth ?? 100) <= 0;
-      if (sunk && !recovering && !mathGate.isOpen) {
+      if (sunk && !recovering && (!mathGate.isOpen || mathGate.activeKind !== 'repair' || !repairIsForced)) {
         clickNavigation.cancel();
         navalBattle.firing = false;
+        if (mathGate.isOpen) mathGate.close(true);
         beginRepairSession(true);
       }
       sinkingOverlay.hidden = !(recovering && repairIsForced);
