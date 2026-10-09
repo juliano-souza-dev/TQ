@@ -3,7 +3,7 @@ export const GOLDEN_GALLEON_SHIP = Object.freeze({
   id: 'galeao-dourado',
   name: 'Galeão Dourado',
   description: 'Galeão ornamentado com casco dourado e velas vermelhas.',
-  status: 'catalog-only',
+  status: 'mission-reward',
   cannonSlots: 7,
   cannonLayout: Object.freeze({
     port: 7,
@@ -12,10 +12,10 @@ export const GOLDEN_GALLEON_SHIP = Object.freeze({
     stern: 0,
   }),
   speed: Object.freeze({ min: 250, initial: 250, max: 310 }),
-  playable: false,
+  playable: true,
   npcEnabled: false,
   shopEnabled: false,
-  rewardEnabled: false,
+  rewardEnabled: true,
   sprite: Object.freeze({
     path: '../../assets/ships/galeão dourdado.webp',
     frameWidth: 400, frameHeight: 400, columns: 4, rows: 4,
