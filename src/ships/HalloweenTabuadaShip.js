@@ -1,4 +1,4 @@
-// Navio registrado exclusivamente no catálogo. Não integrar à frota, NPCs ou recompensas.
+// Terror da Tabuada: galeão de missão, NPC especial e recompensa equipável.
 export const HALLOWEEN_TABUADA_SHIP = Object.freeze({
   id: 'galeao-halloween-tabuada',
   name: 'Terror da Tabuada',
