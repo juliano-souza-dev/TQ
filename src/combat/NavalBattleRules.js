@@ -6,6 +6,7 @@ import { navalShotDamage } from './NavalCombatRules.mjs';
 // Stable catalog IDs come from EquipmentCatalog. Combat numbers and FX never
 // modify inventory item ownership or asset metadata.
 export const NAVAL_AMMO = Object.freeze({
+  'aetherion-seeker': { damageFactor: 1, damagePerShot: 10, speed: 420, preset: 'piercing', trackingDurationMs: 9000 },
   'rusted-iron': { damageFactor: 1, damagePerShot: 10, speed: 420, preset: 'rusted-iron' },
   'violet-crystal': { damageFactor: 1.5, damagePerShot: 10, speed: 460, preset: 'violet-crystal' },
   'ocean-pearl': { damageFactor: 1.2, damagePerShot: 10, speed: 460, preset: 'ocean-pearl' },
@@ -35,6 +36,11 @@ export function armedCannons(save, shipId, events = EVENTS) {
     return [{ slot, id, cannon }];
   });
 }
+export function cannonAcceptsAmmo(cannon, ammoId) {
+  if (!cannon || !ammoId) return false;
+  if (cannon.exclusiveAmmoId) return cannon.exclusiveAmmoId === ammoId;
+  return ammoId !== 'aetherion-seeker';
+}
 export function cannonRange(cannon) {
   return Math.max(1, finite(cannon.range) || finite(cannon.caliberPounder) * 15);
 }
@@ -45,6 +51,7 @@ export function effectiveAmmo(ammoId, events = EVENTS) {
   return {
     id: item.id, name: item.name, size: 1.3,
     projectileSpeed: rules.speed,
+    trackingDurationMs: rules.trackingDurationMs ?? 0,
     damageFactor: rules.damageFactor,
     // The original game's ammunition FX presets and texture pipeline.
     fx: { preset: rules.preset, projectile: { texture: getAmmunitionAssetUrl(item) } },
@@ -52,7 +59,7 @@ export function effectiveAmmo(ammoId, events = EVENTS) {
 }
 export function shotDamage(cannon, ammoId) {
   const profile = NAVAL_AMMO[ammoId];
-  if (!profile) return 0;
+  if (!profile || !cannonAcceptsAmmo(cannon, ammoId)) return 0;
   return Math.max(1, Math.round(navalShotDamage(
     { damagePerShot: profile.damagePerShot * cannon.damageMultiplier },
     { damageFactor: profile.damageFactor },
