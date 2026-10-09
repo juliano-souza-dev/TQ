@@ -16,6 +16,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
   let currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...ownedShipIds])];
   let currentCannonCounts = {};
   let currentEquippedShipId = equippedShipId;
+  let shipPage = 0;
   const root = el('div', 'shipyard');
   const tabs = el('div', 'shipyard-tabs');
   tabs.setAttribute('role', 'tablist');
@@ -56,7 +57,21 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     view.append(el('h3', '', 'Sua frota'));
     const ownedShips = ships.filter(ship => ship.id === currentEquippedShipId || currentOwnedShipIds.includes(ship.id));
     const ordered = [...ownedShips].sort((a, b) => Number(b.id === currentEquippedShipId) - Number(a.id === currentEquippedShipId));
-    for (const ship of ordered) {
+    shipPage = Math.max(0, Math.min(shipPage, ordered.length - 1));
+    if (ordered.length > 1) {
+      const pager = el('nav', 'shipyard-ship-pager');
+      pager.setAttribute('aria-label', 'Selecionar navio');
+      const previous = el('button', 'shipyard-page-button', '‹ Anterior');
+      previous.type = 'button'; previous.disabled = shipPage === 0;
+      previous.addEventListener('click', () => { shipPage--; renderShips(); });
+      const indicator = el('span', 'shipyard-page-indicator', (shipPage + 1) + ' / ' + ordered.length);
+      const next = el('button', 'shipyard-page-button', 'Próximo ›');
+      next.type = 'button'; next.disabled = shipPage === ordered.length - 1;
+      next.addEventListener('click', () => { shipPage++; renderShips(); });
+      pager.append(previous, indicator, next);
+      view.append(pager);
+    }
+    for (const ship of ordered.slice(shipPage, shipPage + 1)) {
       const equipped = ship.id === currentEquippedShipId;
       const card = el('article', 'shipyard-ship-card' + (equipped ? ' is-equipped' : ''));
       const head = el('div', 'shipyard-ship-head');
@@ -87,6 +102,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
           try {
             if (await onEquipShip(ship.id)) {
               currentEquippedShipId = ship.id;
+              shipPage = 0;
               renderShips();
               renderCannons();
             } else button.disabled = false;
@@ -187,6 +203,6 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
   root.append(tabs, content);
   return {
     element: root,
-    show() { const fresh = getEquipment(); currentLoadout = fresh.loadout ?? loadout; currentOwnedCannonIds = fresh.ownedCannonIds ?? ownedCannonIds; currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...(fresh.ownedShipIds ?? ownedShipIds)])]; currentCannonCounts = fresh.cannonCounts ?? {}; currentEquippedShipId = fresh.equippedShipId ?? equippedShipId; renderShips(); renderCannons(); selectTab('ships'); },
+    show() { const fresh = getEquipment(); currentLoadout = fresh.loadout ?? loadout; currentOwnedCannonIds = fresh.ownedCannonIds ?? ownedCannonIds; currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...(fresh.ownedShipIds ?? ownedShipIds)])]; currentCannonCounts = fresh.cannonCounts ?? {}; currentEquippedShipId = fresh.equippedShipId ?? equippedShipId; shipPage = 0; renderShips(); renderCannons(); selectTab('ships'); },
   };
 }

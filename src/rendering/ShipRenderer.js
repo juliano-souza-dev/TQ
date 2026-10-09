@@ -3,6 +3,7 @@ import { getShipFrame, getShipSpriteUrl, STARTER_SHIP } from '../ships/ShipRegis
 function getVisualScale(definition) {
   if (definition.id === STARTER_SHIP.id) return 0.95625;
   if (definition.id === 'galeao-rosas-de-ouro') return 0.82;
+  if (definition.id === 'galeao-halloween-tabuada') return 0.9;
   if (definition.id === 'fragata-sombra-cacadora') return 0.7;
   return 1;
 }
