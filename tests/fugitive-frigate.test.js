@@ -86,3 +86,14 @@ test('fragata ladra também patrulha a R2 com ID próprio e movimento contínuo'
   assert.ok(Math.hypot(frigate.x-original.x,frigate.y-original.y)>0);
   assert.equal(createFugitiveFrigatePopulation(world,()=>.10),false);
 });
+
+test('ladrão da missão permanece afastado das bordas mesmo fugindo', () => {
+  const npc=createFugitiveFrigate('thief-r2', 260, 260, 270, () => .5);
+  npc.keepAwayFromEdges=true;
+  const player={x:500,y:500};
+  for(let i=0;i<250;i++){
+    updateFugitiveFrigate(npc,player,region,50,()=>.5);
+    assert.ok(npc.x>=240 && npc.x<=2760,'limite horizontal seguro');
+    assert.ok(npc.y>=240 && npc.y<=2760,'limite vertical seguro');
+  }
+});
