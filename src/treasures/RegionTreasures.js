@@ -28,6 +28,24 @@ export const REGION_ONE_TREASURES = Object.freeze([
   { id: 'r1-treasure-23', x: 300, y: 2800 },
   { id: 'r1-treasure-24', x: 320, y: 1850 },
 ]);
+// 48 pontos adicionais navegáveis: total de 72 arcas distribuídas pela enseada.
+const EXTRA_TREASURES = [];
+for (const y of [300, 800, 1300, 1800, 2300, 2800, 3300, 3800]) {
+  for (const x of [260, 670, 1080, 1490, 1900, 2310, 2720, 3130, 3540, 3920]) {
+    const onIsland = [
+      [1430, 1650, 820, 690],
+      [2760, 1750, 820, 690],
+      [2180, 2950, 900, 740],
+    ].some(([ix, iy, w, h]) => Math.abs(x-ix) <= w/2+110 && Math.abs(y-iy) <= h/2+110);
+    if (onIsland || REGION_ONE_TREASURES.some(t => Math.hypot(t.x-x,t.y-y) < 200)) continue;
+    EXTRA_TREASURES.push({id:'r1-treasure-'+String(25+EXTRA_TREASURES.length).padStart(2,'0'),x,y});
+    if (EXTRA_TREASURES.length === 48) break;
+  }
+  if (EXTRA_TREASURES.length === 48) break;
+}
+export const ALL_R1_TREASURES = Object.freeze([...REGION_ONE_TREASURES, ...EXTRA_TREASURES].map(Object.freeze));
+export const TREASURE_RESPAWN_MS = 180000;
+
 function hashId(id) {
   let seed = 2166136261;
   for (const char of id) {
@@ -40,12 +58,17 @@ export function treasureReward(id) {
   const seed = hashId(id);
   return { gold: 12 + (seed % 24), iron: 16 + ((seed >>> 6) % 29) };
 }
-export function getVisibleTreasures(save = {}) {
+export function getVisibleTreasures(save = {}, now = Date.now()) {
   const opened = new Set(save.openedTreasures ?? []);
-  const cycle = Math.floor(opened.size / REGION_ONE_TREASURES.length);
-  return REGION_ONE_TREASURES.map(t => ({
-    ...t, id: cycle ? t.id + '-cycle-' + cycle : t.id,
-  })).filter(t => !opened.has(t.id));
+  const counts = save.treasureClaimCounts ?? {};
+  const cooldowns = save.treasureCooldowns ?? {};
+  return ALL_R1_TREASURES.map(t => {
+    const legacyClaim = opened.has(t.id) ? 1 : 0;
+    const cycle = Math.max(legacyClaim, Math.max(0, Number(counts[t.id]) || 0));
+    const lastClaimedAt = Number(cooldowns[t.id]) || 0;
+    if (lastClaimedAt && now - lastClaimedAt < TREASURE_RESPAWN_MS) return null;
+    return { ...t, id: cycle ? t.id + '-cycle-' + cycle : t.id };
+  }).filter(Boolean);
 }
 export function findTreasureNearPoint(treasures, x, y, radius = 90) {
   let closest = null, best = radius;
@@ -55,14 +78,20 @@ export function findTreasureNearPoint(treasures, x, y, radius = 90) {
   }
   return closest;
 }
-export function claimTreasure(save = {}, id) {
-  if (!getVisibleTreasures(save).some(t => t.id === id)
-    || (save.openedTreasures ?? []).includes(id)) return null;
+export function claimTreasure(save = {}, id, now = Date.now()) {
+  const treasure = getVisibleTreasures(save, now).find(t => t.id === id);
+  if (!treasure || (save.openedTreasures ?? []).includes(id)) return null;
+  const base = ALL_R1_TREASURES.find(t => treasure.id === t.id || treasure.id.startsWith(t.id + '-cycle-'))?.id;
+  if (!base) return null;
+  const counts = save.treasureClaimCounts ?? {};
+  const already = Math.max(Number(counts[base]) || 0, (save.openedTreasures ?? []).includes(base) ? 1 : 0);
   const reward = treasureReward(id);
   return {
     reward,
     patch: {
       openedTreasures: [...(save.openedTreasures ?? []), id],
+      treasureClaimCounts: { ...counts, [base]: already + 1 },
+      treasureCooldowns: { ...save.treasureCooldowns, [base]: now },
       profile: { ...save.profile, gold: (save.profile?.gold ?? 0) + reward.gold },
       ammunition: {
         ...save.ammunition,
