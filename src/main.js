@@ -309,18 +309,18 @@ async function startWorld() {
   missionCompleteCard.setAttribute('aria-modal','true');
   const missionCompleteTitle=document.createElement('h2');
   const missionCompleteText=document.createElement('p');
-  const goShipyard=document.createElement('button');
-  goShipyard.className='primary-button';goShipyard.type='button';
-  goShipyard.textContent='⚓ Voltar ao Estaleiro';
+  const goMissions=document.createElement('button');
+  goMissions.className='primary-button';goMissions.type='button';
+  goMissions.textContent='📜 Voltar às Missões';
   const keepSailing=document.createElement('button');
   keepSailing.className='secondary-button';keepSailing.type='button';
   keepSailing.textContent='Continuar navegando';
-  missionCompleteCard.append(missionCompleteTitle,missionCompleteText,goShipyard,keepSailing);
+  missionCompleteCard.append(missionCompleteTitle,missionCompleteText,goMissions,keepSailing);
   missionCompleteOverlay.append(missionCompleteCard);root.append(missionCompleteOverlay);
   keepSailing.addEventListener('click',()=>{missionCompleteOverlay.hidden=true;});
-  goShipyard.addEventListener('click',()=>{
+  goMissions.addEventListener('click',()=>{
     missionCompleteOverlay.hidden=true;
-    const island=world.region.islands.find(i=>i.kind==='shipyard');
+    const island=world.region.islands.find(i=>i.kind==='missions');
     if(!island)return;
     // Stop just outside the island artwork, on the side nearest the player.
     const horizontal=Math.abs(world.camera.x-island.x)>Math.abs(world.camera.y-island.y);
@@ -329,7 +329,7 @@ async function startWorld() {
       :{x:island.x,y:island.y+Math.sign(world.camera.y-island.y||1)*(Number(island.height||690)/2+20)};
     world.manualCamera=null;
     clickNavigation?.setDestination(destination);
-    showOceanReward('⚓ Rota para o Estaleiro definida!');
+    showOceanReward('⚓ Rota para o Porto das Missões definida!');
   });
   function announceMissionCompletion(name){
     if(!missionCompleteOverlay.hidden)return;

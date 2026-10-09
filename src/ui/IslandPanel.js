@@ -89,7 +89,9 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   close.type = 'button'; close.className = 'primary-button';
   close.textContent = 'Voltar ao mar';
   close.addEventListener('click', () => { panel.hidden = true; });
-  card.append(title, description, list, shipyard.element, acceptMission, mathBox, missionBoard.element, close); panel.append(card);
+  // Mission board and shipyard are mutually exclusive DOM children.
+  // Detach the inactive view so display:grid styles cannot reveal it.
+  card.append(title, description, list, acceptMission, mathBox, close); panel.append(card);
   return {
     element: panel,
     get isOpen() { return !panel.hidden; },
@@ -99,6 +101,10 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       panel.dataset.island = kind;
       title.textContent = content.title;
       description.textContent = kind === 'shipyard' ? 'Gerencie sua frota e seus equipamentos.' : content.description;
+      shipyard.element.remove();
+      missionBoard.element.remove();
+      if (kind === 'shipyard') card.insertBefore(shipyard.element, close);
+      else card.insertBefore(missionBoard.element, close);
       shipyard.element.hidden = kind !== 'shipyard';
       list.hidden = kind === 'shipyard';
       acceptMission.hidden = kind !== 'missions' || isFirstMissionAccepted();
@@ -106,8 +112,8 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       mathBox.hidden = kind !== 'missions' || flow.stage !== 'mission';
       if (!mathBox.hidden) prepareChallenge();
       const freePlay = kind === 'missions' && ['free', 'ready2', 'stage2'].includes(flow.stage);
-      missionBoard.setHidden(kind !== 'missions' || !freePlay);
       if (freePlay) missionBoard.show();
+      missionBoard.setHidden(!freePlay);
       list.hidden = kind === 'shipyard' || freePlay;
       if (kind === 'shipyard') shipyard.show();
       list.replaceChildren(...(kind === 'missions' ? [flow.stage === 'mission' ? 'Canhão equipado! Resolva a continha para iniciar a missão.' : flow.stage === 'combat' ? 'Missão em andamento: afunde 1 Corsário das Velas Rubras.' : flow.stage === 'next' ? 'Missão concluída: Corsário das Velas Rubras afundado!' : flow.stage === 'equip' ? 'Equipe um canhão no Estaleiro para continuar.' : 'Aceite sua primeira missão para começar.'] : content.items).map(item => {
