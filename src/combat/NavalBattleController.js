@@ -239,6 +239,10 @@ export class NavalBattleController {
 
   resolvePlayerImpact(targetId, at, damage) {
     const target = this.getEntities().get(targetId);
+    if (target?.negotiationFrozen) {
+      this.onFeedback('💦 O ladrão está protegido durante a negociação.');
+      return { kind: 'water' };
+    }
     // Submerged Kraken cannot be hit: projectiles splash in the ocean.
     const underwater = target?.type === 'monster' && (this.renderer.getKrakenAttacks?.() ?? [])
       .some(attack => attack.monsterId === targetId && this.clock() >= attack.startTime + 300
