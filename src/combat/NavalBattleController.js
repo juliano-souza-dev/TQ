@@ -73,10 +73,16 @@ export class NavalBattleController {
     return String(save.r2Campaign?.active||'') === missionId;
   }
 
+  isProtectedInformant(entity) {
+    return Boolean(entity?.informantProtected || (entity?.id === 'r2-informant' && entity?.name === 'Corsário Informante'));
+  }
+
   setTarget(id, { manual = false } = {}) {
+    if (id && this.isProtectedInformant(this.getEntities().get(id))) return false;
     if (this.targetId !== id) { this.firing = false; this.cancelMonsterAssists(); }
     this.targetId = id || null;
     this.manualTargetId = manual && id ? id : null;
+    return true;
   }
 
   // Select only targets reachable by at least one installed cannon.
@@ -95,7 +101,7 @@ export class NavalBattleController {
     }
     const save=this.readSave();
     const withinRange = npc => npc && (npc.type === 'npc' || npc.type === 'monster')
-      && npc.health > 0 && this.isTargetAttackUnlocked(npc,save)
+      && npc.health > 0 && !this.isProtectedInformant(npc) && this.isTargetAttackUnlocked(npc,save)
       && distanceBetween(player, npc) <= (npc.type==='monster' ? equippedHarpoon(save).range : battery.length ? Math.max(...battery.map(({cannon})=>cannonRange(cannon))) : 0);
     const entities = this.getEntities();
     // Durante o combate, manter o alvo vivo e ao alcance para não interromper ajudantes.
@@ -124,7 +130,7 @@ export class NavalBattleController {
 
   getTarget() {
     const entity = this.getEntities().get(this.targetId);
-    return (entity?.type === 'npc' || entity?.type === 'monster') && entity.health > 0 ? entity : null;
+    return (entity?.type === 'npc' || entity?.type === 'monster') && entity.health > 0 && !this.isProtectedInformant(entity) ? entity : null;
   }
 
   getStatus() {
@@ -445,6 +451,10 @@ export class NavalBattleController {
 
   resolvePlayerImpact(targetId, at, damage) {
     const target = this.getEntities().get(targetId);
+    if (this.isProtectedInformant(target)) {
+      this.onFeedback('🕊️ O informante não pode ser atacado durante a missão.');
+      return { kind: 'water' };
+    }
     if (target?.type === 'monster') {
       this.onFeedback('⚓ Monstros são imunes a bolas de canhão. Utilize o arpão.');
       return {kind:'water'};
