@@ -23,7 +23,7 @@ test('campanha da segunda região tem cinco missões sequenciais', () => {
     save = { ...save, ...outcome.patch };
     assert.equal(claimR2Mission(save,mission.id),null);
   }
-  assert.equal(getR2Board(save).essentialClaimed,5);
+  assert.equal(getR2Board(save).essentialClaimed,6);
 });
 test('arcas da Costa dos Corsários aparecem somente na segunda região',()=>{
   assert.ok(R2_TREASURES.length>=20);
