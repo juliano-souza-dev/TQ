@@ -4,6 +4,7 @@ import { spriteCannonMuzzle } from '../src/ships/CannonMuzzleMap.js';
 import { ROSE_GOLD_SHIP } from '../src/ships/RoseGoldShip.js';
 import { TERROR_DO_MAR_SHIP } from '../src/ships/TerrorDoMarShip.js';
 import { PUMPKIN_FLEET_GALLEON_SHIP } from '../src/ships/PumpkinFleetGalleonShip.js';
+import { HALLOWEEN_TABUADA_SHIP } from '../src/ships/HalloweenTabuadaShip.js';
 import { STARTER_SHIP } from '../src/ships/StarterShip.js';
 import { getShipFrame } from '../src/ships/ShipRegistry.js';
 
@@ -71,6 +72,22 @@ test('Frota das Abóboras mapeia os oito slots em todo o giro', () => {
       }
     }
   }
+});
+
+test('Halloween da Tabuada mapeia os sete slots em todos os quadros laterais', () => {
+  for (const [frame, side] of frameSides) {
+    const heading = ((frame - 4 + 16) % 16) * 22.5;
+    assert.equal(getShipFrame(heading, HALLOWEEN_TABUADA_SHIP), frame);
+    const muzzles = HALLOWEEN_TABUADA_SHIP.sprite.cannonMuzzles[frame]?.[side];
+    assert.equal(muzzles?.length, 7, 'sete origens no quadro ' + frame);
+    const target = targetOnSide(heading, side);
+    for (let slot = 0; slot < HALLOWEEN_TABUADA_SHIP.cannonSlots; slot++) {
+      assert.ok(spriteCannonMuzzle(HALLOWEEN_TABUADA_SHIP, player, target, heading, slot, size),
+        'Halloween da Tabuada quadro ' + frame + ', slot ' + slot);
+    }
+  }
+  assert.equal(spriteCannonMuzzle(HALLOWEEN_TABUADA_SHIP, player, targetOnSide(0, 'starboard'), 0, 0, size), null);
+  assert.equal(spriteCannonMuzzle(HALLOWEEN_TABUADA_SHIP, player, targetOnSide(180, 'port'), 180, 0, size), null);
 });
 test('sem mapeamento mantém o hardpoint padrão (null)', () => {
   assert.equal(spriteCannonMuzzle(ROSE_GOLD_SHIP, player, { x: 600, y: 100 }, 0, 0, size), null,
