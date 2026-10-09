@@ -1,3 +1,4 @@
+import { GOLDEN_GALLEON_SHIP, PUMPKIN_FLEET_GALLEON_SHIP } from '../ships/ShipRegistry.js';
 import { STARTER_SHIP, getShipFrame } from '../ships/ShipRegistry.js';
 import { HALLOWEEN_TABUADA_SHIP } from '../ships/HalloweenTabuadaShip.js';
 import { FUGITIVE_FRIGATE_SHIP } from '../ships/FugitiveFrigateShip.js';
@@ -18,6 +19,9 @@ export class NpcRenderer {
     await loadShipSprite(FUGITIVE_FRIGATE_SHIP)
       .then(image => this.images.set(FUGITIVE_FRIGATE_SHIP.id, image))
       .catch(() => console.warn('Fragata Sombra Fugitiva aguardando sprite no repositório.'));
+    await Promise.all([GOLDEN_GALLEON_SHIP,PUMPKIN_FLEET_GALLEON_SHIP].map(ship=>
+      loadShipSprite(ship).then(image=>this.images.set(ship.id,image))
+        .catch(()=>console.warn('NPC aguardando sprite:',ship.id))));
     const image = new Image();
     image.src = new URL('../../assets/monsters/sea_monster_kraken.webp', import.meta.url).href;
     try { await image.decode(); this.monsterImage = image; } catch (error) { console.warn('Monstro não carregado:', error); }
@@ -80,7 +84,9 @@ export class NpcRenderer {
         }
         continue;
       }
-      const ship = npc.shipId === FUGITIVE_FRIGATE_SHIP.id ? FUGITIVE_FRIGATE_SHIP
+      const ship = npc.shipId === GOLDEN_GALLEON_SHIP.id ? GOLDEN_GALLEON_SHIP
+        : npc.shipId === PUMPKIN_FLEET_GALLEON_SHIP.id ? PUMPKIN_FLEET_GALLEON_SHIP
+        : npc.shipId === FUGITIVE_FRIGATE_SHIP.id ? FUGITIVE_FRIGATE_SHIP
         : npc.shipId === HALLOWEEN_TABUADA_SHIP.id ? HALLOWEEN_TABUADA_SHIP : STARTER_SHIP;
       const image = this.images.get(ship.id);
       if (!image) continue;
