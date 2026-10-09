@@ -1135,6 +1135,21 @@ async function startWorld() {
       if (world.region.id === 'r2') {
         const active = boardFor(readSave(),world.region.id).active[0];
         const island = world.region.islands.find(i=>i.id==='r2-scenery-north');
+        // The Black Market merchant is stationary at the exact map center.
+        const marketX=world.region.width/2,marketY=world.region.height/2;
+        if(!world.entities.has('r2-black-market-merchant')){
+          world.entities.set('r2-black-market-merchant',{
+            id:'r2-black-market-merchant',name:'Mercador do Mercado Negro',
+            type:'npc',archetype:'black-market-merchant',shipId:'mercado-negro',
+            x:marketX,y:marketY,heading:0,health:100000,maxHealth:100000,
+            state:'idle',aggression:'neutral',attackProtectedUntil:Infinity,
+            cannonSlots:0,speed:0,
+          });
+        }
+        if(active?.id==='r2-black-market'
+          && Math.hypot(world.camera.x-marketX,world.camera.y-marketY)<=180){
+          recordMissionEvent({type:'black-market',id:'r2-black-market-merchant'});
+        }
         // Stage-I Morbi enters the ocean physically, with 900,000 HP.
         const morbiStage=['r2-golden-i','r2-strengthen-ship','r2-black-market','r2-golden-ii'].includes(active?.id);
         if(morbiStage && !world.entities.has('r2-morbi')){
