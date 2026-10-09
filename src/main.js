@@ -330,7 +330,11 @@ async function startWorld() {
         navalHud?.setFeedback('🐙 Kraken derrotado! +' + gold + ' ouro.');
         return;
       }
-      if (world.region.id === 'r2' && npc.id === 'r2-admiral') {
+      if (world.region.id === 'r2' && npc.archetype === 'fugitive-frigate'
+        && save.r2Campaign?.active === 'r2-destroy-thief') {
+        recordMissionEvent({type:'thief',id:npc.id});
+        navalHud?.setFeedback('🏴‍☠️ Ladrão das Sombras afundado! Missão cumprida.');
+      } else if (world.region.id === 'r2' && npc.id === 'r2-admiral') {
         recordMissionEvent({type:'admiral',id:npc.id});
         recordMissionEvent({type:'defeat',id:npc.id+':'+Date.now()});
         navalHud?.setFeedback('🏴‍☠️ Almirante dos Ladrões derrotado!');
@@ -520,7 +524,9 @@ async function startWorld() {
     const exitActive = campaign.active?.includes('r1-finale')
       && !(campaign.progress?.['r1-finale']?.[0] >= 1) && !mathGate.isOpen;
     const r2 = world.region.id === 'r2' ? getR2Board(readSave()).active[0] : null;
-    const guideTarget = r2?.id === 'r2-informant' && (r2.progress?.[1] ?? 0)<3 ? world.entities.get('r2-informant')
+    const guideTarget = r2?.id === 'r2-destroy-thief'
+      ? [...world.entities.values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0)
+      : r2?.id === 'r2-informant' && (r2.progress?.[1] ?? 0)<3 ? world.entities.get('r2-informant')
       : r2?.id === 'r2-island' && !r2.ready && ((r2.progress?.[1] ?? 0) < 3) ? world.region.islands.find(i=>i.id==='r2-scenery-north')
       : r2?.id === 'r2-admiral' && (r2.progress?.[1] ?? 0) < 1 && (world.entities.get('r2-admiral')?.health ?? 0) > 0 ? world.entities.get('r2-admiral')
       : r2?.id === 'r2-equip-chaser' && (r2.progress?.[0] ?? 0) < 1 ? world.region.islands.find(i=>i.kind==='shipyard') : null;
@@ -542,7 +548,7 @@ async function startWorld() {
     thiefGuide.style.setProperty('--thief-angle', (inView ? 90 : Math.atan2(y-py, x-px)*180/Math.PI) + 'deg');
     thiefGuide.classList.toggle('is-visible-target', inView);
     thiefGuide.querySelector('.thief-guide-label').textContent =
-      (guideTarget ? (r2?.id === 'r2-informant' ? 'Informante' : r2?.id === 'r2-island' ? 'Ilha Esquecida' : r2?.id === 'r2-equip-chaser' ? 'Estaleiro · Equipar Fragata' : 'Almirante') : exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
+      (guideTarget ? (r2?.id === 'r2-informant' ? 'Informante' : r2?.id === 'r2-island' ? 'Ilha Esquecida' : r2?.id === 'r2-equip-chaser' ? 'Estaleiro · Equipar Fragata' : r2?.id === 'r2-destroy-thief' ? 'Ladrão das Sombras' : 'Almirante') : exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
     thiefGuide.hidden = false;
   }
 
@@ -835,6 +841,19 @@ async function startWorld() {
       updateCorsairPopulation(world, stepMs);
       updateNegotiationFrigate(world, readSave());
       updateFugitiveFrigatePopulation(world, stepMs);
+      if (world.region.id === 'r2') {
+        const thiefMission = readSave().r2Campaign?.active === 'r2-destroy-thief';
+        for (const npc of world.entities.values()) {
+          if (npc.archetype !== 'fugitive-frigate') continue;
+          if (thiefMission && npc.health > 0 && npc.maxHealth !== 100000) {
+            npc.maxHealth = 100000;
+            npc.health = 100000;
+            npc.cannonSlots = 1;
+            npc.range = 840;
+            npc.damage = 3;
+          }
+        }
+      }
       updateMonsterPopulation(world, stepMs);
       glintElapsed+=stepMs;
       if(EVENTS.halloween){
