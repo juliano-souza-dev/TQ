@@ -1362,8 +1362,16 @@ async function startWorld() {
       const y=Math.max(75,Math.min(world.region.height-75,center.y+Math.sin(angle)*radius));
       const id='pumpkin-ambush-'+i;
       const npc=world.entities.get(id);
-      if(npc){npc.x=x;npc.y=y;npc.heading=(Math.atan2(center.x-x,-(center.y-y))*180/Math.PI+360)%360;}
-      else world.entities.set(id,{id,type:'npc',archetype:'pumpkin-ambush',shipId:'galeao-frota-das-aboboras',
+      if(npc){
+        const dx=center.x-npc.x,dy=center.y-npc.y,dist=Math.hypot(dx,dy);
+        // Real pursuit, not instantaneous relocation. Keep enough room to avoid ramming.
+        if(dist>420){
+          const step=Math.min(dist-420,Math.min(64,stepMs)*.52);
+          npc.x=Math.max(75,Math.min(world.region.width-75,npc.x+dx/dist*step));
+          npc.y=Math.max(75,Math.min(world.region.height-75,npc.y+dy/dist*step));
+        }
+        if(dist>1)npc.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+      } else world.entities.set(id,{id,type:'npc',archetype:'pumpkin-ambush',shipId:'galeao-frota-das-aboboras',
         name:'Frota do Mestre do Terror',x,y,heading:0,health:100000,maxHealth:100000,
         aggression:'neutral',attackProtectedUntil:Infinity,damage:0,range:0,cannonSlots:0});
     }
@@ -1383,7 +1391,7 @@ async function startWorld() {
       writePatch({combat:{...save.combat,shipHealth:health,repairingUntil:null,repairingFrom:null}});
       pumpkinVolleyCount++;
     }
-    if(navalBattle.getHealth()<=0 && pumpkinAmbushElapsed>=pumpkinNextVolleyMs-4300){
+    if(navalBattle.getHealth()<=0){
       finishPumpkinAmbush();
     }
   }
@@ -1736,7 +1744,7 @@ async function startWorld() {
         clickNavigation.cancel();
         heading = (Math.atan2(input.x, -input.y) * 180 / Math.PI + 360) % 360;
         const fromX = world.camera.x, fromY = world.camera.y;
-        advanceNavigation(world, input, stepMs, shipSpeed*(readSave().r2Campaign?.active==='r2-why-help'?.55:(navalBattle?.isSpeedActive()?1.1:1)));
+        advanceNavigation(world, input, stepMs, shipSpeed*(readSave().r2Campaign?.active==='r2-why-help' ? .55 : (navalBattle?.isSpeedActive()?1.1:1)));
         trackVoyage(fromX, fromY);
         persistPlayerPosition(stepMs);
         checkDockContact(fromX, fromY, input.x, input.y, stepMs);
@@ -1746,7 +1754,7 @@ async function startWorld() {
           const fromX = world.camera.x, fromY = world.camera.y;
           const dx = destination.x - fromX, dy = destination.y - fromY;
           const distance = Math.hypot(dx, dy);
-          const result = advanceTowardDestination(world, destination, stepMs, shipSpeed*(navalBattle?.isSpeedActive()?1.1:1));
+          const result = advanceTowardDestination(world, destination, stepMs, shipSpeed*(readSave().r2Campaign?.active==='r2-why-help' ? .55 : (navalBattle?.isSpeedActive()?1.1:1)));
           trackVoyage(fromX, fromY);
           persistPlayerPosition(stepMs);
           if (distance > 0) checkDockContact(fromX, fromY, dx / distance, dy / distance, stepMs);
@@ -1754,7 +1762,7 @@ async function startWorld() {
           if (result.arrived) clickNavigation.cancel();
         } else {
           // Desaceleração por inércia da cinemática do projeto anterior.
-          advanceNavigation(world, { x: 0, y: 0 }, stepMs, shipSpeed*(navalBattle?.isSpeedActive()?1.1:1));
+          advanceNavigation(world, { x: 0, y: 0 }, stepMs, shipSpeed*(readSave().r2Campaign?.active==='r2-why-help' ? .55 : (navalBattle?.isSpeedActive()?1.1:1)));
         }
       }
       if (world.region.id === 'r1') {
