@@ -260,7 +260,7 @@ test('multiple cannons use remaining ammo only and never create free shots', () 
   assert.equal(t.save.ammunition['rusted-iron'], 0);
 });
 
-test('Kraken submerso ignora tiro e volta a receber dano ao emergir', () => {
+test('Kraken submerso ignora arpão e volta a receber dano ao emergir', () => {
   let time=1000;
   const monster={ id:'kraken',type:'monster',health:1650,maxHealth:1650,x:20,y:20 };
   const attacks=[{monsterId:'kraken',startTime:1000,duration:1720}];
@@ -272,9 +272,9 @@ test('Kraken submerso ignora tiro e volta a receber dano ao emergir', () => {
     onFeedback:value=>feedback.push(value),clock:()=>time,
   });
   time=1400;
-  assert.equal(controller.resolvePlayerImpact('kraken',{x:20,y:20},50).kind,'water');
+  assert.equal(controller.resolveHarpoonImpact('kraken',{x:20,y:20},50).kind,'water');
   assert.equal(monster.health,1650);
-  assert.match(feedback.at(-1),/água/);
+  assert.equal(feedback.length,0);
   time=2800;
   assert.equal(controller.resolvePlayerImpact('kraken',{x:20,y:20},50).kind,'ship');
   assert.equal(monster.health,1600);
@@ -295,7 +295,7 @@ test('Kraken só revida depois de ser atingido e respeita o menor alcance de can
   });
   controller.fireKrakenStrikes(time);
   assert.equal(attacks.length,0,'Kraken não deve iniciar combate sem agressão');
-  controller.resolvePlayerImpact('kraken',{x:280,y:0},10);
+  controller.resolveHarpoonImpact('kraken',{x:280,y:0},10);
   assert.equal(monster.state,'retaliating');
   controller.fireKrakenStrikes(time);
   assert.equal(attacks.length,1,'Kraken atingido reage dentro do alcance');
@@ -303,4 +303,30 @@ test('Kraken só revida depois de ser atingido e respeita o menor alcance de can
   monster.x=KRAKEN_RETALIATION_RANGE+1;
   controller.fireKrakenStrikes(time);
   assert.equal(attacks.length,1,'não ataca fora do alcance');
+});
+
+test('canhão não fere monstro e arpão só fere monstro, com recarga e sem consumir bolas',()=>{
+  const t=battleHarness();
+  t.enemy.type='monster';t.enemy.name='Kraken';t.enemy.health=200;t.enemy.maxHealth=200;
+  t.enemy.x=320;
+  t.battle.setTarget(t.enemy.id);
+  assert.equal(t.battle.getStatus().reason,'harpoon-only');
+  assert.equal(t.battle.toggleFire(),false);
+  assert.equal(t.battle.resolvePlayerImpact(t.enemy.id,{x:320,y:100},100).kind,'water');
+  assert.equal(t.enemy.health,200);
+  assert.equal(t.battle.fireHarpoon(),true);
+  assert.equal(t.shots.length,1);
+  assert.equal(t.save.ammunition['rusted-iron'],20);
+  assert.equal(t.shots[0].onImpact({at:{x:320,y:100}}).kind,'ship');
+  assert.equal(t.enemy.health,135);
+  assert.equal(t.battle.fireHarpoon(),false);
+  t.time=3600;
+  assert.equal(t.battle.fireHarpoon(),true);
+  t.battle.setTarget(null);
+  assert.equal(t.battle.fireHarpoon(),false);
+});
+test('um único arpão inicial é equipado mesmo em save legado',async()=>{
+  const {equippedHarpoon,STARTER_HARPOON}=await import('../src/combat/HarpoonCatalog.js');
+  assert.equal(equippedHarpoon({}).id,STARTER_HARPOON.id);
+  assert.equal(equippedHarpoon({equipment:{equippedHarpoonId:'unknown',ownedHarpoonIds:['unknown']}}).id,STARTER_HARPOON.id);
 });
