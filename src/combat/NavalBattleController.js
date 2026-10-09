@@ -98,8 +98,10 @@ export class NavalBattleController {
     const battery = armedCannons(save, this.shipId);
     const compatible = item => battery.some(({ cannon }) => cannonAcceptsAmmo(cannon, item.id));
     if (requested && options.some(item => item.id === requested && item.amount > 0 && compatible(item))) return requested;
-    return options.find(item => item.id === 'aetherion-seeker' && item.amount > 0 && compatible(item))?.id
-      || options.find(item => item.id === 'rusted-iron' && item.amount > 0 && compatible(item))?.id
+    // The HUD selection controls ordinary cannons only. Special cannons
+    // always consume their exclusive ammo, independently of this selection.
+    return options.find(item => item.id === 'rusted-iron' && item.amount > 0 && compatible(item))?.id
+      || options.find(item => item.amount > 0 && item.id !== 'aetherion-seeker' && compatible(item))?.id
       || options.find(item => item.amount > 0 && compatible(item))?.id || 'rusted-iron';
   }
 
@@ -502,9 +504,12 @@ export class NavalBattleController {
     for (const [batteryIndex, { slot, cannon }] of battery.entries()) {
       if (now < (this.nextBySlot.get(slot) ?? -Infinity)) continue;
       // One synchronized volley; each cannon chooses only its compatible ammunition.
-      const ammoId = cannon.exclusiveAmmoId || (cannonAcceptsAmmo(cannon, this.selectedAmmoId)
-        ? this.selectedAmmoId : availableNavalAmmo(save).find(item => item.amount > 0
-          && cannonAcceptsAmmo(cannon, item.id))?.id);
+      const ammoId = cannon.exclusiveAmmoId
+        ? cannon.exclusiveAmmoId
+        : (cannonAcceptsAmmo(cannon, this.selectedAmmoId) && ammoStockById[this.selectedAmmoId] > 0
+          ? this.selectedAmmoId
+          : availableNavalAmmo({...save,ammunition:ammoStockById})
+            .find(item => item.amount > 0 && cannonAcceptsAmmo(cannon,item.id))?.id);
       if (!cannonAcceptsAmmo(cannon, ammoId)) continue;
       const remaining = ammoStockById[ammoId] === undefined ? ammoStock(save, ammoId) : ammoStockById[ammoId];
       if (remaining <= 0) continue;
