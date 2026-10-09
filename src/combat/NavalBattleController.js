@@ -200,9 +200,11 @@ export class NavalBattleController {
     const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon) && availableNavalAmmo(save).some(item => item.amount > 0 && cannonAcceptsAmmo(cannon,item.id)));
     const ammo = ammoStock(save, this.selectedAmmoId);
     // R1 possui um tutorial obrigatório. R2 já começa com combate liberado.
+    // Finishing the introductory Corsair mission unlocks naval combat permanently.
+    // Do not disable cannons between contracts or while collecting their rewards.
     const missionActive = this.getRegionId() !== 'r1'
       || save.missions?.corsair === 'active'
-      || (save.missions?.corsair === 'complete' && (save.campaign?.active?.length ?? 0) > 0);
+      || save.missions?.corsair === 'complete';
     let reason = 'ready';
     if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
 
@@ -247,7 +249,18 @@ export class NavalBattleController {
       return true;
     }
     const status = this.getStatus();
-    if (!status.ready) return false;
+    if (!status.ready) {
+      const hints={
+        mission:'Complete a missão inicial para liberar os canhões.',
+        'no-cannon':'Nenhum canhão equipado. Equipe um canhão no Estaleiro.',
+        target:'Aproxime-se e selecione um navio inimigo.',
+        ammo:'Sem munição compatível para os canhões equipados.',
+        range:'Alvo fora do alcance dos canhões.',
+        sunk:'Repare o casco antes de atacar.',
+      };
+      this.onFeedback('⚠️ '+(hints[status.reason]||'Ataque indisponível.'));
+      return false;
+    }
     const interruptedRepair=cancelHullRecovery(this.readSave());
     if(interruptedRepair)this.writePatch(interruptedRepair);
     this.firing = true;
@@ -498,8 +511,9 @@ export class NavalBattleController {
         onImpact: ({ at }) => this.resolvePlayerImpact(target.id, at, damage),
       });
       if (!accepted) {
-        this.firing = false;
-        this.onFeedback('⚠️ Renderizador naval indisponível. Munição preservada.');
+        // A full projectile buffer is temporary, especially with 5X + guided ammo.
+        // Keep the continuous attack active and retry next update without spending ammo.
+        // Stop only when combat state or targeting becomes invalid in update().
         break;
       }
       spent++;
