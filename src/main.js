@@ -123,8 +123,9 @@ async function startWorld() {
   ]);
   if (generation !== worldGeneration) return;
   const storedRegion = localSaves.load(currentUser.uid)?.payload?.progression?.activeRegion ?? 1;
-  const region = storedRegion >= 2
-    ? (await import('./world/regions/r2.js')).R2
+  const region = storedRegion >= 3
+    ? (await import('./world/regions/r3.js')).R3
+    : storedRegion >= 2 ? (await import('./world/regions/r2.js')).R2
     : (await import('./world/regions/r1.js')).R1;
   if (generation !== worldGeneration) return;
   const world = createWorldState(region);
@@ -1047,6 +1048,7 @@ async function startWorld() {
 
   const {createDarkWatersPortal}=await import('./rendering/DarkWatersPortal.js');
   const darkWatersExit={x:Math.min(world.region.width-160,3930),y:Math.min(world.region.height-180,3890)};
+  let darkPortalTraveling=false;
   const darkPortal=document.createElement('canvas');
   darkPortal.className='dark-waters-portal';
   darkPortal.hidden=true;darkPortal.setAttribute('aria-label','Portal para as Águas Escuras');
@@ -1521,10 +1523,29 @@ async function startWorld() {
             progress:{...c.progress,'r2-meet-forgotten':[1],'r2-why-help':[0]}}});
           updateMissionHud();
         }
-        if(boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-dark-voyage')?.status==='active'
-          && Math.hypot(world.camera.x-darkWatersExit.x,world.camera.y-darkWatersExit.y)<145){
-          recordMissionEvent({type:'exit',id:'r2-dark-waters-passage'});
-          showOceanReward('🌑 A jornada continua nas Águas Escuras do Capitão Terror. Fim da campanha deste mapa!');
+        // Touching the portal automatically travels to R3. Earlier R2 missions
+        // must be claimed; the final objective can be active, ready or claimed.
+        const passageDistance=Math.hypot(world.camera.x-darkWatersExit.x,world.camera.y-darkWatersExit.y);
+        if(passageDistance<105 && !darkPortalTraveling){
+          const save=readSave(),board=getR2Board(save),last=board.missions.find(m=>m.id==='r2-dark-voyage');
+          const prerequisites=board.missions.filter(m=>m.id!=='r2-dark-voyage')
+            .every(m=>m.status==='claimed');
+          if(prerequisites && last && ['active','ready','claimed'].includes(last.status)){
+            darkPortalTraveling=true;
+            let campaign=save.r2Campaign??{};
+            if(last.status==='active'){
+              const progress={...campaign.progress,'r2-dark-voyage':[1]};
+              campaign={...campaign,progress};
+            }
+            campaign={...campaign,active:null,
+              claimed:[...new Set([...(campaign.claimed??[]),'r2-dark-voyage'])]};
+            writePatch({r2Campaign:campaign,
+              progression:{...save.progression,activeRegion:3,unlockedRegion:3},
+              playerPosition:{x:420,y:860}});
+            showOceanReward('🌑 Portal atravessado! Bem-vindo às Águas Escuras.');
+            startWorld();
+            return;
+          }
         }
         updatePumpkinAmbush(stepMs);
         const active = boardFor(readSave(),world.region.id).active[0];
