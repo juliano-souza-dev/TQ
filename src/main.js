@@ -1284,6 +1284,8 @@ async function startWorld() {
   // persisted together, so refreshing cannot repeat the destruction.
   let pumpkinAmbushElapsed=0;
   let pumpkinAmbushStarted=false;
+  let pumpkinNextVolleyMs=1100;
+  let pumpkinVolleyCount=0;
   function finishPumpkinAmbush(){
     const save=readSave();
     if(save.r2Campaign?.active!=='r2-why-help'||save.storyFlags?.pumpkinAmbushResolved)return;
@@ -1360,6 +1362,24 @@ async function startWorld() {
       else world.entities.set(id,{id,type:'npc',archetype:'pumpkin-ambush',shipId:'galeao-frota-das-aboboras',
         name:'Frota do Mestre do Terror',x,y,heading:0,health:100000,maxHealth:100000,
         aggression:'neutral',attackProtectedUntil:Infinity,damage:0,range:0,cannonSlots:0});
+    }
+    if(pumpkinAmbushElapsed>=pumpkinNextVolleyMs && pumpkinVolleyCount<4){
+      // A representative synchronized broadside from the surrounding fleet.
+      // Projectiles hit the player while the hull HP falls to zero in real state.
+      const ammo=effectiveAmmo('rusted-iron');
+      for(let i=0;i<8;i++){
+        const attacker=world.entities.get('pumpkin-ambush-'+(pumpkinVolleyCount*8+i));
+        if(!attacker||!ammo)continue;
+        navalRenderer.fire({from:{x:attacker.x,y:attacker.y},
+          to:{x:world.camera.x,y:world.camera.y},
+          duration:650,ammo,impactKind:'ship',startTime:performance.now(),
+          onImpact:()=>({kind:'ship'})});
+      }
+      const save=readSave(),max=navalBattle.getMaxHealth();
+      const hp=Math.max(0,Math.round(max*(3-pumpkinVolleyCount)/4));
+      writePatch({combat:{...save.combat,shipHealth:hp}});
+      pumpkinVolleyCount++;
+      pumpkinNextVolleyMs+=900;
     }
     if(pumpkinAmbushElapsed>=4800)finishPumpkinAmbush();
   }
