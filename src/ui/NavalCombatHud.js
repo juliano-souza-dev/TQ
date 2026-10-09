@@ -86,7 +86,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   frame.alt = '';
   const selectedIcon = document.createElement('img');
   selectedIcon.className = 'naval-consumables-icon';
-  selectedIcon.src = new URL('../../assets/consumables/5X em Chamas.png',import.meta.url).href;
+  selectedIcon.src = new URL('../../assets/consumables/5X-em-Chamas.png',import.meta.url).href;
   selectedIcon.alt = '';
   const countLabel = document.createElement('span');
   countLabel.className = 'naval-consumables-count';
@@ -94,7 +94,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   const picker = document.createElement('div');
   picker.className = 'naval-consumables-picker';
   picker.hidden = true;
-  const flameAssetUrl = new URL('../../assets/consumables/5X em Chamas.png',import.meta.url).href;
+  const flameAssetUrl = new URL('../../assets/consumables/5X-em-Chamas.png',import.meta.url).href;
   function createConsumableOption({name,image,emoji}) {
     const button=document.createElement('button');
     button.type='button';
