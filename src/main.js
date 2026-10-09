@@ -740,6 +740,9 @@ async function startWorld() {
         showOceanReward('🏴‍☠️ Ladrão das Sombras afundado!');
       } else if (world.region.id === 'r2' && npc.id === 'r2-morbi' && save.r2Campaign?.active === 'r2-golden-ii') {
         recordMissionEvent({type:'morbi-defeat',id:npc.id});
+        world.entities.delete('r2-morbi');
+        world.entities.delete('r2-pumpkin-ally');
+        navalBattle.setTarget(null);
         showOceanReward('🏆 Galeão Dourado afundado! Morbi foi derrotado.');
       } else if (world.region.id === 'r2' && npc.id === 'r2-admiral') {
         recordMissionEvent({type:'admiral',id:npc.id});
@@ -1431,9 +1434,17 @@ async function startWorld() {
             afterSuccess:()=>showBlackMarket(),
           });
         }
+        // A completed battle is no longer present on the ocean, even while
+        // its reward is awaiting collection at the Missions port.
+        const goldenIIReady=boardFor(readSave(),'r2').missions
+          .some(m=>m.id==='r2-golden-ii' && (m.status==='ready'||m.status==='claimed'));
+        if(goldenIIReady){
+          world.entities.delete('r2-morbi');
+          world.entities.delete('r2-pumpkin-ally');
+        }
         // Stage-I Morbi enters the ocean physically, with 900,000 HP.
         const morbiStage=['r2-golden-i','r2-golden-ii'].includes(active?.id);
-        if(morbiStage && !world.entities.has('r2-morbi')){
+        if(morbiStage && !goldenIIReady && !world.entities.has('r2-morbi')){
           const savedMorbi=readSave().r2MorbiBoss;
           world.entities.set('r2-morbi',{
             id:'r2-morbi',name:'Morbi · Galeão Dourado',type:'npc',
@@ -1481,7 +1492,7 @@ async function startWorld() {
             }
           }
         }
-        if(active?.id==='r2-golden-ii'&&!world.entities.has('r2-pumpkin-ally')){
+        if(active?.id==='r2-golden-ii' && !goldenIIReady && !world.entities.has('r2-pumpkin-ally')){
           world.entities.set('r2-pumpkin-ally',{
             id:'r2-pumpkin-ally',name:'Galeão da Frota das Abóboras',
             type:'npc',archetype:'pumpkin-ally',shipId:'galeao-frota-das-aboboras',
