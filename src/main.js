@@ -1,3 +1,4 @@
+import { beginHullRecovery, advanceHullRecovery } from './combat/HullRepair.js';
 import { getCampaignBoard, recordCampaignEvent } from './missions/RegionOneCampaign.js';
 import { resolvePedagogicalAction, resolveMissionReward, activateNextRegion } from './gameplay/PedagogicalActions.js';
 import { createMathGate } from './ui/MathGate.js';
@@ -169,6 +170,42 @@ async function startWorld() {
     onSolved: (action, clean) => resolveMathAction(action, clean),
   });
   root.append(mathGate.element);
+  let repairIsForced = false;
+  let repairTickMs = 0;
+  const repairAura = document.createElement('div');
+  repairAura.className = 'ship-repair-aura';
+  repairAura.setAttribute('aria-hidden', 'true');
+  repairAura.innerHTML = '<span>+</span><span>+</span><span>+</span><span>+</span><span>+</span>';
+  repairAura.hidden = true;
+  root.append(repairAura);
+  const sinkingOverlay = document.createElement('div');
+  sinkingOverlay.className = 'sinking-repair-overlay';
+  sinkingOverlay.hidden = true;
+  sinkingOverlay.textContent = '☠️ Navio afundado! Reparação em andamento. Aguarde a recuperação do casco.';
+  root.append(sinkingOverlay);
+  function beginRepairSession(forced = false) {
+    const health = Number(readSave().combat?.shipHealth ?? 100);
+    if (health >= 100 || readSave().combat?.repairingUntil) return false;
+    repairIsForced = forced;
+    return mathGate.open({
+      kind: 'repair',
+      title: forced ? '☠️ Navio afundado! Reparação obrigatória' : '🔧 Consertar o casco',
+      description: forced ? 'Você afundou! Acumule 100 PV acertando continhas. Não é possível fechar até completar.' : 'Cada acerto acumula 20 PV. Saia quando quiser para iniciar a restauração em 10 segundos.',
+      repeatOnSuccess: true,
+      locked: forced,
+      getLocked: () => (readSave().combat?.repairPending ?? 0) < 100,
+      getContinue: () => {
+        const combat = readSave().combat ?? {};
+        const required = forced ? 100 : 100 - Number(combat.shipHealth ?? 100);
+        return (combat.repairPending ?? 0) < required;
+      },
+      onClose: () => {
+        const patch = beginHullRecovery(readSave());
+        if (patch) writePatch(patch);
+        navalHud?.refresh();
+      },
+    });
+  }
   let voyageDistance = 0;
   function trackVoyage(previousX, previousY) {
     voyageDistance += Math.hypot(world.camera.x - previousX, world.camera.y - previousY);
@@ -248,12 +285,7 @@ async function startWorld() {
     },
   });
   navalHud = createNavalCombatHud(navalBattle, {
-    onRepair: () => mathGate.open({
-      kind: 'repair',
-      title: '🔧 Reparar o casco',
-      description: 'Acertar a continha recupera 20 pontos da vida máxima do navio.',
-      afterSuccess: () => navalHud.refresh(),
-    }),
+    onRepair: () => beginRepairSession(false),
   });
   root.append(navalHud.element);
   clickNavigation = createClickNavigation(canvas, world, point => {
@@ -534,6 +566,22 @@ async function startWorld() {
         }
       }
       navalBattle.update(stepMs,performance.now());
+      repairTickMs += stepMs;
+      if (repairTickMs >= 100) {
+        repairTickMs = 0;
+        const change = advanceHullRecovery(readSave());
+        if (change) writePatch(change);
+      }
+      const repairState = readSave().combat ?? {};
+      const recovering = Boolean(repairState.repairingUntil);
+      repairAura.hidden = !recovering;
+      const sunk = Number(repairState.shipHealth ?? 100) <= 0;
+      if (sunk && !recovering && !mathGate.isOpen) {
+        clickNavigation.cancel();
+        navalBattle.firing = false;
+        beginRepairSession(true);
+      }
+      sinkingOverlay.hidden = !sunk || !recovering;
       // Marcador visual acompanha a selecao automatica.
       selectedNpcId = navalBattle.targetId;
       hudRefreshElapsed += stepMs;
@@ -545,6 +593,14 @@ async function startWorld() {
       }
       persistPlayerPosition(stepMs);
       firstVoyageGuide?.update();
+      if (sunk || (recovering && repairIsForced)) {
+        clickNavigation.cancel();
+        renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
+        updateCamera(world, canvas.clientWidth, canvas.clientHeight);
+        if (!recovering && !sunk) repairIsForced = false;
+        return;
+      }
+      if (!recovering) repairIsForced = false;
       // Manual camera moves only while WASD is held; no inertia or ship movement.
       const cameraInput = keyboardCamera.getVector();
       if (cameraInput.x !== 0 || cameraInput.y !== 0) {
