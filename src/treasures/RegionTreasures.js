@@ -33,9 +33,9 @@ const EXTRA_TREASURES = [];
 for (const y of [300, 800, 1050, 1300, 1800, 2300, 2550, 2800, 3300, 3800]) {
   for (const x of [260, 670, 1080, 1490, 1900, 2310, 2720, 3130, 3540, 3920]) {
     const onIsland = [
-      [1430, 1650, 820, 690],
-      [2760, 1750, 820, 690],
-      [2180, 2950, 900, 740],
+      [690, 860, 820, 690],
+      [3320, 860, 820, 690],
+      [1950, 3520, 900, 740],
     ].some(([ix, iy, w, h]) => Math.abs(x-ix) <= w/2+110 && Math.abs(y-iy) <= h/2+110);
     if (onIsland || REGION_ONE_TREASURES.some(t => Math.hypot(t.x-x,t.y-y) < 200)) continue;
     EXTRA_TREASURES.push({id:'r1-treasure-'+String(25+EXTRA_TREASURES.length).padStart(2,'0'),x,y});
@@ -49,8 +49,8 @@ export const R2_TREASURES = Object.freeze(Array.from({length:60},(_,i)=>{
   const col=i%10,row=Math.floor(i/10);
   return Object.freeze({id:'r2-treasure-'+String(i+1).padStart(2,'0'),x:260+col*375,y:245+row*830});
 }).filter(t=>!([
-  [1070,1450,820,690],[3000,1650,820,690],
-  [1200,3580,900,740],[3180,4200,850,690],
+  [690,1620,820,690],[3400,1620,820,690],
+  [700,4450,900,740],[3380,4450,850,690],
 ].some(([x,y,w,h])=>Math.abs(t.x-x)<w/2+120&&Math.abs(t.y-y)<h/2+120))));
 export const TREASURE_RESPAWN_MS = 180000;
 
