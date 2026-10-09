@@ -627,8 +627,27 @@ export class NavalBattleController {
     const player = this.getPlayer();
     if (this.getHealth() <= 0) return;
     for (const npc of this.getEntities().values()) {
+      if(npc.id==='r2-pumpkin-ally'){
+        const morbi=this.getEntities().get('r2-morbi');
+        if(this.readSave().r2Campaign?.active==='r2-golden-ii'
+          && morbi?.health>0 && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
+          const muzzle=cannonHardpoint(npc,morbi,npc.heading,0,8);
+          const aim={x:morbi.x,y:morbi.y};
+          const fired=this.renderer.fire({from:muzzle,to:aim,
+            duration:flightDurationMs(muzzle,aim,550),ammo:this.enemyAmmo,
+            impactKind:'ship',startTime:now,onImpact:({at})=>{
+              const boss=this.getEntities().get('r2-morbi');
+              if(!boss||boss.health<=0||!shipCollision(at,boss,110))return {kind:'water'};
+              boss.health=Math.max(0,boss.health-250);
+              if(boss.health===0){boss.state='sunk';this.onVictory(boss);}
+              return {kind:'ship'};
+            }});
+          if(fired)this.nextNpcShot.set(npc.id,now+5000);
+        }
+        continue;
+      }
       if(npc.id==='r2-morbi' && npc.health>0){
-        if(this.readSave().r2Campaign?.active==='r2-golden-i'
+        if(['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active)
           && distanceBetween(npc,player)<1200
           && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
           const muzzle=cannonHardpoint(npc,player,npc.heading,0,20);
