@@ -172,7 +172,10 @@ async function startWorld() {
     if (!result) return false;
     writePatch(result.patch);
     if (world.region.id === 'r2') {
-      const questPatch=recordR2Event(readSave(),{type:'study',id:action.challenge.id+':'+Date.now()});
+      const questPatch=recordR2Event(readSave(),{
+        type: action.kind === 'informant' ? 'informant' : 'study',
+        id:action.challenge.id+':'+Date.now()
+      });
       if(questPatch)writePatch(questPatch);
       if(action.kind==='treasure') {
         const treasurePatch=recordR2Event(readSave(),{type:'treasure',id:action.id});
@@ -709,6 +712,29 @@ async function startWorld() {
         if (active?.id === 'r2-island' && island &&
             Math.hypot(world.camera.x-island.x,world.camera.y-island.y) <= 650)
           recordMissionEvent({type:'discover',id:island.id});
+        if (active?.id === 'r2-informant' && !world.entities.has('r2-informant')) {
+          const ship=[...world.entities.values()].find(n=>n.archetype==='red-sail-corsair' && n.health>0);
+          if (ship) {
+            world.entities.delete(ship.id);
+            ship.id='r2-informant';ship.name='Corsário Informante';
+            ship.x=2500;ship.y=900;ship.health=500;ship.maxHealth=500;
+            world.entities.set(ship.id,ship);
+          }
+        }
+        if (active?.id === 'r2-informant') {
+          const npc=world.entities.get('r2-informant');
+          const count=active.progress[1]??0;
+          if(npc && count<3 && Math.hypot(world.camera.x-npc.x,world.camera.y-npc.y)<130 && !mathGate.isOpen && !islandPanel.isOpen) {
+            clickNavigation.cancel();
+            navalBattle.firing=false;
+            mathGate.open({
+              kind:'informant',title:'🏴‍☠️ O Corsário Informante',
+              description:'O capitão só revelará a pista depois de três multiplicações corretas.',
+              repeatOnSuccess:true,
+              getContinue:()=> (getR2Board(readSave()).active[0]?.progress[1]??3)<3,
+            });
+          }
+        }
         if (active?.id === 'r2-admiral' && !world.entities.has('r2-admiral')) {
           const ship=[...world.entities.values()].find(n=>n.archetype==='red-sail-corsair' && n.health>0);
           if (ship) {
