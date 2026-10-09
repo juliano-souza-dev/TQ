@@ -1197,6 +1197,12 @@ async function startWorld() {
         firstVoyageGuide = null;
       }
       if (world.region.id === 'r1') recordMissionEvent({ type: 'visit', island: contact.kind });
+      if(world.region.id==='r2' && contact.kind==='shipyard'
+        && readSave().r2Campaign?.active==='r2-equip-market'
+        && (readSave().equipment?.loadout?.[activeShip.id]??[])
+          .some(id=>id==='aetherion-mk1'||id==='royal-lion')){
+        recordMissionEvent({type:'market-equip',id:'market-cannons-equipped'});
+      }
       if (world.region.id === 'r2' && contact.kind==='shipyard' && activeShip.id==='fragata-sombra-cacadora') {
         recordMissionEvent({type:'equip-ship',ship:activeShip.id});
       }
