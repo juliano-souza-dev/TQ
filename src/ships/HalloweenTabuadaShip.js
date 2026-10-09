@@ -12,7 +12,7 @@ export const HALLOWEEN_TABUADA_SHIP = Object.freeze({
     bow: 0,
     stern: 0,
   }),
-  speed: Object.freeze({ min: 300, initial: 300, max: 360 }),
+  speed: Object.freeze({ min: 80, initial: 170, max: 250 }),
   playable: true,
   npcEnabled: true,
   shopEnabled: false,
