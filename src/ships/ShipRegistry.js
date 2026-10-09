@@ -6,7 +6,9 @@ import { GOLDEN_GALLEON_SHIP } from './GoldenGalleonShip.js';
 export { GOLDEN_GALLEON_SHIP };
 import { ECLIPSE_SHIP } from './EclipseShip.js';
 export { ECLIPSE_SHIP };
-export const SHIP_CATALOG = Object.freeze([HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP, ECLIPSE_SHIP]);
+import { SHADOW_CHASER_SHIP } from './ShadowChaserShip.js';
+export { SHADOW_CHASER_SHIP };
+export const SHIP_CATALOG = Object.freeze([HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP, ECLIPSE_SHIP, SHADOW_CHASER_SHIP]);
 
 import { FUGITIVE_FRIGATE_SHIP } from './FugitiveFrigateShip.js';
 export { FUGITIVE_FRIGATE_SHIP };
