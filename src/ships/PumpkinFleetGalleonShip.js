@@ -16,7 +16,7 @@ export const PUMPKIN_FLEET_GALLEON_SHIP = Object.freeze({
   // bordo nas vistas de proa/popa. Os oito slots lógicos são distribuídos
   // ao longo da mesma bateria para nenhum slot cair no hardpoint genérico.
   visualGunports: Object.freeze({ port: 3, starboard: 3 }),
-  speed: Object.freeze({ min: 300, initial: 400, max: 480 }),
+  speed: Object.freeze({ min: 360, initial: 480, max: 600 }),
   playable: true,
   npcEnabled: false,
   shopEnabled: false,
