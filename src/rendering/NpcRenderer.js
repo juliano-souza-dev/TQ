@@ -49,20 +49,17 @@ export class NpcRenderer {
           // A fonte pode ser um atlas 1600x1600 ou um WebP animado 400x400.
           // Nunca recortar 4x4 um WebP que já contém frames internos.
           const isAtlas = image.naturalWidth >= 1600 && image.naturalHeight >= 1600;
-          // Submerge, travel invisibly, strike upside down beneath the hull, retreat.
-          const submerged = elapsed >= 300 && elapsed < 750;
-          const sinking = elapsed >= 0 && elapsed < 300;
-          const underHull = elapsed >= 750 && elapsed < 1400;
-          const emergence = Math.min(1, Math.max(0, (elapsed - 750) / 220));
-          const retreat = Math.min(1, Math.max(0, (elapsed - 1130) / 270));
-          const drawX = underHull ? w / 2 + (attack.to.x - camera.x) * zoom * dpr : x;
-          const drawY = underHull ? h / 2 + (attack.to.y - camera.y) * zoom * dpr + (1 - emergence) * 26 * dpr + retreat * 30 * dpr : y;
-          const alpha = sinking ? 1 - .85 * elapsed / 300 : underHull ? (.2 + .65 * emergence) * (1 - retreat) : 1;
+          // During the strike only the WebGL tentacles are visible.
+          // Travel in both directions lasts 450ms; the body returns at its spawn.
+          const diving=elapsed>=0&&elapsed<300;
+          const resurfacing=elapsed>=1420&&elapsed<1720;
+          const hiddenBody=elapsed>=300&&elapsed<1420;
+          if(hiddenBody)continue;
+          const alpha=diving?1-elapsed/300:resurfacing?(elapsed-1420)/300:1;
           ctx.save();
-          ctx.globalAlpha *= submerged ? 0 : alpha;
-          if (underHull) { ctx.translate(drawX, drawY); ctx.rotate(Math.PI); }
-          const spriteX = underHull ? -monsterSize / 2 : x - monsterSize / 2;
-          const spriteY = underHull ? -monsterSize / 2 : y - monsterSize / 2 + (sinking ? 18 * dpr * elapsed / 300 : 0);
+          ctx.globalAlpha*=Math.max(0,alpha);
+          const spriteX=x-monsterSize/2;
+          const spriteY=y-monsterSize/2+(diving?18*dpr*elapsed/300:resurfacing?18*dpr*(1-alpha):0);
           if (isAtlas) {
             const columns = 4, frameDurationMs = 105;
             const frame = Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
@@ -75,7 +72,7 @@ export class NpcRenderer {
             ctx.drawImage(image, spriteX, spriteY, monsterSize, monsterSize);
           }
           ctx.restore();
-          if (underHull || submerged || sinking) continue;
+          if (diving || resurfacing) continue;
           renderMonsterBlood(ctx, npc, x, y, monsterSize, performance.now());
           const barW = monsterSize * 0.65;
           ctx.fillStyle = '#152233'; ctx.fillRect(x-barW/2,y-monsterSize*0.58,barW,6*dpr);
