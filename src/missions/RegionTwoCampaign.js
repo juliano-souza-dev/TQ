@@ -5,6 +5,7 @@ export const R2_MISSIONS = Object.freeze([
   {id:'r2-map',name:'O Mapa Rasgado',description:'O informante revelou um mapa dividido em três partes. Resgate três arcas para recuperar seus fragmentos.',objectives:[{kind:'treasure',count:3,label:'Encontrar 3 fragmentos em arcas'}],reward:{gold:500,iron:500}},
   {id:'r2-island',name:'A Ilha Esquecida',description:'Os fragmentos indicam uma ilha esquecida. Navegue até ela e decifre três desafios para revelar o esconderijo.',objectives:[{kind:'discover',count:1,label:'Encontrar a Ilha Esquecida'},{kind:'study',count:3,label:'Decifrar 3 multiplicações'}],reward:{gold:700,iron:800}},
   {id:'r2-admiral',name:'O Almirante dos Ladrões',description:'O ladrão serve a um poderoso almirante. Rompa a guarda e destrua o navio do comandante para recuperar parte da fortuna.',objectives:[{kind:'defeat',count:10,label:'Destruir 10 navios da guarda'},{kind:'admiral',count:1,label:'Afundar o Almirante dos Ladrões'}],reward:{gold:2000,iron:3000}},
+  {id:'r2-false-admiral',name:'O Falso Almirante',description:'Entre os destroços, uma revelação: o capitão derrotado era um impostor. O verdadeiro Almirante nem sequer navega por estas águas. Vasculhe as arcas da Costa dos Corsários e encontre pistas de seu paradeiro.',objectives:[{kind:'treasure',count:15,label:'Coletar 15 tesouros em busca de pistas'}],reward:{gold:650,iron:1200}},
 ].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze))})));
 
 const stateOf = save => save.r2Campaign ?? {active:null,claimed:[],progress:{},processed:[]};
