@@ -250,3 +250,20 @@ test('72 tesouros ficam disponíveis, reaparecem individualmente e não duplicam
   assert.equal(respawn.id,first.id+'-cycle-1');
   assert.ok(claimTreasure(save,respawn.id,1000000+TREASURE_RESPAWN_MS));
 });
+
+test('respawn usa ID inédito mesmo após histórico antigo ou sincronização parcial', () => {
+  const base = ALL_R1_TREASURES[0].id;
+  const oldSave = {
+    ...initial(), openedTreasures: [base, base + '-cycle-1', base + '-cycle-2'],
+    treasureClaimCounts: { [base]: 1 },
+  };
+  const visible = getVisibleTreasures(oldSave, 1_000_000);
+  assert.equal(visible.find(t => t.x === ALL_R1_TREASURES[0].x).id, base + '-cycle-3');
+  assert.equal(claimTreasure(oldSave,base + '-cycle-2',1_000_000),null);
+  const result = claimTreasure(oldSave,base + '-cycle-3',1_000_000);
+  assert.ok(result);
+  const next = { ...oldSave, ...result.patch };
+  assert.equal(getVisibleTreasures(next,1_000_001).some(t=>t.x===ALL_R1_TREASURES[0].x),false);
+  assert.equal(getVisibleTreasures(next,1_000_000 + TREASURE_RESPAWN_MS)
+    .find(t=>t.x===ALL_R1_TREASURES[0].x).id,base + '-cycle-4');
+});
