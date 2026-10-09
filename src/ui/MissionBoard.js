@@ -9,6 +9,8 @@ export function createMissionBoard({getBoard=()=>null,onAccept=()=>false,onClaim
  r.gold&&r.gold+' ouro',r.iron&&r.iron+' munições comuns',
  ...Object.entries(r.ammo??{}).map(([id,n])=>n+' '+({'volcanic-lava':'orbes vulcânicos','terror-rose':'Rosas do Terror','halloween-purple-ball':'munições Halloween'}[id]??id)),
  ...Object.entries(r.cannons??{}).map(([id,n])=>n+' '+({'royal-lion':'Canhão Real Dourado','blue-gold-pirate':'canhões iniciais'}[id]??id)),
+ ...Object.entries(r.harpoonAmmo??{}).map(([id,n])=>n+' '+(id==='harpoon-armor-piercing'?'Arpões Quebra-Couraça':id)),
+ ...Object.entries(r.consumables??{}).map(([id,n])=>n+' '+({'flame-5x':'5X em Chamas',shield:'Escudos','speed-plus':'Veloz+','treasure-map':'Mapas do Tesouro'}[id]??id)),
  ...(r.ships??[]).map(id=>id==='galeao-halloween-tabuada'?'Terror da Tabuada':id),
  ].filter(Boolean).join(' · ')||'Desbloqueio de região';
  function refresh(){
