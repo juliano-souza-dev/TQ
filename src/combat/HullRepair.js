@@ -20,9 +20,9 @@ export function repairHull(save = {}, bonusPercent = 0) {
   };
 }
 
-// One successful multiplication starts continuous 25% max hull repair per second.
-export const REPAIR_RATE_PER_SECOND = 25;
-export const REPAIR_DURATION_MS = 4000;
+// One successful multiplication starts continuous 10% max hull repair per second.
+export const REPAIR_RATE_PER_SECOND = 10;
+export const REPAIR_DURATION_MS = 10000;
 export function accumulateHullRepair(save = {}) {
   const combat=save.combat??{};
   const health=Math.max(0,Math.min(MAX_HULL_HEALTH,Number(combat.shipHealth) || 0));
