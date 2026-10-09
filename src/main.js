@@ -496,6 +496,12 @@ async function startWorld() {
     && readSave().r2Campaign?.active === 'r2-destroy-thief'
     && !readSave().consumables?.chaseChestClaimed;
     function resolveMathAction(action, cleanAnswer) {
+    if(action.kind==='r2-mystery-light'){
+      if(readSave().r2Campaign?.active!=='r2-mystery-light')return false;
+      recordMissionEvent({type:'study',id:'dark-waters-revelation'});
+      showOceanReward('🌑 A Frota do Mestre do Terror segue para as águas escuras do Capitão Terror. Fim da campanha do Mundo 2!');
+      return 'Destino revelado: águas escuras do Capitão Terror!';
+    }
     if(action.kind==='black-market'){
       if(world.region.id!=='r2'||boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-black-market')?.status!=='active')return false;
       blackMarketUnlocked=true;
@@ -1109,6 +1115,7 @@ async function startWorld() {
         const save = readSave();
         const ship = playableShips.find(item => item.id === shipId);
         if (!ship || (save.storyFlags?.terrorTabuadaDestroyed && shipId==='galeao-halloween-tabuada') || (ship.id !== STARTER_SHIP.id && !save.equipment?.ownedShipIds?.includes(shipId))) return false;
+        if(world.region.id==='r2' && save.r2Campaign?.active==='r2-why-help' && ship.id!=='galeao-halloween-tabuada')return false;
         if (ship.id === activeShip.id) {
            if (world.region.id==='r2' && ship.id==='fragata-sombra-cacadora') recordMissionEvent({type:'equip-ship',ship:ship.id});
            return true;
@@ -1467,6 +1474,11 @@ async function startWorld() {
           }
         }
         if(active?.id!=='r2-golden-ii')world.entities.delete('r2-pumpkin-ally');
+        if(active?.id==='r2-mystery-light' && !mathGate.isOpen && !islandPanel.isOpen){
+          clickNavigation.cancel();navalBattle.firing=false;
+          mathGate.open({kind:'r2-mystery-light',title:'🌑 Uma Luz para o Mistério',
+            description:'A Frota do Mestre do Terror deixou um rastro. Resolva a multiplicação final para descobrir o caminho às águas escuras do Capitão Terror.'});
+        }
         if (active?.id === 'r2-island' && island &&
             Math.hypot(world.camera.x-island.x,world.camera.y-island.y) <= 650) {
           if ((active.progress?.[0] ?? 0) < 1)
