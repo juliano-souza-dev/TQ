@@ -255,7 +255,19 @@ async function startWorld() {
     updateMissionHud();
     return true;
   }
-  function resolveMathAction(action, cleanAnswer) {
+  const supplyChest = {x:2035,y:1550};
+  const isSupplyChestAvailable = () => world.region.id === 'r2'
+    && readSave().r2Campaign?.active === 'r2-destroy-thief'
+    && !readSave().consumables?.chaseChestClaimed;
+    function resolveMathAction(action, cleanAnswer) {
+    if (action.kind === 'chase-supply-chest') {
+      if (!isSupplyChestAvailable() || Math.hypot(world.camera.x-supplyChest.x,world.camera.y-supplyChest.y)>170) return false;
+      const save=readSave(),c=save.consumables??{},q=c.quantities??{};
+      writePatch({consumables:{...c,chaseChestClaimed:true,
+        quantities:{...q,'flame-5x':(Number(q['flame-5x'])||0)+10,shield:(Number(q.shield)||0)+10}}});
+      navalHud?.refresh();
+      return 'Baú resgatado: +10 5X em Chamas e +10 Escudos!';
+    }
     const result = resolvePedagogicalAction(readSave(), action, action.challenge, cleanAnswer);
     if (!result) return false;
     writePatch(result.patch);
@@ -525,6 +537,21 @@ async function startWorld() {
   missionHud.className = 'mission-progress-hud';
   missionHud.setAttribute('aria-live', 'polite');
   root.append(missionHud);
+  const supplyChestEl=document.createElement('div');
+  supplyChestEl.className='chase-supply-chest';
+  supplyChestEl.innerHTML='<span class="chase-supply-arrow">⬇</span><span class="chase-supply-icon">🧰</span>';
+  supplyChestEl.hidden=true;
+  supplyChestEl.setAttribute('aria-label','Baú de suprimentos da caçada');
+  root.append(supplyChestEl);
+  function updateSupplyChestMarker() {
+    supplyChestEl.hidden=!isSupplyChestAvailable();
+    if(supplyChestEl.hidden)return;
+    const x=canvas.clientWidth/2+(supplyChest.x-world.cameraView.x)*world.camera.zoom;
+    const y=canvas.clientHeight/2+(supplyChest.y-world.cameraView.y)*world.camera.zoom;
+    supplyChestEl.hidden=x<0||y<0||x>canvas.clientWidth||y>canvas.clientHeight;
+    supplyChestEl.style.left=x+'px';supplyChestEl.style.top=y+'px';
+  }
+
   const targetHud = document.createElement('aside');
   targetHud.className = 'target-status-hud';
   targetHud.hidden = true;
@@ -1007,7 +1034,14 @@ async function startWorld() {
           });
         }
       }
-      navalBattle.update(stepMs,performance.now());
+      if(isSupplyChestAvailable() && !mathGate.isOpen && !islandPanel.isOpen
+          && Math.hypot(world.camera.x-supplyChest.x,world.camera.y-supplyChest.y)<135) {
+        clickNavigation.cancel();
+        navalBattle.firing=false;
+        mathGate.open({kind:'chase-supply-chest',title:'🧰 Baú da Caçada',
+          description:'Resolva uma multiplicação para ganhar 10 consumíveis 5X em Chamas e 10 Escudos.'});
+      }
+            navalBattle.update(stepMs,performance.now());
       repairTickMs += stepMs;
       if (repairTickMs >= 100) {
         repairTickMs = 0;
@@ -1121,6 +1155,7 @@ async function startWorld() {
       const hidePursuitTreasures = world.region.id === 'r2'
         && readSave().r2Campaign?.active === 'r2-destroy-thief';
       treasureRenderer.render(hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),world.cameraView,world.camera.zoom,oceanTimeMs);
+      updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
         selectedNpcId = null;
         navalBattle.setTarget(null);
