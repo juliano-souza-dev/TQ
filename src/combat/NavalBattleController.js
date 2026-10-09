@@ -576,6 +576,11 @@ export class NavalBattleController {
       target.state = target.health ? (target.aggression === 'flee' ? 'fleeing' : 'retaliating') : 'sunk';
       target.lastAttackerId = 'player';
     }
+    if(target.id==='r2-morbi'&&this.getRegionId()==='r2'){
+      const save=this.readSave();
+      this.writePatch({r2MorbiBoss:{health:target.health,maxHealth:900000,
+        x:target.x,y:target.y,heading:target.heading,updatedAt:Date.now()}});
+    }
     // Persist boss HP immediately on each impact, not only on periodic autosave.
     // This survives refresh even if the player has not yet defeated the boss.
     if (this.getRegionId()==='r2' && target.archetype==='fugitive-frigate'
@@ -639,6 +644,8 @@ export class NavalBattleController {
               const boss=this.getEntities().get('r2-morbi');
               if(!boss||boss.health<=0||!shipCollision(at,boss,110))return {kind:'water'};
               boss.health=Math.max(0,boss.health-250);
+              this.writePatch({r2MorbiBoss:{health:boss.health,maxHealth:900000,
+                x:boss.x,y:boss.y,heading:boss.heading,updatedAt:Date.now()}});
               if(boss.health===0){boss.state='sunk';this.onVictory(boss);}
               return {kind:'ship'};
             }});
@@ -695,6 +702,7 @@ export class NavalBattleController {
   }
 
   resolveNpcImpact(npcId, point, damage = 5) {
+    if(npcId==='r2-morbi' && !['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active))return {kind:'water'};
     const player = this.getPlayer();
     if (!shipCollision(point, { ...player, health: this.getHealth() }, 56)) {
       return { kind: 'water' };
