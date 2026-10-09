@@ -22,6 +22,7 @@ export const R2_MISSIONS = Object.freeze([
   {id:'r2-do-me-favor',name:'Me Faça um Favor',description:'Trabalhe como matador para ganhar informações: elimine 25 navios inimigos.',objectives:[{kind:'defeat',count:25,label:'Afundar 25 NPCs'}],reward:{}},
   {id:'r2-monster-meat',name:'Carne de Monstro',description:'O próximo favor exige carne de monstro. Encontre e derrote um monstro marinho.',objectives:[{kind:'defeat',count:1,archetype:'sea-monster-kraken',label:'Derrotar 1 monstro marinho'}],reward:{}},
   {id:'r2-mystery-light',name:'Uma Luz para o Mistério',description:'As pistas apontam para a identidade da Frota do Mestre do Terror e para as águas escuras do Capitão Terror.',objectives:[{kind:'study',count:1,label:'Resolver a última multiplicação e descobrir o destino'}],reward:{}},
+  {id:'r2-dark-voyage',name:'Rumo às Águas Escuras',description:'A Frota do Mestre do Terror tem ligação com o Capitão Terror. Navegue até o limite oriental da Costa dos Corsários, onde começa a próxima aventura.',objectives:[{kind:'exit',count:1,label:'Chegar à passagem para as águas escuras'}],reward:{}},
 ].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze))})));
 
 const stateOf = save => save.r2Campaign ?? {active:null,claimed:[],progress:{},processed:[]};
