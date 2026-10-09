@@ -1352,6 +1352,9 @@ async function startWorld() {
     if(!pumpkinAmbushStarted){
       pumpkinAmbushStarted=true;
       clickNavigation.cancel();navalBattle.firing=false;
+      if(mathGate.isOpen && mathGate.activeKind==='repair')mathGate.close(true);
+      const save=readSave();
+      writePatch({combat:{...(save.combat??{}),repairingUntil:null,repairingFrom:null}});
       showOceanReward('🎃 Quatro galeões da frota abriram fogo! Fuja, capitão!');
     }
     const center=world.camera;
