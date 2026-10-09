@@ -209,12 +209,35 @@ async function startWorld() {
   // Wide cinematic pursuit framing, local to R2 mission 11.
   const normalCameraZoom = world.camera.zoom;
   let pursuitCameraZoom = normalCameraZoom;
+  const pursuitHiddenEntities = new Map();
+  function updatePursuitPopulation() {
+    const hunting = world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief';
+    if (!hunting) {
+      for (const [id, entity] of pursuitHiddenEntities) {
+        if (!world.entities.has(id)) world.entities.set(id, entity);
+      }
+      pursuitHiddenEntities.clear();
+      return;
+    }
+    const corsairs = [...world.entities.values()].filter(n => n.type === 'npc'
+      && n.archetype !== 'fugitive-frigate' && n.id !== 'r2-informant');
+    // 95% fewer ordinary NPCs; the mission boss and informant stay untouched.
+    const keep = new Set(corsairs.slice(0, Math.max(1, Math.ceil(corsairs.length*.05))).map(n => n.id));
+    for (const [id, entity] of world.entities) {
+      if (entity.type === 'monster' || (entity.type === 'npc'
+        && entity.archetype !== 'fugitive-frigate' && id !== 'r2-informant' && !keep.has(id))) {
+        pursuitHiddenEntities.set(id, entity);
+        world.entities.delete(id);
+      }
+    }
+  }
+
   function updatePursuitCamera(stepMs = 16) {
     const hunting = world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief';
     const thief = hunting ? [...world.entities.values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0) : null;
     const targetZoom = thief ? Math.max(.27, Math.min(.43,
       Math.min(canvas.clientWidth || 900, canvas.clientHeight || 600) /
-      Math.max(1300, Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y)*2.4))) : normalCameraZoom;
+      Math.max(1300, Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y)*2.4))) * 1.05 : normalCameraZoom;
     const smoothing = 1-Math.exp(-Math.max(0,stepMs)/450);
     pursuitCameraZoom += (targetZoom-pursuitCameraZoom)*smoothing;
     world.camera.zoom = pursuitCameraZoom;
@@ -901,6 +924,7 @@ async function startWorld() {
           }
         }
       }
+      updatePursuitPopulation();
       updateCorsairPopulation(world, stepMs);
       updateNegotiationFrigate(world, readSave());
       updateFugitiveFrigatePopulation(world, stepMs);
