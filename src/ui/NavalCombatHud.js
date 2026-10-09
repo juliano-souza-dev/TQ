@@ -103,10 +103,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   flameOption.type = 'button';
   const shieldOption = document.createElement('button');
   shieldOption.type='button';
-  const activateOption = document.createElement('button');
-  activateOption.type = 'button';
-  activateOption.className = 'naval-consumables-activate';
-  picker.append(noneOption,flameOption,shieldOption,activateOption);
+  picker.append(noneOption,flameOption,shieldOption);
   consumablesWrap.append(consumablesButton,picker);
   attackControls.append(fireButton, fireIconButton, consumablesWrap, centerButton, repairButton);
   element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
@@ -118,17 +115,22 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
 
   function refresh() {
     const consumable=controller.getConsumables();
-    const shieldSelected=consumable.selectedId==='shield',noneSelected=consumable.selectedId==='none';
-    const now=Date.now();
-    const remaining=Math.max(0,Math.ceil(((shieldSelected?consumable.shieldCooldownUntil:consumable.cooldownUntil)-now)/1000));
-    const active=Math.max(0,Math.ceil(((shieldSelected?consumable.shieldActiveUntil:consumable.activeUntil)-now)/1000));
-    const qty=Math.max(0,Number(consumable.quantities[consumable.selectedId])||0);
+    const shieldSelected=consumable.selectedId==='shield';
+    const noneSelected=consumable.selectedId==='none';
+    const flameQty=Math.max(0,Math.floor(Number(consumable.quantities['flame-5x'])||0));
+    const shieldQty=Math.max(0,Math.floor(Number(consumable.quantities.shield)||0));
+    const qty=shieldSelected?shieldQty:flameQty;
     selectedIcon.hidden=noneSelected||shieldSelected;
     countLabel.textContent=noneSelected?'🔒':shieldSelected?'🛡️ '+qty:String(qty);
-    flameOption.textContent='🔥 5X em Chamas · '+(consumable.quantities['flame-5x']||0)+' unidades';
-    shieldOption.textContent='🛡️ Escudo · '+(consumable.quantities.shield||0)+' unidades';
-    activateOption.textContent=active?'Ativo: '+active+'s':remaining?'⏳ Recarga: '+remaining+'s':shieldSelected?'🛡️ Ativar escudo (45s)':'🔥 Ativar 5X (60s)';
-    activateOption.disabled=active>0||remaining>0||qty<=0||noneSelected;
+    flameOption.hidden=flameQty<=0;
+    shieldOption.hidden=shieldQty<=0;
+    flameOption.textContent='🔥 5X em Chamas · '+flameQty+' unidades';
+    shieldOption.textContent='🛡️ Escudo · '+shieldQty+' unidades';
+    const now=Date.now();
+    const flameRemaining=Math.max(0,Math.ceil((consumable.cooldownUntil-now)/1000));
+    const shieldRemaining=Math.max(0,Math.ceil((consumable.shieldCooldownUntil-now)/1000));
+    flameOption.title=flameRemaining?'Recarga: '+flameRemaining+'s':'Ativar agora';
+    shieldOption.title=shieldRemaining?'Recarga: '+shieldRemaining+'s':'Ativar agora';
         const cameraDetached = Boolean(isCameraDetached());
     centerButton.disabled = !cameraDetached;
     centerButton.classList.toggle('is-available', cameraDetached);
@@ -191,15 +193,16 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
 
   consumablesButton.addEventListener('click', () => { picker.hidden = !picker.hidden; refresh(); });
   noneOption.addEventListener('click', () => {controller.selectConsumable('none');picker.hidden=true;refresh();});
-  flameOption.addEventListener('click', () => {controller.selectConsumable('flame-5x');picker.hidden=false;refresh();});
-  shieldOption.addEventListener('click',()=>{controller.selectConsumable('shield');refresh();});
-  activateOption.addEventListener('click', () => {
-    const result = controller.activateConsumable();
+  function selectAndActivate(id) {
+    if (!controller.selectConsumable(id)) return;
+    const result=controller.activateConsumable();
     setFeedback(result.reason);
-    picker.hidden = result.ok;
+    picker.hidden=true;
     refresh();
-  });
-    // Em telas touch, o evento click de um segundo dedo pode ser suprimido
+  }
+  flameOption.addEventListener('click',()=>selectAndActivate('flame-5x'));
+  shieldOption.addEventListener('click',()=>selectAndActivate('shield'));
+  // Em telas touch, o evento click de um segundo dedo pode ser suprimido
   // pelo navegador enquanto o primeiro dedo mantém o joystick pressionado.
   // Capturamos cada toque diretamente no botão, sem capturar o ponteiro do
   // joystick. Mouse, teclado e tecnologias assistivas continuam usando click.
