@@ -331,6 +331,25 @@ async function startWorld() {
     clickNavigation?.setDestination(destination);
     showOceanReward('⚓ Rota para o Porto das Missões definida!');
   });
+  // Observe mission state, regardless of which gameplay action updates the save.
+  // Seed ready contracts on load so reopening the game doesn't replay old popups.
+  const notifiedMissionIds=new Set(
+    boardFor(readSave(),world.region.id).missions.filter(m=>m.status==='ready').map(m=>m.id)
+  );
+  function checkMissionCompletion(){
+    const missions=boardFor(readSave(),world.region.id).missions;
+    for(const mission of missions){
+      if(mission.status!=='ready'){
+        if(mission.status==='active'||mission.status==='available')notifiedMissionIds.delete(mission.id);
+        continue;
+      }
+      if(notifiedMissionIds.has(mission.id))continue;
+      notifiedMissionIds.add(mission.id);
+      showOceanReward('🏆 Missão concluída: '+mission.name);
+      announceMissionCompletion(mission.name);
+      break;
+    }
+  }
   function announceMissionCompletion(name){
     if(!missionCompleteOverlay.hidden)return;
     missionCompleteTitle.textContent='🏆 Missão concluída!';
@@ -338,14 +357,10 @@ async function startWorld() {
     missionCompleteOverlay.hidden=false;
   }
   function recordMissionEvent(event) {
-    const before=boardFor(readSave(),world.region.id);
     const patch = campaignFor(world.region.id).record(readSave(), event);
     if (!patch) return false;
     writePatch(patch);
     updateMissionHud();
-    const after=boardFor(readSave(),world.region.id);
-    const finished=after.missions.find(m=>m.status==='ready' && before.missions.find(old=>old.id===m.id)?.status!=='ready');
-    if(finished){showOceanReward('🏆 Missão concluída: '+finished.name);announceMissionCompletion(finished.name);}
     return true;
   }
   const supplyChest = {x:2035,y:1550};
@@ -771,6 +786,7 @@ async function startWorld() {
   }
 
   const updateMissionHud = () => {
+    checkMissionCompletion();
     if (world.region.id === 'r2') {
       missionHud.hidden = false;
       const mission = boardFor(readSave(),world.region.id).active[0];
