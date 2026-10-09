@@ -1,4 +1,4 @@
-import { equippedHarpoon, harpoonDamage } from './HarpoonCatalog.js';
+import { equippedHarpoon, harpoonDamage, harpoonStock, HARPOON_AMMO_ID } from './HarpoonCatalog.js';
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
@@ -127,6 +127,7 @@ export class NavalBattleController {
     let reason = 'ready';
     if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
     else if (monsterTarget && distance > harpoon.range) reason = 'range';
+    else if (monsterTarget && harpoonStock(save) <= 0) reason = 'harpoon-ammo';
     else if (!monsterTarget && !missionActive) reason = 'mission';
     else if (!monsterTarget && !battery.length) reason = 'no-cannon';
     else if (!target) reason = 'target';
@@ -139,6 +140,7 @@ export class NavalBattleController {
       harpoonName: harpoon.name,
       harpoonRange: harpoon.range,
       harpoonReloadSeconds: harpoon.reloadSeconds,
+      harpoonAmmo: harpoonStock(save),
       ready: reason === 'ready',
       reason, distance,
       range: monsterTarget ? harpoon.range : battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0,
@@ -177,7 +179,7 @@ export class NavalBattleController {
     const distance=target?distanceBetween(this.getPlayer(),target):Infinity;
     const now=this.clock();
     return {launcher, target, distance, cooldownMs:Math.max(0,this.nextHarpoonAt-now),
-      ready: target?.type==='monster' && target.health>0
+      ready: harpoonStock(this.readSave())>0 && target?.type==='monster' && target.health>0
         && distance<=launcher.range && this.getHealth()>0 && now>=this.nextHarpoonAt};
   }
 
@@ -197,13 +199,15 @@ export class NavalBattleController {
     const targetId=target.id;
     const accepted=this.renderer.fire({
       from,to:destination,duration:flightDurationMs(from,destination,launcher.projectileSpeed),
-      ammo:{id:'naval-harpoon',name:'Arpão Naval Simples',size:1.8,
+      ammo:{id:'naval-harpoon',name:'Arpão do Marujo',size:1.8,
         projectileSpeed:launcher.projectileSpeed,
         fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
       impactKind:'water',startTime:now,
       onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,harpoonDamage(launcher)),
     });
     if (!accepted) {this.onFeedback('⚠️ Disparo de arpão indisponível.');return false;}
+    const save=this.readSave();
+    this.writePatch({harpoonAmmo:{...(save.harpoonAmmo??{}),[HARPOON_AMMO_ID]:harpoonStock(save)-1}});
     this.nextHarpoonAt=now+launcher.reloadSeconds*1000;
     this.onFeedback('⚓ Arpão lançado contra '+target.name+'!');
     return true;
