@@ -466,9 +466,13 @@ async function startWorld() {
     const thiefActive = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed && !mathGate.isOpen;
     const exitActive = campaign.active?.includes('r1-finale')
       && !(campaign.progress?.['r1-finale']?.[0] >= 1) && !mathGate.isOpen;
-    const target = thiefActive
+    const r2 = world.region.id === 'r2' ? getR2Board(readSave()).active[0] : null;
+    const guideTarget = r2?.id === 'r2-informant' ? world.entities.get('r2-informant')
+      : r2?.id === 'r2-island' ? world.region.islands.find(i=>i.id==='r2-scenery-north')
+      : r2?.id === 'r2-admiral' ? world.entities.get('r2-admiral') : null;
+    const target = guideTarget ?? (thiefActive
       ? [...world.entities.values()].find(npc => npc.archetype === 'fugitive-frigate' && npc.health > 0)
-      : exitActive ? world.region.exitPoint : null;
+      : exitActive ? world.region.exitPoint : null);
     if (!target) { thiefGuide.hidden = true; return; }
     thiefGuide.setAttribute('aria-label', exitActive ? 'Direção da saída para Costa dos Corsários' : 'Direção do ladrão');
     const width = canvas.clientWidth, height = canvas.clientHeight;
@@ -484,7 +488,7 @@ async function startWorld() {
     thiefGuide.style.setProperty('--thief-angle', (inView ? 90 : Math.atan2(y-py, x-px)*180/Math.PI) + 'deg');
     thiefGuide.classList.toggle('is-visible-target', inView);
     thiefGuide.querySelector('.thief-guide-label').textContent =
-      (exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
+      (guideTarget ? (r2?.id === 'r2-informant' ? 'Informante' : r2?.id === 'r2-island' ? 'Ilha Esquecida' : 'Almirante') : exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
     thiefGuide.hidden = false;
   }
 
