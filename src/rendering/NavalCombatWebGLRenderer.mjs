@@ -1105,6 +1105,7 @@ export class NavalCombatWebGLRenderer{
     this.muzzles.length=0;
     this.impacts.length=0;
     this.destructions.length=0;
+    this.krakenAttacks.length=0;
     if(this.gl)this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
 
@@ -1119,6 +1120,7 @@ export class NavalCombatWebGLRenderer{
     this.muzzles.length=0;
     this.impacts.length=0;
     this.destructions.length=0;
+    this.krakenAttacks.length=0;
     this.pointCpuBuffer=new Float32Array(2);
     this.pointGpuCapacityBytes=0;
     this.gl=null;
