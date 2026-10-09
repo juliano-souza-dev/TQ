@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { NavalBattleController } from '../src/combat/NavalBattleController.js';
+import { NavalBattleController, KRAKEN_RETALIATION_RANGE } from '../src/combat/NavalBattleController.js';
 import { NavalCombatWebGLRenderer } from '../src/rendering/NavalCombatWebGLRenderer.mjs';
 import { effectiveAmmo, cannonHardpoint, interceptPoint } from '../src/combat/NavalBattleRules.js';
 
@@ -278,4 +278,29 @@ test('Kraken submerso ignora tiro e volta a receber dano ao emergir', () => {
   time=2800;
   assert.equal(controller.resolvePlayerImpact('kraken',{x:20,y:20},50).kind,'ship');
   assert.equal(monster.health,1600);
+});
+
+test('Kraken só revida depois de ser atingido e respeita o menor alcance de canhão', () => {
+  assert.equal(KRAKEN_RETALIATION_RANGE, 300);
+  let time=1000;
+  const monster={id:'kraken',type:'monster',name:'Kraken',health:1650,maxHealth:1650,state:'idle',x:280,y:0};
+  const player={x:0,y:0,heading:0};
+  const attacks=[];
+  const controller=new NavalBattleController({
+    renderer:{prepareAmmo(){},attackKraken(options){attacks.push(options);return true;},destroy(){}},
+    shipId:'starter',
+    readSave:()=>({combat:{shipHealth:100}}),writePatch(){},
+    getPlayer:()=>player,getEntities:()=>new Map([[monster.id,monster]]),
+    clock:()=>time,
+  });
+  controller.fireKrakenStrikes(time);
+  assert.equal(attacks.length,0,'Kraken não deve iniciar combate sem agressão');
+  controller.resolvePlayerImpact('kraken',{x:280,y:0},10);
+  assert.equal(monster.state,'retaliating');
+  controller.fireKrakenStrikes(time);
+  assert.equal(attacks.length,1,'Kraken atingido reage dentro do alcance');
+  time=6000;
+  monster.x=301;
+  controller.fireKrakenStrikes(time);
+  assert.equal(attacks.length,1,'não ataca fora do alcance');
 });
