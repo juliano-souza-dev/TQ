@@ -166,6 +166,10 @@ async function startWorld() {
       equippedHarpoonId: initialEquipment.equippedHarpoonId || 'naval-harpoon-starter',
     } });
   }
+  // Conceder os 500 arpões apenas uma vez. Estoque zero é válido e não é reposto.
+  if (readSave().harpoonAmmo?.['harpoon-mariner'] === undefined) {
+    writePatch({harpoonAmmo:{...(readSave().harpoonAmmo??{}),'harpoon-mariner':500}});
+  }
   const { ROSE_GOLD_SHIP } = await import('./ships/RoseGoldShip.js');
   const { SHIP_CATALOG } = await import('./ships/ShipRegistry.js');
   const playableShips = [STARTER_SHIP, ROSE_GOLD_SHIP, ...SHIP_CATALOG];
