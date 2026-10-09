@@ -333,6 +333,7 @@ export class NavalCombatWebGLRenderer{
       trackingSpeed:Math.max(1,Number(trackingSpeed)||420),
       current:{x:Number(from.x)||0,y:Number(from.y)||0},
       trackingLastTime:Number(startTime)||performance.now(),
+      trackingHistory:[],
       startTime:Number(startTime)||performance.now(),
       impactSpawned:false,
       impactKind:impactKind==="water"?"water":(impactKind==="monster"?"monster":"ship"),
@@ -435,6 +436,8 @@ export class NavalCombatWebGLRenderer{
           shot.to={...shot.current};
           shot.duration=Math.max(80,now-shot.startTime);
         }
+        shot.trackingHistory.push({x:shot.current.x,y:shot.current.y});
+        if(shot.trackingHistory.length>28)shot.trackingHistory.shift();
         if(now-shot.startTime>=shot.duration) shot.to={...shot.current};
       }
       if(shot.target){
@@ -684,8 +687,11 @@ export class NavalCombatWebGLRenderer{
             if(trailT>=t)continue;
             const te=1-Math.pow(1-trailT,2);
             const tw=Math.sin(trailT*Math.PI*8)*fx.projectile.wobble*18;
-            const tx=shot.trackingTarget ? x-(x-shot.from.x)*ratio*.14 : shot.from.x+dx*te+(-dy/length)*tw;
-            const ty=shot.trackingTarget ? y-(y-shot.from.y)*ratio*.14 : shot.from.y+dy*te+(dx/length)*tw;
+            const history=shot.trackingHistory;
+            const trailPosition=shot.trackingTarget&&history.length
+              ? history[Math.max(0,history.length-1-Math.round(ratio*(history.length-1)))] : null;
+            const tx=trailPosition?.x??(shot.from.x+dx*te+(-dy/length)*tw);
+            const ty=trailPosition?.y??(shot.from.y+dy*te+(dx/length)*tw);
             const taper=1-ratio*fx.trail.taper;
             const beadGate=fx.trail.beads>0
               ?(.62+.38*Math.max(0,Math.sin((step*2.35)+(shot.startTime*.0017))))
@@ -744,6 +750,21 @@ export class NavalCombatWebGLRenderer{
                 }
               );
             }
+          }
+        }
+        if(shot.trackingTarget) {
+          // Bi-chromatic ionized plasma corona. All rings, sparks and ribbons
+          // follow the same simulation position, even when the target turns.
+          const pulse=.86+.14*Math.sin(now*.027);
+          const halo=22*pulse/Math.max(.35,Number(zoom)||1);
+          drawPoint(x,y,halo*2.35,0,0,true,{color:'#075cff',coreColor:'#1eeaff',glow:2.4,opacity:.5});
+          drawPoint(x,y,halo*1.35,4,(now*.001)%1,true,{color:'#ff265a',coreColor:'#fff7fb',glow:2.5,opacity:.88});
+          for(let i=0;i<(this.reducedFx?3:7);i++){
+            const angle=now*.010*(i%2?-1:1)+i*Math.PI*2/7;
+            const radius=halo*(.65+.2*Math.sin(now*.012+i));
+            drawPoint(x+Math.cos(angle)*radius,y+Math.sin(angle)*radius,
+              Math.max(2,halo*.19),0,0,true,{color:i%2?'#ff285a':'#17dfff',
+              coreColor:'#ffffff',glow:2.4,opacity:.94});
           }
         }
         writeClip(x,y);
