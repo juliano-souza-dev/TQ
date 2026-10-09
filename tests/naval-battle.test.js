@@ -446,7 +446,7 @@ test('informante ativo não é selecionável nem recebe dano de disparos em voo'
   assert.equal(t.battle.getTarget()?.id, 'r2-informant');
 });
 
-test('missão 11 prioriza ladrão e exige Caçadora com Canhão Real Dourado', () => {
+test('missão 11 prioriza ladrão e exige Caçadora com Aetherion MK-I', () => {
   const t = battleHarness();
   const thief = {id:'fugitive-frigate-r2-01',type:'npc',archetype:'fugitive-frigate',name:'Ladrão da Sombra',
     x:300,y:100,heading:0,health:100000,maxHealth:100000,state:'fleeing',aggression:'flee',cannonSlots:1};
@@ -458,7 +458,9 @@ test('missão 11 prioriza ladrão e exige Caçadora com Canhão Real Dourado', (
   assert.equal(t.battle.setTarget(t.enemy.id,{manual:true}),false);
   assert.equal(t.battle.getStatus().reason,'thief-equipment');
   t.battle.shipId='fragata-sombra-cacadora';
-  t.save.equipment.loadout['fragata-sombra-cacadora']=['royal-lion'];
+  t.save.equipment.loadout['fragata-sombra-cacadora']=['aetherion-mk1'];
+  t.save.ammunition['aetherion-seeker']=50;
+  assert.equal(t.battle.setAmmo('aetherion-seeker'),true);
   assert.equal(t.battle.getStatus().ready,true);
   t.battle.fireNpcVolleys(1000);
   const projectile=t.shots.at(-1);
