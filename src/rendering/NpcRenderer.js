@@ -36,9 +36,10 @@ export class NpcRenderer {
     for (const npc of entities.values()) {
       if (npc.type !== 'npc' && npc.type !== 'monster' || npc.health <= 0) continue;
       if (npc.type === 'monster') {
+        const monsterSize = size * 1.75;
         const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
         const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
-        if (x < -size || x > w + size || y < -size || y > h + size) continue;
+        if (x < -monsterSize || x > w + monsterSize || y < -monsterSize || y > h + monsterSize) continue;
         const image = this.monsterImage;
         const attack = krakenAttacks.find(item => item.from && item.monsterId === npc.id && now >= item.startTime && now - item.startTime < item.duration);
         const elapsed = attack ? now - attack.startTime : -1;
@@ -60,8 +61,8 @@ export class NpcRenderer {
           ctx.save();
           ctx.globalAlpha *= submerged ? 0 : alpha;
           if (underHull) { ctx.translate(drawX, drawY); ctx.rotate(Math.PI); }
-          const spriteX = underHull ? -size / 2 : x - size / 2;
-          const spriteY = underHull ? -size / 2 : y - size / 2 + (sinking ? 18 * dpr * elapsed / 300 : 0);
+          const spriteX = underHull ? -monsterSize / 2 : x - monsterSize / 2;
+          const spriteY = underHull ? -monsterSize / 2 : y - monsterSize / 2 + (sinking ? 18 * dpr * elapsed / 300 : 0);
           if (isAtlas) {
             const columns = 4, frameDurationMs = 105;
             const frame = Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
@@ -69,16 +70,16 @@ export class NpcRenderer {
             const frameH = image.naturalHeight / columns;
             ctx.drawImage(image, (frame % columns) * frameW,
               Math.floor(frame / columns) * frameH, frameW, frameH,
-              spriteX, spriteY, size, size);
+              spriteX, spriteY, monsterSize, monsterSize);
           } else {
-            ctx.drawImage(image, spriteX, spriteY, size, size);
+            ctx.drawImage(image, spriteX, spriteY, monsterSize, monsterSize);
           }
           ctx.restore();
           if (underHull || submerged || sinking) continue;
-          renderMonsterBlood(ctx, npc, x, y, size, performance.now());
-          const barW = size * 0.65;
-          ctx.fillStyle = '#152233'; ctx.fillRect(x-barW/2,y-size*0.58,barW,6*dpr);
-          ctx.fillStyle = '#db5655'; ctx.fillRect(x-barW/2,y-size*0.58,barW * Math.max(0,npc.health/npc.maxHealth),6*dpr);
+          renderMonsterBlood(ctx, npc, x, y, monsterSize, performance.now());
+          const barW = monsterSize * 0.65;
+          ctx.fillStyle = '#152233'; ctx.fillRect(x-barW/2,y-monsterSize*0.58,barW,6*dpr);
+          ctx.fillStyle = '#db5655'; ctx.fillRect(x-barW/2,y-monsterSize*0.58,barW * Math.max(0,npc.health/npc.maxHealth),6*dpr);
         }
         continue;
       }
