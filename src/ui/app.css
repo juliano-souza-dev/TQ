@@ -453,3 +453,25 @@ button:disabled { opacity: .55; cursor: not-allowed; }
     flex:0 0 64px;width:64px;height:64px;min-width:64px;min-height:64px;
   }
 }
+
+
+/* Seta dourada da missão do ladrão: acompanha o alvo na borda ou paira sobre a fragata. */
+.thief-guide[hidden] {display:none!important;}
+.thief-guide {
+  position:fixed;z-index:17;display:flex;flex-direction:column;align-items:center;gap:2px;
+  transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;
+  color:#fff0bf;font:900 12px/1.2 system-ui,sans-serif;text-shadow:0 2px 4px #001522,0 0 9px #001522;
+  filter:drop-shadow(0 2px 6px #001524);
+}
+.thief-guide-arrow {
+  display:grid;place-items:center;width:48px;height:48px;border:2px solid #ffde88;
+  border-radius:50%;background:radial-gradient(circle,#174c65f2,#0c2034e8);
+  box-shadow:0 0 0 3px #062b3699,0 0 14px #f1bf5880,inset 0 0 9px #f1cf6770;
+  color:#ffd36d;font-size:37px;line-height:1;
+  transform:rotate(var(--thief-angle,0deg));
+  animation:thief-guide-glow 1.5s ease-in-out infinite alternate;
+}
+.thief-guide-label {border:1px solid #d9b56a9c;border-radius:9px;background:#0b2635eb;padding:3px 8px;}
+.thief-guide.is-visible-target .thief-guide-arrow {width:37px;height:37px;font-size:29px;}
+@keyframes thief-guide-glow {from {box-shadow:0 0 0 3px #062b3699,0 0 8px #f1bf5860;}to {box-shadow:0 0 0 3px #062b3699,0 0 19px #ffe390bd;}}
+@media(prefers-reduced-motion:reduce){.thief-guide-arrow{animation:none;}}
