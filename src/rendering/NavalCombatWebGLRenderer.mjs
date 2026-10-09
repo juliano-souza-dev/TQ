@@ -428,8 +428,18 @@ export class NavalCombatWebGLRenderer{
             shot.to={...shot.current};
             shot.duration=Math.max(80,now-shot.startTime);
           } else {
-            shot.current.x+=dx/dist*step;
-            shot.current.y+=dy/dist*step;
+            // Guided serpentine movement: red/blue thrusters weave across
+            // the line of sight while maintaining enough forward thrust.
+            const age=(now-shot.startTime)/1000;
+            const amplitude=Math.min(190,dist*.29)*Math.min(1,age*2.5);
+            const wave=Math.sin(age*13.5+shot.startTime*.003)*amplitude;
+            const lateralX=-dy/dist, lateralY=dx/dist;
+            const steerX=dx/dist*step + lateralX*wave*dt*4.5;
+            const steerY=dy/dist*step + lateralY*wave*dt*4.5;
+            const norm=Math.max(1,Math.hypot(steerX,steerY));
+            const applied=Math.min(step,norm);
+            shot.current.x+=steerX/norm*applied;
+            shot.current.y+=steerY/norm*applied;
           }
         }
         if(target.health<=0) {
