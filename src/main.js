@@ -710,7 +710,7 @@ async function startWorld() {
             Math.hypot(world.camera.x-island.x,world.camera.y-island.y) <= 650)
           recordMissionEvent({type:'discover',id:island.id});
         if (active?.id === 'r2-admiral' && !world.entities.has('r2-admiral')) {
-          const ship=world.entities.values().find(n=>n.archetype==='red-sail-corsair' && n.health>0);
+          const ship=[...world.entities.values()].find(n=>n.archetype==='red-sail-corsair' && n.health>0);
           if (ship) {
             world.entities.delete(ship.id);
             ship.id='r2-admiral';ship.name='Almirante dos Ladrões';
