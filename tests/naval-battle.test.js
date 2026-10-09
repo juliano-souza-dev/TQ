@@ -426,3 +426,21 @@ test('encerrar o combate libera navegação dos ajudantes sem reiniciar seus con
   t.battle.toggleFire();
   assert.equal(t.battle.getAssistStatus().eligible, false);
 });
+
+test('informante ativo não é selecionável nem recebe dano de disparos em voo', () => {
+  const t = battleHarness();
+  t.enemy.id = 'r2-informant';
+  t.enemy.name = 'Corsário Informante';
+  t.enemy.informantProtected = true;
+  t.enemy.health = 500;
+  t.enemy.maxHealth = 500;
+  assert.equal(t.battle.getTarget(), null);
+  assert.equal(t.battle.setTarget(t.enemy.id, { manual: true }), false);
+  assert.equal(t.battle.toggleFire(), false);
+  assert.equal(t.shots.length, 0);
+  assert.equal(t.battle.resolvePlayerImpact(t.enemy.id, {x:320,y:100}, 100).kind, 'water');
+  assert.equal(t.enemy.health, 500);
+  t.enemy.informantProtected = false;
+  t.enemy.name = 'Corsário das Velas Rubras';
+  assert.equal(t.battle.getTarget()?.id, 'r2-informant');
+});
