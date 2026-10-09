@@ -1,10 +1,14 @@
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
+import { CANNONS } from '../items/EquipmentCatalog.js';
 import {
   ammoStock, armedCannons, availableNavalAmmo, cannonHardpoint, cannonRange,
   effectiveAmmo, aimWithAccuracy, distanceBetween, flightDurationMs,
   interceptPoint, shipCollision, shotDamage,
 } from './NavalBattleRules.js';
+
+// The shortest cannon sets the Kraken's retaliation reach (currently 300 units).
+export const KRAKEN_RETALIATION_RANGE = Math.min(...CANNONS.map(cannon => cannonRange(cannon)));
 
 // The battle controller owns combat state, cooldowns, target selection, ammo
 // debits, moving-target impact checks and NPC retaliation. WebGL owns only FX.
@@ -248,7 +252,8 @@ export class NavalBattleController {
       return { kind: 'water' };
     }
     if (target.type === 'monster') {
-      damageMonster(target, damage, this.clock());
+      const hit = damageMonster(target, damage, this.clock());
+      if (hit && target.health > 0) target.state = 'retaliating';
     } else if (target.archetype === RED_SAIL_CORSAIR.id) {
       damageCorsair(target, damage, 'player');
     } else {
@@ -269,8 +274,8 @@ export class NavalBattleController {
     if(this.getHealth()<=0)return;
     const player=this.getPlayer();
     for(const monster of this.getEntities().values()){
-      if(monster.type!=='monster'||monster.health<=0)continue;
-      if(distanceBetween(monster,player)>200)continue;
+      if(monster.type!=='monster'||monster.health<=0||monster.state!=='retaliating')continue;
+      if(distanceBetween(monster,player)>KRAKEN_RETALIATION_RANGE)continue;
       if(now<(this.nextKrakenStrike.get(monster.id)??-Infinity))continue;
       const destination={x:player.x,y:player.y};
       const accepted=this.renderer.attackKraken?.({
@@ -279,7 +284,7 @@ export class NavalBattleController {
           const ship=this.getPlayer();
           const current=this.getEntities().get(monster.id);
           if(!current||current.health<=0||this.getHealth()<=0
-            ||distanceBetween(current,ship)>225
+            ||distanceBetween(current,ship)>KRAKEN_RETALIATION_RANGE
             ||!shipCollision(at,{...ship,health:this.getHealth()},56))return;
           const save=this.readSave();
           const health=Math.max(0,this.getHealth()-8);
