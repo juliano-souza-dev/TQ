@@ -766,7 +766,7 @@ export class NavalCombatWebGLRenderer{
           // Bi-chromatic ionized plasma corona. All rings, sparks and ribbons
           // follow the same simulation position, even when the target turns.
           const pulse=.86+.14*Math.sin(now*.027);
-          const halo=22*pulse/Math.max(.35,Number(zoom)||1);
+          const halo=8*pulse/Math.max(.35,Number(zoom)||1);
           drawPoint(x,y,halo*2.35,0,0,true,{color:'#075cff',coreColor:'#1eeaff',glow:2.4,opacity:.5});
           drawPoint(x,y,halo*1.35,4,(now*.001)%1,true,{color:'#ff265a',coreColor:'#fff7fb',glow:2.5,opacity:.88});
           for(let i=0;i<(this.reducedFx?3:7);i++){
