@@ -493,7 +493,7 @@ async function startWorld() {
     const r2 = world.region.id === 'r2' ? getR2Board(readSave()).active[0] : null;
     const guideTarget = r2?.id === 'r2-informant' && (r2.progress?.[1] ?? 0)<3 ? world.entities.get('r2-informant')
       : r2?.id === 'r2-island' ? world.region.islands.find(i=>i.id==='r2-scenery-north')
-      : r2?.id === 'r2-admiral' ? world.entities.get('r2-admiral') : null;
+      : r2?.id === 'r2-admiral' && (r2.progress?.[1] ?? 0) < 1 && (world.entities.get('r2-admiral')?.health ?? 0) > 0 ? world.entities.get('r2-admiral') : null;
     const target = guideTarget ?? (thiefActive
       ? [...world.entities.values()].find(npc => npc.archetype === 'fugitive-frigate' && npc.health > 0)
       : exitActive ? world.region.exitPoint : null);
