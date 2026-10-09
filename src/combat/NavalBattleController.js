@@ -659,11 +659,18 @@ export class NavalBattleController {
           && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
           const muzzle=cannonHardpoint(npc,player,npc.heading,0,20);
           const aimed={x:player.x,y:player.y};
+          const firstEncounter=this.readSave().r2Campaign?.active==='r2-golden-i';
+          const controller=this;
           const fired=this.renderer.fire({from:muzzle,to:aimed,
             duration:flightDurationMs(muzzle,aimed,650),ammo:this.enemyAmmo,
+            ...(firstEncounter?{trackingTarget:{
+              get x(){return controller.getPlayer().x;},
+              get y(){return controller.getPlayer().y;},
+              get health(){return controller.getHealth();}
+            },trackingSpeed:850}:{}),
             impactKind:'water',startTime:now,
-            onImpact:({at})=>this.resolveNpcImpact(npc.id,at,150)});
-          if(fired)this.nextNpcShot.set(npc.id,now+3000);
+            onImpact:({at})=>this.resolveNpcImpact(npc.id,at,firstEncounter?999999:150)});
+          if(fired)this.nextNpcShot.set(npc.id,now+(firstEncounter?1800:3000));
         }
         continue;
       }
@@ -707,7 +714,8 @@ export class NavalBattleController {
     if (!shipCollision(point, { ...player, health: this.getHealth() }, 56)) {
       return { kind: 'water' };
     }
-    if (this.isShieldActive() || this.readSave().combat?.repairingUntil) return {kind:'ship'};
+    const scriptedMorbiSinking=npcId==='r2-morbi' && this.readSave().r2Campaign?.active==='r2-golden-i';
+    if (!scriptedMorbiSinking && (this.isShieldActive() || this.readSave().combat?.repairingUntil)) return {kind:'ship'};
     const save = this.readSave();
     const health = Math.max(0, this.getHealth() - damage);
     this.writePatch({ combat: { ...save.combat, shipHealth: health } });
