@@ -70,6 +70,9 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
   } else if (type === 'informant') {
     patch = {};
     message = 'O informante revela mais uma pista.';
+  } else if (type === 'island-riddle') {
+    patch = {};
+    message = 'Enigma da Ilha Esquecida decifrado!';
   } else if (type === 'practice') {
     patch = {};
     message = 'Tabuada praticada.';
