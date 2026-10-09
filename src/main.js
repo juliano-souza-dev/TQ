@@ -275,12 +275,18 @@ async function startWorld() {
   function updatePursuitCamera(stepMs = 16) {
     const hunting = world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief';
     const thief = hunting ? [...world.entities.values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0) : null;
+    // A Ilha Esquecida uses the same cinematic tracking camera as the thief hunt.
+    const exploringIsland = world.region.id === 'r2'
+      && readSave().r2Campaign?.active === 'r2-island';
+    const forgottenIsland = exploringIsland
+      ? world.region.islands.find(island => island.id === 'r2-scenery-north') : null;
+    const cinematicTarget = thief ?? forgottenIsland;
     const finalMission = world.region.id === 'r1'
       && readSave().campaign?.active?.includes('r1-finale')
       && !(readSave().campaign?.progress?.['r1-finale']?.[0] >= 1);
-    const targetZoom = thief ? Math.max(.27, Math.min(.43,
+    const targetZoom = cinematicTarget ? Math.max(.27, Math.min(.43,
       Math.min(canvas.clientWidth || 900, canvas.clientHeight || 600) /
-      Math.max(1300, Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y)*2.4))) * 1.05 * 1.06
+      Math.max(1300, Math.hypot(world.camera.x-cinematicTarget.x, world.camera.y-cinematicTarget.y)*2.4))) * 1.05 * 1.06
       : finalMission ? Math.max(.27, Math.min(.43,
           Math.min(canvas.clientWidth || 900, canvas.clientHeight || 600) / 1300)) * 1.05 * 1.06
       : normalCameraZoom;
@@ -288,8 +294,8 @@ async function startWorld() {
     pursuitCameraZoom += (targetZoom-pursuitCameraZoom)*smoothing;
     world.camera.zoom = pursuitCameraZoom;
     // Keep player centered unless manual camera control is enabled.
-    world.cameraOffset = thief && !world.manualCamera
-      ? {x:(thief.x-world.camera.x)*.14,y:(thief.y-world.camera.y)*.14}
+    world.cameraOffset = cinematicTarget && !world.manualCamera
+      ? {x:(cinematicTarget.x-world.camera.x)*.14,y:(cinematicTarget.y-world.camera.y)*.14}
       : {x:0,y:-65};
   }
 
