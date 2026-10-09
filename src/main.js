@@ -7,6 +7,7 @@ import { createMathGate } from './ui/MathGate.js';
 import { getVisibleTreasures, findTreasureNearPoint } from './treasures/RegionTreasures.js';
 import { TreasureRenderer } from './rendering/TreasureRenderer.js';
 import { NavalBattleController } from './combat/NavalBattleController.js';
+import { effectiveAmmo } from './combat/NavalBattleRules.js';
 import { NavalCombatWebGLRenderer } from './rendering/NavalCombatWebGLRenderer.mjs';
 import { createNavalCombatHud } from './ui/NavalCombatHud.js';
 import { SEA_GLINTS, collectSeaGlint } from './events/HalloweenSeaGlints.js';
