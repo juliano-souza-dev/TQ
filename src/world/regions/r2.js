@@ -17,10 +17,10 @@ export const R2 = Object.freeze({
   height: 5120,
   spawn: Object.freeze({ x: 420, y: 860 }),
   islands: Object.freeze([
-    port('missions', 1070, 1450),
-    port('shipyard', 3000, 1650),
-    scenery('r2-scenery-north', 1200, 3580, 1080, 900, 740),
-    scenery('r2-scenery-south', 3180, 4200, 1020, 850, 690),
+    port('missions', 690, 1620),
+    port('shipyard', 3400, 1620),
+    scenery('r2-scenery-north', 700, 4450, 1080, 900, 740),
+    scenery('r2-scenery-south', 3380, 4450, 1020, 850, 690),
   ]),
   ocean: Object.freeze({
     ...R1.ocean,
