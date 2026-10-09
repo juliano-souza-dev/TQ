@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMonsterPopulation, updateMonsterPopulation, monsterGoldReward, MONSTERS_PER_MAP } from '../src/monsters/MonsterPopulation.js';
 
+import { resolveKrakenMovement } from '../src/world/NavigationSystem.js';
+
 const world = () => ({
   region: {id:'r1',width:4096,height:4096,islands:[]},
   camera:{x:3400,y:3500},
@@ -30,4 +32,16 @@ test('respawn acontece apenas após quinze segundos de morte',()=>{
 test('recompensa aleatória fica dentro do intervalo configurado',()=>{
  assert.equal(monsterGoldReward(()=>0),20);
  assert.equal(monsterGoldReward(()=>0.999999),80);
+});
+
+test('Kraken impede atravessar o corpo, mas permite afastar-se e passar após derrota', () => {
+  const w=world();
+  w.entities.set('kraken',{id:'kraken',type:'monster',health:1500,x:200,y:200});
+  const stopped=resolveKrakenMovement(w,50,200,380,200);
+  assert.ok(Math.hypot(stopped.x-200,stopped.y-200)>=85);
+  assert.ok(stopped.x<200,'movimento não atravessa o monstro');
+  const escaping=resolveKrakenMovement(w,200,200,100,200);
+  assert.equal(escaping.x,100,'é possível escapar quando já há sobreposição');
+  w.entities.get('kraken').health=0;
+  assert.deepEqual(resolveKrakenMovement(w,50,200,380,200),{x:380,y:200});
 });
