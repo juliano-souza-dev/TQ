@@ -1017,6 +1017,14 @@ async function startWorld() {
       firstVoyageGuide = null;
     }
   };
+  function marketCannonsEquipped(loadout=readSave().equipment?.loadout){
+    const save=readSave();
+    const shipId=save.equipment?.equippedShipId;
+    const slots=shipId && loadout?.[shipId];
+    return Array.isArray(slots) && slots.includes('aetherion-mk1') && slots.includes('royal-lion')
+      && (Number(save.equipment?.cannonCounts?.['aetherion-mk1'])||0)>=1
+      && (Number(save.equipment?.cannonCounts?.['royal-lion'])||0)>=8;
+  }
   const islandPanel = createIslandPanel({
     missionBoardOptions: {
       getBoard: () => boardFor(readSave(),world.region.id),
@@ -1119,8 +1127,7 @@ async function startWorld() {
         navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
         navalHud?.refresh();
         if(world.region.id==='r2' && readSave().r2Campaign?.active==='r2-equip-market'
-          && getIslandContact(world.region,world.camera.x,world.camera.y,42)?.kind==='shipyard'
-          && (loadout[activeShip.id]??[]).some(id=>id==='aetherion-mk1'||id==='royal-lion')){
+          && marketCannonsEquipped(loadout)){
           recordMissionEvent({type:'market-equip',id:'market-cannons-equipped'});
         }
         const slots = loadout[STARTER_SHIP.id] ?? [];
@@ -1197,12 +1204,7 @@ async function startWorld() {
         firstVoyageGuide = null;
       }
       if (world.region.id === 'r1') recordMissionEvent({ type: 'visit', island: contact.kind });
-      if(world.region.id==='r2' && contact.kind==='shipyard'
-        && readSave().r2Campaign?.active==='r2-equip-market'
-        && (readSave().equipment?.loadout?.[activeShip.id]??[])
-          .some(id=>id==='aetherion-mk1'||id==='royal-lion')){
-        recordMissionEvent({type:'market-equip',id:'market-cannons-equipped'});
-      }
+
       if (world.region.id === 'r2' && contact.kind==='shipyard' && activeShip.id==='fragata-sombra-cacadora') {
         recordMissionEvent({type:'equip-ship',ship:activeShip.id});
       }
