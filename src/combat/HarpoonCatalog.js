@@ -10,6 +10,10 @@ export const HARPOON_LAUNCHERS=Object.freeze([
   }),
 ]);
 export const STARTER_HARPOON=HARPOON_LAUNCHERS[0];
+export const STARTER_HARPOON_AMMO=500;
+export const HARPOON_AMMO_ID='harpoon-mariner';
+export const harpoonStock=save=>Math.max(0,Math.floor(Number(save?.harpoonAmmo?.[HARPOON_AMMO_ID])||0));
+
 export const equippedHarpoon=save=>{
   const id=save?.equipment?.equippedHarpoonId;
   const owned=save?.equipment?.ownedHarpoonIds??[];
