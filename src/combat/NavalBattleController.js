@@ -46,6 +46,35 @@ export class NavalBattleController {
     this.selectedAmmoId = this.resolveSelectedAmmo();
   }
 
+  getConsumables() {
+    const c = this.readSave().consumables ?? {};
+    return { selectedId: c.selectedId ?? 'flame-5x',
+      quantities: c.quantities ?? {}, activeUntil: Number(c.activeUntil)||0,
+      cooldownUntil: Number(c.cooldownUntil)||0 };
+  }
+  isFlameActive() {
+    const c = this.getConsumables();
+    return Date.now() < c.activeUntil;
+  }
+  selectConsumable(id) {
+    if (id !== 'none' && id !== 'flame-5x') return false;
+    const save = this.readSave();
+    this.writePatch({consumables:{...(save.consumables??{}), selectedId:id}});
+    return true;
+  }
+  activateConsumable() {
+    const save = this.readSave(), c = this.getConsumables(), now = Date.now();
+    if (c.selectedId !== 'flame-5x') return {ok:false,reason:'Selecione o consumível 5X em Chamas.'};
+    if (c.activeUntil > now) return {ok:false,reason:'5X em Chamas já está ativo.'};
+    if (c.cooldownUntil > now) return {ok:false,reason:'Aguarde '+Math.ceil((c.cooldownUntil-now)/1000)+'s para reutilizar.'};
+    const count = Math.max(0,Math.floor(Number(c.quantities['flame-5x'])||0));
+    if (!count) return {ok:false,reason:'Você não possui 5X em Chamas.'};
+    this.writePatch({consumables:{...(save.consumables??{}),selectedId:c.selectedId,
+      quantities:{...c.quantities,'flame-5x':count-1},
+      activeUntil:now+60000,cooldownUntil:now+300000}});
+    return {ok:true,reason:'🔥 5X em Chamas ativo por 60 segundos!'};
+  }
+
   resolveSelectedAmmo() {
     const save = this.readSave();
     const requested = save.selectedNavalAmmoId;
@@ -439,12 +468,13 @@ export class NavalBattleController {
       const intercepted = interceptPoint(muzzle, target, this.velocities.get(target.id), speed);
       const accuracy = target.archetype === 'fugitive-frigate' && this.getThiefMissionTarget() ? 1 : cannon.accuracy;
       const destination = aimWithAccuracy(intercepted, muzzle, accuracy, this.random);
-      const damage = shotDamage(cannon, ammo.id);
+      const flameBoost = this.isFlameActive();
+      const damage = shotDamage(cannon, ammo.id) * (flameBoost ? 5 : 1);
       const tracking = ammo.trackingDurationMs > 0;
       const accepted = this.renderer.fire({
         from: muzzle, to: destination,
         duration: tracking ? ammo.trackingDurationMs : flightDurationMs(muzzle, destination, speed),
-        ammo, ...(tracking ? { trackingTarget: target, trackingSpeed: speed } : {}),
+        ammo, flameBoost, ...(tracking ? { trackingTarget: target, trackingSpeed: speed } : {}),
         impactKind: 'water', startTime: now,
         onImpact: ({ at }) => this.resolvePlayerImpact(target.id, at, damage),
       });
