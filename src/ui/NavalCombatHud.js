@@ -5,6 +5,8 @@ const MESSAGES = Object.freeze({
   target: 'Toque num navio inimigo para selecionar o alvo.',
   range: 'Alvo fora do alcance dos seus canhões.',
   ammo: 'Sem munição para disparar.',
+  'ammo-type': 'Este canhão só dispara sua munição especial. Selecione o Orbe Autoguiado Aetherion.',
+  'thief-equipment': 'A missão exige a Fragata Caçadora das Sombras com o Canhão Aetherion MK-I.',
   sunk: 'O casco está destruído. Repare o navio.',
 });
 
