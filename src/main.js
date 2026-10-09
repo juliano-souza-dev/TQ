@@ -525,6 +525,30 @@ async function startWorld() {
   missionHud.className = 'mission-progress-hud';
   missionHud.setAttribute('aria-live', 'polite');
   root.append(missionHud);
+  const targetHud = document.createElement('aside');
+  targetHud.className = 'target-status-hud';
+  targetHud.hidden = true;
+  targetHud.innerHTML = '<div class="target-status-name"></div><div class="target-status-bar"><div class="target-status-fill"></div></div><div class="target-status-value"></div>';
+  root.append(targetHud);
+  const criticalHealthOverlay = document.createElement('div');
+  criticalHealthOverlay.className = 'critical-health-viewport';
+  criticalHealthOverlay.hidden = true;
+  criticalHealthOverlay.setAttribute('aria-hidden', 'true');
+  root.append(criticalHealthOverlay);
+  function refreshTargetAndHealthHud() {
+    const npc = navalBattle?.getTarget();
+    targetHud.hidden = !npc || npc.health <= 0;
+    if (!targetHud.hidden) {
+      const max = Math.max(1,Number(npc.maxHealth)||Number(npc.health)||1);
+      const hp = Math.max(0,Number(npc.health)||0);
+      const ratio = Math.min(100,100*hp/max);
+      targetHud.querySelector('.target-status-name').textContent = '🎯 '+(npc.name || 'Alvo');
+      targetHud.querySelector('.target-status-fill').style.width = ratio+'%';
+      targetHud.querySelector('.target-status-value').textContent = Math.ceil(hp).toLocaleString('pt-BR')+' / '+Math.ceil(max).toLocaleString('pt-BR')+' PV';
+    }
+    criticalHealthOverlay.hidden = navalBattle.getHealth() >= 30;
+  }
+
   const thiefGuide = document.createElement('div');
   thiefGuide.className = 'thief-guide';
   thiefGuide.hidden = true;
@@ -1005,6 +1029,7 @@ async function startWorld() {
       if (hudRefreshElapsed >= 160) {
         hudRefreshElapsed = 0;
         navalHud.refresh();
+        refreshTargetAndHealthHud();
         assistButton.hidden = !navalBattle.getAssistStatus().eligible || mathGate.isOpen || islandPanel.isOpen;
         const near = findTreasureNearPoint((world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief') ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id), world.camera.x, world.camera.y, 125);
         treasurePrompt.hidden = !near || mathGate.isOpen || islandPanel.isOpen;
