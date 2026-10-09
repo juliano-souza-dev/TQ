@@ -237,7 +237,7 @@ async function startWorld() {
     const thief = hunting ? [...world.entities.values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0) : null;
     const targetZoom = thief ? Math.max(.27, Math.min(.43,
       Math.min(canvas.clientWidth || 900, canvas.clientHeight || 600) /
-      Math.max(1300, Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y)*2.4))) * 1.05 : normalCameraZoom;
+      Math.max(1300, Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y)*2.4))) * 1.05 * 1.06 : normalCameraZoom;
     const smoothing = 1-Math.exp(-Math.max(0,stepMs)/450);
     pursuitCameraZoom += (targetZoom-pursuitCameraZoom)*smoothing;
     world.camera.zoom = pursuitCameraZoom;
@@ -467,7 +467,7 @@ async function startWorld() {
       navalHud.refresh();
       return true;
     }
-    const treasure = findTreasureNearPoint(getVisibleTreasures(readSave(),Date.now(),world.region.id), point.x, point.y);
+    const treasure = findTreasureNearPoint((world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief') ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id), point.x, point.y);
     if (treasure && Math.hypot(world.camera.x - treasure.x, world.camera.y - treasure.y) < 125) {
       mathGate.open({
         kind: 'treasure', id: treasure.id,
@@ -497,7 +497,7 @@ async function startWorld() {
   const minimap = createMinimap(world, {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
-    getTreasures: () => getVisibleTreasures(readSave(),Date.now(),world.region.id),
+    getTreasures: () => (world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief') ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),
     hasTreasureSense: () => Boolean(world.treasureSenseActive),
   });
   minimapElement = minimap.element;
@@ -1006,7 +1006,7 @@ async function startWorld() {
         hudRefreshElapsed = 0;
         navalHud.refresh();
         assistButton.hidden = !navalBattle.getAssistStatus().eligible || mathGate.isOpen || islandPanel.isOpen;
-        const near = findTreasureNearPoint(getVisibleTreasures(readSave(),Date.now(),world.region.id), world.camera.x, world.camera.y, 125);
+        const near = findTreasureNearPoint((world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief') ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id), world.camera.x, world.camera.y, 125);
         treasurePrompt.hidden = !near || mathGate.isOpen || islandPanel.isOpen;
       }
       persistPlayerPosition(stepMs);
@@ -1092,7 +1092,9 @@ async function startWorld() {
       halloweenFogRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
-      treasureRenderer.render(getVisibleTreasures(readSave(),Date.now(),world.region.id),world.cameraView,world.camera.zoom,oceanTimeMs);
+      const hidePursuitTreasures = world.region.id === 'r2'
+        && readSave().r2Campaign?.active === 'r2-destroy-thief';
+      treasureRenderer.render(hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),world.cameraView,world.camera.zoom,oceanTimeMs);
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
         selectedNpcId = null;
         navalBattle.setTarget(null);
