@@ -738,7 +738,7 @@ async function startWorld() {
   }
   // Só ativa o NPC quando seu sprite estiver realmente carregado.
   // Se o arquivo ainda não foi enviado ao GitHub, o oceano inicia normalmente.
-  if (world.region.id === 'r1' && npcRenderer.hasShipSprite('fragata-sombra-fugitiva')) {
+  if (['r1', 'r2'].includes(world.region.id) && npcRenderer.hasShipSprite('fragata-sombra-fugitiva')) {
     createFugitiveFrigatePopulation(world);
   }
   const previousSave = localSaves.load(currentUser.uid);
