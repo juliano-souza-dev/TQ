@@ -921,6 +921,12 @@ async function startWorld() {
         const result = campaignFor(world.region.id).claim(readSave(), id);
         if (!result) return false;
         writePatch(result.patch);
+        if(result.mission.reward?.shipUpgrade){
+          const upgraded=readSave();
+          writePatch({shipUpgrades:{...(upgraded.shipUpgrades??{}),masterShipwright:true},
+            combat:{...(upgraded.combat??{}),shipHealth:Math.max(1500,Number(upgraded.combat?.shipHealth)||0)}});
+          showOceanReward('🔨 Mestre construtor contratado! Cascos reforçados e novos espaços de canhão.');
+        }
         navalHud.refresh();
         updateMissionHud();
         showOceanReward(result.region2Unlocked?'🎉 Região 2 desbloqueada!':'🎁 Recompensa recebida: '+result.mission.name);
