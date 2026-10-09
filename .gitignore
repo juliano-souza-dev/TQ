@@ -5,3 +5,4 @@ dist/
 !.env.example
 src/config/firebase-config.js
 .DS_Store
+TQ-Servidor-QR.png

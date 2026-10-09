@@ -10,6 +10,14 @@ npx serve .
 
 Abrir a URL informada pelo servidor no navegador. Para desenvolver, atualizar os arquivos locais com `git pull` antes de testar. O GitHub Pages publica o branch `main` em https://juliano-souza-dev.github.io/TQ/.
 
+### Servidor local na rede Wi-Fi
+
+Execute npm install e depois npm run build:server. O executável será criado em dist\TQ-Servidor.exe; mantenha-o nessa pasta e abra-o com dois cliques.
+
+O servidor atende em 0.0.0.0:8080, mostra as URLs de rede, cria TQ-Servidor-QR.png com a URL Wi-Fi, recarrega os navegadores conectados quando index.html, src ou assets mudarem e executa git pull --ff-only a cada 45 segundos.
+
+Para não sobrescrever trabalho local, ele pula o pull se houver alterações rastreadas. Na primeira execução, permita o acesso em Redes privadas se o Firewall do Windows solicitar. Use TQ-Servidor.exe --port 8081 para outra porta ou --no-pull para iniciar temporariamente sem a atualização automática.
+
 ## Arquitetura
 
 - `src/main.js`: composição do mundo, serviços e telas. Não calcula dano nem desenha balas.

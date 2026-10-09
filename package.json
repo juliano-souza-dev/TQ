@@ -5,6 +5,15 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/main.js"
+    "check": "node --check src/main.js && node --check tools/tq-server.cjs",
+    "serve:lan": "node tools/tq-server.cjs",
+    "build:server": "pkg --targets node22-win-x64 --output dist/TQ-Servidor.exe tools/tq-server.cjs"
+  },
+  "dependencies": {
+    "browser-sync": "^3.0.4",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.23.0"
   }
 }
