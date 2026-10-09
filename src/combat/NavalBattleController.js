@@ -655,7 +655,7 @@ export class NavalBattleController {
       }
       if(npc.id==='r2-morbi' && npc.health>0){
         if(['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active)
-          && distanceBetween(npc,player)<2400
+          && distanceBetween(npc,player)<(this.readSave().r2Campaign?.active==='r2-golden-ii'?840:2400)
           && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
           const muzzle=cannonHardpoint(npc,player,npc.heading,0,20);
           const aimed={x:player.x,y:player.y};
