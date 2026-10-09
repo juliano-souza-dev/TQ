@@ -1,5 +1,5 @@
 import { createRedSailCorsair, updateCorsair, RED_SAIL_CORSAIR } from './RedSailCorsair.js';
-import { createRoseGoldCorsair, ROSE_GOLD_CORSAIR } from './RoseGoldCorsair.js';
+import { createRoseGoldCorsair as createTerrorDaTabuada, ROSE_GOLD_CORSAIR as TERROR_DA_TABUADA } from './RoseGoldCorsair.js';
 import { resolveIslandMovement, collidesWithIsland } from '../world/IslandCollision.js';
 
 export const CORSAIR_POPULATION = 20;
@@ -21,7 +21,7 @@ export function createCorsairPopulation(world, random = Math.random) {
     const id = 'corsair-r1-' + String(i + 1).padStart(2, '0');
     const position = spawnPosition(world.region, world.camera, random);
     const npc = world.region.id === 'r1' && i === 0
-      ? createRoseGoldCorsair(id, position.x, position.y, random() * 360)
+      ? createTerrorDaTabuada(id, position.x, position.y, random() * 360)
       : createRedSailCorsair(id, position.x, position.y, random() * 360);
     npc.wanderTimeMs = 800 + random() * 2400;
     npc.respawnRemainingMs = null;
@@ -32,13 +32,13 @@ export function createCorsairPopulation(world, random = Math.random) {
 export function updateCorsairPopulation(world, deltaMs, random = Math.random, onFire = () => {}) {
   const targets = new Map([['player', world.camera]]);
   for (const npc of world.entities.values()) {
-    if (npc.archetype !== RED_SAIL_CORSAIR.id && npc.archetype !== ROSE_GOLD_CORSAIR.id) continue;
+    if (npc.archetype !== RED_SAIL_CORSAIR.id && npc.archetype !== TERROR_DA_TABUADA.id) continue;
     if (npc.health <= 0) {
       if (npc.respawnRemainingMs == null) npc.respawnRemainingMs = CORSAIR_RESPAWN_MS;
       else npc.respawnRemainingMs -= deltaMs;
       if (npc.respawnRemainingMs <= 0) {
         const position = spawnPosition(world.region, world.camera, random);
-        const respawn = npc.archetype === ROSE_GOLD_CORSAIR.id ? createRoseGoldCorsair : createRedSailCorsair;
+        const respawn = npc.archetype === TERROR_DA_TABUADA.id ? createTerrorDaTabuada : createRedSailCorsair;
         Object.assign(npc, respawn(npc.id, position.x, position.y, random() * 360), {
           wanderTimeMs: 800 + random() * 2400,
           respawnRemainingMs: null,
@@ -56,7 +56,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
       npc.wanderTimeMs = 1400 + random() * 3400;
     }
     const radians = npc.heading * Math.PI / 180;
-    const speed = npc.archetype === ROSE_GOLD_CORSAIR.id ? ROSE_GOLD_CORSAIR.speed.initial : RED_SAIL_CORSAIR.speed.initial;
+    const speed = npc.archetype === TERROR_DA_TABUADA.id ? TERROR_DA_TABUADA.speed.initial : RED_SAIL_CORSAIR.speed.initial;
     const distance = speed * deltaMs / 1000;
     const nextX = Math.max(MARGIN, Math.min(world.region.width - MARGIN, npc.x + Math.sin(radians) * distance));
     const nextY = Math.max(MARGIN, Math.min(world.region.height - MARGIN, npc.y - Math.cos(radians) * distance));

@@ -1,5 +1,5 @@
 import { STARTER_SHIP, getShipFrame } from '../ships/ShipRegistry.js';
-import { ROSE_GOLD_SHIP } from '../ships/RoseGoldShip.js';
+import { HALLOWEEN_TABUADA_SHIP } from '../ships/HalloweenTabuadaShip.js';
 import { FUGITIVE_FRIGATE_SHIP } from '../ships/FugitiveFrigateShip.js';
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 import { renderMonsterBlood } from '../monsters/MonsterBloodRenderer.js';
@@ -11,7 +11,7 @@ export class NpcRenderer {
     this.monsterImage = null;
   }
   async init() {
-    const ships = [STARTER_SHIP, ROSE_GOLD_SHIP];
+    const ships = [STARTER_SHIP, HALLOWEEN_TABUADA_SHIP];
     await Promise.all(ships.map(async ship => this.images.set(ship.id, await loadShipSprite(ship))));
     // O novo asset é opcional: se ainda não foi enviado ao GitHub,
     // o carregamento do oceano e dos NPCs existentes não pode falhar.
@@ -81,7 +81,7 @@ export class NpcRenderer {
         continue;
       }
       const ship = npc.shipId === FUGITIVE_FRIGATE_SHIP.id ? FUGITIVE_FRIGATE_SHIP
-        : npc.shipId === ROSE_GOLD_SHIP.id ? ROSE_GOLD_SHIP : STARTER_SHIP;
+        : npc.shipId === HALLOWEEN_TABUADA_SHIP.id ? HALLOWEEN_TABUADA_SHIP : STARTER_SHIP;
       const image = this.images.get(ship.id);
       if (!image) continue;
       const columns = ship.sprite.columns;
