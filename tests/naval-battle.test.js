@@ -321,12 +321,15 @@ test('canhão não fere monstro e arpão só fere monstro, com recarga e sem con
   assert.equal(t.save.ammunition['rusted-iron'],20);
   assert.equal(t.save.harpoonAmmo['harpoon-mariner'],499);
   assert.equal(t.shots[0].onImpact({at:{x:320,y:100}}).kind,'ship');
-  assert.equal(t.enemy.health,135);
+  assert.equal(t.enemy.health,170);
   t.time=2000;
   t.battle.update(16,2000);
   assert.equal(t.shots.length,1);
   t.time=3600;
   t.battle.update(16,3600);
+  assert.equal(t.shots.length,1);
+  t.time=8100;
+  t.battle.update(16,8100);
   assert.equal(t.shots.length,2);
   assert.equal(t.save.harpoonAmmo['harpoon-mariner'],498);
   t.battle.setTarget(null);
@@ -346,4 +349,22 @@ test('sem arpões o ataque em monstro é bloqueado sem gastar balas',()=>{
   assert.equal(t.battle.toggleFire(),false);
   assert.equal(t.shots.length,0);
   assert.equal(t.save.ammunition['rusted-iron'],20);
+});
+
+test('navegador mais próximo só ajuda durante ataque a monstro, com 25 de dano',()=>{
+  const t=battleHarness();
+  t.enemy.type='monster'; t.enemy.health=200; t.enemy.maxHealth=200;
+  const helper={id:'sailor-a',type:'npc',health:100,x:310,y:125,name:'Navegador'};
+  const far={id:'sailor-b',type:'npc',health:100,x:700,y:700,name:'Distante'};
+  t.battle.getEntities=()=>new Map([[t.enemy.id,t.enemy],[helper.id,helper],[far.id,far]]);
+  assert.equal(t.battle.getAssistStatus().eligible,false);
+  assert.equal(t.battle.toggleFire(),true);
+  assert.equal(t.battle.getAssistStatus().npc.id,helper.id);
+  assert.equal(t.battle.enableMonsterAssist(),true);
+  t.time=1200;t.battle.update(16,1200);
+  assert.equal(t.shots.length,2);
+  assert.equal(t.shots[1].onImpact({at:{x:t.enemy.x,y:t.enemy.y}}).kind,'ship');
+  assert.equal(t.enemy.health,175);
+  t.battle.toggleFire();
+  assert.equal(t.battle.getAssistStatus().active,false);
 });
