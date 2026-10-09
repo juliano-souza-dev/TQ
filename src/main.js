@@ -242,7 +242,7 @@ async function startWorld() {
   }
   const { ROSE_GOLD_SHIP } = await import('./ships/RoseGoldShip.js');
   const { SHIP_CATALOG } = await import('./ships/ShipRegistry.js');
-  const playableShips = [STARTER_SHIP, ROSE_GOLD_SHIP, ...SHIP_CATALOG];
+  const playableShips = [STARTER_SHIP, ...SHIP_CATALOG];
   const savedEquipment = readSave().equipment ?? {};
   const initialShip = playableShips.find(ship => ship.id === savedEquipment.equippedShipId &&
     (ship.id === STARTER_SHIP.id || savedEquipment.ownedShipIds?.includes(ship.id))) ?? STARTER_SHIP;
