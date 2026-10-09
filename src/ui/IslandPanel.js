@@ -18,7 +18,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   const description = document.createElement('p');
   const list = document.createElement('div');
   const shipyard = createShipyard(shipyardOptions);
-  const missionBoard = createMissionBoard(missionBoardOptions);
+  const missionBoard = createMissionBoard({ ...missionBoardOptions, onAccept: id => { const ok=missionBoardOptions.onAccept?.(id); if(ok)panel.hidden=true; return ok; } });
   const acceptMission = document.createElement('button');
   acceptMission.type = 'button';
   acceptMission.className = 'primary-button';
@@ -26,6 +26,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   acceptMission.addEventListener('click', () => {
     onAcceptFirstMission();
     acceptMission.hidden = true;
+    panel.hidden = true;
     list.replaceChildren(Object.assign(document.createElement('p'), { textContent: '✓ Missão aceita. Siga a orientação na tela.' }));
   });
   const mathBox = document.createElement('div');
@@ -78,6 +79,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
         for (const option of choices.children) option.disabled = true;
         feedback.textContent = '✓ Acertou! Sua missão começou. Bons ventos, capitão!';
         feedback.dataset.result = 'correct';
+        panel.hidden = true;
       });
       choices.append(button);
     }
@@ -104,7 +106,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       mathBox.hidden = kind !== 'missions' || flow.stage !== 'mission';
       if (!mathBox.hidden) prepareChallenge();
       const freePlay = kind === 'missions' && ['free', 'ready2', 'stage2'].includes(flow.stage);
-      missionBoard.setHidden(!freePlay);
+      missionBoard.setHidden(kind !== 'missions' || !freePlay);
       if (freePlay) missionBoard.show();
       list.hidden = kind === 'shipyard' || freePlay;
       if (kind === 'shipyard') shipyard.show();
