@@ -114,11 +114,44 @@ export function createFugitiveFrigatePopulation(world, random = Math.random) {
   return true;
 }
 
+export const NEGOTIATION_ANCHOR = Object.freeze({ x: 1430, y: 1100 });
+export const NEGOTIATION_APPROACH_RADIUS = 135;
+export function updateNegotiationFrigate(world, save = {}) {
+  const npc = [...world.entities.values()].find(entity => entity.archetype === FUGITIVE_FRIGATE_NPC.id);
+  if (!npc) return null;
+  const mission = save.campaign ?? {};
+  const frozen = mission.active?.includes('r1-negotiation') && !mission.negotiationRobbed;
+  if (frozen) {
+    npc.x = NEGOTIATION_ANCHOR.x;
+    npc.y = NEGOTIATION_ANCHOR.y;
+    npc.heading = 90;
+    npc.state = 'negotiating';
+    npc.speed = 0;
+    npc.negotiationFrozen = true;
+    return npc;
+  }
+  if (npc.negotiationFrozen) {
+    npc.negotiationFrozen = false;
+    npc.state = 'escaping';
+    npc.heading = 90;
+    npc.speed = FUGITIVE_FRIGATE_SHIP.speed.max;
+    npc.negotiationEscaping = true;
+  }
+  return npc;
+}
+
 export function updateFugitiveFrigatePopulation(world, deltaMs, random = Math.random) {
   for (const npc of world.entities.values()) {
     if (npc.archetype !== FUGITIVE_FRIGATE_NPC.id) continue;
     if (npc.health > 0) {
       npc.respawnRemainingMs = null;
+      if (npc.negotiationFrozen) continue;
+      if (npc.negotiationEscaping) {
+        npc.heading = 90;
+        npc.x = Math.min(world.region.width + 160, npc.x + FUGITIVE_FRIGATE_SHIP.speed.max * Math.min(64,deltaMs)/1000);
+        if (npc.x > world.region.width + 100) world.entities.delete(npc.id);
+        continue;
+      }
       updateFugitiveFrigate(npc, world.camera, world.region, deltaMs, random);
       continue;
     }
