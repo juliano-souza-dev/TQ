@@ -18,7 +18,7 @@ export function createMissionBoard({getBoard=()=>null,onAccept=()=>false,onClaim
   slot.replaceChildren();
   if(board.activeRegion===1 && board.unlockedRegion>=2){
    const note=document.createElement('p');note.textContent='🎉 A próxima região está liberada!';slot.append(note);
-   if(board.activeRegion<2)slot.append(btn('Ir para a próxima região',()=>{if(onStartRegion2())refresh();}));
+   if(board.activeRegion<2){const guide=document.createElement('p');guide.textContent='🧭 Navegue até a passagem marítima no leste da Enseada. A travessia só acontece ao chegar ao portal.';slot.append(guide);}
    return;
   }
   const current=board.claimable.find(m=>!m.optional)||board.active.find(m=>!m.optional)||board.available.find(m=>!m.optional);
