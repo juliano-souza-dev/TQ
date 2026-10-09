@@ -275,9 +275,15 @@ async function startWorld() {
   function updatePursuitCamera(stepMs = 16) {
     const hunting = world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief';
     const thief = hunting ? [...world.entities.values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0) : null;
+    const finalMission = world.region.id === 'r1'
+      && readSave().campaign?.active?.includes('r1-finale')
+      && !(readSave().campaign?.progress?.['r1-finale']?.[0] >= 1);
     const targetZoom = thief ? Math.max(.27, Math.min(.43,
       Math.min(canvas.clientWidth || 900, canvas.clientHeight || 600) /
-      Math.max(1300, Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y)*2.4))) * 1.05 * 1.06 : normalCameraZoom;
+      Math.max(1300, Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y)*2.4))) * 1.05 * 1.06
+      : finalMission ? Math.max(.27, Math.min(.43,
+          Math.min(canvas.clientWidth || 900, canvas.clientHeight || 600) / 1300)) * 1.05 * 1.06
+      : normalCameraZoom;
     const smoothing = 1-Math.exp(-Math.max(0,stepMs)/450);
     pursuitCameraZoom += (targetZoom-pursuitCameraZoom)*smoothing;
     world.camera.zoom = pursuitCameraZoom;
