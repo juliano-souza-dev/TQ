@@ -96,13 +96,51 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   const picker = document.createElement('div');
   picker.className = 'naval-consumables-picker';
   picker.hidden = true;
-  const noneOption = document.createElement('button');
-  noneOption.type = 'button';
-  noneOption.textContent = '🔒 Nenhum consumível';
-  const flameOption = document.createElement('button');
-  flameOption.type = 'button';
-  const shieldOption = document.createElement('button');
-  shieldOption.type='button';
+  const flameAssetUrl = new URL('../../assets/consumables/5X em Chamas.png',import.meta.url).href;
+  function createConsumableOption({name,image,emoji}) {
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='naval-consumable-option';
+    const iconWrap=document.createElement('span');
+    iconWrap.className='naval-consumable-option-visual';
+    if(image) {
+      const img=document.createElement('img');
+      img.className='naval-consumable-option-image';
+      img.src=image;
+      img.alt='';
+      iconWrap.append(img);
+    } else {
+      const glyph=document.createElement('span');
+      glyph.className='naval-consumable-option-emoji';
+      glyph.textContent=emoji;
+      iconWrap.append(glyph);
+    }
+    const quantity=document.createElement('span');
+    quantity.className='naval-consumable-option-quantity';
+    const spinner=document.createElement('span');
+    spinner.className='naval-consumable-option-spinner';
+    spinner.hidden=true;
+    spinner.setAttribute('aria-hidden','true');
+    iconWrap.append(quantity,spinner);
+    const copy=document.createElement('span');
+    copy.className='naval-consumable-option-copy';
+    const heading=document.createElement('span');
+    heading.className='naval-consumable-option-name';
+    heading.textContent=name;
+    const detail=document.createElement('span');
+    detail.className='naval-consumable-option-detail';
+    copy.append(heading,detail);
+    button.append(iconWrap,copy);
+    return {button,quantity,spinner,detail};
+  }
+  const noneOption=document.createElement('button');
+  noneOption.type='button';
+  noneOption.className='naval-consumable-none-option';
+  noneOption.textContent='🔒 Nenhum consumível';
+  const flameItem=createConsumableOption({name:'5X em Chamas',image:flameAssetUrl});
+  const shieldItem=createConsumableOption({name:'Escudo',emoji:'🛡️'});
+  const flameOption=flameItem.button;
+  const shieldOption=shieldItem.button;
   picker.append(noneOption,flameOption,shieldOption);
   consumablesWrap.append(consumablesButton,picker);
   attackControls.append(fireButton, fireIconButton, consumablesWrap, centerButton, repairButton);
@@ -124,13 +162,22 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     countLabel.textContent=noneSelected?'🔒':shieldSelected?'🛡️ '+qty:String(qty);
     flameOption.hidden=flameQty<=0;
     shieldOption.hidden=shieldQty<=0;
-    flameOption.textContent='🔥 5X em Chamas · '+flameQty+' unidades';
-    shieldOption.textContent='🛡️ Escudo · '+shieldQty+' unidades';
     const now=Date.now();
     const flameRemaining=Math.max(0,Math.ceil((consumable.cooldownUntil-now)/1000));
     const shieldRemaining=Math.max(0,Math.ceil((consumable.shieldCooldownUntil-now)/1000));
-    flameOption.title=flameRemaining?'Recarga: '+flameRemaining+'s':'Ativar agora';
-    shieldOption.title=shieldRemaining?'Recarga: '+shieldRemaining+'s':'Ativar agora';
+    const formatTime=seconds=>Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
+    for(const [item,quantity,left,until,selected] of [
+      [flameItem,flameQty,flameRemaining,consumable.activeUntil,consumable.selectedId==='flame-5x'],
+      [shieldItem,shieldQty,shieldRemaining,consumable.shieldActiveUntil,shieldSelected],
+    ]) {
+      item.quantity.textContent=String(quantity);
+      item.spinner.hidden=left<=0;
+      item.detail.textContent=until>now?'Ativo · '+formatTime(Math.ceil((until-now)/1000))
+        :left>0?'Recarga · '+formatTime(left):'Pronto para usar';
+      item.button.classList.toggle('is-selected',selected);
+      item.button.classList.toggle('is-recharging',left>0);
+      item.button.title=item.detail.textContent;
+    }
         const cameraDetached = Boolean(isCameraDetached());
     centerButton.disabled = !cameraDetached;
     centerButton.classList.toggle('is-available', cameraDetached);
