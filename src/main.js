@@ -443,7 +443,7 @@ async function startWorld() {
     && !readSave().consumables?.chaseChestClaimed;
     function resolveMathAction(action, cleanAnswer) {
     if(action.kind==='black-market'){
-      if(world.region.id!=='r2'||readSave().r2Campaign?.active!=='r2-black-market')return false;
+      if(world.region.id!=='r2'||boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-black-market')?.status!=='active')return false;
       blackMarketUnlocked=true;
       return 'Acesso ao Mercado Negro liberado!';
     }
@@ -510,17 +510,17 @@ async function startWorld() {
   marketOverlay.append(marketCard);
   root.append(marketOverlay);
   function showBlackMarket(){
-    if(readSave().r2Campaign?.active!=='r2-black-market')return;
+    if(boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-black-market')?.status!=='active')return;
     const save=readSave();
     const gold=Math.max(0,Math.floor(Number(save.profile?.gold)||0));
     const iron=Math.max(0,Math.floor(Number(save.ammunition?.['rusted-iron'])||0));
-    marketDetails.textContent='Lote único: 1 Canhão Aetherion MK-I de energia, 10.000 Orbes Autoguiados e 8 Canhões Espectrais Necromânticos.';
+    marketDetails.textContent='Lote único: 1 Canhão Aetherion MK-I de energia, 10.000 Orbes Autoguiados e 8 Canhões Reais Dourados com Leão.';
     marketPrice.textContent='Preço da troca: '+gold.toLocaleString('pt-BR')+' ouro + '+iron.toLocaleString('pt-BR')+' munições comuns. Após a troca, ambos ficarão em 0.';
     marketTrade.disabled=gold===0&&iron===0;
     marketOverlay.hidden=false;
   }
   marketTrade.addEventListener('click',()=>{
-    if(!blackMarketUnlocked||readSave().r2Campaign?.active!=='r2-black-market')return;
+    if(!blackMarketUnlocked||boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-black-market')?.status!=='active')return;
     const save=readSave(),eq=save.equipment??{},counts=eq.cannonCounts??{};
     const gold=Math.max(0,Math.floor(Number(save.profile?.gold)||0));
     const iron=Math.max(0,Math.floor(Number(save.ammunition?.['rusted-iron'])||0));
@@ -531,8 +531,8 @@ async function startWorld() {
         'aetherion-seeker':(Number(save.ammunition?.['aetherion-seeker'])||0)+10000},
       equipment:{...eq,cannonCounts:{...counts,
         'aetherion-mk1':(Number(counts['aetherion-mk1'])||0)+1,
-        'spectral-necromancer':(Number(counts['spectral-necromancer'])||0)+8},
-        ownedCannonIds:[...new Set([...(eq.ownedCannonIds??[]),'aetherion-mk1','spectral-necromancer'])]},
+        'royal-lion':(Number(counts['royal-lion'])||0)+8},
+        ownedCannonIds:[...new Set([...(eq.ownedCannonIds??[]),'aetherion-mk1','royal-lion'])]},
     };
     writePatch(tradePatch);
     // A single unique event is recorded only after the payment and items
@@ -542,7 +542,7 @@ async function startWorld() {
     blackMarketUnlocked=false;
     navalHud?.refresh();
     updateMissionHud();
-    showOceanReward('☠️ Troca concluída! +1 Aetherion · +10.000 Orbes · +8 Canhões Espectrais');
+    showOceanReward('☠️ Troca concluída! +1 Aetherion · +10.000 Orbes · +8 Canhões Reais');
   });
   const mathGate = createMathGate({
     getPedagogy: () => readSave().pedagogy ?? {},
@@ -1224,6 +1224,7 @@ async function startWorld() {
         }
         if(Math.hypot(world.camera.x-marketX,world.camera.y-marketY)>220)marketDismissedNearby=false;
         if(active?.id==='r2-black-market'
+          && active.status==='active'
           && !marketDismissedNearby
           && Math.hypot(world.camera.x-marketX,world.camera.y-marketY)<=180
           && !mathGate.isOpen && marketOverlay.hidden && !islandPanel.isOpen){
