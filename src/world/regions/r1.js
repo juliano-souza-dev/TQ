@@ -9,9 +9,9 @@ export const R1 = Object.freeze({
   spawn: Object.freeze({ x: 3400, y: 3500 }),
   exitPoint: Object.freeze({ x: 3950, y: 1100, radius: 115, toRegion: 2 }),
   islands: Object.freeze([
-    Object.freeze({ id: 'shipyard', kind: 'shipyard', x: 1430, y: 1650, size: 1050, width: 820, height: 690, asset: versionedAsset('../../../assets/regions/islands/ilha_estaleiro.webp') }),
-    Object.freeze({ id: 'missions', kind: 'missions', x: 2760, y: 1750, size: 1050, width: 820, height: 690, asset: versionedAsset('../../../assets/regions/islands/ilha_missoes.webp') }),
-    Object.freeze({ id: 'scenery', kind: 'decoration', x: 2180, y: 2950, size: 1150, width: 900, height: 740, asset: versionedAsset('../../../assets/regions/islands/ilha_fundo_transparente.png') }),
+    Object.freeze({ id: 'shipyard', kind: 'shipyard', x: 690, y: 860, size: 1050, width: 820, height: 690, asset: versionedAsset('../../../assets/regions/islands/ilha_estaleiro.webp') }),
+    Object.freeze({ id: 'missions', kind: 'missions', x: 3320, y: 860, size: 1050, width: 820, height: 690, asset: versionedAsset('../../../assets/regions/islands/ilha_missoes.webp') }),
+    Object.freeze({ id: 'scenery', kind: 'decoration', x: 1950, y: 3520, size: 1150, width: 900, height: 740, asset: versionedAsset('../../../assets/regions/islands/ilha_fundo_transparente.png') }),
   ]),
   ocean: Object.freeze({
     // Identical source image to the old R1 (the Git blob SHA matches).
