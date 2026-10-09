@@ -442,6 +442,11 @@ async function startWorld() {
     && readSave().r2Campaign?.active === 'r2-destroy-thief'
     && !readSave().consumables?.chaseChestClaimed;
     function resolveMathAction(action, cleanAnswer) {
+    if(action.kind==='black-market'){
+      if(world.region.id!=='r2'||readSave().r2Campaign?.active!=='r2-black-market')return false;
+      blackMarketUnlocked=true;
+      return 'Acesso ao Mercado Negro liberado!';
+    }
     if (action.kind === 'chase-supply-chest') {
       if (!isSupplyChestAvailable() || Math.hypot(world.camera.x-supplyChest.x,world.camera.y-supplyChest.y)>170) return false;
       const save=readSave(),c=save.consumables??{},q=c.quantities??{};
@@ -478,6 +483,66 @@ async function startWorld() {
     if (['treasure','repair','accept-mission'].includes(action.kind))showOceanReward(result.message);
     return result.message;
   }
+  // Merchant trade is atomic and idempotent: only a confirmed exchange
+  // advances the contract, never mere proximity to the merchant.
+  let blackMarketUnlocked=false;
+  const marketOverlay=document.createElement('div');
+  marketOverlay.className='black-market-overlay';
+  marketOverlay.hidden=true;
+  marketOverlay.setAttribute('role','dialog');
+  marketOverlay.setAttribute('aria-modal','true');
+  marketOverlay.setAttribute('aria-label','Mercado Negro');
+  const marketCard=document.createElement('section');
+  marketCard.className='black-market-card';
+  const marketHeading=document.createElement('h2');
+  marketHeading.textContent='☠️ Mercado Negro';
+  const marketDetails=document.createElement('p');
+  const marketPrice=document.createElement('p');
+  const marketTrade=document.createElement('button');
+  marketTrade.type='button';
+  marketTrade.textContent='Confirmar troca';
+  const marketClose=document.createElement('button');
+  marketClose.type='button';
+  marketClose.textContent='Voltar ao oceano';
+  marketClose.addEventListener('click',()=>{marketOverlay.hidden=true;});
+  marketCard.append(marketHeading,marketDetails,marketPrice,marketTrade,marketClose);
+  marketOverlay.append(marketCard);
+  root.append(marketOverlay);
+  function showBlackMarket(){
+    if(readSave().r2Campaign?.active!=='r2-black-market')return;
+    const save=readSave();
+    const gold=Math.max(0,Math.floor(Number(save.profile?.gold)||0));
+    const iron=Math.max(0,Math.floor(Number(save.ammunition?.['rusted-iron'])||0));
+    marketDetails.textContent='Lote único: 1 Canhão Aetherion MK-I de energia, 10.000 Orbes Autoguiados e 8 Canhões Espectrais Necromânticos.';
+    marketPrice.textContent='Preço da troca: '+gold.toLocaleString('pt-BR')+' ouro + '+iron.toLocaleString('pt-BR')+' munições comuns. Após a troca, ambos ficarão em 0.';
+    marketTrade.disabled=gold===0&&iron===0;
+    marketOverlay.hidden=false;
+  }
+  marketTrade.addEventListener('click',()=>{
+    if(!blackMarketUnlocked||readSave().r2Campaign?.active!=='r2-black-market')return;
+    const save=readSave(),eq=save.equipment??{},counts=eq.cannonCounts??{};
+    const gold=Math.max(0,Math.floor(Number(save.profile?.gold)||0));
+    const iron=Math.max(0,Math.floor(Number(save.ammunition?.['rusted-iron'])||0));
+    if(gold===0&&iron===0)return;
+    const tradePatch={
+      profile:{...save.profile,gold:0},
+      ammunition:{...save.ammunition,'rusted-iron':0,
+        'aetherion-seeker':(Number(save.ammunition?.['aetherion-seeker'])||0)+10000},
+      equipment:{...eq,cannonCounts:{...counts,
+        'aetherion-mk1':(Number(counts['aetherion-mk1'])||0)+1,
+        'spectral-necromancer':(Number(counts['spectral-necromancer'])||0)+8},
+        ownedCannonIds:[...new Set([...(eq.ownedCannonIds??[]),'aetherion-mk1','spectral-necromancer'])]},
+    };
+    writePatch(tradePatch);
+    // A single unique event is recorded only after the payment and items
+    // have been persisted, preventing proximity from completing the quest.
+    recordMissionEvent({type:'black-market',id:'market-trade-completed'});
+    marketOverlay.hidden=true;
+    blackMarketUnlocked=false;
+    navalHud?.refresh();
+    updateMissionHud();
+    showOceanReward('☠️ Troca concluída! +1 Aetherion · +10.000 Orbes · +8 Canhões Espectrais');
+  });
   const mathGate = createMathGate({
     getPedagogy: () => readSave().pedagogy ?? {},
     getRegion: () => world.region.id === 'r2' ? 2 : 1,
@@ -1157,8 +1222,16 @@ async function startWorld() {
           });
         }
         if(active?.id==='r2-black-market'
-          && Math.hypot(world.camera.x-marketX,world.camera.y-marketY)<=180){
-          recordMissionEvent({type:'black-market',id:'r2-black-market-merchant'});
+          && Math.hypot(world.camera.x-marketX,world.camera.y-marketY)<=180
+          && !mathGate.isOpen && marketOverlay.hidden && !islandPanel.isOpen){
+          clickNavigation.cancel();
+          navalBattle.firing=false;
+          if(blackMarketUnlocked)showBlackMarket();
+          else mathGate.open({
+            kind:'black-market',title:'☠️ Senha do Mercado Negro',
+            description:'Resolva a multiplicação para negociar com o mercador.',
+            afterSuccess:()=>showBlackMarket(),
+          });
         }
         // Stage-I Morbi enters the ocean physically, with 900,000 HP.
         const morbiStage=['r2-golden-i','r2-golden-ii'].includes(active?.id);
