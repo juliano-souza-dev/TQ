@@ -52,7 +52,7 @@ export const R2_TREASURES = Object.freeze(Array.from({length:60},(_,i)=>{
   [690,1620,820,690],[3400,1620,820,690],
   [700,4450,900,740],[3380,4450,850,690],
 ].some(([x,y,w,h])=>Math.abs(t.x-x)<w/2+120&&Math.abs(t.y-y)<h/2+120))));
-export const TREASURE_RESPAWN_MS = 180000;
+export const TREASURE_RESPAWN_MS = 30000;
 
 function hashId(id) {
   let seed = 2166136261;
