@@ -326,8 +326,8 @@ async function startWorld() {
     // Stop just outside the island artwork, on the side nearest the player.
     const horizontal=Math.abs(world.camera.x-island.x)>Math.abs(world.camera.y-island.y);
     const destination=horizontal
-      ?{x:island.x+Math.sign(world.camera.x-island.x||1)*(Number(island.width||820)/2+75),y:island.y}
-      :{x:island.x,y:island.y+Math.sign(world.camera.y-island.y||1)*(Number(island.height||690)/2+75)};
+      ?{x:island.x+Math.sign(world.camera.x-island.x||1)*(Number(island.width||820)/2+20),y:island.y}
+      :{x:island.x,y:island.y+Math.sign(world.camera.y-island.y||1)*(Number(island.height||690)/2+20)};
     world.manualCamera=null;
     clickNavigation?.setDestination(destination);
     showOceanReward('⚓ Rota para o Estaleiro definida!');
@@ -501,15 +501,15 @@ async function startWorld() {
       if (world.region.id === 'r2' && npc.archetype === 'fugitive-frigate'
         && save.r2Campaign?.active === 'r2-destroy-thief') {
         recordMissionEvent({type:'thief',id:npc.id});
-        navalHud?.setFeedback('🏴‍☠️ Ladrão das Sombras afundado! Missão cumprida.');
+        showOceanReward('🏴‍☠️ Ladrão das Sombras afundado!');
       } else if (world.region.id === 'r2' && npc.id === 'r2-admiral') {
         recordMissionEvent({type:'admiral',id:npc.id});
         recordMissionEvent({type:'defeat',id:npc.id+':'+Date.now()});
-        navalHud?.setFeedback('🏴‍☠️ Almirante dos Ladrões derrotado!');
+        showOceanReward('🏴‍☠️ Almirante dos Ladrões derrotado!');
       } else if (world.region.id === 'r1' && save.missions?.corsair === 'active' && npc.archetype === 'red-sail-corsair') {
         writePatch({ missions: { ...save.missions, corsair: 'complete' } });
         updateMissionHud();
-        navalHud?.setFeedback('🏆 ' + npc.name + ' afundado! Agora explore as missões livremente.');
+        showOceanReward('🏆 '+npc.name+' afundado!');
       } else {
         recordMissionEvent({
           type: 'defeat', archetype: npc.archetype,
