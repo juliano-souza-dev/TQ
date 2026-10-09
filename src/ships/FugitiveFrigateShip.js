@@ -27,10 +27,12 @@ export const FUGITIVE_FRIGATE_SHIP = Object.freeze({
     rows: 4,
     frameCount: 16,
     angleStepDegrees: 22.5,
-    // Novo atlas 4x4: quadro 0 aponta para Oeste (270 graus),
-    // avançando 22,5 graus por célula na ordem das linhas.
-    // Heading: N, NNE, NE, ENE, E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW.
-    framesByHeading: Object.freeze([4,5,6,7,8,9,10,11,12,13,14,15,0,1,2,3]),
-    flipXByHeading: Object.freeze(Array(16).fill(false)),
+    // Mapeamento do atlas atualmente publicado em sombra_fugitiva.webp.
+    // O atlas de substituição requer atualização do próprio arquivo antes de ativar novos índices.
+    framesByHeading: Object.freeze([15,13,11,10,5,3,2,1,0,1,2,3,5,7,9,13]),
+    flipXByHeading: Object.freeze([
+      false,false,false,false,true,true,true,true,
+      false,false,false,false,false,false,false,true,
+    ]),
   }),
 });
