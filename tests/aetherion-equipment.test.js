@@ -17,15 +17,15 @@ test('Aetherion preserves the 840-range cannon stats and accepts only guided amm
   assert.ok(shotDamage(tech,'aetherion-seeker')>0);
 });
 
-test('seeker metadata locks same target for nine seconds and uses placeholder assets', () => {
+test('seeker metadata locks same target for nine seconds and uses deployed assets', () => {
   const ammo=AMMUNITION.find(item=>item.id==='aetherion-seeker');
-  assert.equal(ammo.assetPending,true);
+  assert.equal(ammo.assetPending,false);
   assert.equal(ammo.tracking.maxDurationMs,9000);
   assert.equal(ammo.tracking.retarget,false);
   assert.equal(effectiveAmmo(ammo.id).trackingDurationMs,9000);
 });
 
-test('Preparar a Caçada rewards one cannon and fifty autoguided rounds', () => {
+test('Preparar a Caçada rewards one cannon and 5000 autoguided rounds', () => {
   const m=R2_MISSIONS.find(m=>m.id==='r2-equip-chaser');
   assert.deepEqual(m.reward.cannons,{'aetherion-mk1':1});
   assert.deepEqual(m.reward.ammo,{'aetherion-seeker':5000});
@@ -36,5 +36,5 @@ test('Preparar a Caçada rewards one cannon and fifty autoguided rounds', () => 
   const result=claimR2Mission(save,m.id);
   assert.ok(result);
   assert.equal(result.patch.equipment.cannonCounts['aetherion-mk1'],1);
-  assert.equal(result.patch.ammunition['aetherion-seeker'],50);
+  assert.equal(result.patch.ammunition['aetherion-seeker'],5000);
 });
