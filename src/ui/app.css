@@ -669,3 +669,14 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 }
 @keyframes naval-consumable-spin {to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.combat-hud .naval-consumable-option-spinner{animation:none;border-color:#ffcb61}}
+
+/* Shipyard cannon visual cards: compact, readable at mobile widths. */
+.shipyard-cannon-capacity{margin:8px 0 12px;padding:9px 12px;border:1px solid #a67a4288;border-radius:8px;background:#102b3abb;color:#ffdfa0;font:600 12px/1.4 system-ui,sans-serif}
+.shipyard-cannon-slot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.shipyard-slot-cannon-art{width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 2px 4px #0008)}
+.shipyard-slot-cannon-name{font-weight:700;color:#f8d99b}
+.shipyard-slot-empty{color:#b5c9d3}
+.shipyard-cannon-card{display:flex;align-items:center;gap:10px;border-radius:8px}
+.shipyard-cannon-info{min-width:0;display:flex;flex-direction:column;gap:8px}
+.shipyard-cannon-stat-badges{display:flex;flex-wrap:wrap;gap:5px}
+.shipyard-cannon-chip{display:inline-flex;align-items:center;white-space:nowrap;padding:4px 7px;border:1px solid #ab8b5377;border-radius:12px;background:#092a3ba8;color:#f3e0bc;font:600 11px/1.2 system-ui,sans-serif}
