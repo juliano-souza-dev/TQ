@@ -106,7 +106,7 @@ export function createMathGate({
           for (const item of answers.children) item.disabled = true;
           cancel.disabled = true;
           markAnswer({ correct: false, chosen: button, expected: challenge.answer });
-          feedback.textContent = attempts >= maxAttempts && !pending.repeatOnSuccess
+          feedback.textContent = attempts >= maxAttempts && !pending.repeatOnSuccess && pending.kind !== 'repair'
             ? '✕ Cinco erros. Tesouro fechado, tente novamente mais tarde.'
             : '✕ Errou! A correta está em verde. Preparando outra continha...';
           feedback.dataset.result = 'wrong';
