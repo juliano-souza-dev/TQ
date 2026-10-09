@@ -59,6 +59,7 @@ export function createClickNavigation(canvas, world, onWorldClick = null) {
   canvas.addEventListener('click', onClick);
   return {
     getDestination: () => destination,
+    setDestination: point => { destination=point?{x:Number(point.x),y:Number(point.y)}:null; },
     cancel: () => { destination = null; },
     dispose: () => {
       canvas.removeEventListener('pointerdown', down);
