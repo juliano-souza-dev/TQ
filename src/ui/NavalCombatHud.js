@@ -86,9 +86,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   frame.alt = '';
   const selectedIcon = document.createElement('img');
   selectedIcon.className = 'naval-consumables-icon';
-  selectedIcon.src = new URL('../../assets/consumables/5X-em-Chamas.png',import.meta.url).href;
-  // Compatibility while the hyphenated asset is being uploaded to the repository.
-  selectedIcon.onerror = () => { selectedIcon.onerror=null; selectedIcon.src=new URL('../../assets/consumables/5X em Chamas.png',import.meta.url).href; };
+  selectedIcon.src = new URL('../../assets/consumables/5X em Chamas.png',import.meta.url).href;
   selectedIcon.alt = '';
   const countLabel = document.createElement('span');
   countLabel.className = 'naval-consumables-count';
