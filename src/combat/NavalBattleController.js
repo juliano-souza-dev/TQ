@@ -56,32 +56,35 @@ export class NavalBattleController {
       cooldownUntil:Number(c.cooldownUntil)||0,
       shieldActiveUntil:Number(c.shieldActiveUntil)||0,
       shieldCooldownUntil:Number(c.shieldCooldownUntil)||0,
+      speedActiveUntil:Number(c.speedActiveUntil)||0,
+      speedCooldownUntil:Number(c.speedCooldownUntil)||0,
     };
   }
   isFlameActive() { return Date.now() < this.getConsumables().activeUntil; }
   isShieldActive() { return Date.now() < this.getConsumables().shieldActiveUntil; }
+  isSpeedActive() { return Date.now() < this.getConsumables().speedActiveUntil; }
   selectConsumable(id) {
-    if (!['none','flame-5x','shield'].includes(id)) return false;
+    if (!['none','flame-5x','shield','speed-plus'].includes(id)) return false;
     const save=this.readSave();
     this.writePatch({consumables:{...(save.consumables??{}),selectedId:id}});
     return true;
   }
   activateConsumable() {
     const save=this.readSave(),c=this.getConsumables(),now=Date.now();
-    const shield=c.selectedId==='shield', flame=c.selectedId==='flame-5x';
-    if (!shield&&!flame) return {ok:false,reason:'Selecione um consumível.'};
-    const activeUntil=shield?c.shieldActiveUntil:c.activeUntil;
-    const cooldownUntil=shield?c.shieldCooldownUntil:c.cooldownUntil;
-    if (activeUntil>now)return {ok:false,reason:'Consumível já ativo.'};
-    if (cooldownUntil>now)return {ok:false,reason:'Aguarde '+Math.ceil((cooldownUntil-now)/1000)+'s para reutilizar.'};
+    const config={
+      shield:{active:'shieldActiveUntil',cooldown:'shieldCooldownUntil',duration:56250,reload:180000,label:'Escudo'},
+      'flame-5x':{active:'activeUntil',cooldown:'cooldownUntil',duration:75000,reload:150000,label:'5X em Chamas'},
+      'speed-plus':{active:'speedActiveUntil',cooldown:'speedCooldownUntil',duration:120000,reload:300000,label:'Veloz+'},
+    }[c.selectedId];
+    if(!config)return {ok:false,reason:'Selecione um consumível.'};
+    if(c[config.active]>now)return {ok:false,reason:'Consumível já ativo.'};
+    if(c[config.cooldown]>now)return {ok:false,reason:'Aguarde '+Math.ceil((c[config.cooldown]-now)/1000)+'s para reutilizar.'};
     const count=Math.max(0,Math.floor(Number(c.quantities[c.selectedId])||0));
-    if (!count)return {ok:false,reason:'Você não possui este consumível.'};
-    const duration=shield?56250:75000,cooldown=shield?180000:150000;
+    if(!count)return {ok:false,reason:'Você não possui este consumível.'};
     this.writePatch({consumables:{...(save.consumables??{}),
       quantities:{...c.quantities,[c.selectedId]:count-1},
-      ...(shield?{shieldActiveUntil:now+duration,shieldCooldownUntil:now+cooldown}
-        :{activeUntil:now+duration,cooldownUntil:now+cooldown})}});
-    return {ok:true,reason:shield?'🛡️ Escudo ativo por 56,25 segundos!':'🔥 5X em Chamas ativo por 75 segundos!'};
+      [config.active]:now+config.duration,[config.cooldown]:now+config.reload}});
+    return {ok:true,reason:config.label+' ativo por '+(config.duration/1000)+' segundos!'};
   }
 
   resolveSelectedAmmo() {
