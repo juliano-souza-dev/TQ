@@ -11,7 +11,7 @@ import {
 import { resolvePedagogicalAction } from '../src/gameplay/PedagogicalActions.js';
 import { repairHull, accumulateHullRepair, beginHullRecovery, advanceHullRecovery } from '../src/combat/HullRepair.js';
 import {
-  REGION_ONE_TREASURES, getVisibleTreasures, claimTreasure,
+  REGION_ONE_TREASURES, ALL_R1_TREASURES, TREASURE_RESPAWN_MS, getVisibleTreasures, claimTreasure,
 } from '../src/treasures/RegionTreasures.js';
 
 const initial = () => ({
@@ -234,4 +234,19 @@ test('A Negociação, o Golpe encerra a campanha com cinco respostas e roubo ún
   assert.deepEqual(save.equipment.loadout.starter,[null,'royal-lion','royal-lion']);
   assert.equal(resolvePedagogicalAction(save,{kind:'negotiation'},challenge(2,8),true),null);
   assert.equal(getCampaignBoard(save).missions.find(m=>m.id==='r1-negotiation').status,'ready');
+});
+
+test('72 tesouros ficam disponíveis, reaparecem individualmente e não duplicam recompensas', () => {
+  assert.equal(ALL_R1_TREASURES.length,72);
+  assert.equal(getVisibleTreasures({},1000000).length,72);
+  const first=ALL_R1_TREASURES[0];
+  const collected=claimTreasure(initial(),first.id,1000000);
+  assert.ok(collected);
+  const save=apply(initial(),collected.patch);
+  assert.equal(getVisibleTreasures(save,1000001).length,71);
+  assert.equal(claimTreasure(save,first.id,1000001),null);
+  assert.equal(getVisibleTreasures(save,1000000+TREASURE_RESPAWN_MS).length,72);
+  const respawn=getVisibleTreasures(save,1000000+TREASURE_RESPAWN_MS).find(t=>t.x===first.x&&t.y===first.y);
+  assert.equal(respawn.id,first.id+'-cycle-1');
+  assert.ok(claimTreasure(save,respawn.id,1000000+TREASURE_RESPAWN_MS));
 });
