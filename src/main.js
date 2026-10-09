@@ -1397,7 +1397,7 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       if (world.region.id === 'r2') {
-        if(readSave().r2Campaign?.active==='r2-dark-voyage'
+        if(boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-dark-voyage')?.status==='active'
           && Math.hypot(world.camera.x-darkWatersExit.x,world.camera.y-darkWatersExit.y)<145){
           recordMissionEvent({type:'exit',id:'r2-dark-waters-passage'});
           showOceanReward('🌑 A jornada continua nas Águas Escuras do Capitão Terror. Fim da campanha deste mapa!');
