@@ -152,7 +152,7 @@ export class NavalBattleController {
     const distance = target ? distanceBetween(player, target) : Infinity;
     const harpoon = equippedHarpoon(save);
     const monsterTarget = target?.type === 'monster';
-    const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon) && (cannon.exclusiveAmmoId ? ammoStock(save,cannon.exclusiveAmmoId)>0 : cannonAcceptsAmmo(cannon,this.selectedAmmoId) && ammoStock(save,this.selectedAmmoId)>0));
+    const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon) && availableNavalAmmo(save).some(item => item.amount > 0 && cannonAcceptsAmmo(cannon,item.id)));
     const ammo = ammoStock(save, this.selectedAmmoId);
     // R1 possui um tutorial obrigatório. R2 já começa com combate liberado.
     const missionActive = this.getRegionId() !== 'r1'
@@ -425,7 +425,8 @@ export class NavalBattleController {
       if (now < (this.nextBySlot.get(slot) ?? -Infinity)) continue;
       // One synchronized volley; each cannon chooses only its compatible ammunition.
       const ammoId = cannon.exclusiveAmmoId || (cannonAcceptsAmmo(cannon, this.selectedAmmoId)
-        ? this.selectedAmmoId : this.resolveSelectedAmmo());
+        ? this.selectedAmmoId : availableNavalAmmo(save).find(item => item.amount > 0
+          && cannonAcceptsAmmo(cannon, item.id))?.id);
       if (!cannonAcceptsAmmo(cannon, ammoId)) continue;
       const remaining = ammoStockById[ammoId] === undefined ? ammoStock(save, ammoId) : ammoStockById[ammoId];
       if (remaining <= 0) continue;
