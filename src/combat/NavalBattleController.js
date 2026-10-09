@@ -28,6 +28,7 @@ export class NavalBattleController {
     this.firing = false;
     this.nextBySlot = new Map();
     this.nextNpcShot = new Map();
+    this.nextKrakenStrike = new Map();
     this.previousPositions = new Map();
     this.velocities = new Map();
     this.enemyAmmo = effectiveAmmo('rusted-iron');
@@ -182,6 +183,7 @@ export class NavalBattleController {
       } else this.firePlayerVolley(now);
     }
     this.fireNpcVolleys(now);
+    this.fireKrakenStrikes(now);
   }
 
   firePlayerVolley(now) {
@@ -252,6 +254,34 @@ export class NavalBattleController {
       this.onVictory(target);
     }
     return { kind: 'ship' };
+  }
+
+  // Kraken attacks have an independent cooldown and only damage on contact.
+  fireKrakenStrikes(now) {
+    if(this.getHealth()<=0)return;
+    const player=this.getPlayer();
+    for(const monster of this.getEntities().values()){
+      if(monster.type!=='monster'||monster.health<=0)continue;
+      if(distanceBetween(monster,player)>200)continue;
+      if(now<(this.nextKrakenStrike.get(monster.id)??-Infinity))continue;
+      const destination={x:player.x,y:player.y};
+      const accepted=this.renderer.attackKraken?.({
+        from:monster,to:destination,startTime:now,duration:900,
+        onImpact:({at})=>{
+          const ship=this.getPlayer();
+          const current=this.getEntities().get(monster.id);
+          if(!current||current.health<=0||this.getHealth()<=0
+            ||distanceBetween(current,ship)>225
+            ||!shipCollision(at,{...ship,health:this.getHealth()},56))return;
+          const save=this.readSave();
+          const health=Math.max(0,this.getHealth()-8);
+          this.writePatch({combat:{...save.combat,shipHealth:health}});
+          this.onFeedback(health>0?'🐙 Kraken atingiu o casco! -8 PV.':'☠️ Kraken afundou seu navio!');
+          if(!health)this.firing=false;
+        },
+      });
+      if(accepted)this.nextKrakenStrike.set(monster.id,now+4500);
+    }
   }
 
   fireNpcVolleys(now) {
