@@ -508,3 +508,6 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 /* Costa dos Corsários: nuvens leves sobre o oceano, abaixo do HUD. */
 .cloud-layer{position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;opacity:.95;}
+
+.monster-assist-button{position:fixed;left:50%;bottom:114px;transform:translateX(-50%);z-index:35;padding:10px 16px}
+.monster-assist-button[hidden]{display:none!important}
