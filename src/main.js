@@ -620,6 +620,7 @@ async function startWorld() {
   root.append(repairAura);
   function beginRepairSession(forced = false) {
     const health=Number(readSave().combat?.shipHealth??100);
+    if(world.region.id==='r2' && readSave().r2Campaign?.active==='r2-why-help')return false;
     if(health>=100||readSave().combat?.repairingUntil)return false;
     repairIsForced=forced;
     return mathGate.open({
@@ -1061,7 +1062,7 @@ async function startWorld() {
       getPedagogy: () => readSave().pedagogy ?? {},
       onAccept: id => world.region.id === 'r2'
         ? (()=>{
-          if(id==='r2-why-help'&&activeShip.id!=='galeao-halloween-tabuada'){
+          if(['r2-meet-forgotten','r2-why-help'].includes(id)&&activeShip.id!=='galeao-halloween-tabuada'){
             showOceanReward('⚠️ Para descobrir quem o ajudou, equipe o Terror da Tabuada no Estaleiro.');
             return false;
           }
@@ -1316,7 +1317,7 @@ async function startWorld() {
       playerPosition:{x:world.region.islands.find(i=>i.kind==='shipyard')?.x+480||3400,
         y:world.region.islands.find(i=>i.kind==='shipyard')?.y+60||1620},
     });
-    for(let i=0;i<50;i++)world.entities.delete('pumpkin-ambush-'+i);
+    for(let i=0;i<4;i++)world.entities.delete('pumpkin-ambush-'+i);
     shipCanvas.style.transition='none';shipCanvas.style.opacity='1';
     const next=playableShips.find(ship=>ship.id===rescueId);
     if(next){
@@ -1343,7 +1344,7 @@ async function startWorld() {
     if(activeShip.id!=='galeao-halloween-tabuada')return;
     if(readSave().storyFlags?.pumpkinAmbushResolved)return;
     pumpkinAmbushElapsed+=Math.max(0,stepMs);
-    if(pumpkinAmbushElapsed>=3900 && shipCanvas.style.opacity!=='0'){
+    if(Number(readSave().combat?.shipHealth??100)<=0 && shipCanvas.style.opacity!=='0'){
       shipCanvas.style.transition='opacity 900ms ease-in';
       shipCanvas.style.opacity='0';
       showOceanReward('💥 O Terror da Tabuada está afundando!');
@@ -1351,12 +1352,12 @@ async function startWorld() {
     if(!pumpkinAmbushStarted){
       pumpkinAmbushStarted=true;
       clickNavigation.cancel();navalBattle.firing=false;
-      showOceanReward('🎃 A frota das 50 abóboras surgiu! Eles vieram destruir o Terror da Tabuada!');
+      showOceanReward('🎃 Quatro galeões da frota abriram fogo! Fuja, capitão!');
     }
     const center=world.camera;
-    for(let i=0;i<50;i++){
-      const angle=i*2*Math.PI/50+Math.PI/4;
-      const radius=Math.max(120,780-pumpkinAmbushElapsed*.18);
+    for(let i=0;i<4;i++){
+      const angle=i*Math.PI/2+Math.PI/4;
+      const radius=780;
       const x=Math.max(75,Math.min(world.region.width-75,center.x+Math.cos(angle)*radius));
       const y=Math.max(75,Math.min(world.region.height-75,center.y+Math.sin(angle)*radius));
       const id='pumpkin-ambush-'+i;
@@ -1366,25 +1367,25 @@ async function startWorld() {
         name:'Frota do Mestre do Terror',x,y,heading:0,health:100000,maxHealth:100000,
         aggression:'neutral',attackProtectedUntil:Infinity,damage:0,range:0,cannonSlots:0});
     }
-    if(pumpkinAmbushElapsed>=pumpkinNextVolleyMs && pumpkinVolleyCount<4){
-      // A representative synchronized broadside from the surrounding fleet.
-      // Projectiles hit the player while the hull HP falls to zero in real state.
+    if(pumpkinAmbushElapsed>=pumpkinNextVolleyMs){
+      pumpkinNextVolleyMs+=5000;
       const ammo=effectiveAmmo('rusted-iron');
-      for(let i=0;i<8;i++){
-        const attacker=world.entities.get('pumpkin-ambush-'+(pumpkinVolleyCount*8+i));
-        if(!attacker||!ammo)continue;
-        navalRenderer.fire({from:{x:attacker.x,y:attacker.y},
+      for(let i=0;i<4;i++){
+        const attacker=world.entities.get('pumpkin-ambush-'+i);
+        if(!attacker)continue;
+        if(ammo)navalRenderer.fire({from:{x:attacker.x,y:attacker.y},
           to:{x:world.camera.x,y:world.camera.y},
-          duration:650,ammo,impactKind:'ship',startTime:performance.now(),
+          duration:700,ammo,impactKind:'ship',startTime:performance.now(),
           onImpact:()=>({kind:'ship'})});
       }
-      const save=readSave(),max=navalBattle.getMaxHealth();
-      const hp=Math.max(0,Math.round(max*(3-pumpkinVolleyCount)/4));
-      writePatch({combat:{...save.combat,shipHealth:hp}});
+      const save=readSave();
+      const health=Math.max(0,navalBattle.getHealth()-400);
+      writePatch({combat:{...save.combat,shipHealth:health,repairingUntil:null,repairingFrom:null}});
       pumpkinVolleyCount++;
-      pumpkinNextVolleyMs+=900;
     }
-    if(pumpkinAmbushElapsed>=4800)finishPumpkinAmbush();
+    if(navalBattle.getHealth()<=0 && pumpkinAmbushElapsed>=pumpkinNextVolleyMs-4300){
+      finishPumpkinAmbush();
+    }
   }
   let positionSaveElapsed = 0;
   function persistPlayerPosition(stepMs) {
@@ -1400,6 +1401,17 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       if (world.region.id === 'r2') {
+        const rendezvous=boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-meet-forgotten');
+        const forgotten=world.region.islands.find(i=>i.id==='r2-scenery-north');
+        if(rendezvous?.status==='active' && forgotten
+          && Math.hypot(world.camera.x-forgotten.x,world.camera.y-forgotten.y)<600
+          && activeShip.id==='galeao-halloween-tabuada'){
+          const save=readSave(),c=save.r2Campaign;
+          writePatch({r2Campaign:{...c,active:'r2-why-help',
+            claimed:[...new Set([...(c.claimed??[]),'r2-meet-forgotten'])],
+            progress:{...c.progress,'r2-meet-forgotten':[1],'r2-why-help':[0]}}});
+          updateMissionHud();
+        }
         if(boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-dark-voyage')?.status==='active'
           && Math.hypot(world.camera.x-darkWatersExit.x,world.camera.y-darkWatersExit.y)<145){
           recordMissionEvent({type:'exit',id:'r2-dark-waters-passage'});
@@ -1670,8 +1682,9 @@ async function startWorld() {
       const repairState = readSave().combat ?? {};
       const recovering = Boolean(repairState.repairingUntil);
       repairAura.hidden = !recovering;
+      const ambushed=world.region.id==='r2' && readSave().r2Campaign?.active==='r2-why-help';
       const sunk = Number(repairState.shipHealth ?? 100) <= 0;
-      if (sunk && !recovering && (!mathGate.isOpen || mathGate.activeKind !== 'repair' || !repairIsForced)) {
+      if (sunk && !ambushed && !recovering && (!mathGate.isOpen || mathGate.activeKind !== 'repair' || !repairIsForced)) {
         clickNavigation.cancel();
         navalBattle.firing = false;
         if (mathGate.isOpen) mathGate.close(true);
@@ -1723,7 +1736,7 @@ async function startWorld() {
         clickNavigation.cancel();
         heading = (Math.atan2(input.x, -input.y) * 180 / Math.PI + 360) % 360;
         const fromX = world.camera.x, fromY = world.camera.y;
-        advanceNavigation(world, input, stepMs, shipSpeed*(navalBattle?.isSpeedActive()?1.1:1));
+        advanceNavigation(world, input, stepMs, shipSpeed*(readSave().r2Campaign?.active==='r2-why-help'?.55:(navalBattle?.isSpeedActive()?1.1:1)));
         trackVoyage(fromX, fromY);
         persistPlayerPosition(stepMs);
         checkDockContact(fromX, fromY, input.x, input.y, stepMs);
