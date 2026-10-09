@@ -13,10 +13,10 @@ export function createMissionBoard({getBoard=()=>null,onAccept=()=>false,onClaim
  ].filter(Boolean).join(' · ')||'Desbloqueio de região';
  function refresh(){
   const board=getBoard();if(!board)return;
-  title.textContent='📜 Missões da Enseada';
+  title.textContent=board.activeRegion===2?'📜 Missões da Costa dos Corsários':'📜 Missões da Enseada';
   summary.textContent=board.essentialClaimed+'/'+board.missions.filter(m=>!m.optional).length+' missões concluídas';
   slot.replaceChildren();
-  if(board.unlockedRegion>=2){
+  if(board.activeRegion===1 && board.unlockedRegion>=2){
    const note=document.createElement('p');note.textContent='🎉 A próxima região está liberada!';slot.append(note);
    if(board.activeRegion<2)slot.append(btn('Ir para a próxima região',()=>{if(onStartRegion2())refresh();}));
    return;
@@ -35,7 +35,10 @@ export function createMissionBoard({getBoard=()=>null,onAccept=()=>false,onClaim
   const prize=document.createElement('p');prize.className='campaign-reward';prize.textContent='🎁 '+rewards(current.reward);
   card.append(h,desc,detail,prize);
   if(current.status==='available')card.append(btn('Iniciar missão',()=>{if(onAccept(current.id))refresh();}));
-  if(current.status==='ready')card.append(btn('Resgatar recompensa',()=>{if(onClaim(current.id))refresh();}));
+  if(current.status==='ready'){
+   const status=document.createElement('p');status.className='campaign-status campaign-status--ready';status.textContent='🎁 Recompensa aguardando resgate';card.append(status);
+   card.append(btn('Resgatar recompensa',()=>{if(onClaim(current.id))refresh();}));
+  }
   if(current.status==='active'){const status=document.createElement('p');status.className='campaign-status';status.textContent='⚓ Em andamento';card.append(status);}
   slot.append(card);
  }
