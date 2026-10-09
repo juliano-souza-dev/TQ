@@ -4,7 +4,7 @@ import { damageMonster } from '../monsters/MonsterCombat.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
 import {
   ammoStock, armedCannons, availableNavalAmmo, cannonHardpoint, cannonRange,
-  effectiveAmmo, aimWithAccuracy, distanceBetween, flightDurationMs,
+  effectiveAmmo, cannonAcceptsAmmo, aimWithAccuracy, distanceBetween, flightDurationMs,
   interceptPoint, shipCollision, shotDamage,
 } from './NavalBattleRules.js';
 
@@ -50,14 +50,17 @@ export class NavalBattleController {
     const save = this.readSave();
     const requested = save.selectedNavalAmmoId;
     const options = availableNavalAmmo(save);
-    if (requested && options.some(item => item.id === requested && item.amount > 0)) return requested;
-    return options.find(item => item.id === 'rusted-iron' && item.amount > 0)?.id
-      || options.find(item => item.amount > 0)?.id || 'rusted-iron';
+    const battery = armedCannons(save, this.shipId);
+    const compatible = item => battery.some(({ cannon }) => cannonAcceptsAmmo(cannon, item.id));
+    if (requested && options.some(item => item.id === requested && item.amount > 0 && compatible(item))) return requested;
+    return options.find(item => item.id === 'aetherion-seeker' && item.amount > 0 && compatible(item))?.id
+      || options.find(item => item.id === 'rusted-iron' && item.amount > 0 && compatible(item))?.id
+      || options.find(item => item.amount > 0 && compatible(item))?.id || 'rusted-iron';
   }
 
   setAmmo(ammoId) {
     const selected = availableNavalAmmo(this.readSave())
-      .find(item => item.id === ammoId && item.amount > 0);
+      .find(item => item.id === ammoId && item.amount > 0 && armedCannons(this.readSave(), this.shipId).some(({ cannon }) => cannonAcceptsAmmo(cannon, item.id)));
     if (!selected) return false;
     this.selectedAmmoId = selected.id;
     this.writePatch({ selectedNavalAmmoId: selected.id });
@@ -77,7 +80,7 @@ export class NavalBattleController {
 
   canHuntThief() {
     return this.shipId === 'fragata-sombra-cacadora'
-      && armedCannons(this.readSave(), this.shipId).some(({ cannon }) => cannon.id === 'royal-lion');
+      && armedCannons(this.readSave(), this.shipId).some(({ cannon }) => cannon.id === 'aetherion-mk1');
   }
 
   setTarget(id, { manual = false } = {}) {
@@ -150,7 +153,7 @@ export class NavalBattleController {
     const distance = target ? distanceBetween(player, target) : Infinity;
     const harpoon = equippedHarpoon(save);
     const monsterTarget = target?.type === 'monster';
-    const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon));
+    const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon) && cannonAcceptsAmmo(cannon, this.selectedAmmoId));
     const ammo = ammoStock(save, this.selectedAmmoId);
     // R1 possui um tutorial obrigatório. R2 já começa com combate liberado.
     const missionActive = this.getRegionId() !== 'r1'
@@ -164,7 +167,7 @@ export class NavalBattleController {
     else if (!monsterTarget && !missionActive) reason = 'mission';
     else if (!monsterTarget && !battery.length) reason = 'no-cannon';
     else if (!target) reason = 'target';
-    else if (!monsterTarget && !inRangeCannons.length) reason = 'range';
+    else if (!monsterTarget && !inRangeCannons.length) reason = battery.some(({ cannon }) => cannonAcceptsAmmo(cannon, this.selectedAmmoId)) ? 'range' : 'ammo-type';
     else if (!monsterTarget && (!ammo || !effectiveAmmo(this.selectedAmmoId))) reason = 'ammo';
     else if (this.getHealth() <= 0) reason = 'sunk';
     return {
@@ -416,7 +419,7 @@ export class NavalBattleController {
     const player = this.getPlayer(), target = this.getTarget();
     const save = this.readSave();
     const battery = armedCannons(save, this.shipId)
-      .filter(({ cannon }) => distanceBetween(player, target) <= cannonRange(cannon));
+      .filter(({ cannon }) => distanceBetween(player, target) <= cannonRange(cannon) && cannonAcceptsAmmo(cannon, this.selectedAmmoId));
     const ammo = effectiveAmmo(this.selectedAmmoId);
     if (!ammo || !battery.length) return 0;
 
