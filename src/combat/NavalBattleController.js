@@ -32,6 +32,8 @@ export class NavalBattleController {
     this.targetScanElapsedMs = 0;
     this.firing = false;
     this.nextHarpoonAt = -Infinity;
+    this.assist = null;
+    this.nextAssistShotAt = -Infinity;
     this.nextBySlot = new Map();
     this.nextNpcShot = new Map();
     this.nextKrakenStrike = new Map();
@@ -63,7 +65,7 @@ export class NavalBattleController {
   }
 
   setTarget(id, { manual = false } = {}) {
-    if (this.targetId !== id) this.firing = false;
+    if (this.targetId !== id) { this.firing = false; this.assist = null; }
     this.targetId = id || null;
     this.manualTargetId = manual && id ? id : null;
   }
@@ -162,6 +164,7 @@ export class NavalBattleController {
   toggleFire() {
     if (this.firing) {
       this.firing = false;
+      this.assist = null;
       this.onFeedback('⏹ Disparos interrompidos. Balas em voo continuam.');
       return true;
     }
@@ -171,6 +174,57 @@ export class NavalBattleController {
     if (this.getTarget()?.type === 'monster') this.fireHarpoon();
     else this.firePlayerVolley(this.clock());
     return true;
+  }
+
+  // Escolhe somente navegantes NPC vivos que estejam perto do monstro.
+  getAssistCandidate() {
+    const monster=this.getTarget();
+    if(!this.firing || monster?.type!=='monster' || monster.health<=0)return null;
+    const choices=[...this.getEntities().values()]
+      .filter(n=>n.type==='npc'&&n.health>0
+        && !n.negotiationFrozen && !n.attackProtectedUntil
+        && distanceBetween(n,monster)<=620)
+      .sort((a,b)=>distanceBetween(a,monster)-distanceBetween(b,monster));
+    return choices[0]??null;
+  }
+
+  getAssistStatus() {
+    const monster=this.getTarget();
+    const candidate=this.getAssistCandidate();
+    return {eligible:!!candidate && !this.assist, active:!!this.assist,
+      npc:candidate, monster, helper:this.assist?.npcId??null};
+  }
+
+  enableMonsterAssist() {
+    const candidate=this.getAssistCandidate(),monster=this.getTarget();
+    if (!candidate||!monster||this.assist)return false;
+    this.assist={npcId:candidate.id,monsterId:monster.id};
+    this.nextAssistShotAt=-Infinity;
+    this.onFeedback('🤝 '+candidate.name+' veio ajudar na caça ao monstro!');
+    return true;
+  }
+
+  fireAssistHarpoon(now) {
+    if(!this.assist)return;
+    const monster=this.getEntities().get(this.assist.monsterId);
+    const helper=this.getEntities().get(this.assist.npcId);
+    if(!this.firing||!monster||monster.health<=0||!helper||helper.health<=0
+      ||distanceBetween(helper,monster)>620) {
+      this.assist=null;return;
+    }
+    if(now<this.nextAssistShotAt)return;
+    const launcher=equippedHarpoon(this.readSave());
+    const from={x:helper.x,y:helper.y};
+    const to=interceptPoint(from,monster,this.velocities.get(monster.id),launcher.projectileSpeed);
+    const targetId=monster.id;
+    const fired=this.renderer.fire({
+      from,to,duration:flightDurationMs(from,to,launcher.projectileSpeed),
+      ammo:{id:'naval-harpoon',size:1.8,projectileSpeed:launcher.projectileSpeed,
+        fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
+      impactKind:'water',startTime:now,
+      onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,25),
+    });
+    if(fired)this.nextAssistShotAt=now+7000;
   }
 
   getHarpoonStatus() {
@@ -224,7 +278,7 @@ export class NavalBattleController {
     if(!hit)return {kind:'water'};
     if(monster.health>0)monster.state='retaliating';
     this.onFeedback('⚓ Arpão atingiu '+monster.name+'! -'+hit.damage+' PV.');
-    if(monster.health<=0)this.onVictory(monster);
+    if(monster.health<=0){this.firing=false;this.assist=null;this.onVictory(monster);}
     return {kind:'ship'};
   }
 
@@ -250,12 +304,14 @@ export class NavalBattleController {
       const status = this.getStatus();
       if (!status.ready) {
         this.firing = false;
+        this.assist = null;
         this.onFeedback(status.reason === 'range'
           ? '⏸ Alvo saiu do alcance.' : '⏹ Disparos interrompidos.');
       } else if (this.getTarget()?.type === 'monster') {
         if (now >= this.nextHarpoonAt) this.fireHarpoon();
       } else this.firePlayerVolley(now);
     }
+    this.fireAssistHarpoon(now);
     this.fireNpcVolleys(now);
     this.fireKrakenStrikes(now);
   }
@@ -346,7 +402,7 @@ export class NavalBattleController {
     }
     this.onFeedback('💥 Acertou ' + target.name + '! -' + damage + ' PV.');
     if (target.health <= 0) {
-      if (target.id === this.targetId) this.firing = false;
+      if (target.id === this.targetId) { this.firing = false; this.assist = null; }
       this.onVictory(target);
     }
     return { kind: 'ship' };
