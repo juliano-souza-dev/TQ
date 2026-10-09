@@ -74,7 +74,14 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   const attackControls = document.createElement('div');
   attackControls.className = 'combat-attack-controls';
   // Attack moves left, repair takes the original rightmost attack position.
-  attackControls.append(fireButton, fireIconButton, centerButton, repairButton);
+  const consumablesButton = document.createElement('button');
+  consumablesButton.type = 'button';
+  consumablesButton.className = 'naval-consumables-button';
+  consumablesButton.setAttribute('aria-label', 'Consumíveis');
+  consumablesButton.title = 'Consumíveis (em preparação)';
+  // Moldura vazia: o item consumível equipado será desenhado aqui futuramente.
+  consumablesButton.addEventListener('click', () => setFeedback('🧪 Consumíveis: em preparação.'));
+  attackControls.append(fireButton, fireIconButton, centerButton, repairButton, consumablesButton);
   element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
   let optionFingerprint = '';
 
