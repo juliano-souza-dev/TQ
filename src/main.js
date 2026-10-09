@@ -223,6 +223,19 @@ async function startWorld() {
       });
     }
   }
+  // Repair legacy rewards: Caçadora das Sombras must be owned before
+  // the subsequent Preparar a Caçada contract can be completed.
+  {
+    const save=readSave();
+    const completed=save.r2Campaign?.claimed?.includes('r2-shadow-trials')
+      || ['r2-equip-chaser','r2-destroy-thief'].includes(save.r2Campaign?.active)
+      || save.r2Campaign?.claimed?.some(id=>['r2-equip-chaser','r2-destroy-thief'].includes(id));
+    const equipment=save.equipment??{};
+    if(completed&&!equipment.ownedShipIds?.includes('fragata-sombra-cacadora')){
+      writePatch({equipment:{...equipment,
+        ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),'fragata-sombra-cacadora'])]}});
+    }
+  }
   // O navio inicial já pertence ao jogador desde o primeiro acesso.
   // Normaliza saves antigos sem excluir equipamentos ou navios conquistados.
   const initialEquipment = readSave().equipment ?? {};
