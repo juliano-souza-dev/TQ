@@ -466,6 +466,13 @@ async function startWorld() {
   }
 
   const updateMissionHud = () => {
+    if (world.region.id === 'r2') {
+      missionHud.hidden = false;
+      missionHud.textContent = readSave().progression?.r2PortVisited
+        ? '⚓ Costa dos Corsários · Explore o porto e prepare a próxima aventura'
+        : '📜 Primeiro objetivo: vá ao Porto das Missões';
+      return;
+    }
     const flow = getMissionFlow(readSave(), activeShip.id);
     missionHud.hidden = false;
     missionHud.textContent = flow.stage === 'combat' ? '📜 Afunde 1 Corsário das Velas Rubras · 0/1'
@@ -480,7 +487,9 @@ async function startWorld() {
   };
   const islandPanel = createIslandPanel({
     missionBoardOptions: {
-      getBoard: () => getCampaignBoard(readSave()),
+      getBoard: () => world.region.id === 'r2'
+        ? { essentialClaimed: 0, missions: [], unlockedRegion: 1, active: [], claimable: [], available: [] }
+        : getCampaignBoard(readSave()),
       getPedagogy: () => readSave().pedagogy ?? {},
       onAccept: id => mathGate.open({
         kind: 'accept-mission', id,
@@ -611,7 +620,14 @@ async function startWorld() {
       contactId = contact.id;
       clickNavigation.cancel();
       islandPanel.open(contact.kind);
-      recordMissionEvent({ type: 'visit', island: contact.kind });
+      if (world.region.id === 'r2' && contact.kind === 'missions' && !readSave().progression?.r2PortVisited) {
+        const save = readSave();
+        writePatch({ progression: { ...save.progression, r2PortVisited: true } });
+        firstVoyageGuide?.finish();
+        firstVoyageGuide?.dispose();
+        firstVoyageGuide = null;
+      }
+      if (world.region.id === 'r1') recordMissionEvent({ type: 'visit', island: contact.kind });
       updateMissionHud();
     }
   }
@@ -633,17 +649,19 @@ async function startWorld() {
   }
   // Só ativa o NPC quando seu sprite estiver realmente carregado.
   // Se o arquivo ainda não foi enviado ao GitHub, o oceano inicia normalmente.
-  if (npcRenderer.hasShipSprite('fragata-sombra-fugitiva')) {
+  if (world.region.id === 'r1' && npcRenderer.hasShipSprite('fragata-sombra-fugitiva')) {
     createFugitiveFrigatePopulation(world);
   }
   const previousSave = localSaves.load(currentUser.uid);
   const flow = getMissionFlow(previousSave?.payload ?? {}, STARTER_SHIP.id);
-  if (flow.destination) {
+  if ((world.region.id === 'r2' && !readSave().progression?.r2PortVisited)
+      || (world.region.id === 'r1' && flow.destination)) {
     const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
     if (generation !== worldGeneration) return;
     firstVoyageGuide = createFirstVoyageGuide(world);
     root.append(...firstVoyageGuide.elements);
-    if (flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
+    if (world.region.id === 'r2') firstVoyageGuide.guideTo('missions');
+    else if (flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
   }
   updateMissionHud();
   let positionSaveElapsed = 0;
