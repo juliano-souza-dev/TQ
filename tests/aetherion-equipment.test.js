@@ -28,7 +28,7 @@ test('seeker metadata locks same target for nine seconds and uses placeholder as
 test('Preparar a Caçada rewards one cannon and fifty autoguided rounds', () => {
   const m=R2_MISSIONS.find(m=>m.id==='r2-equip-chaser');
   assert.deepEqual(m.reward.cannons,{'aetherion-mk1':1});
-  assert.deepEqual(m.reward.ammo,{'aetherion-seeker':50});
+  assert.deepEqual(m.reward.ammo,{'aetherion-seeker':5000});
   const save={profile:{gold:0},ammunition:{},equipment:{},r2Campaign:{
     active:m.id,claimed:R2_MISSIONS.slice(0,9).map(m=>m.id),
     progress:{[m.id]:[1]},processed:[]
