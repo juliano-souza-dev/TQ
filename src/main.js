@@ -1,3 +1,4 @@
+import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
 import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission } from './missions/RegionTwoCampaign.js';
 import { beginHullRecovery, advanceHullRecovery } from './combat/HullRepair.js';
 import { getCampaignBoard, recordCampaignEvent } from './missions/RegionOneCampaign.js';
@@ -167,7 +168,7 @@ async function startWorld() {
   let activeShip = initialShip;
   const { spriteCannonMuzzle } = await import('./ships/CannonMuzzleMap.js');
   function recordMissionEvent(event) {
-    const patch = world.region.id === 'r2' ? recordR2Event(readSave(),event) : recordCampaignEvent(readSave(), event);
+    const patch = campaignFor(world.region.id).record(readSave(), event);
     if (!patch) return false;
     writePatch(patch);
     updateMissionHud();
@@ -178,13 +179,13 @@ async function startWorld() {
     if (!result) return false;
     writePatch(result.patch);
     if (world.region.id === 'r2') {
-      const questPatch=recordR2Event(readSave(),{
+      const questPatch=campaignFor(world.region.id).record(readSave(),{
         type: action.kind === 'informant' ? 'informant' : 'study',
         id:action.challenge.id+':'+Date.now()
       });
       if(questPatch)writePatch(questPatch);
       if(action.kind==='treasure') {
-        const treasurePatch=recordR2Event(readSave(),{type:'treasure',id:action.id});
+        const treasurePatch=campaignFor(world.region.id).record(readSave(),{type:'treasure',id:action.id});
         if(treasurePatch)writePatch(treasurePatch);
       }
     }
@@ -195,7 +196,7 @@ async function startWorld() {
   }
   const mathGate = createMathGate({
     getPedagogy: () => readSave().pedagogy ?? {},
-    getRegion: () => getCampaignBoard(readSave()).activeRegion,
+    getRegion: () => world.region.id === 'r2' ? 2 : 1,
     onSolved: (action, clean) => resolveMathAction(action, clean),
   });
   root.append(mathGate.element);
@@ -510,9 +511,11 @@ async function startWorld() {
   const updateMissionHud = () => {
     if (world.region.id === 'r2') {
       missionHud.hidden = false;
-      const mission = getR2Board(readSave()).active[0];
-      missionHud.textContent = mission
-        ? '📜 '+mission.name+' · '+mission.objectives.map((o,i)=>mission.progress[i]+'/'+o.count).join(' · ')
+      const mission = boardFor(readSave(),world.region.id).active[0];
+      const ready = missionReady(readSave(),world.region.id);
+      missionHud.textContent = ready
+        ? '🎁 Recompensa aguardando resgate · '+ready.name+' · Vá ao Porto das Missões'
+        : mission ? '📜 '+mission.name+' · '+mission.objectives.map((o,i)=>mission.progress[i]+'/'+o.count).join(' · ')
         : !readSave().progression?.r2PortVisited ? '📜 Primeiro objetivo: vá ao Porto das Missões'
         : '📜 Vá ao Porto das Missões para receber seu próximo contrato';
       return;
@@ -531,10 +534,10 @@ async function startWorld() {
   };
   const islandPanel = createIslandPanel({
     missionBoardOptions: {
-      getBoard: () => world.region.id === 'r2' ? getR2Board(readSave()) : getCampaignBoard(readSave()),
+      getBoard: () => boardFor(readSave(),world.region.id),
       getPedagogy: () => readSave().pedagogy ?? {},
       onAccept: id => world.region.id === 'r2'
-        ? (()=>{const patch=acceptR2Mission(readSave(),id);if(!patch)return false;writePatch(patch);updateMissionHud();return true;})()
+        ? (()=>{const patch=campaignFor(world.region.id).accept(readSave(),id);if(!patch)return false;writePatch(patch);updateMissionHud();return true;})()
         : mathGate.open({
         kind: 'accept-mission', id,
         title: '📜 Aceitar contrato',
@@ -542,7 +545,7 @@ async function startWorld() {
         afterSuccess: () => { islandPanel.refreshMissionBoard(); navalHud.refresh(); },
       }),
       onClaim: id => {
-        const result = world.region.id === 'r2' ? claimR2Mission(readSave(),id) : resolveMissionReward(readSave(), id);
+        const result = campaignFor(world.region.id).claim(readSave(), id);
         if (!result) return false;
         writePatch(result.patch);
         navalHud.refresh();
@@ -726,7 +729,7 @@ async function startWorld() {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
       if (world.region.id === 'r2') {
-        const active = getR2Board(readSave()).active[0];
+        const active = boardFor(readSave(),world.region.id).active[0];
         const island = world.region.islands.find(i=>i.id==='r2-scenery-north');
         if (active?.id === 'r2-island' && island &&
             Math.hypot(world.camera.x-island.x,world.camera.y-island.y) <= 650)
@@ -750,7 +753,7 @@ async function startWorld() {
               kind:'informant',title:'🏴‍☠️ O Corsário Informante',
               description:'O capitão só revelará a pista depois de três multiplicações corretas.',
               repeatOnSuccess:true,
-              getContinue:()=> (getR2Board(readSave()).active[0]?.progress[1]??3)<3,
+              getContinue:()=> (boardFor(readSave(),world.region.id).active[0]?.progress[1]??3)<3,
             });
           }
         }
