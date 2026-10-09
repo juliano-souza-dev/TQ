@@ -49,18 +49,18 @@ export function effectiveAmmo(ammoId, events = EVENTS) {
   const rules = NAVAL_AMMO[ammoId];
   if (!item || !rules) return null;
   return {
-    id: item.id, name: item.name, size: 1.3,
+    id: item.id, name: item.name, size: ammoId === 'aetherion-seeker' ? .58 : 1.3,
     projectileSpeed: rules.speed,
     trackingDurationMs: rules.trackingDurationMs ?? 0,
     damageFactor: rules.damageFactor,
     // The original game's ammunition FX presets and texture pipeline.
     fx: ammoId === 'aetherion-seeker' ? {
       preset:'piercing',
-      muzzle:{color:'#ff284c',coreColor:'#72eeff',accentColor:'#ff465e',size:68,starburst:1.35,sparks:30,intensity:1.6},
-      projectile:{texture:getAmmunitionAssetUrl(item),color:'#138dff',coreColor:'#ffffff',accentColor:'#ff234b',glow:2.2,
+      muzzle:{color:'#ff284c',coreColor:'#72eeff',accentColor:'#ff465e',size:34,starburst:1.35,sparks:30,intensity:1.6},
+      projectile:{texture:getAmmunitionAssetUrl(item),scale:.68,auraScale:1.65,orbitRadius:.5,color:'#138dff',coreColor:'#ffffff',accentColor:'#ff234b',glow:2.2,
         auraScale:2.5,auraOpacity:.9,orbitCount:6,sparkle:1.35,pulseSpeed:2.4,echoCount:3},
-      trail:{color:'#068cff',secondaryColor:'#ff214d',width:17,length:23,opacity:.95,ribbon:1.15,sparkle:1.25,beads:1.1},
-      impactShip:{color:'#ff2553',coreColor:'#faffff',accentColor:'#00b8ff',size:156,sparks:45,fireworks:1.35,
+      trail:{color:'#068cff',secondaryColor:'#ff214d',width:6,length:23,opacity:.95,ribbon:1.15,sparkle:1.25,beads:1.1},
+      impactShip:{color:'#ff2553',coreColor:'#faffff',accentColor:'#00b8ff',size:85,sparks:45,fireworks:1.35,
         ringCount:3,shock:1.4,flash:1.3},
       impactWater:{color:'#00adff',coreColor:'#ffffff',accentColor:'#ff315a',size:148,magic:1.35,ringCount:3},
     } : { preset: rules.preset, projectile: { texture: getAmmunitionAssetUrl(item) } },
