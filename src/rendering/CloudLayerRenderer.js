@@ -3,7 +3,6 @@ export class CloudLayerRenderer {
   constructor(canvas) {
     this.canvas=canvas;
     this.ctx=canvas.getContext('2d');
-    this.lastFrame=-Infinity;
     this.clouds=Array.from({length:45},(_,i)=>({
       x:100+((i*719)%4100),
       y:100+((i*1277)%5100),
@@ -12,8 +11,7 @@ export class CloudLayerRenderer {
     }));
   }
   render(camera,zoom,timeMs) {
-    if(!camera||!this.ctx||timeMs-this.lastFrame<70)return;
-    this.lastFrame=timeMs;
+    if(!camera||!this.ctx)return;
     const bounds=this.canvas.getBoundingClientRect();
     if(!bounds.width||!bounds.height)return;
     const scale=Math.min(globalThis.devicePixelRatio||1,1.5);
@@ -25,10 +23,12 @@ export class CloudLayerRenderer {
     const ctx=this.ctx;
     ctx.clearRect(0,0,width,height);
     const t=timeMs/1000;
+    // Nuvens em camada atmosférica: parallax discreto, independente do arrasto do mar.
+    const parallax=0.07;
     for(const cloud of this.clouds) {
       // Oscilação limitada: nunca atravessa o mapa inteiro com o passar do tempo.
-      const x=width/2+(cloud.x-camera.x+Math.sin(t*.09+cloud.phase)*65)*zoom*scale;
-      const y=height/2+(cloud.y-camera.y+Math.cos(t*.045+cloud.phase)*15)*zoom*scale;
+      const x=width/2+(cloud.x-camera.x*parallax+Math.sin(t*.09+cloud.phase)*65)*zoom*scale;
+      const y=height/2+(cloud.y-camera.y*parallax+Math.cos(t*.045+cloud.phase)*15)*zoom*scale;
       const r=cloud.radius*zoom*scale;
       if(x+r*1.6<0||x-r*1.6>width||y+r<0||y-r>height)continue;
       ctx.save();
