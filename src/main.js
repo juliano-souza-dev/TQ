@@ -848,7 +848,9 @@ async function startWorld() {
     const exitActive = campaign.active?.includes('r1-finale')
       && !(campaign.progress?.['r1-finale']?.[0] >= 1) && !mathGate.isOpen;
     const r2 = world.region.id === 'r2' ? getR2Board(readSave()).active[0] : null;
-    const guideTarget = r2?.id === 'r2-destroy-thief'
+    const guideTarget = r2?.id === 'r2-black-market' ? {x:world.region.width/2,y:world.region.height/2}
+      : r2?.id === 'r2-golden-i' || r2?.id === 'r2-golden-ii' ? world.entities.get('r2-morbi')
+      : r2?.id === 'r2-destroy-thief'
       ? [...world.entities.values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0)
       : r2?.id === 'r2-informant' && (r2.progress?.[1] ?? 0)<3 ? world.entities.get('r2-informant')
       : r2?.id === 'r2-island' && !r2.ready && ((r2.progress?.[1] ?? 0) < 3) ? world.region.islands.find(i=>i.id==='r2-scenery-north')
@@ -872,7 +874,7 @@ async function startWorld() {
     thiefGuide.style.setProperty('--thief-angle', (inView ? 90 : Math.atan2(y-py, x-px)*180/Math.PI) + 'deg');
     thiefGuide.classList.toggle('is-visible-target', inView);
     thiefGuide.querySelector('.thief-guide-label').textContent =
-      (guideTarget ? (r2?.id === 'r2-informant' ? 'Informante' : r2?.id === 'r2-island' ? 'Ilha Esquecida' : r2?.id === 'r2-equip-chaser' ? 'Estaleiro · Equipar Fragata' : r2?.id === 'r2-destroy-thief' ? 'Ladrão das Sombras' : 'Almirante') : exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
+      (guideTarget ? (r2?.id === 'r2-black-market' ? 'Mercado Negro' : r2?.id?.startsWith('r2-golden-') ? 'Galeão Dourado' : r2?.id === 'r2-informant' ? 'Informante' : r2?.id === 'r2-island' ? 'Ilha Esquecida' : r2?.id === 'r2-equip-chaser' ? 'Estaleiro · Equipar Fragata' : r2?.id === 'r2-destroy-thief' ? 'Ladrão das Sombras' : 'Almirante') : exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
     thiefGuide.hidden = false;
   }
 
