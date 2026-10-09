@@ -191,12 +191,14 @@ export class NavalBattleController {
     const {launcher,target}=status;
     const player=this.getPlayer(),now=this.clock();
     const from={x:player.x,y:player.y};
-    const destination=aimWithAccuracy(target,from,launcher.accuracy,this.random);
+    const aim=interceptPoint(from,target,this.velocities.get(target.id),launcher.projectileSpeed);
+    const destination=aimWithAccuracy(aim,from,launcher.accuracy,this.random);
     const targetId=target.id;
     const accepted=this.renderer.fire({
       from,to:destination,duration:flightDurationMs(from,destination,launcher.projectileSpeed),
-      ammo:{id:'naval-harpoon',name:'Arpão Naval Simples',asset:launcher.projectileAsset,
-        projectileSpeed:launcher.projectileSpeed},
+      ammo:{id:'naval-harpoon',name:'Arpão Naval Simples',size:1.8,
+        projectileSpeed:launcher.projectileSpeed,
+        fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
       impactKind:'water',startTime:now,
       onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,harpoonDamage(launcher)),
     });
