@@ -29,6 +29,7 @@ export function campaignState(save = {}) {
     active: Array.isArray(input.active) ? [...new Set(input.active)] : [],
     claimed: Array.isArray(input.claimed) ? [...new Set(input.claimed)] : [],
     progress: input.progress && typeof input.progress === 'object' ? input.progress : {},
+    negotiationRobbed: input.negotiationRobbed === true,
     processedEvents: Array.isArray(input.processedEvents) ? input.processedEvents : [],
   };
 }
