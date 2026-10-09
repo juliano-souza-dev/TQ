@@ -166,6 +166,22 @@ async function startWorld() {
           'speed-plus':(Number(c.quantities?.['speed-plus'])||0)+10}}});
     }
   }
+  // One initial treasure map, granted only once per player.
+  {
+    const save=readSave(),c=save.consumables??{};
+    if(!c.starterTreasureMapGranted)writePatch({consumables:{...c,starterTreasureMapGranted:true,
+      quantities:{...(c.quantities??{}),'treasure-map':(Number(c.quantities?.['treasure-map'])||0)+1}}});
+  }
+  // One-time reward migration for missions claimed before treasure maps existed.
+  {
+    const save=readSave(),c=save.consumables??{},claimed=save.campaign?.claimed??[];
+    const grants=['r1-treasure-i','r1-finale'].filter(id=>claimed.includes(id)
+      && !save.rewardMigrations?.['treasureMap-'+id]);
+    if(grants.length)writePatch({consumables:{...c,quantities:{...(c.quantities??{}),
+      'treasure-map':(Number(c.quantities?.['treasure-map'])||0)+grants.length*2}},
+      rewardMigrations:{...(save.rewardMigrations??{}),
+        ...Object.fromEntries(grants.map(id=>['treasureMap-'+id,true]))}});
+  }
   // Migração idempotente: jogadores que já resgataram a missão 10
   // recebem o Aetherion no lugar da recompensa antiga e 5000 orbes.
   {
@@ -526,7 +542,7 @@ async function startWorld() {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
     getTreasures: () => (world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief') ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),
-    hasTreasureSense: () => Boolean(world.treasureSenseActive),
+    hasTreasureSense: () => Boolean(world.treasureSenseActive || navalBattle?.isTreasureMapActive()),
   });
   minimapElement = minimap.element;
   root.append(minimapElement);
