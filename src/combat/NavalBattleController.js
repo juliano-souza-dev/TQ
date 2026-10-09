@@ -58,13 +58,16 @@ export class NavalBattleController {
       shieldCooldownUntil:Number(c.shieldCooldownUntil)||0,
       speedActiveUntil:Number(c.speedActiveUntil)||0,
       speedCooldownUntil:Number(c.speedCooldownUntil)||0,
+      treasureMapActiveUntil:Number(c.treasureMapActiveUntil)||0,
+      treasureMapCooldownUntil:Number(c.treasureMapCooldownUntil)||0,
     };
   }
   isFlameActive() { return Date.now() < this.getConsumables().activeUntil; }
   isShieldActive() { return Date.now() < this.getConsumables().shieldActiveUntil; }
   isSpeedActive() { return Date.now() < this.getConsumables().speedActiveUntil; }
+  isTreasureMapActive() { return Date.now() < this.getConsumables().treasureMapActiveUntil; }
   selectConsumable(id) {
-    if (!['none','flame-5x','shield','speed-plus'].includes(id)) return false;
+    if (!['none','flame-5x','shield','speed-plus','treasure-map'].includes(id)) return false;
     const save=this.readSave();
     this.writePatch({consumables:{...(save.consumables??{}),selectedId:id}});
     return true;
@@ -75,6 +78,7 @@ export class NavalBattleController {
       shield:{active:'shieldActiveUntil',cooldown:'shieldCooldownUntil',duration:56250,reload:180000,label:'Escudo'},
       'flame-5x':{active:'activeUntil',cooldown:'cooldownUntil',duration:75000,reload:150000,label:'5X em Chamas'},
       'speed-plus':{active:'speedActiveUntil',cooldown:'speedCooldownUntil',duration:120000,reload:300000,label:'Veloz+'},
+      'treasure-map':{active:'treasureMapActiveUntil',cooldown:'treasureMapCooldownUntil',duration:900000,reload:1800000,label:'Mapa do Tesouro'},
     }[c.selectedId];
     if(!config)return {ok:false,reason:'Selecione um consumível.'};
     if(c[config.active]>now)return {ok:false,reason:'Consumível já ativo.'};
