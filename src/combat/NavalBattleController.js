@@ -31,7 +31,6 @@ export class NavalBattleController {
     this.manualTargetId = null;
     this.targetScanElapsedMs = 0;
     this.firing = false;
-    this.harpoonFiring = false;
     this.nextHarpoonAt = -Infinity;
     this.nextBySlot = new Map();
     this.nextNpcShot = new Map();
@@ -126,22 +125,23 @@ export class NavalBattleController {
     const missionActive = save.missions?.corsair === 'active'
       || (save.missions?.corsair === 'complete' && (save.campaign?.active?.length ?? 0) > 0);
     let reason = 'ready';
-    if (monsterTarget) reason = 'harpoon-only';
-    else if (!missionActive) reason = 'mission';
-    else if (!battery.length) reason = 'no-cannon';
+    if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
+    else if (monsterTarget && distance > harpoon.range) reason = 'range';
+    else if (!monsterTarget && !missionActive) reason = 'mission';
+    else if (!monsterTarget && !battery.length) reason = 'no-cannon';
     else if (!target) reason = 'target';
-    else if (!inRangeCannons.length) reason = 'range';
-    else if (!ammo || !effectiveAmmo(this.selectedAmmoId)) reason = 'ammo';
+    else if (!monsterTarget && !inRangeCannons.length) reason = 'range';
+    else if (!monsterTarget && (!ammo || !effectiveAmmo(this.selectedAmmoId))) reason = 'ammo';
     else if (this.getHealth() <= 0) reason = 'sunk';
     return {
       firing: this.firing,
-      harpoonFiring: this.harpoonFiring,
+      harpoonFiring: this.firing && monsterTarget,
       harpoonName: harpoon.name,
       harpoonRange: harpoon.range,
       harpoonReloadSeconds: harpoon.reloadSeconds,
       ready: reason === 'ready',
       reason, distance,
-      range: battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0,
+      range: monsterTarget ? harpoon.range : battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0,
       targetName: target?.name || '',
       equippedCannons: battery.length,
       cannonsInRange: inRangeCannons.length,
@@ -166,7 +166,8 @@ export class NavalBattleController {
     const status = this.getStatus();
     if (!status.ready) return false;
     this.firing = true;
-    this.firePlayerVolley(this.clock());
+    if (this.getTarget()?.type === 'monster') this.fireHarpoon();
+    else this.firePlayerVolley(this.clock());
     return true;
   }
 
@@ -247,6 +248,8 @@ export class NavalBattleController {
         this.firing = false;
         this.onFeedback(status.reason === 'range'
           ? '⏸ Alvo saiu do alcance.' : '⏹ Disparos interrompidos.');
+      } else if (this.getTarget()?.type === 'monster') {
+        if (now >= this.nextHarpoonAt) this.fireHarpoon();
       } else this.firePlayerVolley(now);
     }
     this.fireNpcVolleys(now);
