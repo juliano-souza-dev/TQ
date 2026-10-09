@@ -1051,9 +1051,14 @@ async function startWorld() {
     const thiefActive = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed && !mathGate.isOpen;
     const exitActive = campaign.active?.includes('r1-finale')
       && !(campaign.progress?.['r1-finale']?.[0] >= 1) && !mathGate.isOpen;
-    const r2 = world.region.id === 'r2' ? getR2Board(readSave()).active[0] : null;
+    const r2Board = world.region.id === 'r2' ? getR2Board(readSave()) : null;
+    const r2 = r2Board?.active[0] ?? null;
+    const darkPassageMission=r2Board?.missions.find(m=>m.id==='r2-dark-voyage');
+    const darkPassageActive=darkPassageMission?.status==='active'
+      || (readSave().r2Campaign?.active==='r2-dark-voyage'
+        && darkPassageMission?.status!=='claimed');
     const guideTarget = r2?.id === 'r2-meet-forgotten' ? world.region.islands.find(i=>i.id==='r2-scenery-north')
-      : r2?.id === 'r2-dark-voyage' && r2.status==='active' ? darkWatersExit
+      : darkPassageActive ? darkWatersExit
       : ['r2-black-market','r2-hunt-prep'].includes(r2?.id) ? {x:world.region.width/2,y:world.region.height/2}
       : r2?.id === 'r2-golden-i' || r2?.id === 'r2-golden-ii' ? world.entities.get('r2-morbi')
       : r2?.id === 'r2-destroy-thief'
@@ -1067,7 +1072,8 @@ async function startWorld() {
       ? [...world.entities.values()].find(npc => npc.archetype === 'fugitive-frigate' && npc.health > 0)
       : exitActive ? world.region.exitPoint : null);
     if (!target) { thiefGuide.hidden = true; return; }
-    thiefGuide.setAttribute('aria-label', r2?.id==='r2-dark-voyage' ? 'Direção da passagem para as Águas Escuras' : exitActive ? 'Direção da saída para Costa dos Corsários' : 'Direção do alvo da missão');
+    thiefGuide.classList.toggle('is-dark-voyage',Boolean(darkPassageActive));
+    thiefGuide.setAttribute('aria-label', darkPassageActive ? 'Direção da passagem para as Águas Escuras' : exitActive ? 'Direção da saída para Costa dos Corsários' : 'Direção do alvo da missão');
     const width = canvas.clientWidth, height = canvas.clientHeight;
     if (!width || !height) { thiefGuide.hidden = true; return; }
     const x = width / 2 + (target.x - world.cameraView.x) * world.camera.zoom;
@@ -1081,8 +1087,16 @@ async function startWorld() {
     thiefGuide.style.setProperty('--thief-angle', (inView ? 90 : Math.atan2(y-py, x-px)*180/Math.PI) + 'deg');
     thiefGuide.classList.toggle('is-visible-target', inView);
     thiefGuide.querySelector('.thief-guide-label').textContent =
-      (guideTarget ? (r2?.id === 'r2-black-market' ? 'Mercado Negro' : r2?.id?.startsWith('r2-golden-') ? 'Galeão Dourado' : r2?.id === 'r2-informant' ? 'Informante' : r2?.id === 'r2-island' ? 'Ilha Esquecida' : r2?.id === 'r2-equip-market' ? 'Estaleiro · Equipar Canhões' : r2?.id === 'r2-equip-chaser' ? 'Estaleiro · Equipar Fragata' : r2?.id === 'r2-destroy-thief' ? 'Ladrão das Sombras' : r2?.id === 'r2-dark-voyage' ? 'Passagem · Águas Escuras' : r2?.id === 'r2-meet-forgotten' ? 'Ilha Esquecida' : r2?.id === 'r2-admiral' ? 'Baltazar Ferrugem' : 'Destino da missão') : exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
+      (guideTarget ? (r2?.id === 'r2-black-market' ? 'Mercado Negro' : r2?.id?.startsWith('r2-golden-') ? 'Galeão Dourado' : r2?.id === 'r2-informant' ? 'Informante' : r2?.id === 'r2-island' ? 'Ilha Esquecida' : r2?.id === 'r2-equip-market' ? 'Estaleiro · Equipar Canhões' : r2?.id === 'r2-equip-chaser' ? 'Estaleiro · Equipar Fragata' : r2?.id === 'r2-destroy-thief' ? 'Ladrão das Sombras' : darkPassageActive ? '🌑 Passagem · Águas Escuras' : r2?.id === 'r2-meet-forgotten' ? 'Ilha Esquecida' : r2?.id === 'r2-admiral' ? 'Baltazar Ferrugem' : 'Destino da missão') : exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
     thiefGuide.hidden = false;
+    if(darkPassageActive){
+      // Keep a persistent route cue even while the destination is off-screen.
+      thiefGuide.style.zIndex='45';
+      thiefGuide.title='Siga a seta dourada até a passagem para as Águas Escuras.';
+    }else{
+      thiefGuide.style.zIndex='';
+      thiefGuide.title='';
+    }
   }
 
   const updateMissionHud = () => {
