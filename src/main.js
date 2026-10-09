@@ -240,7 +240,6 @@ async function startWorld() {
   if (readSave().harpoonAmmo?.['harpoon-mariner'] === undefined) {
     writePatch({harpoonAmmo:{...(readSave().harpoonAmmo??{}),'harpoon-mariner':500}});
   }
-  const { ROSE_GOLD_SHIP } = await import('./ships/RoseGoldShip.js');
   const { SHIP_CATALOG } = await import('./ships/ShipRegistry.js');
   const playableShips = [STARTER_SHIP, ...SHIP_CATALOG];
   const savedEquipment = readSave().equipment ?? {};
