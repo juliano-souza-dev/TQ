@@ -1,3 +1,5 @@
+import { R2 } from '../src/world/regions/r2.js';
+import { collidesWithIsland, getIslandContact } from '../src/world/IslandCollision.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getR2Board, acceptR2Mission, recordR2Event, claimR2Mission, R2_MISSIONS } from '../src/missions/RegionTwoCampaign.js';
@@ -30,4 +32,9 @@ test('campanha da segunda região tem dez missões sequenciais', () => {
 test('arcas da Costa dos Corsários aparecem somente na segunda região',()=>{
   assert.ok(R2_TREASURES.length>=20);
   assert.ok(getVisibleTreasures({},0,'r2').every(t=>t.id.startsWith('r2-')));
+});
+
+test('travessia chega fora da zona de contato de qualquer porto na R2',()=>{
+  assert.equal(collidesWithIsland(R2,R2.spawn.x,R2.spawn.y,32),false);
+  assert.equal(getIslandContact(R2,R2.spawn.x,R2.spawn.y,100),null);
 });
