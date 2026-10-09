@@ -60,29 +60,19 @@ test('populacao de fuga nasce longe do jogador e nunca cria duplicatas', () => {
   assert.equal(npc.aggression, 'flee');
 });
 
-test('Ladrao da Sombra tem quadros por direcao, com espelhamento apenas onde necessario', () => {
+test('Ladrao da Sombra usa 16 direcoes exatas sem espelhamento', () => {
   const { sprite } = FUGITIVE_FRIGATE_SHIP;
-  assert.equal(sprite.framesByHeading.length, 16);
-  assert.equal(sprite.flipXByHeading.length, 16);
-  assert.deepEqual(sprite.framesByHeading, [
-    15, 13, 11, 10, 5, 3, 2, 1,
-    0, 1, 2, 3, 5, 7, 9, 13,
-  ]);
+  const expected = [4,5,6,7,8,9,10,11,12,13,14,15,0,1,2,3];
+  assert.deepEqual(sprite.framesByHeading, expected);
+  assert.deepEqual(sprite.flipXByHeading, Array(16).fill(false));
   for (let i = 0; i < 16; i++) {
-    const heading = i * 22.5;
-    assert.equal(getShipFrame(heading, FUGITIVE_FRIGATE_SHIP), sprite.framesByHeading[i],
-      'rumo ' + heading);
-    assert.ok(sprite.framesByHeading[i] >= 0 && sprite.framesByHeading[i] < 16);
-    assert.equal(typeof sprite.flipXByHeading[i], 'boolean');
+    assert.equal(getShipFrame(i * 22.5, FUGITIVE_FRIGATE_SHIP), expected[i]);
   }
-  assert.equal(getShipFrame(0, FUGITIVE_FRIGATE_SHIP), 15, 'proa para cima');
-  assert.equal(getShipFrame(90, FUGITIVE_FRIGATE_SHIP), 5, 'quadro de perfil espelhado para Leste');
-  assert.equal(sprite.flipXByHeading[4], true);
-  assert.equal(getShipFrame(180, FUGITIVE_FRIGATE_SHIP), 0, 'proa para baixo');
-  assert.equal(getShipFrame(270, FUGITIVE_FRIGATE_SHIP), 5, 'perfil sem espelhamento para Oeste');
-  assert.equal(sprite.flipXByHeading[12], false);
-  assert.equal(getShipFrame(-90, FUGITIVE_FRIGATE_SHIP), 5);
-  assert.equal(getShipFrame(360, FUGITIVE_FRIGATE_SHIP), 15);
+  assert.equal(getShipFrame(0, FUGITIVE_FRIGATE_SHIP), 4);
+  assert.equal(getShipFrame(90, FUGITIVE_FRIGATE_SHIP), 8);
+  assert.equal(getShipFrame(180, FUGITIVE_FRIGATE_SHIP), 12);
+  assert.equal(getShipFrame(270, FUGITIVE_FRIGATE_SHIP), 0);
+  assert.equal(getShipFrame(360, FUGITIVE_FRIGATE_SHIP), 4);
 });
 
 test('fragata ladra também patrulha a R2 com ID próprio e movimento contínuo', () => {
