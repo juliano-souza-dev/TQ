@@ -442,5 +442,6 @@ test('informante ativo não é selecionável nem recebe dano de disparos em voo'
   assert.equal(t.enemy.health, 500);
   t.enemy.informantProtected = false;
   t.enemy.name = 'Corsário das Velas Rubras';
+  assert.equal(t.battle.setTarget(t.enemy.id, { manual: true }), true);
   assert.equal(t.battle.getTarget()?.id, 'r2-informant');
 });
