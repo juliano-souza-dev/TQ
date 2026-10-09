@@ -58,23 +58,28 @@ export function createMathGate({
     vibrate(correct ? 35 : [45, 55, 45]);
   }
   function close() {
+    if (pending?.locked && pending?.getLocked?.()) return false;
+    const completed = pending;
     if (closeTimer !== null) clearTimeout(closeTimer);
     closeTimer = null;
     pending = null;
     element.hidden = true;
+    completed?.onClose?.();
+    return true;
   }
   cancel.addEventListener('click', () => { if (!resolved) close(); });
 
   function open({
     kind, title: heading, description: explanation, id,
-    family = null, afterSuccess = () => {},
+    family = null, afterSuccess = () => {}, repeatOnSuccess = false,
+    locked = false, getLocked = () => false, onClose = () => {},
   } = {}) {
     if (!kind || pending) return false;
     clearFeedbackState();
-    cancel.disabled = false;
+    cancel.disabled = locked && getLocked();
     const region = getRegion();
     const challenge = chooseRegionChallenge(getPedagogy(), family, Math.random, region);
-    pending = { kind, id, challenge, afterSuccess, family, region };
+    pending = { kind, id, challenge, afterSuccess, family, region, repeatOnSuccess, locked, getLocked, onClose };
     attempts = 0;
     mistakeMade = false;
     resolved = false;
@@ -101,17 +106,18 @@ export function createMathGate({
           for (const item of answers.children) item.disabled = true;
           cancel.disabled = true;
           markAnswer({ correct: false, chosen: button, expected: challenge.answer });
-          feedback.textContent = attempts >= maxAttempts
+          feedback.textContent = attempts >= maxAttempts && !pending.repeatOnSuccess
             ? '✕ Cinco erros. Tesouro fechado, tente novamente mais tarde.'
             : '✕ Errou! A correta está em verde. Preparando outra continha...';
           feedback.dataset.result = 'wrong';
           closeTimer = setTimeout(() => {
             closeTimer = null;
             if (!pending) return;
-            if (attempts >= maxAttempts) { close(); return; }
+            if (attempts >= maxAttempts && !pending.repeatOnSuccess) { close(); return; }
+            if (attempts >= maxAttempts) attempts = 0;
             pending.challenge = chooseRegionChallenge(getPedagogy(), pending.family, Math.random, pending.region);
             resolved = false;
-            cancel.disabled = false;
+            cancel.disabled = pending.locked && pending.getLocked();
             renderRound();
           }, 850);
           return;
@@ -132,8 +138,20 @@ export function createMathGate({
         feedback.dataset.result = 'correct';
         const callback = pending.afterSuccess;
         closeTimer = setTimeout(() => {
-          close();
-          callback();
+          if (!pending) return;
+          if (pending.repeatOnSuccess) {
+            callback();
+            if (pending.locked && pending.getLocked()) {
+              pending.challenge = chooseRegionChallenge(getPedagogy(), pending.family, Math.random, pending.region);
+              attempts = 0;
+              resolved = false;
+              cancel.disabled = true;
+              renderRound();
+            } else close();
+          } else {
+            close();
+            callback();
+          }
         }, 850);
       });
       answers.append(button);
@@ -141,7 +159,8 @@ export function createMathGate({
     }
     renderRound();
     element.hidden = false;
-    cancel.focus();
+    if (!cancel.disabled) cancel.focus();
+    else answers.querySelector?.('button')?.focus?.();
     return true;
   }
   return { element, open, close, get isOpen() { return !element.hidden; } };
