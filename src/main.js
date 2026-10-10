@@ -2731,6 +2731,14 @@ async function startWorld() {
         selectedNpcId = null;
         navalBattle.setTarget(null);
       }
+      const monster=world.entities.get('r3-leviathan');
+      leviathanAura.hidden=!monster||monster.health<=0;
+      if(!leviathanAura.hidden){
+        const z=world.camera.zoom,c=world.cameraView;
+        leviathanAura.style.left=(canvas.clientWidth/2+(monster.x-c.x)*z)+'px';
+        leviathanAura.style.top=(canvas.clientHeight/2+(monster.y-c.y)*z)+'px';
+        leviathanAura.style.setProperty('--leviathan-aura-size',Math.min(470,240*z)+'px');
+      }
       npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now());
       damageTextRenderer?.render(world.cameraView, world.camera.zoom, performance.now());
       spectralShipRenderer?.render(
