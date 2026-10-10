@@ -1193,12 +1193,18 @@ async function startWorld() {
     if (!width || !height) { thiefGuide.hidden = true; return; }
     const x = width / 2 + (target.x - world.cameraView.x) * world.camera.zoom;
     const y = height / 2 + (target.y - world.cameraView.y) * world.camera.zoom;
+    const compactMobile=width<700;
     const margin = Math.min(75, Math.max(35, Math.min(width,height)*.12));
-    const inView = x > margin && x < width - margin && y > margin && y < height - margin;
-    const px = inView ? x : Math.max(margin, Math.min(width - margin, x));
-    const py = inView ? Math.max(margin, y - 72) : Math.max(margin, Math.min(height - margin, y));
+    const safeLeft = compactMobile ? Math.max(92,margin) : margin;
+    const safeRight = compactMobile ? Math.max(82,margin) : margin;
+    const safeTop = compactMobile ? Math.max(96,margin) : margin;
+    const safeBottom = compactMobile ? Math.max(210,margin) : margin;
+    const inView = x > safeLeft && x < width - safeRight && y > safeTop && y < height - safeBottom;
+    const px = inView ? x : Math.max(safeLeft, Math.min(width - safeRight, x));
+    const py = inView ? Math.max(safeTop, y - 72) : Math.max(safeTop, Math.min(height - safeBottom, y));
     thiefGuide.style.left = px + 'px';
     thiefGuide.style.top = py + 'px';
+    thiefGuide.classList.toggle('is-route-guide',!inView);
     thiefGuide.style.setProperty('--thief-angle', (inView ? 90 : Math.atan2(y-py, x-px)*180/Math.PI) + 'deg');
     thiefGuide.classList.toggle('is-visible-target', inView);
     thiefGuide.querySelector('.thief-guide-label').textContent =
