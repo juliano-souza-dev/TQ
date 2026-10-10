@@ -8,7 +8,7 @@ export const TERROR_DO_MAR_SHIP = Object.freeze({
   npcEnabled: true,
   shopEnabled: false,
   rewardEnabled: false,
-  maxHealth: 500000,
+  maxHealth: 1000000,
   cannonSlots: 10,
   cannonLayout: Object.freeze({
     port: 10,
