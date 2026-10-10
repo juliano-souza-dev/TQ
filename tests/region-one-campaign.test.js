@@ -287,3 +287,15 @@ test('deduplicação de evento R1 é por missão e não bloqueia contrato futuro
   assert.ok(first);
   assert.match(first.campaign.processedEvents[0],/^r1-patrol:defeat:/);
 });
+
+
+test('Artilharia Renovada usa nomes literais e guia ao Estaleiro', async () => {
+  const mission=R1_MISSIONS.find(m=>m.id==='r1-shipyard-upgrade');
+  assert.match(mission.description,/Canhão Pirata Ornamentado em Azul e Ouro/);
+  assert.match(mission.description,/Canhão Real Dourado com Leão/);
+  assert.match(mission.objectives[0].label,/Canhão Pirata Ornamentado em Azul e Ouro/);
+  assert.match(mission.objectives[0].label,/Canhão Real Dourado com Leão/);
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source,/r1-shipyard-upgrade','r1-equip-roses/);
+  assert.match(source,/guideMissionTo\('shipyard'\)/);
+});
