@@ -76,19 +76,21 @@ export class NpcRenderer {
       }
     }
   }
-  paintFoam(ctx,w,h,camera,zoom,dpr){
+  paintFoam(ctx,w,h,camera,zoom,dpr,oceanTimeMs){
     ctx.save();ctx.globalCompositeOperation='screen';
     for(const p of this.foam){
       const alpha=Math.max(0,1-p.age/2000);
       const x=w/2+(p.x-camera.x)*zoom*dpr;
-      const y=h/2+(p.y-camera.y)*zoom*dpr;
+      const oceanT=oceanTimeMs/1000;
+      const ripple=Math.sin(p.y*.018+p.x*.004+oceanT*.65)*1.8;
+      const y=h/2+(p.y-camera.y+ripple)*zoom*dpr;
       const r=Math.max(1,p.size*zoom*dpr*(.4+.6*alpha));
       ctx.fillStyle='rgba(225,255,249,'+(.35*alpha)+')';
       ctx.beginPath();ctx.ellipse(x,y,r,r*.4,0,0,Math.PI*2);ctx.fill();
     }ctx.restore();
   }
   hasShipSprite(id) { return this.images.has(id); }
-  render(entities, camera, zoom = 1, selectedId = null, krakenAttacks = [], now = performance.now()) {
+  render(entities, camera, zoom = 1, selectedId = null, krakenAttacks = [], now = performance.now(), oceanTimeMs = now) {
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.max(1, Math.round(bounds.width * dpr));
@@ -98,7 +100,7 @@ export class NpcRenderer {
     }
     const ctx = this.ctx; ctx.clearRect(0, 0, w, h);
     this.updateFoam(entities,now);
-    this.paintFoam(ctx,w,h,camera,zoom,dpr);
+    this.paintFoam(ctx,w,h,camera,zoom,dpr,oceanTimeMs);
     const size = Math.min(w * 0.32, h * 0.32, 185 * dpr) * zoom;
     const ordered=[...entities.values()].filter(n=>n.type==='npc'||n.type==='monster').sort((a,b)=>a.y-b.y);
     for (const npc of ordered) {
