@@ -2,6 +2,7 @@ import { cancelHullRecovery, getMaxHullHealth } from './HullRepair.js';
 import { equippedHarpoon, harpoonDamage, harpoonStock, HARPOON_AMMO_ID, ARMOR_PIERCING_HARPOON_ID, ARMOR_PIERCING_HARPOON_DAMAGE, armorPiercingHarpoonStock } from './HarpoonCatalog.js';
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
+import { leviathanMouthOrigin } from '../monsters/LeviathanMouthMap.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
 import {
   ammoStock, armedCannons, availableNavalAmmo, cannonHardpoint, cannonRange,
@@ -770,8 +771,13 @@ export class NavalBattleController {
       if(distanceBetween(monster,player)>KRAKEN_RETALIATION_RANGE)continue;
       if(now<(this.nextKrakenStrike.get(monster.id)??-Infinity))continue;
       const destination={x:player.x,y:player.y};
+      const isLeviathan=monster.archetype==='sea-monster-leviathan';
+      const viewport=this.renderer.canvas?.getBoundingClientRect();
+      const origin=isLeviathan
+        ? leviathanMouthOrigin(monster,viewport?.width||window.innerWidth,viewport?.height||window.innerHeight)
+        : monster;
       const accepted=this.renderer.attackKraken?.({
-        from:monster,to:destination,monsterId:monster.id,
+        from:origin,to:destination,monsterId:monster.id,
         kind:monster.archetype==='sea-monster-leviathan'?'leviathan':'kraken',
         startTime:now,duration:1720,
         onImpact:({at})=>{
