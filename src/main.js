@@ -131,7 +131,7 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact }, { getShipSpeed }, { STARTER_SHIP }, { NpcRenderer }, { createCorsairPopulation, updateCorsairPopulation }, { findNpcAtPoint }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact, collidesWithIsland, resolveIslandMovement }, { getShipSpeed }, { STARTER_SHIP }, { NpcRenderer }, { createCorsairPopulation, updateCorsairPopulation }, { findNpcAtPoint }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
     import('./rendering/IslandRenderer.js'),
@@ -1279,8 +1279,16 @@ async function startWorld() {
     exitDialog.hidden=true;
     exitDismissed=true;
 
-    const start={x:420,y:3000};
-    const end={x:4380,y:4380};
+    const exit=world.region.exitPoint;
+    const spawnCandidates=[
+      {x:520,y:2450},
+      {x:1180,y:3860},
+      {x:250,y:1650},
+      {x:2150,y:240},
+    ];
+    const start=spawnCandidates.find(point=>!collidesWithIsland(world.region,point.x,point.y,52))
+      ?? {x:520,y:2450};
+    const end={x:world.region.width+240,y:exit.y};
     const dx=end.x-start.x,dy=end.y-start.y;
     const headingToExit=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
     const terror={
@@ -1296,8 +1304,13 @@ async function startWorld() {
     world.entities.set(terror.id,terror);
     world.manualCamera={x:terror.x,y:terror.y};
     r1ExitCinematic={
-      entityId:terror.id,start,end,elapsed:0,duration:5600,
+      entityId:terror.id,start,end,elapsed:0,
       player:{x:world.camera.x,y:world.camera.y},
+      speed:0,
+      maxSpeed:260,
+      acceleration:72,
+      turnRate:68,
+      blockedFor:0,
     };
     return true;
   }
@@ -1311,19 +1324,62 @@ async function startWorld() {
       r1ExitCinematic=null;
       return false;
     }
+    const dt=Math.min(64,Math.max(0,stepMs))/1000;
     scene.elapsed+=Math.max(0,stepMs);
-    const t=Math.min(1,scene.elapsed/scene.duration);
-    const eased=t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
-    terror.x=scene.start.x+(scene.end.x-scene.start.x)*eased;
-    terror.y=scene.start.y+(scene.end.y-scene.start.y)*eased;
-    terror.heading=(Math.atan2(scene.end.x-scene.start.x,-(scene.end.y-scene.start.y))*180/Math.PI+360)%360;
+    scene.speed=Math.min(scene.maxSpeed,scene.speed+scene.acceleration*dt);
+
+    const dx=scene.end.x-terror.x,dy=scene.end.y-terror.y;
+    const distance=Math.hypot(dx,dy);
+    const directHeading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+    const normalizeAngle=value=>((value+540)%360)-180;
+
+    // Escolhe uma direção navegável. Se a rota direta encontra uma ilha,
+    // tenta curvas progressivas para os dois bordos e mantém a opção que
+    // ainda aproxima o navio do portal.
+    const offsets=[0,-18,18,-35,35,-55,55,-78,78,-105,105];
+    let desiredHeading=directHeading;
+    let best=null;
+    const lookAhead=Math.max(95,scene.speed*.9);
+    for(const offset of offsets){
+      const candidate=(directHeading+offset+360)%360;
+      const rad=candidate*Math.PI/180;
+      const probeX=terror.x+Math.sin(rad)*lookAhead;
+      const probeY=terror.y-Math.cos(rad)*lookAhead;
+      if(collidesWithIsland(world.region,probeX,probeY,52))continue;
+      const score=Math.hypot(scene.end.x-probeX,scene.end.y-probeY)+Math.abs(offset)*1.1;
+      if(!best||score<best.score)best={heading:candidate,score};
+    }
+    if(best)desiredHeading=best.heading;
+
+    const turn=normalizeAngle(desiredHeading-terror.heading);
+    const maxTurn=scene.turnRate*dt;
+    terror.heading=(terror.heading+Math.max(-maxTurn,Math.min(maxTurn,turn))+360)%360;
+
+    const radians=terror.heading*Math.PI/180;
+    const step=Math.min(distance,scene.speed*dt);
+    const targetX=terror.x+Math.sin(radians)*step;
+    const targetY=terror.y-Math.cos(radians)*step;
+    const moved=resolveIslandMovement(world.region,terror.x,terror.y,targetX,targetY,52);
+    const movedDistance=Math.hypot(moved.x-terror.x,moved.y-terror.y);
+    terror.x=moved.x;
+    terror.y=moved.y;
+
+    if(movedDistance<step*.2 && distance>180){
+      scene.blockedFor+=stepMs;
+      terror.heading=(terror.heading+(scene.blockedFor>450?82:46))%360;
+      scene.speed=Math.max(85,scene.speed*.78);
+    } else scene.blockedFor=0;
+
     world.camera.x=scene.player.x;
     world.camera.y=scene.player.y;
     world.manualCamera={
       x:Math.min(world.region.width,Math.max(0,terror.x)),
       y:Math.min(world.region.height,Math.max(0,terror.y)),
     };
-    if(t>=1)completeR1PassageTransfer();
+
+    if(distance<=72 || terror.x>=world.region.width-18){
+      completeR1PassageTransfer();
+    }
     return true;
   }
 
