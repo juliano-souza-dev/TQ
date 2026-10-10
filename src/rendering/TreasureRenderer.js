@@ -1,8 +1,14 @@
+const TREASURE_WRECK_ASSET = new URL('../../assets/treasures/destrocos-piratas-tesouro.webp', import.meta.url).href;
+
 export class TreasureRenderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    this.image = new Image();
+    this.image.decoding = 'async';
+    this.image.src = TREASURE_WRECK_ASSET;
   }
+
   render(treasures, camera, zoom, timeMs) {
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -12,33 +18,34 @@ export class TreasureRenderer {
       this.canvas.width = width;
       this.canvas.height = height;
     }
+
     const ctx = this.ctx;
     ctx.clearRect(0, 0, width, height);
-    for (const chest of treasures) {
-      const x = width / 2 + (chest.x - camera.x) * zoom * dpr;
-      const y = height / 2 + (chest.y - camera.y) * zoom * dpr;
-      if (x < -60 || x > width + 60 || y < -60 || y > height + 60) continue;
-      const scale = Math.max(.8, Math.min(1.6, zoom)) * dpr;
-      const pulse = .55 + .45 * Math.sin(timeMs / 450 + chest.x);
+    const loaded = this.image.complete && this.image.naturalWidth > 0;
+
+    for (const wreck of treasures) {
+      const x = width / 2 + (wreck.x - camera.x) * zoom * dpr;
+      const y = height / 2 + (wreck.y - camera.y) * zoom * dpr;
+
+      const visualZoom = Math.max(.46, Math.min(1.15, Number(zoom) || 1));
+      const baseSize = 76;
+      const size = baseSize * visualZoom * dpr;
+      if (x < -size || x > width + size || y < -size || y > height + size) continue;
+
+      const bob = Math.sin(timeMs / 700 + wreck.x * .01 + wreck.y * .01) * 1.8 * visualZoom * dpr;
+      const sway = Math.sin(timeMs / 1250 + wreck.y * .008) * .018;
+
       ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(scale, scale);
-      ctx.shadowColor = '#ffcd6a';
-      ctx.shadowBlur = 15 + pulse * 17;
-      ctx.fillStyle = '#50351e';
-      ctx.strokeStyle = '#e4b862';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.roundRect(-19, -9, 38, 27, 4);
-      ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#865126';
-      ctx.beginPath();
-      ctx.roundRect(-19, -18, 38, 16, [8, 8, 3, 3]);
-      ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#fce27d';
-      ctx.fillRect(-4, -12, 8, 26);
-      ctx.fillStyle = '#2c2f23';
-      ctx.fillRect(-1.5, -3, 3, 8);
+      ctx.translate(x, y + bob);
+      ctx.rotate(sway);
+
+      if (loaded) {
+        const aspect = this.image.naturalWidth / this.image.naturalHeight || 1;
+        const drawH = size;
+        const drawW = drawH * aspect;
+        ctx.drawImage(this.image, -drawW / 2, -drawH * .56, drawW, drawH);
+      }
+
       ctx.restore();
     }
   }
