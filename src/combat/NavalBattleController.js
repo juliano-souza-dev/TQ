@@ -779,10 +779,11 @@ export class NavalBattleController {
             ||distanceBetween(current,ship)>KRAKEN_RETALIATION_RANGE
             ||!shipCollision(at,{...ship,health:this.getHealth()},56))return;
           const save=this.readSave();
-          const health=Math.max(0,this.getHealth()-8);
+          const monsterDamage=Math.max(1,Number(current.attackDamage)||8);
+          const health=Math.max(0,this.getHealth()-monsterDamage);
           if (this.isShieldActive() || this.readSave().combat?.repairingUntil) return;
           this.writePatch({combat:{...save.combat,shipHealth:health}});
-          this.onFeedback(health>0?'🐙 Kraken atingiu o casco! -8 PV.':'☠️ Kraken afundou seu navio!');
+          this.onFeedback(health>0?'🐙 '+current.name+' atingiu o casco! -'+monsterDamage+' PV.':'☠️ '+current.name+' afundou seu navio!');
           if(!health)this.firing=false;
         },
       });
