@@ -307,7 +307,7 @@ export class NavalBattleController {
     if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
 
     else if (monsterTarget && distance > harpoon.range) reason = 'range';
-    else if (monsterTarget && harpoonStock(save) + armorPiercingHarpoonStock(save) <= 0) reason = 'harpoon-ammo';
+    else if (monsterTarget && (harpoon.flameTip ? harpoonStock(save) : harpoonStock(save) + armorPiercingHarpoonStock(save)) <= 0) reason = 'harpoon-ammo';
     else if (!monsterTarget && !missionActive) reason = 'mission';
     else if (!monsterTarget && !battery.length) reason = 'no-cannon';
     else if (!target) reason = 'target';
@@ -320,7 +320,7 @@ export class NavalBattleController {
       harpoonName: harpoon.name,
       harpoonRange: harpoon.range,
       harpoonReloadSeconds: harpoon.reloadSeconds,
-      harpoonAmmo: harpoonStock(save) + armorPiercingHarpoonStock(save),
+      harpoonAmmo: harpoon.flameTip ? harpoonStock(save) : harpoonStock(save) + armorPiercingHarpoonStock(save),
       ready: reason === 'ready',
       reason, distance,
       range: monsterTarget ? harpoon.range : battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0,
@@ -481,7 +481,7 @@ export class NavalBattleController {
     const distance=target?distanceBetween(this.getPlayer(),target):Infinity;
     const now=this.clock();
     return {launcher, target, distance, cooldownMs:Math.max(0,this.nextHarpoonAt-now),
-      ready: harpoonStock(this.readSave()) + armorPiercingHarpoonStock(this.readSave())>0 && target?.type==='monster' && target.health>0
+      ready: (launcher.flameTip ? harpoonStock(this.readSave()) : harpoonStock(this.readSave()) + armorPiercingHarpoonStock(this.readSave()))>0 && target?.type==='monster' && target.health>0
         && distance<=launcher.range && this.getHealth()>0 && now>=this.nextHarpoonAt};
   }
 
@@ -497,25 +497,34 @@ export class NavalBattleController {
     const player=this.getPlayer(),now=this.clock();
     const from={x:player.x,y:player.y};
     const save=this.readSave();
-    const piercing=armorPiercingHarpoonStock(save)>0;
+    // Horizon incendiary launcher uses common harpoons even if piercing stock exists.
+    const piercing=!launcher.flameTip && armorPiercingHarpoonStock(save)>0;
     const harpoonAmmoId=piercing?ARMOR_PIERCING_HARPOON_ID:HARPOON_AMMO_ID;
     const aim=interceptPoint(from,target,this.velocities.get(target.id),launcher.projectileSpeed);
     const destination=aimWithAccuracy(aim,from,launcher.accuracy,this.random);
     const targetId=target.id;
     const flameBoost=this.isFlameActive() && this.isBossTarget(target) && (this.getRegionId()!=='r3' || (target.archetype==='terror-do-mar' && !!this.readSave().r3Campaign?.varkorFlameUnlocked));
+    const horizonFlame=launcher.flameTip===true;
+    // The generic flight helper enforces a 580 ms minimum for normal cannons.
+    // Bypass it only here, or the nominal 50x projectile would still fly slowly.
+    const flightMs=horizonFlame
+      ? Math.max(1,distanceBetween(from,destination)/launcher.projectileSpeed*1000)
+      : flightDurationMs(from,destination,launcher.projectileSpeed);
     const accepted=this.renderer.fire({
-      from,to:destination,duration:flightDurationMs(from,destination,launcher.projectileSpeed),
-      ammo:{id:'naval-harpoon',name:piercing?'Arpão Quebra-Couraça':'Arpão do Marujo',size:1.8,
-        projectileSpeed:launcher.projectileSpeed,
+      from,to:destination,duration:flightMs,
+      ammo:{id:horizonFlame?'naval-harpoon-horizon':'naval-harpoon',
+        name:horizonFlame?'Arpão Incandescente':piercing?'Arpão Quebra-Couraça':'Arpão do Marujo',
+        size:1.8,projectileSpeed:launcher.projectileSpeed,
         fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
       impactKind:'water',startTime:now,flameBoost,
-      onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,(launcher.dotDamage?harpoonDamage(launcher):(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:harpoonDamage(launcher)))*(flameBoost?5:1),launcher),
+      onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,
+        (launcher.dotDamage?harpoonDamage(launcher):(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:harpoonDamage(launcher)))*(flameBoost?5:1),launcher),
     });
     if (!accepted) {this.onFeedback('⚠️ Disparo de arpão indisponível.');return false;}
     playCannonSound('harpoon');
     this.writePatch({harpoonAmmo:{...(save.harpoonAmmo??{}),[harpoonAmmoId]:(piercing?armorPiercingHarpoonStock(save):harpoonStock(save))-1}});
     this.nextHarpoonAt=now+Math.max(100,launcher.reloadSeconds*1000/(flameBoost?5:1));
-    this.onFeedback((flameBoost?'🔥 Arpão em chamas':'⚓ Arpão')+' lançado contra '+target.name+'!');
+    this.onFeedback((horizonFlame?'🔥 Arpão incandescente':flameBoost?'🔥 Arpão em chamas':'⚓ Arpão')+' lançado contra '+target.name+'!');
     return true;
   }
 
