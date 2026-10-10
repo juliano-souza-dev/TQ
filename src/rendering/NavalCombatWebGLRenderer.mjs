@@ -380,13 +380,13 @@ export class NavalCombatWebGLRenderer{
   }
 
   // Underwater ambush shared with the Kraken sprite renderer.
-  attackKraken({from,to,monsterId=null,startTime=performance.now(),duration=1720,onImpact=null}={}){
+  attackKraken({from,to,monsterId=null,kind='kraken',startTime=performance.now(),duration=1720,onImpact=null}={}){
     if(!from||!to||!this.init())return false;
     if(this.krakenAttacks.length>=(this.reducedFx?3:8))return false;
     this.krakenAttacks.push({
       from:{x:Number(from.x)||0,y:Number(from.y)||0},
       to:{x:Number(to.x)||0,y:Number(to.y)||0},
-      monsterId,
+      monsterId,kind,
       startTime,duration,impactSpawned:false,
       onImpact:typeof onImpact==="function"?onImpact:null
     });
@@ -563,6 +563,38 @@ export class NavalCombatWebGLRenderer{
     // 300ms submerge, 450ms outbound, 220ms tentacle strike,
     // 450ms return on the exact reverse trajectory, 300ms resurfacing.
     for(const attack of this.krakenAttacks){
+      if(attack.kind!=='leviathan')continue;
+      const elapsed=now-attack.startTime;
+      const progress=clamp(elapsed/970,0,1);
+      const dx=attack.to.x-attack.from.x,dy=attack.to.y-attack.from.y;
+      const length=Math.max(1,Math.hypot(dx,dy));
+      const acrossX=-dy/length,acrossY=dx/length;
+      const intensity=1-clamp((elapsed-970)/650,0,1);
+      const bands=this.reducedFx?5:9;
+      for(let i=0;i<bands;i++){
+        const lag=i/(bands+2)*.26;
+        const p=clamp((progress-lag)/(1-lag),0,1);
+        if(p<=0)continue;
+        const centerX=attack.from.x+dx*p,centerY=attack.from.y+dy*p;
+        const spread=(i-(bands-1)/2)*(this.reducedFx?15:10)*zoom;
+        const undulation=Math.sin(elapsed*.011+i*1.7)*9*zoom;
+        const x=centerX+acrossX*(spread+undulation);
+        const y=centerY+acrossY*(spread+undulation);
+        const strength=intensity*(.7+.3*Math.sin(elapsed*.014+i));
+        drawPoint(x,y,(68+24*Math.sin(i*2.3+elapsed*.009))*zoom,0,0,true,{
+          color:i%3===0?'#ff2f0c':'#ff8b17',coreColor:'#ffe7a3',
+          glow:1.15,opacity:.52*strength});
+        drawPoint(x-acrossX*7*zoom,y-acrossY*7*zoom,90*zoom,7,p,false,{
+          color:'#ffa12c',coreColor:'#ffdba6',glow:.25,opacity:.13*strength});
+      }
+      if(elapsed>=880&&elapsed<1300){
+        const burst=(1-clamp((elapsed-880)/420,0,1));
+        drawPoint(attack.to.x,attack.to.y,150*zoom,0,0,true,{
+          color:'#ff4811',coreColor:'#fff2bf',glow:1.4,opacity:.68*burst});
+      }
+    }
+    for(const attack of this.krakenAttacks){
+      if(attack.kind==='leviathan')continue;
       const elapsed=now-attack.startTime;
       const outbound=elapsed>=300&&elapsed<750;
       const returning=elapsed>=970&&elapsed<1420;
