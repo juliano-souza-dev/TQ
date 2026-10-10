@@ -42,6 +42,8 @@ export function exchangeR3SilasCargo(save={}){
     r3Campaign:{...campaign,silasTradeCompleted:true,silasHoldings:receivedBySilas},
     equipment:{
       ...equipment,
+      // Starter gear was also traded and must not respawn through save repair.
+      starterCannonTransferredToSilas:true,
       cannonCounts:{...R3_SILAS_REWARD.cannons},
       ownedCannonIds:Object.keys(R3_SILAS_REWARD.cannons),
       loadout:emptyLoadouts,
