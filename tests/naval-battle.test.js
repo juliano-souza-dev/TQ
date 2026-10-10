@@ -615,3 +615,38 @@ test('câmera de duelo abre o zoom antes de abandonar a âncora do jogador', asy
   assert.ok(close.zoom > far.zoom);
   assert.ok(Math.abs(far.playerScreenOffset.x) <= 390*.20 + 1);
 });
+
+
+test('Morbi entra no modo extremo depois de 300 de dano e dispara 2 especiais mais a bateria regular', () => {
+  const t = battleHarness();
+  t.enemy.id='r2-morbi';
+  t.enemy.health=899700;
+  t.enemy.maxHealth=900000;
+  t.enemy.x=t.player.x+500;
+  t.enemy.specialCannon={
+    damage:1200,reloadMs:45000,range:840,
+    countBeforePhase:1,countAfterPhase:2,
+  };
+  t.enemy.broadside={
+    unlockDamageTaken:300,
+    regularCannons:18,
+    regularDamage:300,
+    reloadMs:3000,
+    range:840,
+  };
+  t.enemy.broadsideActive=true;
+  t.save.r2Campaign={active:'r2-golden-ii'};
+
+  t.battle.fireNpcVolleys(1000);
+  assert.equal(t.shots.length,20,'modo extremo deve lançar 2 especiais + 18 regulares');
+  const damages=[];
+  t.battle.resolveNpcImpact=(_id,_at,damage)=>{damages.push(damage);return {kind:'ship'};};
+  for(const shot of t.shots)shot.onImpact({at:shot.to});
+  assert.equal(damages.filter(v=>v===1200).length,2);
+  assert.equal(damages.filter(v=>v===300).length,18);
+
+  t.battle.fireNpcVolleys(3999);
+  assert.equal(t.shots.length,20,'bateria regular respeita 3 segundos');
+  t.battle.fireNpcVolleys(4000);
+  assert.equal(t.shots.length,38,'só a bateria regular recarrega antes dos especiais');
+});
