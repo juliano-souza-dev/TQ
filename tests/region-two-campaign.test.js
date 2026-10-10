@@ -39,3 +39,38 @@ test('travessia chega fora da zona de contato de qualquer porto na R2',()=>{
   assert.equal(collidesWithIsland(R2,R2.spawn.x,R2.spawn.y,32),false);
   assert.equal(getIslandContact(R2,R2.spawn.x,R2.spawn.y,100),null);
 });
+
+
+test('equipar o Terror da Tabuada vem antes do encontro na Ilha Esquecida', () => {
+  const equipIndex=R2_MISSIONS.findIndex(m=>m.id==='r2-equip-terror');
+  const meetingIndex=R2_MISSIONS.findIndex(m=>m.id==='r2-meet-forgotten');
+  assert.ok(equipIndex>=0);
+  assert.equal(meetingIndex,equipIndex+1);
+  assert.equal(R2_MISSIONS[equipIndex].objectives[0].kind,'equip-ship');
+  assert.equal(R2_MISSIONS[equipIndex].objectives[0].ship,'galeao-halloween-tabuada');
+
+  const golden=R2_MISSIONS.find(m=>m.id==='r2-golden-ii');
+  assert.ok(golden.reward.ships.includes('galeao-halloween-tabuada'));
+});
+
+test('missão guiada do Terror só libera o encontro depois de equipar e resgatar', () => {
+  const previous=R2_MISSIONS[R2_MISSIONS.findIndex(m=>m.id==='r2-equip-terror')-1];
+  let save={
+    profile:{gold:0},
+    r2Campaign:{active:null,claimed:[previous.id],progress:{},processed:[]},
+    equipment:{ownedShipIds:['galeao-halloween-tabuada']},
+  };
+  const accepted=acceptR2Mission(save,'r2-equip-terror');
+  assert.ok(accepted);
+  save={...save,...accepted};
+  const progress=recordR2Event(save,{
+    type:'equip-ship',ship:'galeao-halloween-tabuada',id:'guided-terror-equip'
+  });
+  assert.ok(progress);
+  save={...save,...progress};
+  assert.equal(getR2Board(save).claimable[0]?.id,'r2-equip-terror');
+  const outcome=claimR2Mission(save,'r2-equip-terror');
+  assert.ok(outcome);
+  save={...save,...outcome.patch};
+  assert.equal(getR2Board(save).available[0]?.id,'r2-meet-forgotten');
+});
