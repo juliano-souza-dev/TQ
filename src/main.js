@@ -1213,6 +1213,8 @@ async function startWorld() {
   clickNavigation = createClickNavigation(canvas, world, point => {
     const npc = findNpcAtPoint(world.entities, point.x, point.y);
     if (npc) {
+      if(world.region.id==='r3' && readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
+        && npc.id!==R3_LEVIATHAN_ENTITY_ID)return true;
       if(!navalBattle.setTarget(npc.id, { manual: true })){
         if(world.region.id==='r2' && readSave().r2Campaign?.active==='r2-golden-ii')
           navalHud.setFeedback('🎯 Durante o Galeão Dourado II, apenas Morbi pode ser selecionado.');

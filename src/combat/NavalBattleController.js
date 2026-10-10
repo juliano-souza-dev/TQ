@@ -201,7 +201,13 @@ export class NavalBattleController {
     return this.getEntities().get('r2-morbi') ?? null;
   }
 
+  isLeviathanHuntTarget(id) {
+    return this.getRegionId()!=='r3' || this.readSave().r3Campaign?.active!=='r3-leviathan-hunt'
+      || !id || id==='r3-leviathan';
+  }
+
   setTarget(id, { manual = false } = {}) {
+    if(!this.isLeviathanHuntTarget(id))return false;
     const thief = this.getThiefMissionTarget();
     if (thief && id && id !== thief.id) return false;
     if (this.getGoldenGalleonTarget() && id && id !== 'r2-morbi') return false;
@@ -227,6 +233,12 @@ export class NavalBattleController {
     const morbi=this.getGoldenGalleonTarget();
     if(morbi){
       const next=morbi.health>0 ? morbi.id : null;
+      if(this.targetId!==next)this.setTarget(next);
+      return true;
+    }
+    if(this.getRegionId()==='r3' && this.readSave().r3Campaign?.active==='r3-leviathan-hunt'){
+      const leviathan=this.getEntities().get('r3-leviathan');
+      const next=leviathan?.health>0?'r3-leviathan':null;
       if(this.targetId!==next)this.setTarget(next);
       return true;
     }
@@ -275,6 +287,7 @@ export class NavalBattleController {
   getTarget() {
     const entity = this.getEntities().get(this.targetId);
     if(this.getGoldenGalleonTarget() && entity?.id!=='r2-morbi')return null;
+    if(entity && !this.isLeviathanHuntTarget(entity.id))return null;
     return (entity?.type === 'npc' || entity?.type === 'monster') && entity.health > 0 && !this.isProtectedInformant(entity) ? entity : null;
   }
 
