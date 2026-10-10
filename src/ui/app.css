@@ -1105,7 +1105,10 @@ body:has(#ocean) .leviathan-aura{
 .island-panel[data-island="missions"] .island-panel-return:focus-visible {
   position:absolute;
   left:10%;
-  bottom:calc(var(--missions-panel-width) * .0535);
+  /* The painted return button lives inside the bottom border-image slice.
+     Absolute positioning is relative to the padding box, so a positive
+     bottom offset placed the hit area ABOVE the visible artwork. */
+  bottom:calc(var(--missions-panel-width) * -.112);
   z-index:1;
   width:80%;
   height:calc(var(--missions-panel-width) * .0806);
