@@ -657,10 +657,15 @@ export class NavalBattleController {
     }
     this.markCombatActivity();
     const healthBefore=Math.max(0,Number(target.health)||0);
+    const shadowThiefWeakened=this.getRegionId()==='r2'
+      && this.readSave().r2Campaign?.active==='r2-destroy-thief'
+      && target.archetype==='fugitive-frigate'
+      && healthBefore<=60000;
+    const appliedDamage=shadowThiefWeakened ? damage*3 : damage;
     if (target.archetype === RED_SAIL_CORSAIR.id) {
-      damageCorsair(target, damage, 'player');
+      damageCorsair(target, appliedDamage, 'player');
     } else {
-      target.health = Math.max(0, target.health - damage);
+      target.health = Math.max(0, target.health - appliedDamage);
       target.state = target.health ? (target.aggression === 'flee' ? 'fleeing' : 'retaliating') : 'sunk';
       target.lastAttackerId = 'player';
     }
@@ -681,7 +686,14 @@ export class NavalBattleController {
     }
     const actualDamage=Math.max(0,healthBefore-Math.max(0,Number(target.health)||0));
     if(actualDamage>0)this.onDamageVisual({target,damage:actualDamage,source:'player'});
-    this.onFeedback('💥 Acertou ' + target.name + '! -' + damage + ' PV.');
+    const shadowThiefJustWeakened=this.getRegionId()==='r2'
+      && this.readSave().r2Campaign?.active==='r2-destroy-thief'
+      && target.archetype==='fugitive-frigate'
+      && healthBefore>60000 && target.health<=60000;
+    if(shadowThiefJustWeakened)
+      this.onFeedback('🩸 A proteção do Ladrão das Sombras enfraqueceu! A partir de 60.000 PV ele recebe dano ×3.');
+    else
+      this.onFeedback('💥 Acertou ' + target.name + '! -' + actualDamage + ' PV.');
     if (target.health <= 0) {
       if (target.id === this.targetId) { this.firing = false; this.cancelMonsterAssists(); }
       this.onVictory(target);
