@@ -2068,7 +2068,10 @@ async function startWorld() {
       }
     },
   });
-  if (!document.hidden) loop.start();
+  // Start immediately even if mobile Chrome reports the tab as hidden during
+  // initial page activation. RAF will throttle naturally while hidden, and the
+  // lifecycle handlers below restart the scheduler when the page becomes visible.
+  loop.start();
   // This first local save contains only the minimal world metadata.
   // Gameplay state persistence will be extended alongside the systems.
   // Never overwrite mission/combat writes performed during async world startup
@@ -2115,9 +2118,22 @@ if (localStorage.getItem(LOCAL_SESSION_KEY) === GUEST_UID) {
   renderLogin(root, { onLocal: enterLocalMode, onLogin: () => renderConfigurationRequired(root, { onLocal: enterLocalMode }) });
 }
 
+function resumeWorldLoop() {
+  if (!loop || !currentUser || document.hidden) return;
+  // Mobile browsers can drop the first RAF during tab/page activation while
+  // still leaving our loop marked as running. A clean scheduler restart avoids
+  // the frozen-on-open state without rebuilding the world.
+  loop.stop();
+  loop.start();
+}
+
 document.addEventListener('visibilitychange', () => {
   if (!loop) return;
   if (document.hidden) loop.stop();
-  else if (currentUser) loop.start();
+  else resumeWorldLoop();
 });
-window.addEventListener('pagehide', stopWorld);
+window.addEventListener('pageshow', resumeWorldLoop);
+window.addEventListener('focus', resumeWorldLoop);
+window.addEventListener('pagehide', () => {
+  if (loop) loop.stop();
+});
