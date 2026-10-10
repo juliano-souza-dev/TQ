@@ -750,3 +750,12 @@ test('cada impacto naval pode emitir dano visual ancorado ao alvo', async () => 
   assert.match(source, /onDamageVisual\(\{target,damage:actualDamage,source:'player'\}\)/);
   assert.match(source, /onDamageVisual\(\{target:player,damage:actualDamage,source:'npc'\}\)/);
 });
+
+
+test('tesouros usam o asset de destroços piratas em tamanho apropriado', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/rendering/TreasureRenderer.js', import.meta.url), 'utf8'));
+  assert.match(source, /destrocos-piratas-tesouro\.webp/);
+  assert.match(source, /const baseSize = 76/);
+  assert.match(source, /ctx\.drawImage\(this\.image/);
+  assert.doesNotMatch(source, /roundRect\(-19, -9, 38, 27/);
+});
