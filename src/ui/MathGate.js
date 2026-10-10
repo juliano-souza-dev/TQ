@@ -18,6 +18,9 @@ export function createMathGate({
   const card = document.createElement('section');
   card.className = 'math-gate-card';
   const title = document.createElement('h2');
+  // Land focus on the heading, not the illustrated exit button, when opening.
+  // Tab still moves through the answer buttons and the exit action normally.
+  title.tabIndex = -1;
   const description = document.createElement('p');
   description.className = 'math-gate-description';
   const problem = document.createElement('p');
@@ -161,8 +164,7 @@ export function createMathGate({
     }
     renderRound();
     element.hidden = false;
-    if (!cancel.disabled) cancel.focus();
-    else answers.querySelector?.('button')?.focus?.();
+    title.focus({ preventScroll: true });
     return true;
   }
   return { element, open, close, get isOpen() { return !element.hidden; }, get activeKind() { return pending?.kind ?? null; } };
