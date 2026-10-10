@@ -75,3 +75,24 @@ test('restart discards stale accumulated time', () => {
   s.fire(105);
   assert.equal(count, 0);
 });
+
+
+test('mobile lifecycle recovery pattern can stop and restart the same loop safely', () => {
+  const s = scheduler();
+  let updates = 0;
+  const loop = new GameLoop({
+    update: () => updates++,
+    requestFrame: s.requestFrame,
+    cancelFrame: s.cancelFrame,
+    now: () => 0,
+    stepMs: 10,
+    maxFrameMs: 50,
+  });
+  loop.start();
+  assert.equal(s.count, 1);
+  loop.stop();
+  loop.start();
+  assert.equal(s.count, 1);
+  s.fire(20);
+  assert.equal(updates, 2);
+});
