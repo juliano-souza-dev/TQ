@@ -491,3 +491,37 @@ test('stale combat guidance clears after a valid target is selected', async () =
   assert.match(source, /automaticFeedback/);
   assert.match(source, /feedback\.textContent === automaticFeedback/);
 });
+
+
+test('Morbi usa um único canhão pesado de 1200 de dano com recarga de 45 segundos', () => {
+  const t = battleHarness();
+  t.enemy.id = 'r2-morbi';
+  t.enemy.name = 'Morbi · Galeão Dourado';
+  t.enemy.health = 900000;
+  t.enemy.maxHealth = 900000;
+  t.enemy.cannonSlots = 1;
+  t.enemy.damage = 1200;
+  t.enemy.specialCannon = {
+    id:'morbi-golden-cannon',
+    name:'Canhão Dourado de Morbi',
+    damage:1200,
+    reloadMs:45000,
+  };
+  t.save.r2Campaign = {active:'r2-golden-ii'};
+  let receivedDamage = null;
+  t.battle.resolveNpcImpact = (_id, _at, damage) => {
+    receivedDamage = damage;
+    return {kind:'ship'};
+  };
+
+  t.battle.fireNpcVolleys(1000);
+  assert.equal(t.shots.length, 1);
+  t.shots[0].onImpact({at:t.shots[0].to});
+  assert.equal(receivedDamage, 1200);
+
+  t.battle.fireNpcVolleys(45999);
+  assert.equal(t.shots.length, 1, 'não pode disparar antes de completar 45 segundos');
+
+  t.battle.fireNpcVolleys(46000);
+  assert.equal(t.shots.length, 2, 'segundo disparo libera exatamente após 45 segundos');
+});
