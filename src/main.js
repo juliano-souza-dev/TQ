@@ -533,10 +533,7 @@ async function startWorld() {
     const forgottenIsland = exploringIsland
       ? world.region.islands.find(island => island.id === 'r2-scenery-north') : null;
     const combatTarget = navalBattle?.getCameraTarget?.() ?? null;
-    // No PC, WASD deixa a câmera em modo manual persistente. Isso não pode
-    // desativar silenciosamente o enquadramento de combate: ao existir um alvo
-    // válido, o combate reassume a câmera e mantém o navio do jogador como âncora.
-    if(combatTarget?.health>0 && !r1ExitCinematic) world.manualCamera=null;
+    // Manual camera input (WASD/drag) has priority whenever the player takes control.
     const activeR2Mission = world.region.id === 'r2' ? readSave().r2Campaign?.active : null;
     const morbiEncounter = ['r2-golden-i','r2-golden-ii'].includes(activeR2Mission)
       ? world.entities.get('r2-morbi') : null;
