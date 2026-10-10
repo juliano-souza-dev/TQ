@@ -1,33 +1,16 @@
-const OBJECTIVE_NAMES = Object.freeze({
-  defeat:'NPC',
-  treasure:'Tesouro',
-  thief:'Ladrão',
-  'morbi-defeat-player':'Morbi',
-  'morbi-defeat':'Morbi',
-  'black-market':'Mercado Negro',
-  'market-equip':'Estaleiro',
-  'equip-ship':'Navio',
-  equip:'Canhão',
-  visit:'Destino',
-  informant:'Informante',
-  study:'Conta',
-  collect:'Item',
-  negotiate:'Negociação',
-  exit:'Passagem',
-  'forgotten-meeting':'Encontro',
-  'pumpkin-ambush':'Frota',
-  'hunt-supplies':'Suprimentos',
-  'monster-meat':'Monstro',
-});
+function literalObjectiveName(objective = {}) {
+  const label=String(objective.label||'').trim();
+  if(label)return label;
+  if(objective.name)return String(objective.name).trim();
+  if(objective.targetName)return String(objective.targetName).trim();
+  if(objective.archetype)return String(objective.archetype).trim();
+  if(objective.ship)return String(objective.ship).trim();
+  if(objective.cannon)return String(objective.cannon).trim();
+  return 'Objetivo';
+}
 
 export function missionObjectiveHudName(objective = {}) {
-  if (OBJECTIVE_NAMES[objective.kind]) return OBJECTIVE_NAMES[objective.kind];
-  const label = String(objective.label || '').trim();
-  if (/npc|cors[aá]rio|navio inimigo/i.test(label)) return 'NPC';
-  if (/tesouro|arca/i.test(label)) return 'Tesouro';
-  if (/canh[aã]o/i.test(label)) return 'Canhão';
-  if (/estaleiro/i.test(label)) return 'Estaleiro';
-  return label || 'Objetivo';
+  return literalObjectiveName(objective);
 }
 
 export function formatMissionHudObjectives(mission) {
@@ -35,6 +18,6 @@ export function formatMissionHudObjectives(mission) {
   return mission.objectives.map((objective, index) => {
     const value = Math.max(0, Math.floor(Number(mission.progress?.[index]) || 0));
     const count = Math.max(1, Math.floor(Number(objective.count) || 1));
-    return missionObjectiveHudName(objective) + ' ' + Math.min(value, count) + '/' + count;
+    return literalObjectiveName(objective) + ' · ' + Math.min(value, count) + '/' + count;
   }).join(' · ');
 }
