@@ -589,6 +589,12 @@ export class NavalCombatWebGLRenderer{
       const distance=Math.max(1,Math.hypot(dx,dy));
       const lx=-dy/distance,ly=dx/distance;
       const headX=attack.from.x+dx*progress,headY=attack.from.y+dy*progress;
+      // Ignition remains fixed at the actual mouth anchor before the wave advances.
+      if(elapsed>=0&&elapsed<260){
+        const charge=1-Math.abs(elapsed-130)/130;
+        drawCombatPoint(attack.from.x,attack.from.y,35+42*charge,8,0,true,
+          {color:'#ff7b14',coreColor:'#ffedac',glow:1.1,opacity:.58*charge});
+      }
       const fade=1-smoothstep(970,1640,elapsed);
       const count=this.reducedFx?11:22;
       for(let i=0;i<count;i++){
