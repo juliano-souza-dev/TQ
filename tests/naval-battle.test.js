@@ -856,3 +856,17 @@ test('Ladrão das Sombras recebe dano triplo ao cair para 60 mil PV ou menos', a
   assert.match(source,/healthBefore>60000 && target\.health<=60000/);
   assert.match(source,/recebe dano ×3/);
 });
+
+
+test('inferno WebGL do Ladrão das Sombras cresce até a explosão final', async () => {
+  const controller = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/combat/NavalBattleController.js', import.meta.url), 'utf8'));
+  const renderer = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/rendering/NavalCombatWebGLRenderer.mjs', import.meta.url), 'utf8'));
+  assert.match(controller,/health<=60000/);
+  assert.match(controller,/fireProgress:Math\.max\(0,Math\.min\(1,1-\(Number\(thief\.health\)\|\|0\)\/60000\)\)/);
+  assert.match(controller,/shadowThiefExplosionTriggered/);
+  assert.match(controller,/size:330/);
+  assert.match(renderer,/String\(ship\.kind\|\|""\)==="shadow-thief"/);
+  assert.match(renderer,/flameCount/);
+  assert.match(renderer,/emberCount/);
+  assert.match(renderer,/effect\.size>=300/);
+});
