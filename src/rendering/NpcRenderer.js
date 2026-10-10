@@ -2,7 +2,7 @@ import { BLACK_MARKET_SHIP } from '../ships/BlackMarketShip.js';
 import { GOLDEN_GALLEON_SHIP, PUMPKIN_FLEET_GALLEON_SHIP, BLOOD_RED_CORSAIR_SHIP, TERROR_DO_MAR_SHIP, EMERALD_GHOST_SHIP } from '../ships/ShipRegistry.js';
 import { STARTER_SHIP, getShipFrame } from '../ships/ShipRegistry.js';
 import { HALLOWEEN_TABUADA_SHIP } from '../ships/HalloweenTabuadaShip.js';
-import { FUGITIVE_FRIGATE_SHIP } from '../ships/FugitiveFrigateShip.js';
+import { FUGITIVE_FRIGATE_SHIP, GREEN_GHOST_FUGITIVE_SHIP } from '../ships/FugitiveFrigateShip.js';
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 import { renderMonsterBlood } from '../monsters/MonsterBloodRenderer.js';
 export class NpcRenderer {
@@ -20,7 +20,7 @@ export class NpcRenderer {
     await loadShipSprite(FUGITIVE_FRIGATE_SHIP)
       .then(image => this.images.set(FUGITIVE_FRIGATE_SHIP.id, image))
       .catch(() => console.warn('Fragata Sombra Fugitiva aguardando sprite no repositório.'));
-    await Promise.all([GOLDEN_GALLEON_SHIP,PUMPKIN_FLEET_GALLEON_SHIP,BLACK_MARKET_SHIP,BLOOD_RED_CORSAIR_SHIP,TERROR_DO_MAR_SHIP,EMERALD_GHOST_SHIP].map(ship=>
+    await Promise.all([GREEN_GHOST_FUGITIVE_SHIP,GOLDEN_GALLEON_SHIP,PUMPKIN_FLEET_GALLEON_SHIP,BLACK_MARKET_SHIP,BLOOD_RED_CORSAIR_SHIP,TERROR_DO_MAR_SHIP,EMERALD_GHOST_SHIP].map(ship=>
       loadShipSprite(ship).then(image=>this.images.set(ship.id,image))
         .catch(()=>console.warn('NPC aguardando sprite:',ship.id))));
     const image = new Image();
@@ -85,7 +85,8 @@ export class NpcRenderer {
         }
         continue;
       }
-      const ship = npc.shipId === BLACK_MARKET_SHIP.id ? BLACK_MARKET_SHIP
+      const ship = npc.shipId === GREEN_GHOST_FUGITIVE_SHIP.id ? GREEN_GHOST_FUGITIVE_SHIP
+        : npc.shipId === BLACK_MARKET_SHIP.id ? BLACK_MARKET_SHIP
         : npc.shipId === GOLDEN_GALLEON_SHIP.id ? GOLDEN_GALLEON_SHIP
         : npc.shipId === PUMPKIN_FLEET_GALLEON_SHIP.id ? PUMPKIN_FLEET_GALLEON_SHIP
         : npc.shipId === BLOOD_RED_CORSAIR_SHIP.id ? BLOOD_RED_CORSAIR_SHIP
@@ -100,7 +101,7 @@ export class NpcRenderer {
       const frameW = image.width / columns;
       const frameH = image.height / rows;
       const frame = getShipFrame(npc.heading ?? 0, ship);
-      const shipSize = ship.id === FUGITIVE_FRIGATE_SHIP.id ? size * 0.7 : size;
+      const shipSize = npc.archetype === 'blood-red-market-merchant' ? size * 2.15 : ship.id === FUGITIVE_FRIGATE_SHIP.id || ship.id === GREEN_GHOST_FUGITIVE_SHIP.id ? size * 0.7 : size;
       const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
       const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
       if (x < -shipSize || x > w + shipSize || y < -shipSize || y > h + shipSize) continue;
