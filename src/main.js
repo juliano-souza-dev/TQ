@@ -421,7 +421,7 @@ async function startWorld() {
       : oneVsOneTarget ? Math.hypot(world.camera.x-oneVsOneTarget.x, world.camera.y-oneVsOneTarget.y) : 0;
     const oneVsOneFraming = oneVsOneTarget ? computeOneVsOneFraming({
       player:world.camera,target:oneVsOneTarget,
-      viewportWidth:viewportW,viewportHeight:viewportH,normalZoom,
+      viewportWidth:viewportW,viewportHeight:viewportH,normalZoom:normalCameraZoom,
     }) : null;
     // The shortest equipped cannon range determines when close-combat framing begins.
     // The Shadow Chaser normally carries one Aetherion MK-I (840 world units).
