@@ -800,3 +800,13 @@ test('Morbi ativo nunca reaparece invisível com vida zero salva', async () => {
   assert.match(source, /health:restoredMorbiHealth,maxHealth:900000/);
   assert.match(source, /if\(Number\.isFinite\(savedMorbiHealth\) && savedMorbiHealth<=0\)/);
 });
+
+
+test('câmera de combate mantém alvo manual fora do alcance em qualquer região', async () => {
+  const battle = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/combat/NavalBattleController.js', import.meta.url), 'utf8'));
+  const main = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(battle, /getCameraTarget\(\)/);
+  assert.match(battle, /Manual selection is a combat focus/);
+  assert.match(battle, /this\.targetId !== manuallyChosen\.id/);
+  assert.match(main, /navalBattle\?\.getCameraTarget\?\.\(\)/);
+});
