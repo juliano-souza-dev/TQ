@@ -185,7 +185,14 @@ export class NavalBattleController {
     if (this.firing && withinRange(entities.get(this.targetId))) return false;
     if (this.manualTargetId) {
       const manuallyChosen = entities.get(this.manualTargetId);
-      if (withinRange(manuallyChosen)) return false;
+      if (manuallyChosen && (manuallyChosen.type === 'npc' || manuallyChosen.type === 'monster')
+        && manuallyChosen.health > 0 && !this.isProtectedInformant(manuallyChosen)) {
+        // Manual selection is a combat focus, not an "already in range" signal.
+        // Keep it selected globally while the target is alive; range only decides
+        // whether weapons can fire. This lets the combat camera frame pursuits too.
+        if (this.targetId !== manuallyChosen.id) this.targetId = manuallyChosen.id;
+        return false;
+      }
       this.manualTargetId = null;
     }
     let candidate = null, bestDistance = Infinity;
@@ -209,6 +216,16 @@ export class NavalBattleController {
     const entity = this.getEntities().get(this.targetId);
     if(this.getGoldenGalleonTarget() && entity?.id!=='r2-morbi')return null;
     return (entity?.type === 'npc' || entity?.type === 'monster') && entity.health > 0 && !this.isProtectedInformant(entity) ? entity : null;
+  }
+
+  getCameraTarget() {
+    const entities=this.getEntities();
+    const forced=this.getGoldenGalleonTarget() ?? this.getThiefMissionTarget();
+    if(forced?.health>0)return forced;
+    const manual=this.manualTargetId ? entities.get(this.manualTargetId) : null;
+    if(manual && (manual.type==='npc'||manual.type==='monster') && manual.health>0 && !this.isProtectedInformant(manual))
+      return manual;
+    return this.getTarget();
   }
 
   getStatus() {
