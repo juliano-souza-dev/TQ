@@ -1304,6 +1304,17 @@ async function startWorld() {
 
   const updateMissionHud = () => {
     checkMissionCompletion();
+    const activeEquipShipMission=boardFor(readSave(),world.region.id).active?.find(
+      mission=>mission.objectives?.some(objective=>objective.kind==='equip-ship')
+    );
+    if(activeEquipShipMission){
+      const equippedShipId=readSave().equipment?.equippedShipId ?? activeShip?.id;
+      const objective=activeEquipShipMission.objectives.find(item=>item.kind==='equip-ship');
+      if(objective?.ship===equippedShipId){
+        const resolution=resolveAlreadyEquippedShipMission({announce:false});
+        if(resolution.claimed)return;
+      }
+    }
     if (world.region.id === 'r2') {
       missionHud.hidden = false;
       const mission = boardFor(readSave(),world.region.id).active[0];
@@ -1315,15 +1326,8 @@ async function startWorld() {
         : '📜 Vá ao Porto das Missões para receber seu próximo contrato';
       return;
     }
-    let board=boardFor(readSave(),world.region.id);
-    let campaignMission=board.active?.[0] ?? null;
-    if(campaignMission?.objectives?.some(objective=>objective.kind==='equip-ship')){
-      const resolution=resolveAlreadyEquippedShipMission({announce:false});
-      if(resolution.claimed){
-        board=boardFor(readSave(),world.region.id);
-        campaignMission=board.active?.[0] ?? null;
-      }
-    }
+    const board=boardFor(readSave(),world.region.id);
+    const campaignMission=board.active?.[0] ?? null;
     const flow = getMissionFlow(readSave(), activeShip.id);
     missionHud.hidden = false;
     missionHud.textContent = campaignMission
