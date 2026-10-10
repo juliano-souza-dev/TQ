@@ -37,7 +37,7 @@ function setUp({found=true,active='r3-leviathan-hunt',health=250000,phase='surfa
   return {controller,entities,leviathan,ghost,shots,victories,visuals,getSave:()=>save,setSave:s=>{save=s}};
 }
 
-test('Fantasma Esmeralda uses the equipped Horizon harpoon with its real 400 damage every 2 seconds',()=>{
+test('Fantasma Esmeralda uses the equipped Horizon harpoon with mission-adjusted 3200 damage every 2 seconds',()=>{
   assert.equal(EMERALD_GHOST_LEVIATHAN_DAMAGE,250);
   assert.equal(EMERALD_GHOST_LEVIATHAN_RELOAD_MS,2000);
   assert.equal(EMERALD_GHOST_LEVIATHAN_RANGE,760);
@@ -49,13 +49,13 @@ test('Fantasma Esmeralda uses the equipped Horizon harpoon with its real 400 dam
   assert.deepEqual(t.shots[0].from,{x:t.ghost.x,y:t.ghost.y});
   assert.equal(t.leviathan.health,250000,'damage only at impact, not launch');
   assert.equal(t.shots[0].onImpact({at:{x:t.leviathan.x,y:t.leviathan.y}}).kind,'ship');
-  assert.equal(t.leviathan.health,249600);
+  assert.equal(t.leviathan.health,246800);
   assert.equal(t.visuals[0].source,'npc');
-  assert.equal(t.visuals[0].damage,400);
+  assert.equal(t.visuals[0].damage,3200);
   assert.equal(t.controller.fireEmeraldGhostLeviathan(3000),true);
   assert.equal(t.shots.length,2);
   assert.equal(t.shots[1].onImpact({at:{x:t.leviathan.x,y:t.leviathan.y}}).kind,'ship');
-  assert.equal(t.leviathan.health,249200);
+  assert.equal(t.leviathan.health,243600);
 });
 
 test('ghost follows the hunt physically and returns to regular spectral patrol outside mission',()=>{
@@ -101,7 +101,7 @@ test('submerged Leviathan cannot be hit by ghost projectiles',()=>{
 });
 
 test('ghost killing blow registers a single real combat victory',()=>{
-  const t=setUp({health:400});
+  const t=setUp({health:3200});
   assert.equal(t.controller.fireEmeraldGhostLeviathan(1000),true);
   assert.equal(t.shots[0].onImpact({at:{x:t.leviathan.x,y:t.leviathan.y}}).kind,'ship');
   assert.equal(t.leviathan.health,0);

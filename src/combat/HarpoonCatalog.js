@@ -44,3 +44,13 @@ export const equippedHarpoon=save=>{
   return HARPOON_LAUNCHERS.find(h=>h.id===id && (h.id===STARTER_HARPOON.id||owned.includes(h.id)))??STARTER_HARPOON;
 };
 export const harpoonDamage=launcher=>Math.max(1,Math.round(launcher.baseDamage*(1+launcher.damageMultiplier)));
+
+// Mission-only damage calibration: 250,000 HP across roughly two minutes,
+// including the allied ghost's 2-second cadence and dive downtime.
+export const LEVIATHAN_HUNT_HORIZON_DAMAGE=3200;
+export const leviathanHuntHarpoonDamage=(launcher,save,target)=>
+  launcher?.id===HORIZON_HARPOON_ID
+  && save?.r3Campaign?.active==='r3-leviathan-hunt'
+  && !save.r3Campaign.leviathanDefeated
+  && target?.id==='r3-leviathan'
+    ? LEVIATHAN_HUNT_HORIZON_DAMAGE : harpoonDamage(launcher);

@@ -1,5 +1,5 @@
 import { cancelHullRecovery, getMaxHullHealth } from './HullRepair.js';
-import { equippedHarpoon, harpoonDamage, harpoonStock, horizonHarpoonStock, HORIZON_HARPOON_AMMO_ID, HARPOON_AMMO_ID, ARMOR_PIERCING_HARPOON_ID, ARMOR_PIERCING_HARPOON_DAMAGE, armorPiercingHarpoonStock } from './HarpoonCatalog.js';
+import { equippedHarpoon, harpoonDamage, harpoonStock, horizonHarpoonStock, leviathanHuntHarpoonDamage, HORIZON_HARPOON_AMMO_ID, HARPOON_AMMO_ID, ARMOR_PIERCING_HARPOON_ID, ARMOR_PIERCING_HARPOON_DAMAGE, armorPiercingHarpoonStock } from './HarpoonCatalog.js';
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
 import { leviathanMouthOrigin } from '../monsters/LeviathanMouthMap.js';
@@ -521,7 +521,7 @@ export class NavalBattleController {
         const monster=this.getEntities().get(targetId);
         if(!monster || monster.health<=0 || monster.ambushPhase!=='surface'
           ||!shipCollision(at,monster,85))return {kind:'water'};
-        const hit=damageMonster(monster,harpoonDamage(launcher),this.clock());
+        const hit=damageMonster(monster,leviathanHuntHarpoonDamage(launcher,this.readSave(),monster),this.clock());
         if(!hit)return {kind:'water'};
         this.onDamageVisual({target:monster,damage:hit.damage,source:'npc'});
         if(hit.defeated){
@@ -581,7 +581,7 @@ export class NavalBattleController {
         fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
       impactKind:'water',startTime:now,flameBoost,
       onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,
-        (launcher.dotDamage?harpoonDamage(launcher):(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:harpoonDamage(launcher)))*(flameBoost?5:1),launcher),
+        (launcher.dotDamage?harpoonDamage(launcher):(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:leviathanHuntHarpoonDamage(launcher,save,target)))*(flameBoost?5:1),launcher),
     });
     if (!accepted) {this.onFeedback('⚠️ Disparo de arpão indisponível.');return false;}
     playCannonSound('harpoon');
