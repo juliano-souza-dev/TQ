@@ -298,17 +298,18 @@ test('missão de equipar navio é concluída no próprio porto quando o navio j�
 });
 
 
-test('missão 16 preserva o fluxo de conclusão e executa a cinemática somente antes da transferência', async () => {
+test('missão 16 só conclui depois que o jogador já chegou na R2', async () => {
   const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
-  assert.match(source,/if \(finalMission\.status === 'active'\) recordMissionEvent\(\{type:'exit',id:'r1-exit-east'\}\)/);
-  assert.match(source,/exitDialog\.hidden = false/);
-  assert.match(source,/resolveMissionReward\(save,'r1-finale'\)/);
-  assert.match(source,/const patch=activateNextRegion\(save\)/);
-  assert.match(source,/beginR1ExitCinematic\(patch\)/);
-  assert.match(source,/transferPatch/);
-  assert.match(source,/writePatch\(\{\.\.\.transferPatch,playerPosition:\{x:420,y:860\}\}\)/);
-  assert.match(source,/shipId:'terror-do-mar'/);
-  assert.match(source,/world\.manualCamera=\{x:terror\.x,y:terror\.y\}/);
+  assert.match(source,/const canUsePassage = finalMission\?\.status==='active'/);
+  assert.doesNotMatch(source,/if \(finalMission\.status === 'active'\) recordMissionEvent\(\{type:'exit'/);
+  assert.match(source,/beginR1ExitCinematic\(\)/);
+  assert.match(source,/r1FinalePending:true/);
+  assert.match(source,/activeRegion:2/);
+  assert.match(source,/if\(world\.region\.id==='r2' && readSave\(\)\.transitionFlags\?\.r1FinalePending\)/);
+  assert.match(source,/recordCampaignEvent\(before,\{type:'exit',id:'r1-exit-east-arrival'\}\)/);
+  assert.match(source,/resolveMissionReward\(arrived,'r1-finale'\)/);
+  assert.match(source,/r1FinalePending:false/);
+  assert.doesNotMatch(source,/exitDialog\.hidden = false;\s*navalBattle\.firing = false;/);
 });
 
 
