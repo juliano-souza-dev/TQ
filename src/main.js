@@ -1692,9 +1692,12 @@ async function startWorld() {
             const playerRanges=equippedIds
               .map(id=>CANNONS.find(c=>c.id===id)?.range)
               .filter(range=>Number.isFinite(range)&&range>0);
-            const playerRange=playerRanges.length?Math.max(...playerRanges):bossRange;
+            // A área de combate deve considerar o canhão de menor alcance do jogador.
+            // Assim Morbi continua avançando até que a bateria inteira esteja realmente em combate,
+            // em vez de parar assim que apenas os canhões mais longos conseguem alcançá-lo.
+            const playerCombatRange=playerRanges.length?Math.min(...playerRanges):bossRange;
             const preferredDistance=stageTwo
-              ? Math.max(260,Math.min(bossRange*.90,playerRange*.88))
+              ? Math.max(260,Math.min(bossRange*.88,playerCombatRange*.88))
               : 220;
             if(distance>preferredDistance){
               const chaseSpeed=stageTwo?320:220;
