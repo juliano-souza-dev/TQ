@@ -954,52 +954,79 @@ body:has(#ocean) .leviathan-aura{
 }
 
 
-/* Missões: composição sobre o painel ilustrado original. O título,
-   a descrição e o botão azul já estão na imagem, não devem ser duplicados.
-   Somente informações e ações dinâmicas ficam na camada HTML. */
+/* Missões: a arte original usa um cabeçalho e um rodapé pintados.
+   O miolo do painel cresce com o conteúdo, preservando os detalhes do
+   asset sem esticar o título ou o botão "Voltar ao mar". */
 .island-panel[data-island="missions"] {
   padding: max(8px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom));
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:safe center;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
 }
-.island-panel[data-island="missions"]:focus { outline: none; }
+.island-panel[data-island="missions"]:focus { outline:none; }
 .island-panel[data-island="missions"] .island-panel-card {
+  --missions-panel-width:min(900px,calc(100vw - 20px));
   position:relative;
   isolation:isolate;
   container-type:inline-size;
-  width:min(900px,calc(100vw - 20px),calc((100dvh - 20px) * 1.69));
-  max-height:calc(100dvh - 20px);
-  aspect-ratio:1635 / 962;
+  flex:0 0 auto;
+  width:var(--missions-panel-width);
+  min-height:calc(var(--missions-panel-width) * .58838);
+  max-height:none;
+  height:auto;
+  aspect-ratio:auto;
   margin:0;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+  overflow:visible;
   padding:0;
-  display:block;
-  overflow:hidden;
-  border:0;
+  border:solid transparent;
+  border-width:
+    calc(var(--missions-panel-width) * .15902)
+    calc(var(--missions-panel-width) * .09174)
+    calc(var(--missions-panel-width) * .15291);
+  border-image-source:url('../../assets/ui/painel-de-missoes-submarinas.webp');
+  border-image-slice:260 150 250 150 fill;
+  border-image-width:1;
+  border-image-repeat:stretch;
   border-radius:0;
-  background: url('../../assets/ui/painel-de-missoes-submarinas.webp') center / 100% 100% no-repeat;
+  background:#06325a;
   box-shadow:none;
   filter:drop-shadow(0 12px 23px #0009);
   color:#fff4dc;
 }
 .island-panel[data-island="missions"] .island-panel-card > h2,
 .island-panel[data-island="missions"] .island-panel-card > p {
-  display:none; /* already painted in the artwork */
+  display:none; /* título e descrição já desenhados no asset */
 }
 .island-panel[data-island="missions"] .campaign-board,
 .island-panel[data-island="missions"] .island-panel-list,
 .island-panel[data-island="missions"] .mission-math {
-  position:absolute;
-  left:8.8%;
-  top:26.5%;
-  width:82.4%;
-  height:48.7%;
+  position:static;
+  left:auto;
+  top:auto;
+  width:100%;
+  height:auto;
+  max-height:none;
   min-height:0;
+  flex:0 0 auto;
   box-sizing:border-box;
   margin:0;
   padding:2px 4px 4px;
-  overflow-y:auto;
-  overscroll-behavior:contain;
-  scrollbar-width:thin;
+  overflow:visible;
   color:#fff7df;
   text-shadow:0 2px 3px #000b;
+}
+.island-panel[data-island="missions"] .campaign-board[hidden],
+.island-panel[data-island="missions"] .island-panel-list[hidden],
+.island-panel[data-island="missions"] .mission-math[hidden] {
+  display:none!important;
 }
 .island-panel[data-island="missions"] .campaign-board {
   display:flex;
@@ -1060,27 +1087,38 @@ body:has(#ocean) .leviathan-aura{
   font-size:clamp(16px,2.8cqw,26px);
 }
 .island-panel[data-island="missions"] .island-panel-card > .primary-button:not(.island-panel-return) {
-  position:absolute;
-  left:19%;top:67%;width:62%;
-  min-height:clamp(27px,5cqw,48px);
-  margin:0;
+  position:static;
+  align-self:center;
+  width:95%;
+  min-height:clamp(35px,5cqw,48px);
+  margin:7px 0;
 }
 .island-panel[data-island="missions"] .island-panel-return,
 .island-panel[data-island="missions"] .island-panel-return:hover,
 .island-panel[data-island="missions"] .island-panel-return:focus,
 .island-panel[data-island="missions"] .island-panel-return:focus-visible {
   position:absolute;
-  left:10%;top:77.2%;width:80%;height:13.7%;
+  left:10%;
+  bottom:calc(var(--missions-panel-width) * .0535);
+  width:80%;
+  height:calc(var(--missions-panel-width) * .0806);
   min-height:0;
-  margin:0;padding:0;
-  border:0;outline:0;border-radius:0;box-shadow:none;
-  background:transparent;color:transparent;font-size:0;
-  cursor:pointer;touch-action:manipulation;
+  margin:0;
+  padding:0;
+  border:0;
+  outline:0;
+  border-radius:0;
+  box-shadow:none;
+  background:transparent;
+  color:transparent;
+  font-size:0;
+  cursor:pointer;
+  touch-action:manipulation;
 }
 @media (max-width:580px) {
   .island-panel[data-island="missions"] .campaign-board,
   .island-panel[data-island="missions"] .island-panel-list,
-  .island-panel[data-island="missions"] .mission-math {top:25%;height:51%;padding:0;}
+  .island-panel[data-island="missions"] .mission-math {padding:0 1px 4px;}
   .island-panel[data-island="missions"] .campaign-board {gap:3px;}
   .island-panel[data-island="missions"] .campaign-board h3 {font-size:clamp(11px,2.8cqw,16px);}
   .island-panel[data-island="missions"] .campaign-progress,
