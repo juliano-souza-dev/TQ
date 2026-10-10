@@ -10,6 +10,7 @@ import { collidesWithIsland } from '../src/world/IslandCollision.js';
 import { BLOOD_RED_MARKET_MERCHANT } from '../src/npcs/BloodRedCorsairNpc.js';
 import { AMMUNITION, isItemVisible } from '../src/items/EquipmentCatalog.js';
 import { createMonsterPopulation } from '../src/monsters/MonsterPopulation.js';
+import { normalizeOceanConfig } from '../src/world/WorldOceanEffect.mjs';
 import {
   DARK_WATERS_RAIDER_ARCHETYPE,
   DARK_WATERS_SPECIAL_AMMO_ID,
@@ -100,4 +101,19 @@ test('Águas Escuras não recebe Krakens genéricos enquanto o conceito naval es
   assert.equal(createMonsterPopulation(world, () => .42), 0);
   assert.equal(world.entities.size, before);
   assert.equal([...world.entities.values()].some(entity => entity.type === 'monster'), false);
+});
+
+
+test('oceano da R3 é mais verde, escuro e contaminado que o mapa anterior', () => {
+  const ocean = normalizeOceanConfig(R3.ocean);
+  const previous = normalizeOceanConfig(R2.ocean);
+  assert.equal(ocean.corruption.active, true);
+  assert.equal(ocean.corruption.zones.length, 4);
+  assert.ok(ocean.tintG > ocean.tintR);
+  assert.ok(ocean.tintG > ocean.tintB);
+  assert.ok(ocean.swell > previous.swell);
+  assert.ok(ocean.sparkleIntensity < previous.sparkleIntensity);
+  assert.equal(ocean.corruption.zones[0].x, R3.terrorBoss.x);
+  assert.equal(ocean.corruption.zones[0].y, R3.terrorBoss.y);
+  assert.equal(ocean.corruption.zones[0].intensity, 1);
 });
