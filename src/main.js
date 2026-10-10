@@ -532,13 +532,18 @@ async function startWorld() {
       && readSave().r2Campaign?.active === 'r2-island';
     const forgottenIsland = exploringIsland
       ? world.region.islands.find(island => island.id === 'r2-scenery-north') : null;
-    const combatTarget = !world.manualCamera ? navalBattle?.getCameraTarget?.() : null;
+    const combatTarget = navalBattle?.getCameraTarget?.() ?? null;
+    // No PC, WASD deixa a câmera em modo manual persistente. Isso não pode
+    // desativar silenciosamente o enquadramento de combate: ao existir um alvo
+    // válido, o combate reassume a câmera e mantém o navio do jogador como âncora.
+    if(combatTarget?.health>0 && !r1ExitCinematic) world.manualCamera=null;
     const activeR2Mission = world.region.id === 'r2' ? readSave().r2Campaign?.active : null;
     const morbiEncounter = ['r2-golden-i','r2-golden-ii'].includes(activeR2Mission)
       ? world.entities.get('r2-morbi') : null;
-    const oneVsOneTarget = !world.manualCamera && morbiEncounter?.health > 0
+    const oneVsOneTarget = morbiEncounter?.health > 0
       ? morbiEncounter
-      : combatTarget?.type === 'npc' && combatTarget.health > 0 ? combatTarget : null;
+      : (combatTarget?.type === 'npc' || combatTarget?.type === 'monster') && combatTarget.health > 0
+        ? combatTarget : null;
     const cinematicTarget = thief ?? oneVsOneTarget ?? forgottenIsland;
     const finalMission = world.region.id === 'r1'
       && readSave().campaign?.active?.includes('r1-finale')
@@ -1083,6 +1088,9 @@ async function startWorld() {
         return true;
       }
       selectedNpcId = npc.id;
+      // Selecionar um alvo no desktop encerra qualquer pan manual anterior,
+      // permitindo que a câmera dinâmica de combate assuma imediatamente.
+      world.manualCamera = null;
       navalHud.setFeedback('🎯 Alvo selecionado: ' + npc.name);
       navalHud.refresh();
       return true;
