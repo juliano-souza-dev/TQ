@@ -310,3 +310,13 @@ test('missão 16 preserva o fluxo de conclusão e executa a cinemática somente 
   assert.match(source,/shipId:'terror-do-mar'/);
   assert.match(source,/world\.manualCamera=\{x:terror\.x,y:terror\.y\}/);
 });
+
+
+test('replay temporário da missão 16 é local e roda uma única vez', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source,/devReplayR1FinaleOnceV1/);
+  assert.match(source,/localDev && !snapshot\.devFlags\?\.\[replayKey\]/);
+  assert.match(source,/activeRegion:1/);
+  assert.match(source,/claimed:\(campaign\.claimed\?\?\[\]\)\.filter\(id=>id!=='r1-finale'\)/);
+  assert.match(source,/playerPosition:\{x:3740,y:1200\}/);
+});
