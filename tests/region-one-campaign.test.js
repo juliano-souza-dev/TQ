@@ -267,3 +267,23 @@ test('respawn usa ID inédito mesmo após histórico antigo ou sincronização p
   assert.equal(getVisibleTreasures(next,1_000_000 + TREASURE_RESPAWN_MS)
     .find(t=>t.x===ALL_R1_TREASURES[0].x).id,base + '-cycle-4');
 });
+
+
+test('estado R1 contraditório não mantém missão claimed também como ativa', () => {
+  const save=initial();
+  save.campaign={active:['r1-patrol'],claimed:['r1-patrol','r1-patrol'],progress:{'r1-patrol':[2]},processedEvents:[]};
+  const board=getCampaignBoard(save);
+  const mission=board.missions.find(m=>m.id==='r1-patrol');
+  assert.equal(mission.status,'claimed');
+  assert.equal(mission.active,false);
+  assert.equal(board.active.length,0);
+  assert.equal(board.essentialClaimed,1);
+});
+
+test('deduplicação de evento R1 é por missão e não bloqueia contrato futuro', () => {
+  let save=initial();
+  save.campaign={active:['r1-patrol'],claimed:[],progress:{'r1-patrol':[0]},processedEvents:[]};
+  const first=recordCampaignEvent(save,{type:'defeat',archetype:'red-sail-corsair',id:'corsair-shared'});
+  assert.ok(first);
+  assert.match(first.campaign.processedEvents[0],/^r1-patrol:defeat:/);
+});
