@@ -631,7 +631,11 @@ export class NavalBattleController {
         duration: tracking ? ammo.trackingDurationMs : flightDurationMs(muzzle, destination, speed),
         ammo, flameBoost, ...(tracking ? { trackingTarget: target, trackingSpeed: speed } : {}),
         impactKind: 'water', startTime: now,
-        onImpact: ({ at }) => this.resolvePlayerImpact(target.id, at, damage),
+        onImpact: ({ at }) => {
+          const result = this.resolvePlayerImpact(target.id, at, damage);
+          playCannonSound(result?.kind === 'ship' ? 'impact' : 'water');
+          return result;
+        },
       });
       if (!accepted) return 0;
       playCannonSound(cannon.id === 'aetherion-mk1' ? 'special' : 'normal');
@@ -806,7 +810,11 @@ export class NavalBattleController {
           get health(){return controller.getHealth();}
         },trackingSpeed:speed}:{}),
         impactKind:'water',startTime:now,
-        onImpact:onImpact??(({at})=>this.resolveNpcImpact(npc.id,at,damage)),
+        onImpact:({at})=>{
+          const result=onImpact?onImpact({at}):this.resolveNpcImpact(npc.id,at,damage);
+          playCannonSound(result?.kind==='ship'?'impact':'water');
+          return result;
+        },
       });
       if(!fired)return false;
       playCannonSound(ammo?.id === 'aetherion-seeker' ? 'special' : 'normal');
