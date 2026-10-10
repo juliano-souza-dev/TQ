@@ -1806,13 +1806,26 @@ async function startWorld() {
         const morbiStage=['r2-golden-i','r2-golden-ii'].includes(active?.id);
         if(morbiStage && !goldenIIReady && !world.entities.has('r2-morbi')){
           const savedMorbi=readSave().r2MorbiBoss;
+          const savedMorbiHealth=Number(savedMorbi?.health);
+          const restoredMorbiHealth=Number.isFinite(savedMorbiHealth) && savedMorbiHealth>0
+            ? Math.min(900000,savedMorbiHealth)
+            : 900000;
+          if(Number.isFinite(savedMorbiHealth) && savedMorbiHealth<=0){
+            writePatch({r2MorbiBoss:{
+              health:restoredMorbiHealth,maxHealth:900000,
+              x:Math.min(world.region.width-280,world.camera.x+650),
+              y:Math.min(world.region.height-280,world.camera.y+430),
+              heading:Number.isFinite(Number(savedMorbi?.heading))?Number(savedMorbi.heading):180,
+              updatedAt:Date.now(),
+            }});
+          }
           world.entities.set('r2-morbi',{
             id:'r2-morbi',name:'Morbi · Galeão Dourado',type:'npc',
             archetype:'golden-galleon',shipId:'galeao-dourado',
             x:Math.min(world.region.width-280,world.camera.x+650),
             y:Math.min(world.region.height-280,world.camera.y+430),
             heading:Number.isFinite(Number(savedMorbi?.heading))?Number(savedMorbi.heading):180,
-            health:Math.max(0,Math.min(900000,Number(savedMorbi?.health??900000))),maxHealth:900000,
+            health:restoredMorbiHealth,maxHealth:900000,
             state:'retaliating',aggression:'attack',cannonSlots:1,
             range:2400,damage:1200,
             specialCannon:Object.freeze({
