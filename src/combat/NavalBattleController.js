@@ -696,6 +696,18 @@ export class NavalBattleController {
       this.onFeedback('💥 Acertou ' + target.name + '! -' + actualDamage + ' PV.');
     if (target.health <= 0) {
       if (target.id === this.targetId) { this.firing = false; this.cancelMonsterAssists(); }
+      if(this.getRegionId()==='r2'
+        && this.readSave().r2Campaign?.active==='r2-destroy-thief'
+        && target.archetype==='fugitive-frigate'
+        && !target.shadowThiefExplosionTriggered){
+        target.shadowThiefExplosionTriggered=true;
+        this.renderer.destroyShip?.({
+          at:{x:target.x,y:target.y},
+          size:330,
+          duration:1900,
+          startTime:this.clock(),
+        });
+      }
       this.onVictory(target);
     }
     return { kind: 'ship' };
@@ -892,7 +904,25 @@ export class NavalBattleController {
   }
 
   render(now, camera, zoom, width, height) {
-    return this.renderer.render({ time: now, camera, zoom, width, height });
+    const damagedShips=[];
+    if(this.getRegionId()==='r2' && this.readSave().r2Campaign?.active==='r2-destroy-thief'){
+      const thief=[...this.getEntities().values()].find(entity=>
+        entity.archetype==='fugitive-frigate' && entity.thiefBossInitialized);
+      if(thief && thief.health>0 && thief.health<=60000){
+        damagedShips.push({
+          id:thief.id,
+          kind:'shadow-thief',
+          x:thief.x,
+          y:thief.y,
+          size:190,
+          health:thief.health,
+          maxHealth:60000,
+          fireProgress:Math.max(0,Math.min(1,1-(Number(thief.health)||0)/60000)),
+          damageRatio:.5,
+        });
+      }
+    }
+    return this.renderer.render({ time: now, camera, zoom, width, height, damagedShips });
   }
 
   dispose() {
