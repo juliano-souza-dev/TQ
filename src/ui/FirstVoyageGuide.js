@@ -1,7 +1,7 @@
 // First-voyage onboarding. The arrow points from the player to the mission harbor.
 export function createFirstVoyageGuide(world, { onAcknowledge = () => {} } = {}) {
   let destination = 'missions';
-  const getTarget = () => world.region.islands.find(island => island.kind === destination);
+  const getTarget = () => typeof destination === 'object' ? destination : world.region.islands.find(island => island.kind === destination);
   const arrow = document.createElement('div');
   arrow.className = 'voyage-arrow';
   arrow.setAttribute('aria-label', 'Direção do porto das missões');
@@ -37,7 +37,7 @@ export function createFirstVoyageGuide(world, { onAcknowledge = () => {} } = {})
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
     arrow.style.setProperty('--voyage-angle', angle + 'deg');
     const distance = Math.round(Math.hypot(dx, dy));
-    arrow.querySelector('.voyage-arrow-label').textContent = (destination === 'shipyard' ? 'Estaleiro' : 'Porto das Missões') + ' · ' + distance + ' m';
+    arrow.querySelector('.voyage-arrow-label').textContent = (typeof destination === 'object' ? destination.name : destination === 'shipyard' ? 'Estaleiro' : 'Porto das Missões') + ' · ' + distance + ' m';
   }
   return {
     elements: [arrow, modal],
