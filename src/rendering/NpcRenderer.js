@@ -11,6 +11,7 @@ export class NpcRenderer {
     this.ctx = canvas.getContext('2d');
     this.images = new Map();
     this.monsterImage = null;
+    this.leviathanImage = null;
   }
   async init() {
     const ships = [STARTER_SHIP, HALLOWEEN_TABUADA_SHIP];
@@ -26,6 +27,10 @@ export class NpcRenderer {
     const image = new Image();
     image.src = new URL('../../assets/monsters/sea_monster_kraken.webp', import.meta.url).href;
     try { await image.decode(); this.monsterImage = image; } catch (error) { console.warn('Monstro não carregado:', error); }
+    const leviathan=new Image();
+    leviathan.src=new URL('../../assets/monsters/leviathan_sprite_sheet_transparente_alta_compressao.webp',import.meta.url).href;
+    try { await leviathan.decode(); this.leviathanImage=leviathan; }
+    catch(error){ console.warn('Sprite do Leviatã não carregado:',error); }
   }
   hasShipSprite(id) { return this.images.has(id); }
   render(entities, camera, zoom = 1, selectedId = null, krakenAttacks = [], now = performance.now()) {
@@ -41,11 +46,11 @@ export class NpcRenderer {
     for (const npc of entities.values()) {
       if ((npc.type !== 'npc' && npc.type !== 'monster') || npc.health <= 0 || npc.phasedOut) continue;
       if (npc.type === 'monster') {
-        const monsterSize = size * 1.75;
+        const monsterSize = size * (npc.archetype==='sea-monster-leviathan'?2.6:1.75);
         const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
         const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
         if (x < -monsterSize || x > w + monsterSize || y < -monsterSize || y > h + monsterSize) continue;
-        const image = this.monsterImage;
+        const image = npc.archetype==='sea-monster-leviathan' ? this.leviathanImage : this.monsterImage;
         const attack = krakenAttacks.find(item => item.from && item.monsterId === npc.id && now >= item.startTime && now - item.startTime < item.duration);
         const elapsed = attack ? now - attack.startTime : -1;
         if (image) {
