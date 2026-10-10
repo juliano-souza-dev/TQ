@@ -39,7 +39,7 @@ export class NpcRenderer {
     const ctx = this.ctx; ctx.clearRect(0, 0, w, h);
     const size = Math.min(w * 0.32, h * 0.32, 185 * dpr) * zoom;
     for (const npc of entities.values()) {
-      if (npc.type !== 'npc' && npc.type !== 'monster' || npc.health <= 0) continue;
+      if ((npc.type !== 'npc' && npc.type !== 'monster') || npc.health <= 0 || npc.phasedOut) continue;
       if (npc.type === 'monster') {
         const monsterSize = size * 1.75;
         const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
