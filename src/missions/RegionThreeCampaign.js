@@ -1,4 +1,5 @@
 import { CANNONS, EVENTS, isItemVisible } from '../items/EquipmentCatalog.js';
+import { HORIZON_HARPOON_ID } from '../combat/HarpoonCatalog.js';
 
 export const R3_FIRST_MISSION_ID = 'r3-equip-golden';
 export const R3_GOLDEN_SHIP_ID = 'galeao-dourado';
@@ -14,7 +15,7 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
   description:'Investigue três destroços, recupere seus diários resolvendo multiplicações e entregue os fragmentos no Porto das Missões. As páginas revelam uma pista sobre o Coração do Abismo.',
   objectives:[{kind:'wreck-diaries',count:3,label:'Recuperar os três diários dos destroços'},
     {kind:'return-port',count:1,label:'Entregar os diários no Porto das Missões'}],
-  reward:{gold:100000},
+  reward:{gold:100000,harpoonLaunchers:[HORIZON_HARPOON_ID]},
 })]);
 
 export function expectedR3GoldenLoadout(save, capacity) {
@@ -89,6 +90,19 @@ export function recordR3Event(save,event){
     return {r3Campaign:{...state,wreckDelivered:true}};
   return null;
 }
+// Claim and legacy-save backfill share one idempotent equipment operation.
+// Do not replace launcher ownership or re-equip if the reward was granted before.
+export function grantR3HorizonHarpoon(save={}){
+  const equipment=save.equipment??{};
+  const owned=equipment.ownedHarpoonIds??[];
+  if(owned.includes(HORIZON_HARPOON_ID))return null;
+  return {
+    ...equipment,
+    ownedHarpoonIds:[...new Set([...owned,HORIZON_HARPOON_ID])],
+    equippedHarpoonId:HORIZON_HARPOON_ID,
+  };
+}
+
 export function claimR3Mission(save,id){
   if(id===R3_FIRST_MISSION_ID){
     if(!r3GoldenReady(save)||save.r3Campaign?.claimed?.includes(id))return null;
@@ -97,9 +111,11 @@ export function claimR3Mission(save,id){
   }
   if(id!=='r3-dark-waters-warning'||save.r3Campaign?.active!==id||
     !save.r3Campaign?.wreckDelivered||save.r3Campaign?.claimed?.includes(id))return null;
+  const horizonEquipment=grantR3HorizonHarpoon(save);
   return {mission:R3_MISSIONS[1],patch:{
-    r3Campaign:{...save.r3Campaign,active:null,claimed:[...(save.r3Campaign.claimed??[]),id]},
+    r3Campaign:{...save.r3Campaign,active:null,claimed:[...new Set([...(save.r3Campaign.claimed??[]),id])]},
     profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+100000},
+    ...(horizonEquipment?{equipment:horizonEquipment}:{}),
   }};
 }
 
