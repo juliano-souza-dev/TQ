@@ -553,14 +553,23 @@ async function startWorld() {
       && readSave().r2Campaign?.active === 'r2-island';
     const forgottenIsland = exploringIsland
       ? world.region.islands.find(island => island.id === 'r2-scenery-north') : null;
-    const combatTarget = navalBattle?.getCameraTarget?.() ?? null;
+    const selectedCombatTarget = navalBattle?.getCameraTarget?.() ?? null;
+    // Hostile Leviathan can initiate combat without the player selecting it.
+    // Dynamic framing must not depend on the player's shorter harpoon range.
+    const leviathan=world.region.id==='r3'?world.entities.get('r3-leviathan'):null;
+    const hostileLeviathan=leviathan?.health>0
+      && leviathan.ambushPhase==='surface'
+      && Math.hypot(world.camera.x-leviathan.x,world.camera.y-leviathan.y)<=840
+      ? leviathan : null;
+    const combatTarget=selectedCombatTarget??hostileLeviathan;
     // Manual camera input (WASD/drag) has priority whenever the player takes control.
     const activeR2Mission = world.region.id === 'r2' ? readSave().r2Campaign?.active : null;
     const combatCameraStatus = navalBattle?.getStatus?.() ?? null;
     const combatTargetDistance = combatTarget
       ? Math.hypot(world.camera.x-combatTarget.x, world.camera.y-combatTarget.y)
       : Infinity;
-    const combatCameraRange = Math.max(0,Number(combatCameraStatus?.range)||0);
+    const combatCameraRange = combatTarget?.archetype==='sea-monster-leviathan'
+      ? 840 : Math.max(0,Number(combatCameraStatus?.range)||0);
     const combatTargetInRange = Boolean(
       combatTarget?.health > 0
       && combatCameraRange > 0
