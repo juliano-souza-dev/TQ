@@ -1204,37 +1204,24 @@ async function startWorld() {
   const R1_EXIT_CINEMATIC_ID='r1-exit-terror-do-mar';
 
   function completeR1PassageTransfer(){
-    let save=readSave();
-    const mission=getCampaignBoard(save).missions.find(m=>m.id==='r1-finale');
-    if(mission?.status==='ready'){
-      const claimed=resolveMissionReward(save,'r1-finale');
-      if(!claimed)return false;
-      writePatch(claimed.patch);
-      save=readSave();
-    }
-    const patch=activateNextRegion(save);
-    if(!patch)return false;
-    writePatch({...patch,playerPosition:{x:420,y:860}});
-    exitDialog.hidden=true;
+    if(!r1ExitCinematic?.transferPatch)return false;
+    const transferPatch=r1ExitCinematic.transferPatch;
     world.entities.delete(R1_EXIT_CINEMATIC_ID);
     world.manualCamera=null;
     r1ExitCinematic=null;
+    writePatch({...transferPatch,playerPosition:{x:420,y:860}});
+    exitDialog.hidden=true;
     startWorld();
     return true;
   }
 
-  function beginR1ExitCinematic(){
-    if(r1ExitCinematic || world.region.id!=='r1')return false;
-    const mission=getCampaignBoard(readSave()).missions.find(m=>m.id==='r1-finale');
-    if(!mission || !['active','ready'].includes(mission.status))return false;
-
-    if(mission.status==='active')recordMissionEvent({type:'exit',id:'r1-exit-east'});
+  function beginR1ExitCinematic(transferPatch){
+    if(r1ExitCinematic || world.region.id!=='r1' || !transferPatch)return false;
     clickNavigation.cancel();
     navalBattle.firing=false;
     navalBattle.setTarget(null);
     selectedNpcId=null;
     exitDialog.hidden=true;
-    exitDismissed=true;
 
     const start={x:360,y:3740};
     const end={x:4310,y:830};
@@ -1255,6 +1242,7 @@ async function startWorld() {
     r1ExitCinematic={
       entityId:terror.id,start,end,elapsed:0,duration:5600,
       player:{x:world.camera.x,y:world.camera.y},
+      transferPatch,
     };
     showOceanReward('🏴‍☠️ Algo cruza a passagem...');
     return true;
@@ -1265,8 +1253,8 @@ async function startWorld() {
     const scene=r1ExitCinematic;
     const terror=world.entities.get(scene.entityId);
     if(!terror){
-      r1ExitCinematic=null;
       world.manualCamera=null;
+      r1ExitCinematic=null;
       return false;
     }
     scene.elapsed+=Math.max(0,stepMs);
@@ -1277,19 +1265,30 @@ async function startWorld() {
     terror.heading=(Math.atan2(scene.end.x-scene.start.x,-(scene.end.y-scene.start.y))*180/Math.PI+360)%360;
     world.camera.x=scene.player.x;
     world.camera.y=scene.player.y;
-    world.manualCamera={x:Math.min(world.region.width,Math.max(0,terror.x)),y:Math.min(world.region.height,Math.max(0,terror.y))};
-    if(t>=1){
-      completeR1PassageTransfer();
-      return true;
-    }
+    world.manualCamera={
+      x:Math.min(world.region.width,Math.max(0,terror.x)),
+      y:Math.min(world.region.height,Math.max(0,terror.y)),
+    };
+    if(t>=1)completeR1PassageTransfer();
     return true;
   }
 
   exitStay.addEventListener('click',()=>{exitDialog.hidden=true;exitDismissed=true;});
   exitTravel.addEventListener('click',()=>{
-    if(!beginR1ExitCinematic()){
-      exitDescription.textContent='Conclua as missões anteriores para liberar a travessia.';
+    let save=readSave();
+    const mission=getCampaignBoard(save).missions.find(m=>m.id==='r1-finale');
+    if(mission?.status==='ready'){
+      const claimed=resolveMissionReward(save,'r1-finale');
+      if(!claimed)return;
+      writePatch(claimed.patch);
+      save=readSave();
     }
+    const patch=activateNextRegion(save);
+    if(!patch){
+      exitDescription.textContent='Conclua as missões anteriores para liberar a travessia.';
+      return;
+    }
+    beginR1ExitCinematic(patch);
   });
 
   const {createDarkWatersPortal}=await import('./rendering/DarkWatersPortal.js');
@@ -2395,12 +2394,17 @@ async function startWorld() {
       if (world.region.id === 'r1') {
         const exit = world.region.exitPoint;
         const distanceToExit = exit ? Math.hypot(world.camera.x-exit.x,world.camera.y-exit.y) : Infinity;
-        if (distanceToExit > (exit?.radius ?? 0) + 45 && !r1ExitCinematic) exitDismissed = false;
+        if (distanceToExit > (exit?.radius ?? 0) + 45) exitDismissed = false;
         const board = getCampaignBoard(readSave());
         const finalMission = board.missions.find(m => m.id === 'r1-finale');
-        const canUsePassage = finalMission && ['active','ready'].includes(finalMission.status);
-        if (canUsePassage && distanceToExit <= exit.radius && !mathGate.isOpen && !islandPanel.isOpen) {
-          beginR1ExitCinematic();
+        const canUsePassage = finalMission && ['active','ready','claimed'].includes(finalMission.status);
+        if (canUsePassage && distanceToExit <= exit.radius) {
+          if (finalMission.status === 'active') recordMissionEvent({type:'exit',id:'r1-exit-east'});
+          clickNavigation.cancel();
+          if (!exitDismissed && exitDialog.hidden && !mathGate.isOpen && !islandPanel.isOpen && !r1ExitCinematic) {
+            exitDialog.hidden = false;
+            navalBattle.firing = false;
+          }
         }
       }
       if (world.region.id === 'r1' && (!exitDialog.hidden || r1ExitCinematic)) {
