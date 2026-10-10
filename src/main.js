@@ -22,6 +22,7 @@ import { renderLogin, renderLoading, renderConfigurationRequired } from './ui/Po
 import { createSyncPreferenceStore, SYNC_MODE } from './persistence/SyncPreference.js';
 import { createLocalSaveStore } from './persistence/LocalSaveStore.js';
 import { formatMissionHudObjectives } from './ui/MissionHud.js';
+import { computeOneVsOneFraming } from './world/BattleCamera.js';
 
 const root = document.getElementById('app');
 if (!root) throw new Error('Elemento #app ausente');
@@ -407,14 +408,21 @@ async function startWorld() {
       && readSave().r2Campaign?.active === 'r2-island';
     const forgottenIsland = exploringIsland
       ? world.region.islands.find(island => island.id === 'r2-scenery-north') : null;
-    const cinematicTarget = thief ?? forgottenIsland;
+    const combatTarget = !world.manualCamera ? navalBattle?.getTarget?.() : null;
+    const oneVsOneTarget = combatTarget?.type === 'npc' && combatTarget.health > 0 ? combatTarget : null;
+    const cinematicTarget = thief ?? oneVsOneTarget ?? forgottenIsland;
     const finalMission = world.region.id === 'r1'
       && readSave().campaign?.active?.includes('r1-finale')
       && !(readSave().campaign?.progress?.['r1-finale']?.[0] >= 1);
     const viewportW = canvas.clientWidth || 900;
     const viewportH = canvas.clientHeight || 600;
     const mobile = viewportW < 700;
-    const separation = thief ? Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y) : 0;
+    const separation = thief ? Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y)
+      : oneVsOneTarget ? Math.hypot(world.camera.x-oneVsOneTarget.x, world.camera.y-oneVsOneTarget.y) : 0;
+    const oneVsOneFraming = oneVsOneTarget ? computeOneVsOneFraming({
+      player:world.camera,target:oneVsOneTarget,
+      viewportWidth:viewportW,viewportHeight:viewportH,normalZoom,
+    }) : null;
     // The shortest equipped cannon range determines when close-combat framing begins.
     // The Shadow Chaser normally carries one Aetherion MK-I (840 world units).
     const equipment = hunting ? readSave().equipment ?? {} : null;
@@ -436,6 +444,7 @@ async function startWorld() {
     // Within cannon range the cap remains the ordinary camera zoom;
     // fitting both ships still takes priority if the screen is narrow.
     const targetZoom = thief ? Math.max(.12,battleZoom)
+      : oneVsOneFraming ? oneVsOneFraming.zoom
       : cinematicTarget ? Math.max(.27, Math.min(.43,
           Math.min(viewportW, viewportH) /
           Math.max(1300, Math.hypot(world.camera.x-cinematicTarget.x, world.camera.y-cinematicTarget.y)*2.4))) * 1.05 * 1.06
@@ -450,6 +459,8 @@ async function startWorld() {
     const offsetTarget = thief && !world.manualCamera
       ? {x:(thief.x-world.camera.x)*.5,
          y:(thief.y-world.camera.y)*.5}
+      : oneVsOneFraming && !world.manualCamera
+        ? oneVsOneFraming.offset
       : cinematicTarget && !world.manualCamera
         ? {x:(cinematicTarget.x-world.camera.x)*.14,y:(cinematicTarget.y-world.camera.y)*.14}
         : {x:0,y:-65};
