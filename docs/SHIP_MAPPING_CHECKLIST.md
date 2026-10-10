@@ -24,4 +24,4 @@ Critério de **mapeamento completo**: atlas de navegação configurado e origens
 
 ## Novos NPCs mapeados aguardando integração do asset
 
-- [x] **Corsário Vermelho Sangue** — atlas 4x4/16 direções e 10 origens de canhão por bateria lateral mapeados. As variantes de cor com geometria idêntica podem reutilizar o mesmo mapa. Integração ao catálogo aguarda o asset ser adicionado ao repositório.
+- [x] **Corsário Vermelho Sangue** (`corsario-vermelho-sangue`) — asset integrado ao catálogo NPC, atlas 4x4/16 direções e 10 origens de canhão por bateria lateral mapeados. [Asset](../assets/ships/corsário-vermelho-sangue.webp)
