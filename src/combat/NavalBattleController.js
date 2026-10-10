@@ -769,6 +769,7 @@ export class NavalBattleController {
     for(const monster of this.getEntities().values()){
       if(monster.type!=='monster'||monster.health<=0||monster.state!=='retaliating')continue;
       const isLeviathan=monster.archetype==='sea-monster-leviathan';
+      if(isLeviathan&&(monster.ambushPhase!=='surface'||(monster.ambushAttackReadyMs||0)>0))continue;
       const maximumRange=isLeviathan?Math.max(...CANNONS.map(cannonRange)):KRAKEN_RETALIATION_RANGE;
       if(distanceBetween(monster,player)>maximumRange)continue;
       const heading=(((Number(monster.heading)||0)%360)+360)%360;
