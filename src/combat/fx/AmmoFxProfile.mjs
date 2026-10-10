@@ -71,11 +71,11 @@ export const AMMO_FX_PRESETS={
     impactWater:{enabled:true,size:188,durationMs:1380,splash:1.12,ripple:1.16,foam:1.18,mist:1.45,color:"#ff5b2c",coreColor:"#ffffff",accentColor:"#ffbf25",magic:.78,flash:0.64,ringCount:3}
   }),
   "terror-rose":preset("terror-rose","Rosa do Terror",{
-    muzzle:{enabled:true,size:70,durationMs:270,intensity:1.68,sparks:28,smoke:.52,color:"#ff216f",coreColor:"#ffd0ef",accentColor:"#76ff5a",starburst:1.25},
-    projectile:{scale:1.2,color:"#d71373",coreColor:"#ffd1ee",accentColor:"#76ff5a",glow:1.82,opacity:1,wobble:.14,auraEnabled:true,auraScale:2.6,auraOpacity:.84,orbitCount:9,orbitRadius:1.18,sparkle:1.45,pulseSpeed:2.4,echoCount:4,echoSpacing:.034,echoScale:.66,texture:"./assets/cannons/rosa do terror.png"},
-    trail:{enabled:true,length:27,width:19,opacity:.84,taper:.72,color:"#e31778",secondaryColor:"#76ff5a",sparkle:1.45,ribbon:1.2,beads:1},
-    impactShip:{enabled:true,size:164,durationMs:1080,sparks:42,smoke:.58,shock:1.3,color:"#d91572",coreColor:"#ffd2ef",accentColor:"#76ff5a",fireworks:1.5,flash:1.35,ringCount:4},
-    impactWater:{enabled:true,size:166,durationMs:1220,splash:1.22,ripple:1.38,foam:.96,mist:.92,color:"#e94c9e",coreColor:"#ffd7f1",accentColor:"#76ff5a",magic:1.45,flash:1.19,ringCount:4}
+    muzzle:{enabled:true,size:58,durationMs:210,intensity:1.34,sparks:18,smoke:.4,color:"#ff216f",coreColor:"#ffd0ef",accentColor:"#76ff5a",starburst:.82},
+    projectile:{scale:1.08,color:"#d71373",coreColor:"#ffd1ee",accentColor:"#76ff5a",glow:1.34,opacity:1,wobble:.1,auraEnabled:true,auraScale:2.05,auraOpacity:.62,orbitCount:5,orbitRadius:.92,sparkle:.95,pulseSpeed:2.0,echoCount:2,echoSpacing:.03,echoScale:.58,texture:"./assets/cannons/rosa do terror.png"},
+    trail:{enabled:true,length:20,width:13,opacity:.68,taper:.76,color:"#e31778",secondaryColor:"#76ff5a",sparkle:.92,ribbon:.72,beads:.7},
+    impactShip:{enabled:true,size:102,durationMs:700,sparks:20,smoke:.42,shock:.78,color:"#d91572",coreColor:"#ffd2ef",accentColor:"#76ff5a",fireworks:.72,flash:.56,ringCount:2},
+    impactWater:{enabled:true,size:108,durationMs:760,splash:.86,ripple:.88,foam:.7,mist:.58,color:"#e94c9e",coreColor:"#ffd7f1",accentColor:"#76ff5a",magic:.82,flash:.48,ringCount:2}
   })
 };
 
