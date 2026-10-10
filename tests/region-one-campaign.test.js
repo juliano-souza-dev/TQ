@@ -316,13 +316,18 @@ test('missão 16 só conclui depois que o jogador já chegou na R2', async () =>
 
 
 
-test('passagem final da R1 fica no canto inferior direito e replay temporário roda uma vez', async () => {
+
+
+test('passagem final da R1 fica mais acima e Terror do Mar navega naturalmente até ela', async () => {
   const region = await import('../src/world/regions/r1.js');
   assert.ok(region.R1.exitPoint.x > 3800);
-  assert.ok(region.R1.exitPoint.y > 3800);
+  assert.equal(region.R1.exitPoint.y,3000);
   const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
-  assert.match(source,/devReplayR1FinaleOnceV2/);
-  assert.match(source,/playerPosition:\{x:3660,y:3660\}/);
-  assert.match(source,/const start=\{x:420,y:3000\}/);
-  assert.match(source,/const end=\{x:4380,y:4380\}/);
+  assert.match(source,/maxSpeed:260/);
+  assert.match(source,/acceleration:72/);
+  assert.match(source,/turnRate:68/);
+  assert.match(source,/collidesWithIsland\(world\.region,probeX,probeY,52\)/);
+  assert.match(source,/resolveIslandMovement\(world\.region,terror\.x,terror\.y,targetX,targetY,52\)/);
+  assert.doesNotMatch(source,/duration:5600/);
+  assert.match(source,/devReplayR1FinaleOnceV3/);
 });
