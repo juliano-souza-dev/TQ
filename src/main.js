@@ -24,6 +24,7 @@ import { createLocalSaveStore } from './persistence/LocalSaveStore.js';
 import { formatMissionHudObjectives } from './ui/MissionHud.js';
 import { computeOneVsOneFraming } from './world/BattleCamera.js';
 import { DamageTextRenderer } from './rendering/DamageTextRenderer.js';
+import { TreasureGlowWebGLRenderer } from './rendering/TreasureGlowWebGLRenderer.js';
 
 const root = document.getElementById('app');
 if (!root) throw new Error('Elemento #app ausente');
@@ -44,6 +45,8 @@ let shipCanvas = null;
 let islandCanvas = null;
 let npcCanvas = null;
 let treasureCanvas = null;
+let treasureGlowCanvas = null;
+let treasureGlowRenderer = null;
 let navalCanvas = null;
 let damageTextCanvas = null;
 let damageTextRenderer = null;
@@ -99,6 +102,10 @@ function stopWorld() {
   minimapElement = null;
   if (npcCanvas) npcCanvas.remove();
   npcCanvas = null;
+  treasureGlowRenderer?.dispose();
+  treasureGlowRenderer = null;
+  if (treasureGlowCanvas) treasureGlowCanvas.remove();
+  treasureGlowCanvas = null;
   if (treasureCanvas) treasureCanvas.remove();
   treasureCanvas = null;
   if (islandCanvas) islandCanvas.remove();
@@ -631,6 +638,7 @@ async function startWorld() {
     }
     updateMissionHud();
     navalHud?.refresh();
+    if(action.kind==='treasure') pendingTreasureId=null;
     if (['treasure','repair','accept-mission'].includes(action.kind))showOceanReward(result.message);
     return result.message;
   }
@@ -948,6 +956,22 @@ async function startWorld() {
     });
   });
 
+  let pendingTreasureId = null;
+  const visibleTreasures = () => (world.region.id === 'r2'
+    && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active))
+      ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
+  const openTreasureChallenge = treasure => {
+    if(!treasure || mathGate.isOpen || islandPanel?.isOpen)return false;
+    clickNavigation?.cancel();
+    navalBattle.firing=false;
+    pendingTreasureId=treasure.id;
+    return mathGate.open({
+      kind:'treasure',id:treasure.id,
+      title:'🪵 Resgatar destroços',
+      description:'Resolva a continha para recolher o que restou do naufrágio.',
+    });
+  };
+
   clickNavigation = createClickNavigation(canvas, world, point => {
     const npc = findNpcAtPoint(world.entities, point.x, point.y);
     if (npc) {
@@ -961,19 +985,21 @@ async function startWorld() {
       navalHud.refresh();
       return true;
     }
-    const treasure = findTreasureNearPoint((world.region.id === 'r2' && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active)) ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id), point.x, point.y);
-    if (treasure && Math.hypot(world.camera.x - treasure.x, world.camera.y - treasure.y) < 125) {
-      mathGate.open({
-        kind: 'treasure', id: treasure.id,
-        title: '🧰 Desafio do tesouro',
-        description: 'A arca só será aberta depois de resolver a continha.',
-      });
+    const treasure = findTreasureNearPoint(visibleTreasures(), point.x, point.y, 105);
+    if (treasure) {
+      pendingTreasureId=treasure.id;
+      clickNavigation?.setDestination({x:treasure.x,y:treasure.y});
+      navalHud?.setFeedback('🧭 Navegando até os destroços...');
       return true;
     }
+    pendingTreasureId=null;
     return false;
   });
   keyboardCamera = createKeyboardCameraInput();
   const joystick = createAnalogJoystick();
+  treasureGlowCanvas = document.createElement('canvas');
+  treasureGlowCanvas.className = 'treasure-glow-layer';
+  treasureGlowCanvas.setAttribute('aria-hidden','true');
   treasureCanvas = document.createElement('canvas');
   treasureCanvas.className = 'treasure-layer';
   islandCanvas = document.createElement('canvas');
@@ -983,10 +1009,12 @@ async function startWorld() {
   shipCanvas = document.createElement('canvas');
   shipCanvas.className = 'ship-layer';
   shipCanvas.setAttribute('aria-label', 'Navio do jogador');
-  root.append(islandCanvas, treasureCanvas, npcCanvas, shipCanvas, joystick.element);
+  root.append(islandCanvas, treasureGlowCanvas, treasureCanvas, npcCanvas, shipCanvas, joystick.element);
   const shipRenderer = new ShipRenderer(shipCanvas, initialShip);
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
   const treasureRenderer = new TreasureRenderer(treasureCanvas);
+  treasureGlowRenderer = new TreasureGlowWebGLRenderer(treasureGlowCanvas);
+  treasureGlowRenderer.init();
   const npcRenderer = new NpcRenderer(npcCanvas);
   damageTextCanvas = document.createElement('canvas');
   damageTextCanvas.className = 'damage-text-layer';
@@ -2069,8 +2097,17 @@ async function startWorld() {
         navalHud.refresh();
         refreshTargetAndHealthHud();
         assistButton.hidden = !navalBattle.getAssistStatus().eligible || mathGate.isOpen || islandPanel.isOpen;
-        const near = findTreasureNearPoint((world.region.id === 'r2' && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active)) ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id), world.camera.x, world.camera.y, 125);
+        const near = findTreasureNearPoint(visibleTreasures(), world.camera.x, world.camera.y, 125);
         treasurePrompt.hidden = !near || mathGate.isOpen || islandPanel.isOpen;
+        if(pendingTreasureId && !mathGate.isOpen && !islandPanel.isOpen){
+          const target=visibleTreasures().find(t=>t.id===pendingTreasureId);
+          if(!target){
+            pendingTreasureId=null;
+            clickNavigation.cancel();
+          } else if(Math.hypot(world.camera.x-target.x,world.camera.y-target.y)<=72){
+            openTreasureChallenge(target);
+          }
+        }
       }
       persistPlayerPosition(stepMs);
       firstVoyageGuide?.update();
@@ -2159,7 +2196,9 @@ async function startWorld() {
       islandRenderer.render(world.cameraView, world.camera.zoom);
       const hidePursuitTreasures = world.region.id === 'r2'
         && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active);
-      treasureRenderer.render(hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),world.cameraView,world.camera.zoom,oceanTimeMs);
+      const renderedTreasures=hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
+      treasureGlowRenderer?.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs,pendingTreasureId);
+      treasureRenderer.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
         selectedNpcId = null;
