@@ -1175,6 +1175,11 @@ async function startWorld() {
   treasureGlowRenderer = new TreasureGlowWebGLRenderer(treasureGlowCanvas);
   treasureGlowRenderer.init();
   const npcRenderer = new NpcRenderer(npcCanvas);
+  const leviathanAura=document.createElement('div');
+  leviathanAura.className='leviathan-aura';
+  leviathanAura.hidden=true;
+  leviathanAura.setAttribute('aria-hidden','true');
+  root.append(leviathanAura);
   damageTextCanvas = document.createElement('canvas');
   damageTextCanvas.className = 'damage-text-layer';
   damageTextCanvas.setAttribute('aria-hidden','true');
