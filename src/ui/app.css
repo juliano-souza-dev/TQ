@@ -975,7 +975,7 @@ body:has(#ocean) .leviathan-aura{
   container-type:inline-size;
   flex:0 0 auto;
   width:var(--missions-panel-width);
-  min-height:calc(var(--missions-panel-width) * .58838);
+  min-height:calc(var(--missions-panel-width) * .82);
   max-height:none;
   height:auto;
   aspect-ratio:auto;
@@ -1086,6 +1086,12 @@ body:has(#ocean) .leviathan-aura{
   min-height:clamp(33px,5cqw,47px);
   font-size:clamp(16px,2.8cqw,26px);
 }
+.island-panel[data-island="missions"] .campaign-contract button {
+  position:relative;
+  z-index:2;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
 .island-panel[data-island="missions"] .island-panel-card > .primary-button:not(.island-panel-return) {
   position:static;
   align-self:center;
@@ -1100,6 +1106,7 @@ body:has(#ocean) .leviathan-aura{
   position:absolute;
   left:10%;
   bottom:calc(var(--missions-panel-width) * .0535);
+  z-index:1;
   width:80%;
   height:calc(var(--missions-panel-width) * .0806);
   min-height:0;
