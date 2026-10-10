@@ -988,9 +988,8 @@ async function startWorld() {
     const treasure = findTreasureNearPoint(visibleTreasures(), point.x, point.y, 105);
     if (treasure) {
       pendingTreasureId=treasure.id;
-      clickNavigation?.setDestination({x:treasure.x,y:treasure.y});
       navalHud?.setFeedback('🧭 Navegando até os destroços...');
-      return true;
+      return {destination:{x:treasure.x,y:treasure.y}};
     }
     pendingTreasureId=null;
     return false;
