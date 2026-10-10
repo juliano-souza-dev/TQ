@@ -61,7 +61,7 @@ export function acceptR2Mission(save,id) {
 export function recordR2Event(save,event) {
   const state=stateOf(save),mission=R2_MISSIONS.find(m=>m.id===state.active);
   if(!mission)return null;
-  const key=event.id?event.type+':'+event.id:null;
+  const key=event.id?mission.id+':'+event.type+':'+event.id:null;
   if(key&&state.processed?.includes(key))return null;
   const current=state.progress?.[mission.id]??mission.objectives.map(()=>0);
   let changed=false;
