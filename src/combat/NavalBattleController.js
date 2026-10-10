@@ -781,8 +781,11 @@ export class NavalBattleController {
       const origin=isLeviathan
         ? leviathanMouthOrigin(monster,viewport?.width||window.innerWidth,viewport?.height||window.innerHeight)
         : monster;
+      const aimX=destination.x-origin.x,aimY=destination.y-origin.y;
+      const aimLength=Math.max(1,Math.hypot(aimX,aimY));
       const fireEnd=isLeviathan
-        ? {x:origin.x+(right?maximumRange:-maximumRange),y:origin.y}
+        ? {x:origin.x+aimX/aimLength*maximumRange,
+          y:origin.y+aimY/aimLength*maximumRange}
         : destination;
       const accepted=this.renderer.attackKraken?.({
         from:origin,to:fireEnd,monsterId:monster.id,
@@ -824,7 +827,7 @@ export class NavalBattleController {
       });
       if(accepted){
         this.markCombatActivity(now);
-        this.nextKrakenStrike.set(monster.id,now+4500);
+        this.nextKrakenStrike.set(monster.id,now+(isLeviathan?420:4500));
       }
     }
   }
