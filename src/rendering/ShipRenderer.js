@@ -8,6 +8,15 @@ function getVisualScale(definition) {
   return 1;
 }
 
+// Calculate one visual size for both drawing and cannon hardpoint projection.
+// Widths are device pixels. Caps are CSS pixels, scaled by devicePixelRatio.
+export function playerShipPixelSize(viewportW, viewportH, dpr, zoom, definition = STARTER_SHIP) {
+  const compact = viewportW / Math.max(1, dpr) < 700;
+  const cap = (compact ? 113 : 160) * dpr;
+  return Math.min(viewportW * .30, viewportH * .30, cap)
+    * getVisualScale(definition) * zoom;
+}
+
 // Dedicated transparent canvas: ocean renderer remains exclusively responsible for water.
 export class ShipRenderer {
   constructor(canvas, definition = STARTER_SHIP) {
@@ -35,8 +44,7 @@ export class ShipRenderer {
     const { columns, rows, frameWidth: configuredWidth, frameHeight: configuredHeight } = this.definition.sprite;
     const frameWidth = (this.image.naturalWidth / columns) || configuredWidth;
     const frameHeight = (this.image.naturalHeight / rows) || configuredHeight;
-    const targetSize = Math.min(w * .40, h * .40, 240 * dpr)
-      * getVisualScale(this.definition) * zoom;
+    const targetSize = playerShipPixelSize(w, h, dpr, zoom, this.definition);
     const factor = targetSize / Math.max(frameWidth, frameHeight) / (Math.max(.001, zoom) * dpr);
     return { width: frameWidth * factor, height: frameHeight * factor };
   }
@@ -55,7 +63,7 @@ export class ShipRenderer {
     // Use actual image dimensions: exported sheets are not necessarily 1600x1600.
     const frameWidth = this.image.naturalWidth / columns;
     const frameHeight = this.image.naturalHeight / rows;
-    const targetSize = Math.min(w * 0.40, h * 0.40, 240 * dpr) * getVisualScale(this.definition) * zoom;
+    const targetSize = playerShipPixelSize(w, h, dpr, zoom, this.definition);
     const scale = targetSize / Math.max(frameWidth, frameHeight);
     const drawW = frameWidth * scale;
     const drawH = frameHeight * scale;

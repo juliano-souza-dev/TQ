@@ -7,6 +7,14 @@ import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 import { renderMonsterBlood } from '../monsters/MonsterBloodRenderer.js';
 import { leviathanFrameForHeading } from '../monsters/LeviathanMouthMap.js';
 
+// Scale ship NPCs responsively without changing monster size or hitboxes.
+export function npcShipPixelSize(viewportW, viewportH, dpr, zoom, { merchant = false, fugitive = false } = {}) {
+  const compact = viewportW / Math.max(1, dpr) < 700;
+  const cap = (compact ? 94 : 125) * dpr;
+  const base = Math.min(viewportW * .30, viewportH * .30, cap) * zoom;
+  return base * (merchant ? 1.15 : fugitive ? .7 : 1);
+}
+
 export class NpcRenderer {
   constructor(canvas,frontCanvas=null) {
     this.canvas = canvas;
@@ -214,7 +222,10 @@ export class NpcRenderer {
       const frameH = image.height / rows;
       const frame = getShipFrame(npc.heading ?? 0, ship);
       this.scanWaterlines(ship.id,image,columns,rows);
-      const shipSize = npc.archetype === 'blood-red-market-merchant' ? size * 1.935 : ship.id === FUGITIVE_FRIGATE_SHIP.id || ship.id === GREEN_GHOST_FUGITIVE_SHIP.id ? size * 0.7 : size;
+      const shipSize = npcShipPixelSize(w, h, dpr, zoom, {
+        merchant: npc.archetype === 'blood-red-market-merchant',
+        fugitive: ship.id === FUGITIVE_FRIGATE_SHIP.id || ship.id === GREEN_GHOST_FUGITIVE_SHIP.id,
+      });
       const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
       const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
       if (x < -shipSize || x > w + shipSize || y < -shipSize || y > h + shipSize) continue;
