@@ -1,0 +1,57 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createWorldState} from '../src/world/WorldState.js';
+import {R3} from '../src/world/regions/r3.js';
+import {createMonsterPopulation,updateMonsterPopulation} from '../src/monsters/MonsterPopulation.js';
+const setup=()=>{const world=createWorldState(R3);createMonsterPopulation(world);const monster=world.entities.get('r3-leviathan');return {world,monster};};
+test('Leviathan follows player physically after entering hunt radius',()=>{
+  const {world,monster}=setup();
+  monster.huntActive=true;
+  world.camera.x=monster.x+700;world.camera.y=monster.y;
+  const before=Math.hypot(world.camera.x-monster.x,world.camera.y-monster.y);
+  updateMonsterPopulation(world,64);
+  assert.equal(monster.huntEngaged,true);
+  assert.equal(monster.ambushPhase,'surface');
+  assert.ok(Math.hypot(world.camera.x-monster.x,world.camera.y-monster.y)<before);
+});
+test('Leviathan does not pursue before contact nor outside quest',()=>{
+  const {world,monster}=setup();
+  world.camera.x=500;world.camera.y=500;
+  monster.huntActive=true;
+  const old={x:monster.x,y:monster.y};
+  updateMonsterPopulation(world,64);
+  assert.equal(monster.huntEngaged,undefined);
+  assert.equal(monster.x,old.x);
+  const inactive=setup();
+  inactive.world.camera.x=inactive.monster.x+500;
+  const x=inactive.monster.x,y=inactive.monster.y;
+  updateMonsterPopulation(inactive.world,64);
+  assert.equal(inactive.monster.x,x);assert.equal(inactive.monster.y,y);
+});
+test('fire triggers dive, swimming pursuit and resurfacing cycle',()=>{
+  const {world,monster}=setup();
+  monster.huntActive=true;monster.huntEngaged=true;
+  world.camera.x=monster.x+500;world.camera.y=monster.y;
+  monster.huntFlameFired=true;
+  updateMonsterPopulation(world,1000);
+  assert.equal(monster.ambushPhase,'surface');
+  updateMonsterPopulation(world,950);
+  assert.equal(monster.ambushPhase,'diving');
+  updateMonsterPopulation(world,680);
+  assert.equal(monster.ambushPhase,'submerged');
+  const before=monster.x;
+  updateMonsterPopulation(world,600);
+  assert.ok(monster.x!==before,'swims underwater toward moving player');
+  updateMonsterPopulation(world,1150);
+  assert.equal(monster.ambushPhase,'surfacing');
+  updateMonsterPopulation(world,720);
+  assert.equal(monster.ambushPhase,'surface');
+});
+test('active mission flags are wired to existing fire attack and live monster loop',async()=>{
+  const fs=await import('node:fs/promises');
+  const main=await fs.readFile(new URL('../src/main.js',import.meta.url),'utf8');
+  const battle=await fs.readFile(new URL('../src/combat/NavalBattleController.js',import.meta.url),'utf8');
+  assert.match(main,/leviathan\.huntActive=readSave\(\)\.r3Campaign\?\.active===R3_LEVIATHAN_MISSION_ID/);
+  assert.match(battle,/monster\.huntFlameFired=true/);
+  assert.match(battle,/monster\.huntActive\?4500:420/);
+});

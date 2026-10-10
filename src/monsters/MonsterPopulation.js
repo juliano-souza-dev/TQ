@@ -52,6 +52,68 @@ function updateLeviathanAmbush(monster,world,stepMs){
   const aligned=Math.abs(player.y-monster.y)<125 && distance<=840;
   const ready=monster.ambushPhase==='surface'||!monster.ambushPhase;
   if(!monster.ambushPhase)monster.ambushPhase='surface';
+  // During the active hunt, pursuit begins only once the player enters the
+  // encounter radius. Outside the mission the established ambush AI is intact.
+  if(monster.huntActive && (monster.huntEngaged || distance<=950)){
+    monster.huntEngaged=true;
+    const region=world.region;
+    if(ready){
+      const target=(Math.atan2(player.x-monster.x,-(player.y-monster.y))*180/Math.PI+360)%360;
+      const angle=Number(monster.heading)||0;
+      const delta=angleDelta(angle,target);
+      monster.heading=(angle+Math.sign(delta)*Math.min(Math.abs(delta),dt*.12)+360)%360;
+      const stopAt=260;
+      if(distance>stopAt){
+        const step=Math.min(distance-stopAt,Math.min(80,dt)*.19);
+        const radians=monster.heading*Math.PI/180;
+        const nx=clamp(monster.x+Math.sin(radians)*step,135,region.width-135);
+        const ny=clamp(monster.y-Math.cos(radians)*step,135,region.height-135);
+        if(!collidesWithIsland(region,nx,ny,120)){monster.x=nx;monster.y=ny;}
+      }
+      // Let the fire jet finish visibly before the diving animation starts.
+      if(monster.huntFlameFired){
+        monster.huntAfterFlameMs=(monster.huntAfterFlameMs||0)+dt;
+        if(monster.huntAfterFlameMs>=1900){
+          monster.huntFlameFired=false;
+          monster.huntAfterFlameMs=0;
+          monster.ambushFrom={x:monster.x,y:monster.y};
+          monster.ambushTo={
+            x:clamp(player.x+(monster.x<=player.x?-330:330),155,region.width-155),
+            y:clamp(player.y+90,155,region.height-155),
+            heading:monster.heading,
+          };
+          if(collidesWithIsland(region,monster.ambushTo.x,monster.ambushTo.y,120))
+            monster.ambushTo={x:monster.x,y:monster.y,heading:monster.heading};
+          monster.ambushPhase='diving';
+          monster.ambushElapsedMs=0;
+        }
+      }
+    }else{
+      monster.ambushElapsedMs=(monster.ambushElapsedMs||0)+dt;
+      if(monster.ambushPhase==='diving'&&monster.ambushElapsedMs>=680){
+        monster.ambushPhase='submerged';monster.ambushElapsedMs=0;
+      }else if(monster.ambushPhase==='submerged'){
+        // Home in on the player's current location while swimming underwater.
+        const dx=player.x-monster.x,dy=player.y-monster.y;
+        const dist=Math.hypot(dx,dy);
+        if(dist>290){
+          const step=Math.min(dist-290,Math.min(80,dt)*.35);
+          const nx=clamp(monster.x+dx/dist*step,135,region.width-135);
+          const ny=clamp(monster.y+dy/dist*step,135,region.height-135);
+          if(!collidesWithIsland(region,nx,ny,120)){monster.x=nx;monster.y=ny;}
+        }
+        if(monster.ambushElapsedMs>=1750){
+          monster.ambushPhase='surfacing';monster.ambushElapsedMs=0;
+        }
+      }else if(monster.ambushPhase==='surfacing'&&monster.ambushElapsedMs>=720){
+        monster.ambushPhase='surface';monster.ambushElapsedMs=0;
+        monster.ambushAttackReadyMs=650;
+      }
+    }
+    monster.ambushAttackReadyMs=Math.max(0,(monster.ambushAttackReadyMs||0)-dt);
+    monster.animationTimeMs=0;
+    return;
+  }
   if(ready){
     const target=(Math.atan2(player.x-monster.x,-(player.y-monster.y))*180/Math.PI+360)%360;
     const angle=Number(monster.heading)||0;

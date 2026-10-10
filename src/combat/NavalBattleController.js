@@ -835,7 +835,9 @@ export class NavalBattleController {
       const heading=(((Number(monster.heading)||0)%360)+360)%360;
       const right=Math.abs(((heading-90+540)%360)-180)<=25;
       const left=Math.abs(((heading-270+540)%360)-180)<=25;
-      if(isLeviathan&&!right&&!left)continue;
+      if(isLeviathan&&!monster.huntActive&&!right&&!left)continue;
+      if(isLeviathan&&monster.huntActive&&!monster.huntEngaged)continue;
+      if(isLeviathan&&monster.huntActive&&monster.huntFlameFired)continue;
       if(now<(this.nextKrakenStrike.get(monster.id)??-Infinity))continue;
       const destination={x:player.x,y:player.y};
       const viewport=this.renderer.canvas?.getBoundingClientRect();
@@ -888,7 +890,11 @@ export class NavalBattleController {
       });
       if(accepted){
         this.markCombatActivity(now);
-        this.nextKrakenStrike.set(monster.id,now+(isLeviathan?420:4500));
+        if(isLeviathan&&monster.huntActive){
+          monster.huntFlameFired=true;
+          monster.huntAfterFlameMs=0;
+        }
+        this.nextKrakenStrike.set(monster.id,now+(isLeviathan?(monster.huntActive?4500:420):4500));
       }
     }
   }

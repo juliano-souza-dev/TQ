@@ -2735,6 +2735,11 @@ async function startWorld() {
           }
         }
       }
+      if(world.region.id==='r3'){
+        const leviathan=world.entities.get(R3_LEVIATHAN_ENTITY_ID);
+        if(leviathan)leviathan.huntActive=readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
+          && !readSave().r3Campaign?.leviathanDefeated;
+      }
       updateMonsterPopulation(world, stepMs);
       glintElapsed+=stepMs;
       if(EVENTS.halloween){
