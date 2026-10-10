@@ -24,7 +24,7 @@ export const HARPOON_LAUNCHERS=Object.freeze([
     // and 10x the original 40-point damage.
     reloadSeconds:1.3,range:1100,damageMultiplier:9,baseDamage:40,
     projectileSpeed:950*50,accuracy:.95,flameTip:true,
-    acquisition:{type:'mission-reward',mission:'r3-dark-waters-warning'},
+    acquisition:{type:'mission-reward',mission:'r3-silas-pact'},
   }),
 ]);
 export const HORIZON_HARPOON_ID='harpoon-horizon-eye-launcher';
