@@ -791,3 +791,12 @@ test('Morbi permanece no enquadramento mesmo sem seleção manual e bloqueia des
   assert.match(source, /oneVsOneTarget = !world\.manualCamera && morbiEncounter\?\.health > 0/);
   assert.match(source, /\['r2-destroy-thief','r2-golden-i','r2-golden-ii'\]\.includes\(readSave\(\)\.r2Campaign\?\.active\)/);
 });
+
+
+test('Morbi ativo nunca reaparece invisível com vida zero salva', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source, /const restoredMorbiHealth=Number\.isFinite\(savedMorbiHealth\) && savedMorbiHealth>0/);
+  assert.match(source, /: 900000;/);
+  assert.match(source, /health:restoredMorbiHealth,maxHealth:900000/);
+  assert.match(source, /if\(Number\.isFinite\(savedMorbiHealth\) && savedMorbiHealth<=0\)/);
+});
