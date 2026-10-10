@@ -1,6 +1,7 @@
 import { createRedSailCorsair, updateCorsair, RED_SAIL_CORSAIR } from './RedSailCorsair.js';
 import { createRoseGoldCorsair as createTerrorDaTabuada, ROSE_GOLD_CORSAIR as TERROR_DA_TABUADA } from './RoseGoldCorsair.js';
 import { resolveIslandMovement, collidesWithIsland } from '../world/IslandCollision.js';
+import { createBloodRedMarketMerchant } from './BloodRedCorsairNpc.js';
 
 export const CORSAIR_POPULATION = 20;
 export const CORSAIR_RESPAWN_MS = 30000;
@@ -26,6 +27,10 @@ export function createCorsairPopulation(world, random = Math.random) {
     npc.wanderTimeMs = 800 + random() * 2400;
     npc.respawnRemainingMs = null;
     world.entities.set(id, npc);
+  }
+  if (world.region.id === 'r3' && world.region.blackMarketMerchant) {
+    const merchant = createBloodRedMarketMerchant(world.region.blackMarketMerchant);
+    world.entities.set(merchant.id, merchant);
   }
 }
 
