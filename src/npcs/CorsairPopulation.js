@@ -2,6 +2,7 @@ import { createRedSailCorsair, updateCorsair, RED_SAIL_CORSAIR } from './RedSail
 import { createRoseGoldCorsair as createTerrorDaTabuada, ROSE_GOLD_CORSAIR as TERROR_DA_TABUADA } from './RoseGoldCorsair.js';
 import { resolveIslandMovement, collidesWithIsland } from '../world/IslandCollision.js';
 import { createBloodRedMarketMerchant } from './BloodRedCorsairNpc.js';
+import { createDarkWatersFleet, updateDarkWatersFleet } from './DarkWatersFleet.js';
 
 export const CORSAIR_POPULATION = 20;
 export const CORSAIR_RESPAWN_MS = 30000;
@@ -18,6 +19,15 @@ function spawnPosition(region, player, random) {
 }
 
 export function createCorsairPopulation(world, random = Math.random) {
+  if (world.region.id === 'r3') {
+    if (world.region.blackMarketMerchant) {
+      const merchant = createBloodRedMarketMerchant(world.region.blackMarketMerchant);
+      world.entities.set(merchant.id, merchant);
+    }
+    createDarkWatersFleet(world);
+    return world.entities.size;
+  }
+
   for (let i = 0; i < CORSAIR_POPULATION; i++) {
     const id = 'corsair-r1-' + String(i + 1).padStart(2, '0');
     const position = spawnPosition(world.region, world.camera, random);
@@ -28,13 +38,13 @@ export function createCorsairPopulation(world, random = Math.random) {
     npc.respawnRemainingMs = null;
     world.entities.set(id, npc);
   }
-  if (world.region.id === 'r3' && world.region.blackMarketMerchant) {
-    const merchant = createBloodRedMarketMerchant(world.region.blackMarketMerchant);
-    world.entities.set(merchant.id, merchant);
-  }
+  return world.entities.size;
 }
-
 export function updateCorsairPopulation(world, deltaMs, random = Math.random, onFire = () => {}) {
+  if (world.region.id === 'r3') return updateDarkWatersFleet(world, deltaMs, random);
+
+  return [];
+}) {
   const targets = new Map([['player', world.camera]]);
   for (const npc of world.entities.values()) {
     if (npc.archetype !== RED_SAIL_CORSAIR.id && npc.archetype !== TERROR_DA_TABUADA.id) continue;
