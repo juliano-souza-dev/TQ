@@ -178,6 +178,7 @@ export class NavalCombatWebGLRenderer{
     this.position=-1;
     this.uniforms={};
     this.shots=[];
+    this.horizonTraces=[];
     this.muzzles=[];
     this.impacts=[];
     this.destructions=[];
@@ -346,7 +347,7 @@ export class NavalCombatWebGLRenderer{
       // Optional live target keeps the visual projectile attached to the same
       // collision result while ships are moving.
       target:to?.target&&typeof to.target==="object"?to.target:null,
-      duration:clamp(Number(duration)||620,80,trackingTarget?9000:8000),
+      duration:clamp(Number(duration)||620,normalizedAmmo.id==='naval-harpoon-horizon'?1:80,trackingTarget?9000:8000),
       trackingTarget,
       flameBoost:Boolean(flameBoost),
       trackingSpeed:Math.max(1,Number(trackingSpeed)||420),
@@ -361,6 +362,15 @@ export class NavalCombatWebGLRenderer{
       onImpact:typeof onImpact==="function"?onImpact:null
     };
     this.shots.push(shot);
+    // Visual persistence is independent of real travel time: a 50x harpoon
+    // crosses the entire screen in ~23ms and otherwise cannot be seen.
+    if(normalizedAmmo.id==='naval-harpoon-horizon'){
+      this.horizonTraces.push({
+        from:{...shot.from},to:{...shot.to},
+        startTime:shot.startTime,duration:240,travelMs:shot.duration
+      });
+      if(this.horizonTraces.length>12)this.horizonTraces.splice(0,this.horizonTraces.length-12);
+    }
     if(fx.muzzle.enabled){
       this.muzzles.push({
         x:shot.from.x,y:shot.from.y,startTime:shot.startTime,
@@ -542,6 +552,7 @@ export class NavalCombatWebGLRenderer{
       list.length=write;
     };
     compactActive(this.shots,shot=>now-shot.startTime<=shot.duration);
+    compactActive(this.horizonTraces,trace=>now-trace.startTime<=trace.duration);
     compactActive(this.muzzles,effect=>now-effect.startTime<=effect.duration);
     compactActive(this.impacts,impact=>now-impact.startTime<=impact.duration);
     compactActive(this.destructions,effect=>now-effect.startTime<=effect.duration);
@@ -560,7 +571,7 @@ export class NavalCombatWebGLRenderer{
         if(item&&Number.isFinite(Number(item.x))&&Number.isFinite(Number(item.y)))visibleTreasures.push(item);
       }
     }
-    if(!this.shots.length&&!this.muzzles.length&&!this.impacts.length&&!this.destructions.length&&!visibleDamage.length&&!visibleTreasures.length&&!this.krakenAttacks.length)return true;
+    if(!this.shots.length&&!this.horizonTraces.length&&!this.muzzles.length&&!this.impacts.length&&!this.destructions.length&&!visibleDamage.length&&!visibleTreasures.length&&!this.krakenAttacks.length)return true;
 
     gl.useProgram(this.program);
     gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);
@@ -1359,6 +1370,7 @@ export class NavalCombatWebGLRenderer{
 
   clear(){
     this.shots.length=0;
+    this.horizonTraces.length=0;
     this.muzzles.length=0;
     this.impacts.length=0;
     this.destructions.length=0;
@@ -1374,6 +1386,7 @@ export class NavalCombatWebGLRenderer{
       if(this.program)this.gl.deleteProgram(this.program);
     }
     this.shots.length=0;
+    this.horizonTraces.length=0;
     this.muzzles.length=0;
     this.impacts.length=0;
     this.destructions.length=0;
