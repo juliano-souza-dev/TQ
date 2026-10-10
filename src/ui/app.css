@@ -328,12 +328,14 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   background:transparent;color:transparent;font-size:0;box-shadow:none;
   touch-action:manipulation;
 }
-.math-gate-card .secondary-button:focus-visible {
-  outline:3px solid #fff0b6;outline-offset:-3px;
-}
+/* The artwork is already the visual button. Keep the semantic click target
+   invisible in hover/focus states, without drawing another rectangle. */
+.math-gate-card .secondary-button:focus,
+.math-gate-card .secondary-button:focus-visible,
 .math-gate-card .secondary-button:not(:disabled):hover {
-  box-shadow:inset 0 0 0 3px #ffffff4d;
+  outline:0;box-shadow:none;background:transparent;border:0;
 }
+.math-gate-card h2:focus {outline:0;}
 .treasure-glow-layer {position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;}
 .treasure-layer {position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;}
 
