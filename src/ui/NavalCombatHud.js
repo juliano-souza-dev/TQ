@@ -213,9 +213,12 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     }
     ammoSelect.value = status.ammoId;
     ammoSelect.disabled = !choices.some(item => item.amount > 0);
-    ammoQuantity.textContent = status.harpoonFiring || controller.getTarget()?.type === 'monster'
-      ? '⚓ ' + status.harpoonAmmo + ' Arpões do Marujo'
+    const monsterSelected=controller.getTarget()?.type==='monster';
+    ammoQuantity.textContent = status.harpoonFiring || monsterSelected
+      ? '⚓ ' + status.harpoonName + ' equipado · ' + status.harpoonAmmo
+        + (status.harpoonName==='Arpoeiro Olho do Horizonte' ? ' Arpões Incandescentes' : ' arpões')
       : '⚫ ' + status.ammo + ' munições';
+    ammoQuantity.title = monsterSelected ? 'Lançador de arpão ativo: '+status.harpoonName : '';
     const equipped = Number(status.equippedCannons);
     const inRange = Number(status.cannonsInRange);
     cannonQuantity.textContent = Number.isFinite(equipped) && Number.isFinite(inRange)
