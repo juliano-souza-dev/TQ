@@ -691,10 +691,14 @@ export class NavalBattleController {
         continue;
       }
       if(npc.id==='r2-morbi' && npc.health>0){
+        const stageTwo=this.readSave().r2Campaign?.active==='r2-golden-ii';
+        const cannon=npc.specialCannon??{};
+        const engagementRange=stageTwo
+          ? Math.max(1,Number(cannon.range)||840)
+          : 2400;
         if(['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active)
-          && distanceBetween(npc,player)<(this.readSave().r2Campaign?.active==='r2-golden-ii'?840:2400)
+          && distanceBetween(npc,player)<=engagementRange
           && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
-          const cannon=npc.specialCannon??{};
           const damage=Math.max(1,Number(cannon.damage)||Number(npc.damage)||1200);
           const reloadMs=Math.max(1000,Number(cannon.reloadMs)||45000);
           const muzzle=cannonHardpoint(npc,player,npc.heading,0,1);
