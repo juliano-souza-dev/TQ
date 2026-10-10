@@ -182,7 +182,7 @@ export class NavalBattleController {
   }
 
   isProtectedInformant(entity) {
-    return Boolean(entity?.informantProtected || (entity?.id === 'r2-informant' && entity?.name === 'Corsário Informante'));
+    return Boolean(entity?.informantProtected || entity?.archetype === 'blood-red-market-merchant' || entity?.archetype === 'emerald-ghost' || (entity?.archetype === 'terror-do-mar' && !entity.varkorBattleUnlocked) || (entity?.id === 'r2-informant' && entity?.name === 'Corsário Informante'));
   }
 
   getThiefMissionTarget() {
