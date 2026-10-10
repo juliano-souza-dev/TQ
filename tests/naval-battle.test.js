@@ -759,3 +759,27 @@ test('tesouros usam o asset de destroços piratas em tamanho apropriado', async 
   assert.match(source, /ctx\.drawImage\(this\.image/);
   assert.doesNotMatch(source, /roundRect\(-19, -9, 38, 27/);
 });
+
+
+test('destroços navegam até colisão antes de abrir a continha', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source, /pendingTreasureId=treasure\.id/);
+  assert.match(source, /return \{destination:\{x:treasure\.x,y:treasure\.y\}\}/);
+  assert.match(source, /Math\.hypot\(world\.camera\.x-target\.x,world\.camera\.y-target\.y\)<=72/);
+  assert.match(source, /openTreasureChallenge\(target\)/);
+  assert.match(source, /if\(action\.kind==='treasure'\) pendingTreasureId=null/);
+});
+
+test('destroços recebem brilho WebGL pulsante', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/rendering/TreasureGlowWebGLRenderer.js', import.meta.url), 'utf8'));
+  assert.match(source, /getContext\('webgl2'/);
+  assert.match(source, /gl\.blendFunc\(gl\.SRC_ALPHA,gl\.ONE\)/);
+  assert.match(source, /uSelected/);
+  assert.match(source, /112\*visualZoom/);
+});
+
+test('navegação por clique aceita redirecionamento para alvo interativo', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/world/ClickNavigationInput.js', import.meta.url), 'utf8'));
+  assert.match(source, /handled\?\.destination/);
+  assert.match(source, /destination = \{x:Number\(handled\.destination\.x\),y:Number\(handled\.destination\.y\)\}/);
+});
