@@ -1337,7 +1337,7 @@ async function startWorld() {
   thiefGuide.className = 'thief-guide';
   thiefGuide.hidden = true;
   thiefGuide.setAttribute('aria-label', 'Direção da fragata fugitiva');
-  thiefGuide.innerHTML = '<span class="thief-guide-arrow">➤</span><span class="thief-guide-label">Ladrão</span>';
+  thiefGuide.innerHTML = '<span class="thief-guide-arrow"><img class="thief-guide-image" src="./assets/ui/seta.png" alt="" draggable="false"></span><span class="thief-guide-label">Ladrão</span>';
   root.append(thiefGuide);
   const exitDialog = document.createElement('section');
   exitDialog.className = 'region-exit-dialog';
