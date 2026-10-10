@@ -22,7 +22,17 @@ export function loadShipSprite(ship) {
       ctx.putImageData(pixels, 0, 0);
       resolve(canvas);
     };
-    image.onerror = () => reject(new Error('Falha ao carregar navio: ' + ship.id));
+    image.onerror = () => {
+      const fallback=ship.sprite?.fallbackPath;
+      if(fallback && image.dataset.fallback!=='1'){
+        image.dataset.fallback='1';
+        const url=new URL(fallback,import.meta.url);
+        if(globalThis.__TQ_ASSET_VERSION__)url.searchParams.set('v',globalThis.__TQ_ASSET_VERSION__);
+        image.src=url.href;
+        return;
+      }
+      reject(new Error('Falha ao carregar navio: ' + ship.id));
+    };
     image.src = getShipSpriteUrl(ship);
   });
   cache.set(ship.id, task);
