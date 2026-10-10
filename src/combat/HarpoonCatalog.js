@@ -20,8 +20,10 @@ export const HARPOON_LAUNCHERS=Object.freeze([
     // Temporary visuals reuse the existing, approved launcher/harpoon assets.
     asset:new URL('../../assets/cannonball/lancador_arpoes_naval.webp',import.meta.url).href,
     projectileAsset:new URL('../../assets/cannons/arpao_naval_simples.webp',import.meta.url).href,
-    reloadSeconds:9,range:1100,damageMultiplier:0,baseDamage:40,
-    projectileSpeed:950,accuracy:.92,
+    // Power: incandescent tip, 50x the original 950-unit/s flight speed,
+    // and 10x the original 40-point damage.
+    reloadSeconds:1.3,range:1100,damageMultiplier:9,baseDamage:40,
+    projectileSpeed:950*50,accuracy:.95,flameTip:true,
     acquisition:{type:'mission-reward',mission:'r3-dark-waters-warning'},
   }),
 ]);
