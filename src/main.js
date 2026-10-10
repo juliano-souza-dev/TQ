@@ -485,13 +485,16 @@ async function startWorld() {
   // O navio inicial já pertence ao jogador desde o primeiro acesso.
   // Normaliza saves antigos sem excluir equipamentos ou navios conquistados.
   const initialEquipment = readSave().equipment ?? {};
+  const silasPactDone=Boolean(readSave().r3Campaign?.silasTradeCompleted);
   if (!initialEquipment.ownedShipIds?.includes(STARTER_SHIP.id)
-      || !initialEquipment.ownedHarpoonIds?.includes('naval-harpoon-starter')
+      || (!silasPactDone&&!initialEquipment.ownedHarpoonIds?.includes('naval-harpoon-starter'))
       || !initialEquipment.equippedHarpoonId) {
     writePatch({ equipment: {
       ...initialEquipment,
       ownedShipIds: [...new Set([...(initialEquipment.ownedShipIds ?? []), STARTER_SHIP.id])],
-      ownedHarpoonIds: [...new Set([...(initialEquipment.ownedHarpoonIds ?? []), 'naval-harpoon-starter'])],
+      ownedHarpoonIds: silasPactDone
+        ? [...(initialEquipment.ownedHarpoonIds??[])]
+        : [...new Set([...(initialEquipment.ownedHarpoonIds ?? []), 'naval-harpoon-starter'])],
       equippedHarpoonId: initialEquipment.equippedHarpoonId || 'naval-harpoon-starter',
     } });
   }
