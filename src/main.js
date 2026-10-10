@@ -265,6 +265,8 @@ async function startWorld() {
       });
     }
   }
+  const needsR2CampaignMigration=(Number(readSave().r2Campaign?.schemaVersion)||0)<2;
+  if(needsR2CampaignMigration){
   // Recover old Black Market completions that never granted the advertised cannons.
   // Roll the last two campaign stages back to the purchase; preserve all inventory.
   {
@@ -379,6 +381,10 @@ async function startWorld() {
         progress:{...c.progress,'r2-hunt-prep':[0]}}});
     }
   }
+    const migrated=readSave(),campaign=migrated.r2Campaign??{};
+    writePatch({r2Campaign:{...campaign,schemaVersion:2}});
+  }
+
   // Repair legacy rewards: Caçadora das Sombras must be owned before
   // the subsequent Preparar a Caçada contract can be completed.
   {
