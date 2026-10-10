@@ -310,3 +310,18 @@ test('missão de equipar navio é concluída no próprio porto quando o navio j�
   assert.match(source,/campaign\.claim\(readSave\(\),mission\.id\)/);
   assert.match(source,/islandPanel\?\.refreshMissionBoard\?\.\(\)/);
 });
+
+
+test('missão 16 executa cinemática do Terror do Mar antes da transferência para R2', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source,/function beginR1ExitCinematic\(\)/);
+  assert.match(source,/R1_EXIT_CINEMATIC_ID='r1-exit-terror-do-mar'/);
+  assert.match(source,/shipId:'terror-do-mar'/);
+  assert.match(source,/const start=\{x:360,y:3740\}/);
+  assert.match(source,/const end=\{x:4310,y:830\}/);
+  assert.match(source,/world\.manualCamera=\{x:terror\.x,y:terror\.y\}/);
+  assert.match(source,/duration:5600/);
+  assert.match(source,/if\(r1ExitCinematic\)\{[\s\S]*updateR1ExitCinematic\(stepMs\)[\s\S]*return;/);
+  assert.match(source,/completeR1PassageTransfer\(\)/);
+  assert.match(source,/playerPosition:\{x:420,y:860\}/);
+});
