@@ -150,7 +150,7 @@ export class NpcRenderer {
             if(leviathan){
               // Hide baked-in ocean at the lower edge of each sprite frame.
               // Preserve the complete original atlas and the dynamic sea underneath.
-              const visibleRatio=.72;
+              const visibleRatio=.57;
               ctx.drawImage(image,(frame%columns)*frameW,
                 Math.floor(frame/columns)*frameH,frameW,frameH*visibleRatio,
                 spriteX,spriteY,monsterSize,monsterSize*visibleRatio);
@@ -166,7 +166,7 @@ export class NpcRenderer {
           if(leviathan){
             const frameIndex=Math.floor((npc.animationTimeMs??0)/420)%16;
             const waterline=this.waterlines.get(npc.archetype)?.[frameIndex]??.82;
-            const surfaceY=spriteY+monsterSize*Math.min(waterline,.72);
+            const surfaceY=spriteY+monsterSize*Math.min(waterline,.57);
             ctx.save();ctx.globalCompositeOperation='screen';
             for(let i=0;i<17;i++){
               const u=i/16,phase=now*.002+u*15;
