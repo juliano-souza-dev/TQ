@@ -22,6 +22,7 @@ export class NavalBattleController {
     getRegionId = () => 'r1',
     getMappedMuzzle = () => null,
     onFeedback = () => {}, onVictory = () => {}, onPlayerSunk = () => {},
+    onDamageVisual = () => {},
     random = Math.random, clock = () => performance.now(),
   }) {
     if (!renderer || !readSave || !writePatch || !getPlayer || !getEntities || !shipId) {
@@ -29,7 +30,7 @@ export class NavalBattleController {
     }
     Object.assign(this, {
       renderer, readSave, writePatch, getPlayer, getEntities, shipId, getMappedMuzzle, getRegionId,
-      onFeedback, onVictory, onPlayerSunk, random, clock,
+      onFeedback, onVictory, onPlayerSunk, onDamageVisual, random, clock,
     });
     this.targetId = null;
     this.manualTargetId = null;
@@ -454,6 +455,7 @@ export class NavalBattleController {
       monster.armorBreakerDot={damage:launcher.dotDamage,interval:launcher.dotIntervalMs||3000,
         nextAt:this.clock()+(launcher.dotIntervalMs||3000)};
     }
+    if(hit.damage>0)this.onDamageVisual({target:monster,damage:hit.damage,source:'player'});
     this.onFeedback('⚓ Arpão atingiu '+monster.name+'! -'+hit.damage+' PV.');
     if(this.monsterAssistComplete(monster)) this.finishMonsterAssistsFor(targetId);
     if(monster.health<=0){this.firing=false;this.cancelMonsterAssists();this.onVictory(monster);}
@@ -617,6 +619,7 @@ export class NavalBattleController {
       this.onFeedback('💦 A bala caiu na água.');
       return { kind: 'water' };
     }
+    const healthBefore=Math.max(0,Number(target.health)||0);
     if (target.archetype === RED_SAIL_CORSAIR.id) {
       damageCorsair(target, damage, 'player');
     } else {
@@ -639,6 +642,8 @@ export class NavalBattleController {
         x:Number(target.x)||0,y:Number(target.y)||0,
         heading:Number(target.heading)||0,updatedAt:Date.now()}});
     }
+    const actualDamage=Math.max(0,healthBefore-Math.max(0,Number(target.health)||0));
+    if(actualDamage>0)this.onDamageVisual({target,damage:actualDamage,source:'player'});
     this.onFeedback('💥 Acertou ' + target.name + '! -' + damage + ' PV.');
     if (target.health <= 0) {
       if (target.id === this.targetId) { this.firing = false; this.cancelMonsterAssists(); }
@@ -729,7 +734,10 @@ export class NavalBattleController {
             onImpact:({at})=>{
               const boss=this.getEntities().get('r2-morbi');
               if(!boss||boss.health<=0||!shipCollision(at,boss,110))return {kind:'water'};
+              const before=boss.health;
               boss.health=Math.max(0,boss.health-250);
+              const dealt=Math.max(0,before-boss.health);
+              if(dealt>0)this.onDamageVisual({target:boss,damage:dealt,source:'npc'});
               this.writePatch({r2MorbiBoss:{health:boss.health,maxHealth:900000,
                 x:boss.x,y:boss.y,heading:boss.heading,updatedAt:Date.now()}});
               if(boss.health===0){boss.state='sunk';this.onVictory(boss);}
@@ -815,8 +823,11 @@ export class NavalBattleController {
     const scriptedMorbiSinking=npcId==='r2-morbi' && this.readSave().r2Campaign?.active==='r2-golden-i';
     if (!scriptedMorbiSinking && (this.isShieldActive() || this.readSave().combat?.repairingUntil)) return {kind:'ship'};
     const save = this.readSave();
-    const health = Math.max(0, this.getHealth() - damage);
+    const healthBefore=this.getHealth();
+    const health = Math.max(0, healthBefore - damage);
     this.writePatch({ combat: { ...save.combat, shipHealth: health } });
+    const actualDamage=Math.max(0,healthBefore-health);
+    if(actualDamage>0)this.onDamageVisual({target:player,damage:actualDamage,source:'npc'});
     this.onFeedback('💥 Navio inimigo acertou seu casco! -' + damage + ' PV. ' + health + '/100 PV.');
     if (!health) {
       this.firing = false;
