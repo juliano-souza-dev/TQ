@@ -1656,6 +1656,7 @@ async function startWorld() {
               name:'Canhão Dourado de Morbi',
               damage:1200,
               reloadMs:45000,
+              range:840,
             }),
           });
         }
@@ -1681,14 +1682,25 @@ async function startWorld() {
             if(morbiStage){
             const dx=world.camera.x-morbi.x,dy=world.camera.y-morbi.y;
             const distance=Math.hypot(dx,dy);
-            // Stage II: fight at the outer range of the penultimate cannon
-            // (Canhão Real Dourado com Leão, 840 world units), not at point blank.
-            const preferredDistance=active?.id==='r2-golden-ii'
-              ? (CANNONS.find(c=>c.id==='royal-lion')?.range??840) : 220;
-            const tolerance=active?.id==='r2-golden-ii'?24:0;
-            if(distance>preferredDistance+tolerance){
-              const travel=Math.min(distance-preferredDistance,Math.max(0,stepMs)*.22);
-              morbi.x+=dx/distance*travel;morbi.y+=dy/distance*travel;
+            // Morbi nunca deve "acampar" fora do alcance. No segundo duelo ele
+            // aproxima até ficar confortavelmente dentro do alcance do próprio canhão
+            // e também dentro do alcance real da bateria equipada pelo jogador.
+            const stageTwo=active?.id==='r2-golden-ii';
+            const bossRange=Math.max(1,Number(morbi.specialCannon?.range)||840);
+            const save=readSave();
+            const equippedIds=save.equipment?.loadout?.[save.equipment?.equippedShipId]??[];
+            const playerRanges=equippedIds
+              .map(id=>CANNONS.find(c=>c.id===id)?.range)
+              .filter(range=>Number.isFinite(range)&&range>0);
+            const playerRange=playerRanges.length?Math.max(...playerRanges):bossRange;
+            const preferredDistance=stageTwo
+              ? Math.max(260,Math.min(bossRange*.90,playerRange*.88))
+              : 220;
+            if(distance>preferredDistance){
+              const chaseSpeed=stageTwo?320:220;
+              const travel=Math.min(distance-preferredDistance,Math.max(0,stepMs)*chaseSpeed/1000);
+              morbi.x+=dx/distance*travel;
+              morbi.y+=dy/distance*travel;
             }
             if(distance>1)morbi.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
             }
