@@ -1657,11 +1657,29 @@ async function startWorld() {
               damage:1200,
               reloadMs:45000,
               range:840,
+              countBeforePhase:1,
+              countAfterPhase:2,
+            }),
+            broadside:Object.freeze({
+              unlockDamageTaken:300,
+              regularCannons:18,
+              regularDamage:300,
+              reloadMs:3000,
+              range:Math.max(...CANNONS.map(c=>Number(c.range)||0)),
             }),
           });
         }
         const morbi=world.entities.get('r2-morbi');
         if(morbi){
+          const damageTaken=Math.max(0,(Number(morbi.maxHealth)||0)-(Number(morbi.health)||0));
+          morbi.broadsideActive=damageTaken>=Math.max(0,Number(morbi.broadside?.unlockDamageTaken)||300);
+          morbi.cannonSlots=morbi.broadsideActive
+            ? Math.max(1,(Number(morbi.broadside?.regularCannons)||18)+(Number(morbi.specialCannon?.countAfterPhase)||2))
+            : Math.max(1,Number(morbi.specialCannon?.countBeforePhase)||1);
+          if(morbi.broadsideActive) morbi.range=Math.max(
+            Number(morbi.specialCannon?.range)||0,
+            Number(morbi.broadside?.range)||0,
+          );
           if(morbi.escapeAfterSinking){
             // Morbi flees immediately after sinking the player, then leaves the map.
             const dt=Math.min(64,Math.max(0,stepMs))/1000;
