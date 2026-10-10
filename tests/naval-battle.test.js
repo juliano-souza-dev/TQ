@@ -870,3 +870,12 @@ test('inferno WebGL do Ladrão das Sombras cresce até a explosão final', async
   assert.match(renderer,/emberCount/);
   assert.match(renderer,/effect\.size>=300/);
 });
+
+
+test('fogo do Ladrão das Sombras fica preso ao casco e evita bolhas gigantes', async () => {
+  const renderer = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/rendering/NavalCombatWebGLRenderer.mjs', import.meta.url), 'utf8'));
+  assert.match(renderer,/const flameSize=clamp\(screenSize\*\(\.075\+\.075\*eased\),14,46\)/);
+  assert.match(renderer,/clamp\(screenSize\*\(\.065\+\.055\*cycle\)\*\(\.8\+\.35\*eased\),12,42\)/);
+  assert.match(renderer,/opacity:clamp\(\.08\+\.16\*eased,0,\.26\)/);
+  assert.doesNotMatch(renderer,/screenSize\*\(\.16\+\.34\*eased\)/);
+});
