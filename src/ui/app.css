@@ -265,6 +265,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .math-gate-card h2 {font-size:clamp(21px,5vw,28px);margin:0 0 14px;}
 .math-gate-question {font-size:clamp(28px,7vw,40px);font-weight:900;text-align:center;margin:18px 0;}
 .math-gate-card .secondary-button {margin-top:12px;}
+.treasure-glow-layer {position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;}
 .treasure-layer {position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;}
 
 .treasure-nearby-tip[hidden] {display:none!important;}
