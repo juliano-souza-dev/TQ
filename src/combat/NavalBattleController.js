@@ -11,6 +11,7 @@ import {
 
 // The shortest cannon sets the Kraken's retaliation reach (currently 300 units).
 export const KRAKEN_RETALIATION_RANGE = Math.min(...CANNONS.map(cannon => cannonRange(cannon)));
+export const PLAYER_CANNON_SEQUENCE_MS = 160;
 
 // The battle controller owns combat state, cooldowns, target selection, ammo
 // debits, moving-target impact checks and NPC retaliation. WebGL owns only FX.
@@ -38,6 +39,8 @@ export class NavalBattleController {
     this.usedAssistNpcs = new Map();
     this.assistMonsterAlive = new Set();
     this.nextBySlot = new Map();
+    this.nextPlayerSequenceAt = -Infinity;
+    this.playerSequenceCursor = 0;
     this.nextNpcShot = new Map();
     this.nextKrakenStrike = new Map();
     this.previousPositions = new Map();
@@ -281,6 +284,8 @@ export class NavalBattleController {
     const interruptedRepair=cancelHullRecovery(this.readSave());
     if(interruptedRepair)this.writePatch(interruptedRepair);
     this.firing = true;
+    this.nextPlayerSequenceAt = -Infinity;
+    this.playerSequenceCursor = 0;
     if (this.getTarget()?.type === 'monster') this.fireHarpoon();
     else this.firePlayerVolley(this.clock());
     return true;
@@ -509,16 +514,21 @@ export class NavalBattleController {
 
   firePlayerVolley(now) {
     const status = this.getStatus();
-    if (!status.ready) return 0;
+    if (!status.ready || now < this.nextPlayerSequenceAt) return 0;
     const player = this.getPlayer(), target = this.getTarget();
     const save = this.readSave();
     const battery = armedCannons(save, this.shipId)
       .filter(({ cannon }) => distanceBetween(player, target) <= cannonRange(cannon));
+    if (!battery.length) return 0;
+
     const ammoStockById = {...(save.ammunition ?? {})};
-    let spent = 0;
-    for (const [batteryIndex, { slot, cannon }] of battery.entries()) {
+    const startIndex = ((this.playerSequenceCursor % battery.length) + battery.length) % battery.length;
+
+    for (let attempt = 0; attempt < battery.length; attempt++) {
+      const batteryIndex = (startIndex + attempt) % battery.length;
+      const { slot, cannon } = battery[batteryIndex];
       if (now < (this.nextBySlot.get(slot) ?? -Infinity)) continue;
-      // One synchronized volley; each cannon chooses only its compatible ammunition.
+
       const ammoId = cannon.exclusiveAmmoId
         ? cannon.exclusiveAmmoId
         : (cannonAcceptsAmmo(cannon, this.selectedAmmoId) && ammoStockById[this.selectedAmmoId] > 0
@@ -526,10 +536,12 @@ export class NavalBattleController {
           : availableNavalAmmo({...save,ammunition:ammoStockById})
             .find(item => item.amount > 0 && cannonAcceptsAmmo(cannon,item.id))?.id);
       if (!cannonAcceptsAmmo(cannon, ammoId)) continue;
+
       const remaining = ammoStockById[ammoId] === undefined ? ammoStock(save, ammoId) : ammoStockById[ammoId];
       if (remaining <= 0) continue;
       const ammo = effectiveAmmo(ammoId);
       if (!ammo) continue;
+
       const muzzle = this.getMappedMuzzle({
         player, target, heading: player.heading, slot, cannon,
       }) ?? cannonHardpoint(player, target, player.heading, batteryIndex, battery.length);
@@ -547,21 +559,17 @@ export class NavalBattleController {
         impactKind: 'water', startTime: now,
         onImpact: ({ at }) => this.resolvePlayerImpact(target.id, at, damage),
       });
-      if (!accepted) {
-        // A full projectile buffer is temporary, especially with 5X + guided ammo.
-        // Keep the continuous attack active and retry next update without spending ammo.
-        // Stop only when combat state or targeting becomes invalid in update().
-        break;
-      }
-      spent++;
+      if (!accepted) return 0;
+
       ammoStockById[ammoId] = remaining - 1;
-      this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000 / (flameBoost ? 5 : 1)));
-    }
-    if (spent) {
       this.writePatch({ammunition: {...save.ammunition, ...ammoStockById}});
-      this.onFeedback('💥 ' + spent + (spent === 1 ? ' bala disparada.' : ' balas disparadas.'));
+      this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000 / (flameBoost ? 5 : 1)));
+      this.playerSequenceCursor = (batteryIndex + 1) % battery.length;
+      this.nextPlayerSequenceAt = now + (battery.length > 1 ? PLAYER_CANNON_SEQUENCE_MS : 0);
+      this.onFeedback('💥 1 bala disparada.');
+      return 1;
     }
-    return spent;
+    return 0;
   }
 
   resolvePlayerImpact(targetId, at, damage) {
