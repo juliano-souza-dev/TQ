@@ -5,7 +5,7 @@ export function createFirstVoyageGuide(world, { onAcknowledge = () => {} } = {})
   const arrow = document.createElement('div');
   arrow.className = 'voyage-arrow';
   arrow.setAttribute('aria-label', 'Direção do porto das missões');
-  arrow.innerHTML = '<span class="voyage-arrow-symbol"><img class="voyage-arrow-image" src="./assets/ui/seta.png" alt="" draggable="false"><span class="voyage-arrow-interaction-symbol" aria-hidden="true">👆</span></span><span class="voyage-arrow-label">Porto das Missões</span>';
+  arrow.innerHTML = '<span class="voyage-arrow-symbol"><img class="voyage-arrow-image" src="./assets/ui/seta.png" alt="" draggable="false"></span><span class="voyage-arrow-label">Porto das Missões</span>';
   arrow.hidden = true;
   const modal = document.createElement('section');
   modal.className = 'voyage-welcome';
@@ -35,9 +35,6 @@ export function createFirstVoyageGuide(world, { onAcknowledge = () => {} } = {})
     const dx = target.x - world.camera.x;
     const dy = target.y - world.camera.y;
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-    const merchantInteraction=typeof destination==='object'
-      && destination.id==='r3-mercador-do-breu';
-    arrow.classList.toggle('voyage-arrow--interaction',merchantInteraction);
     arrow.style.setProperty('--voyage-angle', angle + 'deg');
     const distance = Math.round(Math.hypot(dx, dy));
     arrow.querySelector('.voyage-arrow-label').textContent = (typeof destination === 'object' ? destination.name : destination === 'shipyard' ? 'Estaleiro' : 'Porto das Missões') + ' · ' + distance + ' m';

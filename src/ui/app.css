@@ -194,14 +194,6 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .voyage-arrow { position: fixed; top: max(80px, 14dvh); left: 50%; transform: translateX(-50%); z-index: 16; display: grid; justify-items: center; gap: 3px; pointer-events: none; color: #ffe49a; text-shadow: 0 2px 5px #001527, 0 0 10px #001527; font-weight: 900; font-size: 13px; }
 .voyage-arrow-symbol { display: grid; place-items: center; width: 82px; height: 76px; line-height: 1; transform: rotate(var(--voyage-angle, 0deg)); transform-origin: center; filter: drop-shadow(0 0 5px #f2c459); }
 .voyage-arrow-image { display: block; width: 100%; height: 100%; object-fit: contain; }
-.voyage-arrow-interaction-symbol { display: none; }
-.voyage-arrow--interaction .voyage-arrow-symbol {
-  transform: none;
-  font-size: 49px;
-  filter: drop-shadow(0 2px 5px #242424);
-}
-.voyage-arrow--interaction .voyage-arrow-image { display: none; }
-.voyage-arrow--interaction .voyage-arrow-interaction-symbol { display: block; }
 
 
 /* Compact objective tracker, clear of minimap and movement joystick. */
