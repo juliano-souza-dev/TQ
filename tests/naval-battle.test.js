@@ -549,3 +549,24 @@ test('Rosa do Terror usa impacto reduzido para não encobrir a batalha', async (
   assert.ok(fx.impactShip.flash <= .6);
   assert.ok(fx.impactShip.ringCount <= 2);
 });
+
+
+test('Morbi não fica parado fora do alcance e usa o alcance configurado do canhão especial', async () => {
+  const mainSource = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(mainSource, /playerRange\*\.88/);
+  assert.match(mainSource, /chaseSpeed=stageTwo\?320:220/);
+  assert.match(mainSource, /specialCannon:Object\.freeze\([\s\S]*range:840/);
+
+  const t = battleHarness();
+  t.enemy.id = 'r2-morbi';
+  t.enemy.health = 900000;
+  t.enemy.maxHealth = 900000;
+  t.enemy.specialCannon = {damage:1200,reloadMs:45000,range:840};
+  t.save.r2Campaign = {active:'r2-golden-ii'};
+  t.enemy.x = t.player.x + 841;
+  t.battle.fireNpcVolleys(1000);
+  assert.equal(t.shots.length, 0, 'fora do alcance o canhão não dispara');
+  t.enemy.x = t.player.x + 840;
+  t.battle.fireNpcVolleys(1000);
+  assert.equal(t.shots.length, 1, 'no limite do alcance o canhão já pode disparar');
+});
