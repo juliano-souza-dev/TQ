@@ -47,7 +47,17 @@ export function createMonsterPopulation(world, random = Math.random) {
 export function updateMonsterPopulation(world, stepMs) {
   for (const monster of world.entities.values()) {
     if (monster.type !== 'monster') continue;
-    monster.animationTimeMs = (monster.animationTimeMs + stepMs) % 600000;
+    if(monster.archetype==='sea-monster-leviathan'&&monster.health>0){
+      const dx=world.camera.x-monster.x,dy=world.camera.y-monster.y;
+      const target=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+      const current=(Number(monster.heading)||0)+360;
+      const difference=((target-current+540)%360)-180;
+      const turnStep=Math.min(35,Math.max(0,stepMs)/1000*35);
+      monster.heading=(current+Math.max(-turnStep,Math.min(turnStep,difference))+360)%360;
+      monster.animationTimeMs=0;
+    }else{
+      monster.animationTimeMs = (monster.animationTimeMs + stepMs) % 600000;
+    }
     if (monster.health > 0) { monster.respawnRemainingMs = null; continue; }
     if (monster.respawnRemainingMs === null) monster.respawnRemainingMs = MONSTER_RESPAWN_MS;
     else monster.respawnRemainingMs -= Math.max(0, stepMs);
