@@ -512,15 +512,34 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .monster-assist-button{position:fixed;left:50%;bottom:114px;transform:translateX(-50%);z-index:35;padding:10px 16px}
 .monster-assist-button[hidden]{display:none!important}
 
-/* Compact pursuit pointer: remains readable at the mission's wide camera zoom. */
-.thief-guide {font-size:9px;gap:1px;}
+/* Compact when the destination itself is visible; strong edge cue when it is off-screen. */
+.thief-guide {font-size:10px;gap:2px;}
 .thief-guide-arrow,
 .thief-guide.is-visible-target .thief-guide-arrow {
-  width:17px;height:17px;box-sizing:border-box;
-  font-size:13px;border-width:1px;
-  box-shadow:0 0 5px #f1bf5870;
+  width:24px;height:24px;box-sizing:border-box;
+  font-size:18px;border-width:1px;
+  box-shadow:0 0 8px #f1bf5890;
 }
-.thief-guide-label {font-size:9px;padding:1px 4px;border-radius:5px;}
+.thief-guide-label {font-size:10px;padding:2px 6px;border-radius:6px;}
+.thief-guide.is-route-guide {
+  z-index:38;
+  font-size:13px;
+  gap:4px;
+}
+.thief-guide.is-route-guide .thief-guide-arrow {
+  width:46px;height:46px;
+  font-size:34px;
+  border-width:2px;
+  box-shadow:0 0 0 3px #062b3699,0 0 20px #ffe390c0,inset 0 0 10px #f1cf6788;
+}
+.thief-guide.is-route-guide .thief-guide-label {
+  font-size:13px;
+  padding:5px 9px;
+  border-radius:9px;
+  border-width:2px;
+  background:#071f31f2;
+  box-shadow:0 3px 12px #001522b8;
+}
 
 /* Global selected-target panel, anchored directly beneath mission HUD. */
 .target-status-hud {position:fixed;z-index:15;left:max(10px,env(safe-area-inset-left));top:75px;
