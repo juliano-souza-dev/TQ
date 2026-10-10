@@ -730,3 +730,23 @@ test('efeitos de combate acompanham o zoom da câmera', async () => {
   assert.match(source, /for\(const impact of this\.impacts\)/);
   assert.match(source, /drawCombatPoint\(\s*impact\.x,impact\.y/);
 });
+
+
+test('floating damage usa texto vermelho sem fundo e escala com a câmera', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/rendering/DamageTextRenderer.js', import.meta.url), 'utf8'));
+  assert.match(source, /fillStyle='#ff3b3b'/);
+  assert.match(source, /visualScale=clamp\(\(Number\(zoom\)\|\|1\)\/\.88,\.32,1\.08\)/);
+  assert.doesNotMatch(source, /fillRect|strokeRect|roundRect/);
+});
+
+test('nome do NPC escala junto com o zoom da câmera', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/rendering/NpcRenderer.js', import.meta.url), 'utf8'));
+  assert.match(source, /labelScale=Math\.max\(\.42,Math\.min\(1\.08,\(Number\(zoom\)\|\|1\)\/\.88\)\)/);
+});
+
+test('cada impacto naval pode emitir dano visual ancorado ao alvo', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/combat/NavalBattleController.js', import.meta.url), 'utf8'));
+  assert.match(source, /onDamageVisual = \(\) => \{\}/);
+  assert.match(source, /onDamageVisual\(\{target,damage:actualDamage,source:'player'\}\)/);
+  assert.match(source, /onDamageVisual\(\{target:player,damage:actualDamage,source:'npc'\}\)/);
+});
