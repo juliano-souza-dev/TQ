@@ -18,8 +18,10 @@ export const SHIP_CATALOG = Object.freeze([HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEO
 
 import { FUGITIVE_FRIGATE_SHIP } from './FugitiveFrigateShip.js';
 export { FUGITIVE_FRIGATE_SHIP };
+import { BLOOD_RED_CORSAIR_SHIP } from './BloodRedCorsairShip.js';
+export { BLOOD_RED_CORSAIR_SHIP };
 // Catálogo NPC separado da frota que o jogador pode adquirir.
-export const NPC_SHIP_CATALOG = Object.freeze([FUGITIVE_FRIGATE_SHIP, TERROR_DO_MAR_SHIP]);
+export const NPC_SHIP_CATALOG = Object.freeze([FUGITIVE_FRIGATE_SHIP, TERROR_DO_MAR_SHIP, BLOOD_RED_CORSAIR_SHIP]);
 
 import { STARTER_SHIP } from './StarterShip.js';
 export { STARTER_SHIP };
