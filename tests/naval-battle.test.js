@@ -585,3 +585,33 @@ test('Morbi entra na área de combate da bateria inteira, não só dos canhões 
   assert.doesNotMatch(source, /Math\.max\(\.\.\.playerRanges\)/);
   assert.match(source, /playerCombatRange\*\.88/);
 });
+
+
+test('câmera de duelo mantém o jogador dentro da zona segura mesmo em perseguição longa', async () => {
+  const { computeOneVsOneFraming } = await import('../src/world/BattleCamera.js');
+  const frame = computeOneVsOneFraming({
+    player:{x:1000,y:1000},
+    target:{x:2600,y:1750},
+    viewportWidth:390,
+    viewportHeight:844,
+    normalZoom:.88,
+  });
+  assert.equal(frame.mode,'far');
+  assert.ok(Math.abs(frame.playerScreenOffset.x) <= 390*.20 + 1);
+  assert.ok(Math.abs(frame.playerScreenOffset.y) <= 844*.17 + 1);
+  assert.ok(frame.zoom >= .19);
+});
+
+test('câmera de duelo abre o zoom antes de abandonar a âncora do jogador', async () => {
+  const { computeOneVsOneFraming } = await import('../src/world/BattleCamera.js');
+  const close = computeOneVsOneFraming({
+    player:{x:1000,y:1000},target:{x:1250,y:1000},
+    viewportWidth:390,viewportHeight:844,normalZoom:.88,
+  });
+  const far = computeOneVsOneFraming({
+    player:{x:1000,y:1000},target:{x:2600,y:1000},
+    viewportWidth:390,viewportHeight:844,normalZoom:.88,
+  });
+  assert.ok(close.zoom > far.zoom);
+  assert.ok(Math.abs(far.playerScreenOffset.x) <= 390*.20 + 1);
+});
