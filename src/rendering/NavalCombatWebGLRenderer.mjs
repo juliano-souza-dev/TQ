@@ -807,7 +807,7 @@ export class NavalCombatWebGLRenderer{
         const textureEntry=this.projectileTextures.get(String(shot.ammo?.id||""));
         const textured=textureEntry?.ready&&textureEntry.texture;
         const hasSpecialFx=Boolean(shot.flameBoost || shot.ammo?.trackingDurationMs>0 || shot.ammo?.tracking?.enabled || (fx.projectile.texture && fx.projectile.auraEnabled));
-        const assetSize=clamp((textured?14:10)*Number(shot.ammo?.size||1)*fx.projectile.scale*(hasSpecialFx?1:0.9),4,26);
+        const assetSize=clamp((textured?14:10)*Number(shot.ammo?.size||1)*fx.projectile.scale*(hasSpecialFx?1:0.9)*0.5,2,13);
 
         const echoCount=this.reducedFx?0:Math.min(1,Math.max(0,fx.projectile.echoCount));
         for(let echo=1;echo<=echoCount;echo++){
