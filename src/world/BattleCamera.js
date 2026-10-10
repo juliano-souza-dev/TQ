@@ -14,7 +14,13 @@ export function computeOneVsOneFraming({
   // Three continuous framing zones: close duel, medium duel and pursuit.
   // Zoom opens first; camera translation is secondary so the player's ship
   // remains the visual anchor instead of the midpoint becoming empty ocean.
-  const closeZoom=Math.min(normalZoom,mobile?.78:.9);
+  // On large screens combat needs an explicit visual state too. Previously
+  // desktop closeZoom was capped by normalZoom, so a nearby target could produce
+  // virtually no camera change at all. Desktop now pushes in slightly for a duel,
+  // then opens progressively as distance grows. Mobile keeps its safer framing.
+  const closeZoom=mobile
+    ? Math.min(normalZoom,.78)
+    : Math.min(1.06,Math.max(normalZoom,normalZoom*1.12));
   const minZoom=mobile?.19:.24;
   const distanceBlend=clamp((distance-320)/1250,0,1);
   const distanceZoom=closeZoom+(minZoom-closeZoom)*distanceBlend;
