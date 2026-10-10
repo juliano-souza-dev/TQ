@@ -5,6 +5,15 @@ import { HALLOWEEN_TABUADA_SHIP } from '../ships/HalloweenTabuadaShip.js';
 import { FUGITIVE_FRIGATE_SHIP, GREEN_GHOST_FUGITIVE_SHIP } from '../ships/FugitiveFrigateShip.js';
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 import { renderMonsterBlood } from '../monsters/MonsterBloodRenderer.js';
+// Atlas authored as portraits, not sequential compass headings.
+// Heading 0 = north (back visible), 90 = east, 180 = south (face visible), 270 = west.
+// Index is compass sector (22.5 degrees); value is zero-based 4x4 atlas cell.
+export const LEVIATHAN_FRAME_BY_HEADING = Object.freeze([9,10,11,3,2,1,0,15,15,14,13,12,4,5,6,8]);
+export function leviathanFrameForHeading(heading){
+  const sector=Math.round((((Number(heading)||0)%360)+360)%360/22.5)%16;
+  return LEVIATHAN_FRAME_BY_HEADING[sector];
+}
+
 export class NpcRenderer {
   constructor(canvas,frontCanvas=null) {
     this.canvas = canvas;
@@ -144,7 +153,7 @@ export class NpcRenderer {
           if (isAtlas) {
             const columns = 4, frameDurationMs = npc.archetype==='sea-monster-leviathan' ? 420 : 105;
             const frame = leviathan
-              ? Math.round((((npc.heading??0)%360)+360)%360/22.5)%16
+              ? leviathanFrameForHeading(npc.heading)
               : Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
             this.scanWaterlines(npc.archetype,image,columns,columns);
             const frameW = image.naturalWidth / columns;
