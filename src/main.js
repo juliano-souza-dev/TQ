@@ -485,7 +485,7 @@ async function startWorld() {
       && readSave().r2Campaign?.active === 'r2-island';
     const forgottenIsland = exploringIsland
       ? world.region.islands.find(island => island.id === 'r2-scenery-north') : null;
-    const combatTarget = !world.manualCamera ? navalBattle?.getTarget?.() : null;
+    const combatTarget = !world.manualCamera ? navalBattle?.getCameraTarget?.() : null;
     const activeR2Mission = world.region.id === 'r2' ? readSave().r2Campaign?.active : null;
     const morbiEncounter = ['r2-golden-i','r2-golden-ii'].includes(activeR2Mission)
       ? world.entities.get('r2-morbi') : null;
