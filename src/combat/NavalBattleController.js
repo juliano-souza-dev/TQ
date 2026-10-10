@@ -12,9 +12,9 @@ import {
 // Distinct cannon sounds, with pooled voices to avoid clipping during volleys.
 const CANNON_AUDIO = Object.freeze({
   special: './assets/sounds/special_cannon.wav',
-  normal: 'https://raw.githubusercontent.com/juliano-souza-dev/tabuada-quest-2-dev/main/assets/sound/cannon_shot.mp3',
-  impact: 'https://raw.githubusercontent.com/juliano-souza-dev/tabuada-quest-2-dev/main/assets/sound/cannon_impact_with_ship.mp3',
-  water: 'https://raw.githubusercontent.com/juliano-souza-dev/tabuada-quest-2-dev/main/assets/sound/cannon_ball_in_water.mp3',
+  normal: './assets/sounds/cannon_shot.mp3',
+  impact: './assets/sounds/cannon_impact_with_ship.mp3',
+  water: './assets/sounds/cannon_ball_in_water.mp3',
 });
 const cannonAudioPools = new Map();
 function playCannonSound(kind) {
