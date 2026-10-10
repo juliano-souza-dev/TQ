@@ -36,7 +36,7 @@ export function r3GoldenReady(save) {
   const expected = expectedR3GoldenLoadout(save,capacity);
   const equipped = (equipment.loadout?.[R3_GOLDEN_SHIP_ID]??[]).filter(Boolean);
   return expected.length===equipped.length &&
-    expected.every((id,i)=>equipped[i]===id);
+    expected.slice().sort().every((id,i)=>equipped.slice().sort()[i]===id);
 }
 
 export function getR3Board(save={}) {
