@@ -705,9 +705,11 @@ async function startWorld() {
   }
 
 
-  // The regular ocean, missions and ship renderers are never modified for
-  // seasonal cosmetics. Disabling the Halloween event removes this entire layer.
-  if (world.region.id === 'r1' && isHalloweenAtmosphereActive(EVENTS)) {
+  // Névoa verde: sazonal na R1, permanente e mais densa nas Águas Escuras.
+  // Na R3 ela representa a contaminação do Terror, não um evento de Halloween.
+  const useGreenMist = (world.region.id === 'r1' && isHalloweenAtmosphereActive(EVENTS))
+    || world.region.id === 'r3';
+  if (useGreenMist) {
     halloweenFogCanvas = document.createElement('canvas');
     halloweenFogCanvas.className = 'halloween-fog-layer';
     halloweenFogCanvas.setAttribute('aria-hidden', 'true');
@@ -715,6 +717,7 @@ async function startWorld() {
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     halloweenFogRenderer = new HalloweenFogRenderer(halloweenFogCanvas, {
       getReducedMotion: () => reducedMotion?.matches === true,
+      intensityScale: world.region.id === 'r3' ? 1.22 : 1,
     });
     if (!halloweenFogRenderer.init()) {
       halloweenFogCanvas.classList.add('halloween-fog-fallback');
