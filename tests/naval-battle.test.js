@@ -650,3 +650,9 @@ test('Morbi entra no modo extremo depois de 300 de dano e dispara 2 especiais ma
   t.battle.fireNpcVolleys(4000);
   assert.equal(t.shots.length,38,'só a bateria regular recarrega antes dos especiais');
 });
+
+
+test('projéteis navais usam metade do tamanho visual', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/rendering/NavalCombatWebGLRenderer.mjs', import.meta.url), 'utf8'));
+  assert.match(source, /\*0\.5,2,13/);
+});
