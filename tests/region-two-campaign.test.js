@@ -74,3 +74,13 @@ test('missão guiada do Terror só libera o encontro depois de equipar e resgata
   save={...save,...outcome.patch};
   assert.equal(getR2Board(save).available[0]?.id,'r2-meet-forgotten');
 });
+
+
+test('chegar ao Estaleiro equipa automaticamente o Terror da Tabuada durante a missão guiada', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source, /async function autoEquipTerrorAtShipyard\(\)/);
+  assert.match(source, /active==='r2-equip-terror'/);
+  assert.match(source, /equippedShipId:ship\.id/);
+  assert.match(source, /recordMissionEvent\(\{type:'equip-ship',ship:ship\.id,id:'terror-auto-equipped'\}\)/);
+  assert.match(source, /guideR2MissionTo\('missions'\)/);
+});
