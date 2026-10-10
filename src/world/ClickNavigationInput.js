@@ -49,7 +49,12 @@ export function createClickNavigation(canvas, world, onWorldClick = null) {
       cameraX: world.cameraView.x, cameraY: world.cameraView.y, zoom,
       worldWidth: world.region.width, worldHeight: world.region.height,
     });
-    if (onWorldClick?.(point) === true) { destination = null; return; }
+    const handled = onWorldClick?.(point);
+    if (handled === true) { destination = null; return; }
+    if (handled?.destination) {
+      destination = {x:Number(handled.destination.x),y:Number(handled.destination.y)};
+      return;
+    }
     destination = point;
   };
   canvas.addEventListener('pointerdown', down);
