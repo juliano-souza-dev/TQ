@@ -258,21 +258,41 @@ test('mira nao adquire alvo quando nenhum canhao esta equipado', () => {
   assert.equal(t.battle.targetId,null);
 });
 
-test('three equipped cannons consume three rounds in one volley', () => {
+test('three equipped cannons fire as a visible sequence instead of a clump', () => {
   const t = battleHarness({ ammoCount: 20 });
   t.save.equipment.loadout.starter = ['blue-gold-pirate','blue-gold-pirate','blue-gold-pirate'];
   assert.equal(t.battle.toggleFire(), true);
-  assert.equal(t.shots.length, 3, 'each cannon must launch its own projectile');
-  assert.equal(t.save.ammunition['rusted-iron'], 17, 'one round per projectile');
-  assert.match(t.messages.at(-1), /3 balas disparadas/);
+  assert.equal(t.shots.length, 1);
+  assert.equal(t.save.ammunition['rusted-iron'], 19);
+
+  t.time = 1159;
+  t.battle.update(16, 1159);
+  assert.equal(t.shots.length, 1, 'second cannon must wait for the sequence gap');
+
+  t.time = 1160;
+  t.battle.update(16, 1160);
+  assert.equal(t.shots.length, 2);
+  assert.equal(t.save.ammunition['rusted-iron'], 18);
+
+  t.time = 1320;
+  t.battle.update(16, 1320);
+  assert.equal(t.shots.length, 3);
+  assert.equal(t.save.ammunition['rusted-iron'], 17);
 });
 
 test('multiple cannons use remaining ammo only and never create free shots', () => {
   const t = battleHarness({ ammoCount: 2 });
   t.save.equipment.loadout.starter = ['blue-gold-pirate','blue-gold-pirate','blue-gold-pirate'];
   assert.equal(t.battle.toggleFire(), true);
+  assert.equal(t.shots.length, 1);
+  assert.equal(t.save.ammunition['rusted-iron'], 1);
+  t.time = 1160;
+  t.battle.update(16, 1160);
   assert.equal(t.shots.length, 2);
   assert.equal(t.save.ammunition['rusted-iron'], 0);
+  t.time = 1320;
+  t.battle.update(16, 1320);
+  assert.equal(t.shots.length, 2, 'third cannon cannot create free ammunition');
 });
 
 test('Kraken submerso ignora arpão e volta a receber dano ao emergir', () => {
