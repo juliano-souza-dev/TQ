@@ -282,8 +282,37 @@ function updateTerrorGuardian(npc,world,deltaMs){
   npc.x=moved.x;npc.y=moved.y;
 }
 
+// Only this R3 mission turns the otherwise neutral spectral ship into an ally.
+export const EMERALD_GHOST_LEVIATHAN_DAMAGE=250;
+export const EMERALD_GHOST_LEVIATHAN_RELOAD_MS=2000;
+export const EMERALD_GHOST_LEVIATHAN_RANGE=760;
+
 function updateEmeraldGhost(npc, world, deltaMs, random) {
   const dt = Math.min(64, Math.max(0, deltaMs)) / 1000;
+  const monster=npc.leviathanHuntActive ? world.entities.get('r3-leviathan') : null;
+  if(monster?.health>0 && npc.health>0){
+    // Sail to meet the player, then flank the real, moving Leviathan. No teleports.
+    const player=world.camera;
+    const nearMonster=Math.hypot(player.x-monster.x,player.y-monster.y)<1400;
+    const target=nearMonster?monster:player;
+    const desiredGap=nearMonster?430:205;
+    const dx=target.x-npc.x,dy=target.y-npc.y;
+    const distance=Math.hypot(dx,dy);
+    npc.state='leviathan-ally';
+    if(distance>1){
+      npc.heading=turnToward(npc.heading,bearing(dx,dy),135*dt);
+      if(distance>desiredGap){
+        const step=Math.min(distance-desiredGap,360*dt);
+        const rad=npc.heading*Math.PI/180;
+        const moved=resolveIslandMovement(world.region,npc.x,npc.y,
+          npc.x+Math.sin(rad)*step,npc.y-Math.cos(rad)*step,42);
+        npc.x=moved.x;
+        npc.y=moved.y;
+      }
+    }
+    return;
+  }
+  npc.state='spectral-roam';
   npc.wanderTimeMs = (npc.wanderTimeMs ?? 0) - deltaMs;
   if (npc.wanderTimeMs <= 0) {
     npc.patrolHeading = normalize(npc.heading + (random() - .5) * 80);

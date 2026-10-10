@@ -2337,7 +2337,7 @@ async function startWorld() {
         if(leviathan?.health>0
           && Math.hypot(world.camera.x-leviathan.x,world.camera.y-leviathan.y)<=950){
           if(recordMissionEvent({type:'leviathan-found',id:leviathan.id}))
-            showOceanReward('🐙 Leviathan avistado! Prepare seus arpões e sobreviva aos mergulhos.');
+            showOceanReward('🐙 Leviathan avistado! O Fantasma Esmeralda vem ajudar: 250 de dano a cada 2 segundos!');
         }
       }
       if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_SILAS_MISSION_ID
@@ -2656,6 +2656,14 @@ async function startWorld() {
         }
       }
       updatePursuitPopulation();
+      // The existing Fantasma Esmeralda joins only the Leviathan hunt.
+      // This flag is derived from the active mission, never persisted as a new NPC.
+      if(world.region.id==='r3'){
+        const ghost=world.entities.get('r3-fantasma-esmeralda');
+        if(ghost)ghost.leviathanHuntActive=
+          readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
+          && !readSave().r3Campaign?.leviathanDefeated;
+      }
       const darkWaterRaids = updateCorsairPopulation(world, stepMs);
       for (const raider of darkWaterRaids ?? []) {
         const save=readSave();

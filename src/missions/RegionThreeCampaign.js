@@ -28,7 +28,7 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
 }),Object.freeze({
   id:R3_LEVIATHAN_MISSION_ID,
   name:'Caça ao Leviathan',
-  description:'Os diários dos destroços falavam de uma criatura colossal. Com o arsenal recebido de Silas Rubro, siga a mão caveirinha até o Leviathan das Águas Escuras, sobreviva aos seus mergulhos e derrote-o. Depois, retorne ao Porto das Missões para revelar uma pista sobre o Coração do Abismo.',
+  description:'Os diários dos destroços falavam de uma criatura colossal. Com o arsenal recebido de Silas Rubro, siga a mão caveirinha até o Leviathan das Águas Escuras. O Fantasma Esmeralda abandona sua patrulha espectral para lutar ao seu lado: 250 de dano a cada 2 segundos. Sobreviva aos mergulhos, derrote a criatura e retorne ao Porto das Missões para revelar uma pista sobre o Coração do Abismo.',
   objectives:[
     {kind:'leviathan-found',count:1,label:'Encontrar o Leviathan nas Águas Escuras'},
     {kind:'leviathan-defeated',count:1,label:'Derrotar o Leviathan'},

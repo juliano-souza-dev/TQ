@@ -4,6 +4,7 @@ import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
 import { leviathanMouthOrigin } from '../monsters/LeviathanMouthMap.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
+import { EMERALD_GHOST_LEVIATHAN_DAMAGE, EMERALD_GHOST_LEVIATHAN_RELOAD_MS, EMERALD_GHOST_LEVIATHAN_RANGE } from '../npcs/DarkWatersFleet.js';
 import {
   ammoStock, armedCannons, availableNavalAmmo, cannonHardpoint, cannonRange,
   effectiveAmmo, cannonAcceptsAmmo, aimWithAccuracy, distanceBetween, flightDurationMs,
@@ -475,6 +476,55 @@ export class NavalBattleController {
     }
   }
 
+  // The Fantasma Esmeralda is a scripted ally, not a summoned NPC helper:
+  // its independent 2s cadence works even when the player is not firing.
+  fireEmeraldGhostLeviathan(now){
+    if(this.getRegionId()!=='r3')return false;
+    const campaign=this.readSave().r3Campaign;
+    if(campaign?.active!=='r3-leviathan-hunt'
+      ||!campaign.leviathanFound||campaign.leviathanDefeated)return false;
+    const entities=this.getEntities();
+    const ghost=entities.get('r3-fantasma-esmeralda');
+    const leviathan=entities.get('r3-leviathan');
+    if(!ghost?.leviathanHuntActive || ghost.health<=0
+      ||!leviathan || leviathan.health<=0 || leviathan.ambushPhase!=='surface'
+      ||distanceBetween(ghost,leviathan)>EMERALD_GHOST_LEVIATHAN_RANGE
+      ||distanceBetween(this.getPlayer(),leviathan)>1400)return false;
+    const key=ghost.id+':leviathan-ally';
+    if(now<(this.nextNpcShot.get(key)??-Infinity))return false;
+    const from={x:ghost.x,y:ghost.y};
+    const to={x:leviathan.x,y:leviathan.y};
+    const targetId=leviathan.id;
+    const fired=this.renderer.fire({
+      from,to,duration:flightDurationMs(from,to,750),startTime:now,
+      ammo:{id:'emerald-ghost-bolt',name:'Orbe Esmeralda',
+        size:1.5,projectileSpeed:750,
+        fx:{preset:'rusted-iron',projectile:{
+          color:'#52f5b9',coreColor:'#d7fff1',accentColor:'#20ce83',
+          glow:1.9,scale:1.5,auraEnabled:true,auraScale:1.55,
+        }}},
+      impactKind:'water',
+      onImpact:({at})=>{
+        const monster=this.getEntities().get(targetId);
+        if(!monster || monster.health<=0 || monster.ambushPhase!=='surface'
+          ||!shipCollision(at,monster,85))return {kind:'water'};
+        const hit=damageMonster(monster,EMERALD_GHOST_LEVIATHAN_DAMAGE,this.clock());
+        if(!hit)return {kind:'water'};
+        this.onDamageVisual({target:monster,damage:hit.damage,source:'npc'});
+        if(hit.defeated){
+          this.firing=false;
+          this.cancelMonsterAssists();
+          this.onVictory(monster);
+        }
+        return {kind:'ship'};
+      },
+    });
+    if(!fired)return false;
+    this.nextNpcShot.set(key,now+EMERALD_GHOST_LEVIATHAN_RELOAD_MS);
+    playCannonSound('special');
+    return true;
+  }
+
   getHarpoonStatus() {
     const target=this.getTarget();
     const launcher=equippedHarpoon(this.readSave());
@@ -600,6 +650,7 @@ export class NavalBattleController {
       } else this.firePlayerVolley(now);
     }
     this.fireAssistHarpoon(now);
+    this.fireEmeraldGhostLeviathan(now);
     this.fireNpcVolleys(now);
     this.fireKrakenStrikes(now);
   }
