@@ -65,6 +65,10 @@ export class NpcRenderer {
     this.foam=this.foam.filter(p=>p.age<2000);
     for(const npc of entities.values()){
       if((npc.type!=='npc'&&npc.type!=='monster')||npc.health<=0)continue;
+      if(npc.archetype==='sea-monster-leviathan'&&npc.ambushPhase!=='surface'){
+        npc._foamLast={x:npc.x,y:npc.y};
+        continue;
+      }
       const previous=npc._foamLast;
       npc._foamLast={x:npc.x,y:npc.y};
       if(!previous)continue;
