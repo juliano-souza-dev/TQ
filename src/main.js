@@ -1,3 +1,4 @@
+import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
 import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission,advanceR2Story } from './missions/RegionTwoCampaign.js';
 import { beginHullRecovery, advanceHullRecovery } from './combat/HullRepair.js';
@@ -694,8 +695,16 @@ async function startWorld() {
     boardFor(readSave(),world.region.id).missions.filter(m=>m.status==='ready').map(m=>m.id)
   );
   if(readyAtLoad)queueMicrotask(()=>routeToMissionsPort({announce:false}));
-  if(world.region.id==='r3' && !readSave().r3Campaign?.claimed?.includes('r3-equip-golden') && !readSave().r3Campaign?.active)
-    queueMicrotask(()=>{routeToMissionsPort({announce:false});showOceanReward('📜 Região 3: vá ao Porto das Missões buscar seu primeiro contrato.');});
+  if(world.region.id==='r3')queueMicrotask(()=>{
+    if(finishR3OutfitIfReady()){
+      showOceanReward('✅ Galeão Dourado preparado. Primeira missão concluída. Vá ao Porto das Missões.');
+    }else if(readSave().r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID)){
+      void guideMissionTo('missions');
+    }else{
+      void guideMissionTo('shipyard');
+      showOceanReward('⚓ Prepare seu Galeão Dourado no Estaleiro.');
+    }
+  });
   function checkMissionCompletion(){
     const missions=boardFor(readSave(),world.region.id).missions;
     for(const mission of missions){
@@ -1843,39 +1852,31 @@ async function startWorld() {
   }
 
   let autoEquippingR3=false;
+  function finishR3OutfitIfReady(){
+    if(world.region.id!=='r3'||!r3GoldenReady(readSave()))return false;
+    const save=readSave();
+    if(!save.r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID)){
+      const result=campaignFor('r3').claim(save,R3_FIRST_MISSION_ID);
+      if(result)writePatch(result.patch);
+    }
+    void guideMissionTo('missions');
+    updateMissionHud();
+    return true;
+  }
   async function autoEquipR3AtShipyard(){
-    if(autoEquippingR3||world.region.id!=='r3'||readSave().r3Campaign?.active!=='r3-equip-shadow')return false;
-    const shipId='fragata-sombra-cacadora';
+    if(autoEquippingR3||world.region.id!=='r3'||readSave().r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID))return false;
+    const shipId='galeao-dourado';
     const ship=playableShips.find(item=>item.id===shipId);
     const save=readSave(),equipment=save.equipment??{};
-    if(!ship||!equipment.ownedShipIds?.includes(shipId)||save.storyFlags?.terrorTabuadaDestroyed&&shipId==='galeao-halloween-tabuada'){
-      showOceanReward('⚠️ A Fragata Caçadora das Sombras precisa estar disponível no seu estaleiro.');
+    if(!ship||!equipment.ownedShipIds?.includes(shipId)){
+      showOceanReward('⚠️ Galeão Dourado não está no inventário. Confira a recompensa da Região 2.');
       return false;
     }
     autoEquippingR3=true;
     const previous=activeShip;
     try{
-      const capacity=Math.max(0,Number(ship.cannonSlots)||0)+(save.shipUpgrades?.masterShipwright?1:0);
-      const specialCount=Math.max(0,Math.floor(Number(equipment.cannonCounts?.['aetherion-mk1'])||0));
-      const cannons=['aetherion-mk1',...CANNONS.filter(c=>c.id!=='aetherion-mk1').sort((a,b)=>
-        (Number(b.damageMultiplier)||0)-(Number(a.damageMultiplier)||0))];
-      const slots=[];
-      for(const cannonId of cannons){
-        const cannon=CANNONS.find(c=>c.id===cannonId);
-        if(!cannon||cannon.event&&!isItemVisible(cannon,EVENTS))continue;
-        const count=cannonId==='aetherion-mk1'?Math.min(2,specialCount):
-          Math.max(0,Math.floor(Number(equipment.cannonCounts?.[cannonId])||0));
-        for(let i=0;i<count&&slots.length<capacity;i++)slots.push(cannonId);
-        if(slots.length>=capacity)break;
-      }
-      if(specialCount<2){
-        showOceanReward('⚠️ São necessários 2 Canhões Aetherion MK-I no inventário.');
-        return false;
-      }
-      if(slots.filter(id=>id==='aetherion-mk1').length!==2){
-        showOceanReward('⚠️ O navio não possui espaços suficientes para os 2 canhões especiais.');
-        return false;
-      }
+      const capacity=Math.max(0,Number(ship.cannonSlots)||0)+(save.shipUpgrades?.masterShipwright?5:0);
+      const slots=expectedR3GoldenLoadout(save,capacity);
       if(activeShip.id!==shipId){
         shipRenderer.definition=ship;
         await shipRenderer.init();
@@ -1889,14 +1890,12 @@ async function startWorld() {
         loadout:{...(current.equipment?.loadout??{}),[shipId]:slots}}});
       navalBattle.selectedAmmoId=navalBattle.resolveSelectedAmmo();
       navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
-      recordMissionEvent({type:'r3-outfit',id:'r3-shipyard-outfit'});
       navalHud?.refresh();
-      updateMissionHud();
-      void guideMissionTo('missions');
-      showOceanReward('⚓ Fragata Caçadora das Sombras equipada com 2 Aetherion MK-I e a melhor artilharia disponível! Volte ao Porto das Missões.');
+      finishR3OutfitIfReady();
+      showOceanReward('⚓ Galeão Dourado preparado automaticamente! Primeira missão concluída. Siga ao Porto das Missões.');
       return true;
     }catch(error){
-      console.error('Falha na equipagem automática da Região 3',error);
+      console.error('Falha ao equipar o Galeão Dourado na Região 3',error);
       if(activeShip.id!==previous.id){
         shipRenderer.definition=previous;
         await shipRenderer.init().catch(console.error);
@@ -1916,13 +1915,14 @@ async function startWorld() {
     contactId = contact.id;
     clickNavigation.cancel();
     const autoR3Equip=world.region.id==='r3' && contact.kind==='shipyard'
-      && readSave().r3Campaign?.active==='r3-equip-shadow';
+      && !readSave().r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID);
     const autoTerrorEquip=world.region.id==='r2' && contact.kind==='shipyard'
       && readSave().r2Campaign?.active==='r2-equip-terror';
-    if(autoR3Equip){
-      void autoEquipR3AtShipyard().then(equipped=>{
-        if(!equipped)islandPanel.open('shipyard');
+    if(world.region.id==='r3' && contact.kind==='shipyard'){
+      if(autoR3Equip)void autoEquipR3AtShipyard().then(equipped=>{
+        if(!equipped)void guideMissionTo('shipyard');
       });
+      else showOceanReward('🔒 Estaleiro indisponível até nova missão.');
     } else if(autoTerrorEquip) {
       void autoEquipTerrorAtShipyard().then(equipped=>{
         if(!equipped) islandPanel.open('shipyard');
