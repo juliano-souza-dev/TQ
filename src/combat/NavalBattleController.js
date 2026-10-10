@@ -694,7 +694,10 @@ export class NavalBattleController {
         if(['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active)
           && distanceBetween(npc,player)<(this.readSave().r2Campaign?.active==='r2-golden-ii'?840:2400)
           && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
-          const muzzle=cannonHardpoint(npc,player,npc.heading,0,20);
+          const cannon=npc.specialCannon??{};
+          const damage=Math.max(1,Number(cannon.damage)||Number(npc.damage)||1200);
+          const reloadMs=Math.max(1000,Number(cannon.reloadMs)||45000);
+          const muzzle=cannonHardpoint(npc,player,npc.heading,0,1);
           const aimed={x:player.x,y:player.y};
           const firstEncounter=this.readSave().r2Campaign?.active==='r2-golden-i';
           const controller=this;
@@ -706,8 +709,8 @@ export class NavalBattleController {
               get health(){return controller.getHealth();}
             },trackingSpeed:850}:{}),
             impactKind:'water',startTime:now,
-            onImpact:({at})=>this.resolveNpcImpact(npc.id,at,firstEncounter?999999:300)});
-          if(fired)this.nextNpcShot.set(npc.id,now+(firstEncounter?1800:3000));
+            onImpact:({at})=>this.resolveNpcImpact(npc.id,at,damage)});
+          if(fired)this.nextNpcShot.set(npc.id,now+reloadMs);
         }
         continue;
       }
