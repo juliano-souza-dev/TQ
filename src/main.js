@@ -1,4 +1,5 @@
 import { R3_WRECKS } from './missions/RegionThreeCampaign.js';
+import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo } from './missions/R3SilasTrade.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
 import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission,advanceR2Story } from './missions/RegionTwoCampaign.js';
@@ -762,6 +763,14 @@ async function startWorld() {
     && readSave().r2Campaign?.active === 'r2-destroy-thief'
     && !readSave().consumables?.chaseChestClaimed;
     function resolveMathAction(action, cleanAnswer) {
+    if(action.kind==='r3-silas-trade'){
+      const silas=world.entities.get('r3-mercador-do-breu');
+      if(world.region.id!=='r3'||!silas
+        ||readSave().r3Campaign?.active!==R3_SILAS_MISSION_ID
+        ||readSave().r3Campaign?.silasTradeCompleted
+        ||Math.hypot(world.camera.x-silas.x,world.camera.y-silas.y)>silas.interactionRadius)return false;
+      return 'Multiplicação correta! Confira a proposta de Silas e confirme se deseja realizar a troca.';
+    }
     if(action.kind==='r3-wreck-diary'){
       if(world.region.id!=='r3'||readSave().r3Campaign?.active!=='r3-dark-waters-warning')return false;
       const wreck=R3_WRECKS.find(w=>w.id===action.id);
@@ -825,6 +834,7 @@ async function startWorld() {
   // Merchant trade is atomic and idempotent: only a confirmed exchange
   // advances the contract, never mere proximity to the merchant.
   let blackMarketUnlocked=false;
+  let silasTradeAuthorized=false;
   let marketDismissedNearby=false;
   const marketOverlay=document.createElement('div');
   marketOverlay.className='black-market-overlay';
@@ -848,6 +858,18 @@ async function startWorld() {
   marketCard.append(marketHeading,marketDetails,marketPrice,marketTrade,marketClose);
   marketOverlay.append(marketCard);
   root.append(marketOverlay);
+  function showSilasTrade(){
+    const save=readSave(),silas=world.entities.get('r3-mercador-do-breu');
+    if(world.region.id!=='r3'||!silas
+      ||save.r3Campaign?.active!==R3_SILAS_MISSION_ID
+      ||save.r3Campaign?.silasTradeCompleted
+      ||Math.hypot(world.camera.x-silas.x,world.camera.y-silas.y)>silas.interactionRadius)return;
+    marketHeading.textContent='☠️ O Pacto de Silas Rubro';
+    marketDetails.textContent='VOCÊ RECEBE: 2 Canhões Aetherion MK-I, 18 Terror da Abóbora, Arpoeiro Olho do Horizonte, 1.000 arpões, 2.000 Orbes Vulcânicos, 250 Rosas do Terror e 2.500 Orbes Autoguiados especiais.';
+    marketPrice.textContent='SILAS RECEBE DEFINITIVAMENTE: todo o estoque atual de canhões (inclusive os equipados), munições, arpões, lançadores de arpão e consumíveis. Ouro, rubis, navios e outros pertences não entram nesta troca.';
+    marketTrade.disabled=false;
+    marketOverlay.hidden=false;
+  }
   function showBlackMarket(){
     if(!['r2-black-market','r2-hunt-prep'].some(id=>boardFor(readSave(),'r2').missions.find(m=>m.id===id)?.status==='active'))return;
     const save=readSave();
@@ -866,6 +888,27 @@ async function startWorld() {
     marketOverlay.hidden=false;
   }
   marketTrade.addEventListener('click',()=>{
+    if(world.region.id==='r3' && readSave().r3Campaign?.active===R3_SILAS_MISSION_ID){
+      if(!silasTradeAuthorized)return;
+      const silas=world.entities.get('r3-mercador-do-breu');
+      if(!silas||Math.hypot(world.camera.x-silas.x,world.camera.y-silas.y)>silas.interactionRadius)return;
+      const tradePatch=exchangeR3SilasCargo(readSave());
+      if(!tradePatch)return;
+      navalBattle.firing=false;
+      writePatch(tradePatch);
+      navalBattle.selectedAmmoId=navalBattle.resolveSelectedAmmo();
+      navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
+      marketOverlay.hidden=true;
+      marketDismissedNearby=true;
+      silasTradeAuthorized=false;
+      clearMissionNavigation();
+      void guideMissionTo('missions');
+      navalHud?.refresh();
+      islandPanel?.refreshMissionBoard?.();
+      updateMissionHud();
+      showOceanReward('☠️ Pacto concluído! 2 Aetherion, 18 Terror da Abóbora, Arpoeiro Olho do Horizonte e novas munições. Volte ao Porto das Missões!');
+      return;
+    }
     if(blackMarketUnlocked && boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-hunt-prep')?.status==='active'){
       const save=readSave(),e=save.equipment??{},q=save.consumables?.quantities??{};
       const items=['flame-5x','shield','speed-plus','treasure-map'];
@@ -909,7 +952,7 @@ async function startWorld() {
   });
   const mathGate = createMathGate({
     getPedagogy: () => readSave().pedagogy ?? {},
-    getRegion: () => world.region.id === 'r2' ? 2 : 1,
+    getRegion: () => world.region.id === 'r3' ? 3 : world.region.id === 'r2' ? 2 : 1,
     onSolved: (action, clean) => resolveMathAction(action, clean),
   });
   root.append(mathGate.element);
