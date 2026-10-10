@@ -573,10 +573,13 @@ async function startWorld() {
       if (action.kind === 'informant' && boardFor(readSave(),'r2').missions
         .find(m=>m.id==='r2-informant')?.progress?.[1] >= 3) {
         const save=readSave();
-        const until=save.r2Campaign?.informantTruceUntil || Date.now()+30000;
-        writePatch({r2Campaign:{...save.r2Campaign,informantTruceUntil:until}});
+        writePatch({r2Campaign:{...save.r2Campaign,informantTruceUntil:0}});
         const npc=world.entities.get('r2-informant');
-        if(npc){npc.name='Corsário das Velas Rubras';npc.informantProtected=false;npc.attackProtectedUntil=until;}
+        if(npc){
+          npc.name='Corsário das Velas Rubras';
+          npc.informantProtected=false;
+          npc.attackProtectedUntil=0;
+        }
       }
       if(action.kind==='treasure') {
         const treasurePatch=campaignFor(world.region.id).record(readSave(),{type:'treasure',id:action.id});
@@ -1737,11 +1740,10 @@ async function startWorld() {
         {
           const npc=world.entities.get('r2-informant');
           const completed=boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-informant')?.progress?.[1]>=3;
-          const until=readSave().r2Campaign?.informantTruceUntil;
           if (npc && completed) {
             npc.name='Corsário das Velas Rubras';
             npc.informantProtected = false;
-            npc.attackProtectedUntil=until || Date.now()+30000;
+            npc.attackProtectedUntil=0;
           }
         }
         if (active?.id === 'r2-informant') {
