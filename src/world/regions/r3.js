@@ -11,6 +11,11 @@ export const R3=Object.freeze({
     id:'r3-terror-do-mar',name:'Terror do Mar · Capitão Varkor Tenebris',
     x:3220,y:3450,heading:205,
   }),
+  emeraldGhost:Object.freeze({
+    id:'r3-fantasma-esmeralda',name:'Fantasma Esmeralda',
+    x:2710,y:3280,heading:320,speed:210,maxHealth:2200,
+    roamRadius:620,
+  }),
   terrorRaiders:Object.freeze([
     Object.freeze({
       id:'r3-sombra-do-saque',name:'Sombra do Saque',
