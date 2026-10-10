@@ -4,9 +4,9 @@ import { BLACK_MARKET_CORSAIR_MAPPING } from './BlackMarketCorsairMapping.js';
 export const BLACK_VEIL_CORSAIR_SHIP = Object.freeze({
   id: 'corsario-do-veu-negro',
   name: 'Corsário do Véu Negro',
-  status: 'npc-only',
+  status: 'catalog-only',
   playable: false,
-  npcEnabled: true,
+  npcEnabled: false,
   shopEnabled: false,
   rewardEnabled: false,
   cannonSlots: BLACK_MARKET_CORSAIR_MAPPING.cannonSlots,
