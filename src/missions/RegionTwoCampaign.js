@@ -1,3 +1,5 @@
+import { canonicalSingleMissionState, missionStatus, activeBoardMissions, uniqueClaimedCount } from './CampaignState.js';
+
 // Campanha independente da Costa dos Corsários.
 export const R2_MISSIONS = Object.freeze([
   {id:'r2-thieves',name:'Frota dos Ladrões',description:'Alguns corsários juraram lealdade ao ladrão que fugiu com suas riquezas. Destrua a frota e recupere as arcas que escondem pistas do Grande Tesouro.',objectives:[{kind:'defeat',count:20,label:'Destruir 20 corsários'},{kind:'treasure',count:5,label:'Resgatar 5 tesouros'}],reward:{gold:750,iron:2000}},
@@ -28,17 +30,27 @@ export const R2_MISSIONS = Object.freeze([
   {id:'r2-dark-voyage',name:'Rumo às Águas Escuras',description:'A Frota do Mestre do Terror tem ligação com o Capitão Terror. Navegue até o limite oriental da Costa dos Corsários, onde começa a próxima aventura.',objectives:[{kind:'exit',count:1,label:'Chegar à passagem para as águas escuras'}],reward:{}},
 ].map(m=>Object.freeze({...m,objectives:Object.freeze(m.objectives.map(Object.freeze))})));
 
-const stateOf = save => save.r2Campaign ?? {active:null,claimed:[],progress:{},processed:[]};
+const stateOf = save => canonicalSingleMissionState(save.r2Campaign ?? {active:null,claimed:[],progress:{},processed:[]}, R2_MISSIONS);
 export function getR2Board(save={}) {
   const state=stateOf(save);
   const missions=R2_MISSIONS.map((m,i)=>{
     const progress=m.objectives.map((o,j)=>Math.min(o.count,Number(state.progress?.[m.id]?.[j])||0));
     const claimed=state.claimed.includes(m.id);
     const active=state.active===m.id;
-    const status=claimed?'claimed':active?(progress.every((v,j)=>v>=m.objectives[j].count)?'ready':'active'):i===0||state.claimed.includes(R2_MISSIONS[i-1].id)?'available':'locked';
-    return {...m,progress,status,claimed,active,ready:status==='ready'};
+    const ready=active && progress.every((v,j)=>v>=m.objectives[j].count);
+    const available=!claimed && !active && (i===0||state.claimed.includes(R2_MISSIONS[i-1].id));
+    const status=missionStatus({claimed,active,ready,available});
+    return {...m,progress,status,claimed,active:status==='active'||status==='ready',ready:status==='ready'};
   });
-  return {missions,essentialClaimed:state.claimed.length,unlockedRegion:1,activeRegion:2,active:missions.filter(m=>m.active),claimable:missions.filter(m=>m.ready),available:missions.filter(m=>m.status==='available')};
+  return {
+    missions,
+    essentialClaimed:uniqueClaimedCount(state.claimed,R2_MISSIONS),
+    unlockedRegion:1,
+    activeRegion:2,
+    active:activeBoardMissions(missions),
+    claimable:missions.filter(m=>m.status==='ready'),
+    available:missions.filter(m=>m.status==='available')
+  };
 }
 export function acceptR2Mission(save,id) {
   const board=getR2Board(save), mission=board.missions.find(m=>m.id===id);
@@ -69,5 +81,5 @@ export function claimR2Mission(save,id) {
   const grantedConsumables=Object.fromEntries(Object.entries(mission.reward.consumables??{})
     .map(([item,amount])=>[item,(Number(stock[item])||0)+amount]));
   for(const [cannonId,amount] of Object.entries(mission.reward.cannons??{}))cannonCounts[cannonId]=(Number(cannonCounts[cannonId])||0)+amount;
-  return {mission,patch:{...(['r2-equip-chaser','r2-destroy-thief'].includes(id)?{rewardMigrations:{...(save.rewardMigrations??{}),...(id==='r2-equip-chaser'?{aetherionRewardV2:true,aetherionRewardV3:true}:{}),...(id==='r2-destroy-thief'?{shadowThiefRewardV2:true}:{})}}:{}),...(mission.reward.consumables?{consumables:{...consumables,quantities:{...stock,...grantedConsumables}}}:{}),r2Campaign:{...state,active:null,claimed:[...state.claimed,id]},profile:{...save.profile,gold:(Number(save.profile?.gold)||0)+(mission.reward.gold||0)},...(mission.reward.harpoonAmmo?{harpoonAmmo:{...harpoonAmmo,...Object.fromEntries(Object.entries(mission.reward.harpoonAmmo).map(([id,amount])=>[id,(Number(harpoonAmmo[id])||0)+amount]))}}:{}),ammunition:{...ammo,'rusted-iron':(Number(ammo['rusted-iron'])||0)+(mission.reward.iron||0),...Object.fromEntries(Object.entries(mission.reward.ammo??{}).map(([id,amount])=>[id,(Number(ammo[id])||0)+amount]))},...(mission.reward.ships?.length||mission.reward.cannons?{equipment:{...equipment,cannonCounts,ownedCannonIds:[...new Set([...(equipment.ownedCannonIds??[]),...Object.keys(mission.reward.cannons??{})])],ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),...(mission.reward.ships??[])])]}}:{})}};
+  return {mission,patch:{...(['r2-equip-chaser','r2-destroy-thief'].includes(id)?{rewardMigrations:{...(save.rewardMigrations??{}),...(id==='r2-equip-chaser'?{aetherionRewardV2:true,aetherionRewardV3:true}:{}),...(id==='r2-destroy-thief'?{shadowThiefRewardV2:true}:{})}}:{}),...(mission.reward.consumables?{consumables:{...consumables,quantities:{...stock,...grantedConsumables}}}:{}),r2Campaign:{...state,active:null,claimed:[...new Set([...state.claimed,id])]},profile:{...save.profile,gold:(Number(save.profile?.gold)||0)+(mission.reward.gold||0)},...(mission.reward.harpoonAmmo?{harpoonAmmo:{...harpoonAmmo,...Object.fromEntries(Object.entries(mission.reward.harpoonAmmo).map(([id,amount])=>[id,(Number(harpoonAmmo[id])||0)+amount]))}}:{}),ammunition:{...ammo,'rusted-iron':(Number(ammo['rusted-iron'])||0)+(mission.reward.iron||0),...Object.fromEntries(Object.entries(mission.reward.ammo??{}).map(([id,amount])=>[id,(Number(ammo[id])||0)+amount]))},...(mission.reward.ships?.length||mission.reward.cannons?{equipment:{...equipment,cannonCounts,ownedCannonIds:[...new Set([...(equipment.ownedCannonIds??[]),...Object.keys(mission.reward.cannons??{})])],ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),...(mission.reward.ships??[])])]}}:{})}};
 }
