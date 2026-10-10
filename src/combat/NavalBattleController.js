@@ -771,7 +771,9 @@ export class NavalBattleController {
       if(now<(this.nextKrakenStrike.get(monster.id)??-Infinity))continue;
       const destination={x:player.x,y:player.y};
       const accepted=this.renderer.attackKraken?.({
-        from:monster,to:destination,monsterId:monster.id,startTime:now,duration:1720,
+        from:monster,to:destination,monsterId:monster.id,
+        kind:monster.archetype==='sea-monster-leviathan'?'leviathan':'kraken',
+        startTime:now,duration:1720,
         onImpact:({at})=>{
           const ship=this.getPlayer();
           const current=this.getEntities().get(monster.id);
