@@ -180,6 +180,22 @@ async function startWorld() {
   let hudRefreshElapsed = 0;
   const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+
+  // A missão final da R1 só é concluída depois que o novo mapa já carregou.
+  if(world.region.id==='r2' && readSave().transitionFlags?.r1FinalePending){
+    const before=readSave();
+    const progress=recordCampaignEvent(before,{type:'exit',id:'r1-exit-east-arrival'});
+    if(progress)writePatch(progress);
+    const arrived=readSave();
+    const reward=resolveMissionReward(arrived,'r1-finale');
+    if(reward)writePatch({
+      ...reward.patch,
+      transitionFlags:{...(arrived.transitionFlags??{}),r1FinalePending:false},
+    });
+    else writePatch({
+      transitionFlags:{...(arrived.transitionFlags??{}),r1FinalePending:false},
+    });
+  }
   // Grant Veloz+ only once per player, never reset inventory on reload.
   {
     const save=readSave(),c=save.consumables??{};
@@ -1204,24 +1220,33 @@ async function startWorld() {
   const R1_EXIT_CINEMATIC_ID='r1-exit-terror-do-mar';
 
   function completeR1PassageTransfer(){
-    if(!r1ExitCinematic?.transferPatch)return false;
-    const transferPatch=r1ExitCinematic.transferPatch;
+    if(!r1ExitCinematic)return false;
+    const save=readSave();
     world.entities.delete(R1_EXIT_CINEMATIC_ID);
     world.manualCamera=null;
     r1ExitCinematic=null;
-    writePatch({...transferPatch,playerPosition:{x:420,y:860}});
+    writePatch({
+      progression:{...(save.progression??{}),activeRegion:2,unlockedRegion:Math.max(2,Number(save.progression?.unlockedRegion)||1)},
+      playerPosition:{x:420,y:860},
+      transitionFlags:{...(save.transitionFlags??{}),r1FinalePending:true},
+    });
     exitDialog.hidden=true;
     startWorld();
     return true;
   }
 
-  function beginR1ExitCinematic(transferPatch){
-    if(r1ExitCinematic || world.region.id!=='r1' || !transferPatch)return false;
+  function beginR1ExitCinematic(){
+    if(r1ExitCinematic || world.region.id!=='r1')return false;
+    const board=getCampaignBoard(readSave());
+    const mission=board.missions.find(m=>m.id==='r1-finale');
+    if(!mission || mission.status!=='active' || board.mastery?.mastered!==true)return false;
+
     clickNavigation.cancel();
     navalBattle.firing=false;
     navalBattle.setTarget(null);
     selectedNpcId=null;
     exitDialog.hidden=true;
+    exitDismissed=true;
 
     const start={x:360,y:3740};
     const end={x:4310,y:830};
@@ -1242,9 +1267,7 @@ async function startWorld() {
     r1ExitCinematic={
       entityId:terror.id,start,end,elapsed:0,duration:5600,
       player:{x:world.camera.x,y:world.camera.y},
-      transferPatch,
     };
-    showOceanReward('🏴‍☠️ Algo cruza a passagem...');
     return true;
   }
 
@@ -1274,22 +1297,7 @@ async function startWorld() {
   }
 
   exitStay.addEventListener('click',()=>{exitDialog.hidden=true;exitDismissed=true;});
-  exitTravel.addEventListener('click',()=>{
-    let save=readSave();
-    const mission=getCampaignBoard(save).missions.find(m=>m.id==='r1-finale');
-    if(mission?.status==='ready'){
-      const claimed=resolveMissionReward(save,'r1-finale');
-      if(!claimed)return;
-      writePatch(claimed.patch);
-      save=readSave();
-    }
-    const patch=activateNextRegion(save);
-    if(!patch){
-      exitDescription.textContent='Conclua as missões anteriores para liberar a travessia.';
-      return;
-    }
-    beginR1ExitCinematic(patch);
-  });
+  exitTravel.addEventListener('click',()=>{ exitDialog.hidden=true; });
 
   const {createDarkWatersPortal}=await import('./rendering/DarkWatersPortal.js');
   const darkWatersExit={x:Math.min(world.region.width-160,3930),y:Math.min(world.region.height-180,3890)};
@@ -2397,14 +2405,10 @@ async function startWorld() {
         if (distanceToExit > (exit?.radius ?? 0) + 45) exitDismissed = false;
         const board = getCampaignBoard(readSave());
         const finalMission = board.missions.find(m => m.id === 'r1-finale');
-        const canUsePassage = finalMission && ['active','ready','claimed'].includes(finalMission.status);
-        if (canUsePassage && distanceToExit <= exit.radius) {
-          if (finalMission.status === 'active') recordMissionEvent({type:'exit',id:'r1-exit-east'});
+        const canUsePassage = finalMission?.status==='active' && board.mastery?.mastered===true;
+        if (canUsePassage && distanceToExit <= exit.radius && !mathGate.isOpen && !islandPanel.isOpen && !r1ExitCinematic) {
           clickNavigation.cancel();
-          if (!exitDismissed && exitDialog.hidden && !mathGate.isOpen && !islandPanel.isOpen && !r1ExitCinematic) {
-            exitDialog.hidden = false;
-            navalBattle.firing = false;
-          }
+          beginR1ExitCinematic();
         }
       }
       if (world.region.id === 'r1' && (!exitDialog.hidden || r1ExitCinematic)) {
