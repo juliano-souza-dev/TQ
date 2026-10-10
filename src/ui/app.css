@@ -256,18 +256,84 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .campaign-family-options {display:flex;flex-wrap:wrap;gap:8px;}
 .campaign-family-options button {width:auto;min-width:110px;flex:1;}
 .campaign-question {font-weight:800;text-align:center;font-size:clamp(25px,6vw,36px);}
-.campaign-answer-options,.math-gate-answers {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
-.campaign-answer,.math-gate-answer {min-height:60px;padding:10px;border:2px solid #e4b663;border-radius:12px;background:#f2cc76;color:#102333;font-weight:900;font-size:23px;touch-action:manipulation;}
-.campaign-answer.is-wrong,.math-gate-answer.is-wrong {background:#a03240;color:#fff;border-color:#f5afb1;}
-.campaign-answer.is-correct,.math-gate-answer.is-correct {background:#24835a;color:#fff;border-color:#9af3b4;}
-.campaign-answer-feedback,.math-gate-feedback {min-height:26px;text-align:center;}
+.campaign-answer-options {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.campaign-answer {min-height:60px;padding:10px;border:2px solid #e4b663;border-radius:12px;background:#f2cc76;color:#102333;font-weight:900;font-size:23px;touch-action:manipulation;}
+.campaign-answer.is-wrong {background:#a03240;color:#fff;border-color:#f5afb1;}
+.campaign-answer.is-correct {background:#24835a;color:#fff;border-color:#9af3b4;}
+.campaign-answer-feedback {min-height:26px;text-align:center;}
 .campaign-next {margin-top:10px;}
+
+/* Shared math popups: use the original 1254x1254 artwork without redrawing it.
+   Every interactive element is overlaid in percentage-based slots so the
+   illustration keeps its native proportions on desktop and mobile. */
 .math-gate[hidden] {display:none!important;}
 .math-gate {position:fixed;inset:0;z-index:75;display:grid;place-items:center;padding:14px;background:rgba(0,15,28,.89);}
-.math-gate-card {width:min(100%,450px);max-height:calc(100dvh - 28px);overflow:auto;border:2px solid #dfb76d;border-radius:18px;padding:clamp(16px,5vw,26px);background:#102f49;color:#fff0d0;box-shadow:0 18px 70px #000b;}
-.math-gate-card h2 {font-size:clamp(21px,5vw,28px);margin:0 0 14px;}
-.math-gate-question {font-size:clamp(28px,7vw,40px);font-weight:900;text-align:center;margin:18px 0;}
-.math-gate-card .secondary-button {margin-top:12px;}
+.math-gate-card {
+  position:relative;isolation:isolate;container-type:inline-size;
+  width:min(100%,calc(100dvh - 28px),540px);aspect-ratio:1;
+  max-height:calc(100dvh - 28px);overflow:hidden;
+  margin:0;padding:0;border:0;border-radius:0;
+  background:url('../../assets/ui/popup.png') center / 100% 100% no-repeat;
+  color:#fff7dc;filter:drop-shadow(0 16px 22px #000a);
+}
+.math-gate-card h2,.math-gate-description,.math-gate-question,
+.math-gate-answers,.math-gate-feedback,.math-gate-card .secondary-button {
+  position:absolute;margin:0;box-sizing:border-box;
+}
+.math-gate-card h2 {
+  top:5.5%;left:22%;width:57%;height:9%;
+  display:grid;place-items:center;text-align:center;
+  font-size:clamp(15px,4.9cqw,29px);font-weight:900;line-height:1.12;
+  color:#ffebac;text-shadow:0 2px 2px #160800,0 3px 4px #130a00;
+  overflow-wrap:anywhere;
+}
+.math-gate-description {
+  top:18.5%;left:10%;width:80%;height:11.5%;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  font-size:clamp(11px,3.05cqw,17px);line-height:1.25;font-weight:650;
+  text-shadow:0 2px 3px #001928;overflow-wrap:anywhere;
+}
+.math-gate-question {
+  top:31.1%;left:11%;width:78%;height:8.7%;
+  display:grid;place-items:center;text-align:center;
+  font-size:clamp(25px,8.5cqw,47px);font-weight:900;
+  text-shadow:0 4px 2px #001324,0 0 10px #001320;
+}
+.math-gate-answers {
+  top:41.5%;left:13%;width:74%;height:24.5%;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(0,1fr));gap:1.8cqw;
+}
+.math-gate-answer {
+  min-width:0;min-height:0;padding:0;
+  border:2px solid #b47a22;border-bottom-width:4px;
+  border-radius:clamp(5px,1.5cqw,10px);
+  background:linear-gradient(180deg,#ffdf78 0%,#f8c657 51%,#d58e27 100%);
+  color:#2d1806;font-size:clamp(19px,5.5cqw,31px);font-weight:900;
+  text-shadow:0 1px #fff4bd;
+  box-shadow:inset 0 2px #fff5c8,0 3px 5px #001a2d88;touch-action:manipulation;
+}
+.math-gate-answer:disabled {cursor:default;}
+.math-gate-feedback {
+  top:68.4%;left:11%;width:78%;height:7.3%;
+  display:grid;place-items:center;text-align:center;
+  font-size:clamp(10px,2.9cqw,16px);font-weight:650;line-height:1.15;
+  text-shadow:0 2px 3px #001322;overflow-wrap:anywhere;
+}
+/* The "De volta ao mar" label and button styling are already baked into popup.png.
+   Overlay only a transparent hit area, preserving the accessible button text. */
+.math-gate-card .secondary-button {
+  top:77.6%;left:12%;width:76%;height:11.9%;min-height:0;
+  padding:0;border:0;border-radius:7px;margin:0;
+  background:transparent;color:transparent;font-size:0;box-shadow:none;
+  touch-action:manipulation;
+}
+.math-gate-card .secondary-button:focus-visible {
+  outline:3px solid #fff0b6;outline-offset:-3px;
+}
+.math-gate-card .secondary-button:not(:disabled):hover {
+  box-shadow:inset 0 0 0 3px #ffffff4d;
+}
 .treasure-glow-layer {position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;}
 .treasure-layer {position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;}
 
@@ -374,11 +440,18 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 
 /* Feedback pedagogico inspirado no jogo anterior. */
-.math-gate-card.is-answer-correct {border-color:#65dba2;box-shadow:0 0 22px #29965a66,0 18px 70px #000b;}
-.math-gate-card.is-answer-wrong {border-color:#f19a9a;}
+.math-gate-card.is-answer-correct {filter:drop-shadow(0 0 14px #29965a99);}
+.math-gate-card.is-answer-wrong {filter:drop-shadow(0 0 12px #b9384488);}
 .math-gate-answer.is-muted {opacity:.40;filter:saturate(.45);}
-.math-gate-answer.is-reveal-correct {background:#24835a;border-color:#9af3b4;color:#fff;opacity:1;}
-.math-gate-feedback[data-result="correct"] {color:#9af3b4;font-weight:900;}
+.math-gate-answer.is-correct,.math-gate-answer.is-reveal-correct {
+  background:linear-gradient(#70dd88,#24835a);border-color:#9af3b4;
+  color:#fff;text-shadow:0 1px #064125;opacity:1;
+}
+.math-gate-answer.is-wrong {
+  background:linear-gradient(#e77973,#9f293a);border-color:#f5afb1;
+  color:#fff;text-shadow:0 1px #510917;opacity:1;
+}
+.math-gate-feedback[data-result="correct"] {color:#a8ffb6;font-weight:900;}
 .math-gate-feedback[data-result="wrong"] {color:#ffb0b0;font-weight:800;}
 .math-gate-card.is-answer-correct .math-gate-question {color:#bafed1;}
 @media (prefers-reduced-motion:no-preference) {
