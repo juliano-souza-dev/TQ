@@ -557,11 +557,14 @@ async function startWorld() {
     // Hostile Leviathan can initiate combat without the player selecting it.
     // Dynamic framing must not depend on the player's shorter harpoon range.
     const leviathan=world.region.id==='r3'?world.entities.get('r3-leviathan'):null;
+    // Keep the camera engaged through diving and resurfacing; the threat is
+    // already active before the flame reaches the ship. Do not require a
+    // selected target or a player weapon with enough range.
     const hostileLeviathan=leviathan?.health>0
-      && leviathan.ambushPhase==='surface'
-      && Math.hypot(world.camera.x-leviathan.x,world.camera.y-leviathan.y)<=840
+      && leviathan.state==='retaliating'
+      && Math.hypot(world.camera.x-leviathan.x,world.camera.y-leviathan.y)<=1100
       ? leviathan : null;
-    const combatTarget=selectedCombatTarget??hostileLeviathan;
+    const combatTarget=hostileLeviathan??selectedCombatTarget;
     // Manual camera input (WASD/drag) has priority whenever the player takes control.
     const activeR2Mission = world.region.id === 'r2' ? readSave().r2Campaign?.active : null;
     const combatCameraStatus = navalBattle?.getStatus?.() ?? null;
@@ -569,11 +572,12 @@ async function startWorld() {
       ? Math.hypot(world.camera.x-combatTarget.x, world.camera.y-combatTarget.y)
       : Infinity;
     const combatCameraRange = combatTarget?.archetype==='sea-monster-leviathan'
-      ? 840 : Math.max(0,Number(combatCameraStatus?.range)||0);
+      ? 1100 : Math.max(0,Number(combatCameraStatus?.range)||0);
     const combatTargetInRange = Boolean(
       combatTarget?.health > 0
       && combatCameraRange > 0
-      && combatTargetDistance <= combatCameraRange
+      && (combatTargetDistance <= combatCameraRange
+        || (navalBattle?.firing && combatTargetDistance<=1100))
     );
     // Selecting a distant target must not pull the camera into battle framing.
     // The Shadow Thief pursuit remains the intentional exception handled below.
