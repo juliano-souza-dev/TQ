@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { R1 } from '../src/world/regions/r1.js';
+import { R3 } from '../src/world/regions/r3.js';
 import { OceanRenderer } from '../src/rendering/OceanRenderer.js';
 import { OceanWebGLRenderer } from '../src/rendering/LegacyOceanWebGLRenderer.mjs';
 import { normalizeOceanConfig } from '../src/world/WorldOceanEffect.mjs';
@@ -27,6 +28,7 @@ function fakeGL() {
     uniform1f: (...args) => { calls.push(['uniform1f', ...args]); },
     uniform2f: (...args) => { calls.push(['uniform2f', ...args]); },
     uniform3f: (...args) => { calls.push(['uniform3f', ...args]); },
+    uniform4f: (...args) => { calls.push(['uniform4f', ...args]); },
     shaderSource: (_, source) => { calls.push(['shaderSource', source]); },
     bufferSubData: (...args) => { calls.push(['bufferSubData', ...args]); },
   };
@@ -157,4 +159,32 @@ test('old texture is still shown if the legacy WebGL context cannot initialize',
   assert.equal(renderer.fallback, true);
   assert.match(canvas.style.backgroundImage, /ocean-tile-tabuada-region01\.webp/);
   renderer.dispose();
+});
+
+
+test('R3 forwards organic corruption zones to the ocean shader', async () => {
+  const oldImage = globalThis.Image;
+  try {
+    globalThis.Image = mockImage();
+    const { gl, calls } = fakeGL();
+    const renderer = new OceanRenderer(fakeCanvas(gl));
+    assert.equal(await renderer.init(R3.ocean.texture), true);
+    assert.equal(renderer.render({
+      region:R3,
+      camera:{x:2100,y:2900,zoom:1},
+      cameraView:{x:2100,y:2900},
+    }, 4000), true);
+
+    const uniform1 = name => calls.find(row => row[0] === 'uniform1f' && row[1] === name);
+    const uniform3 = name => calls.find(row => row[0] === 'uniform3f' && row[1] === name);
+    const uniform4 = name => calls.find(row => row[0] === 'uniform4f' && row[1] === name);
+    assert.deepEqual(uniform1('uCorruptionEnabled'), ['uniform1f','uCorruptionEnabled',1]);
+    assert.ok(uniform3('uCorruptionColor'));
+    assert.deepEqual(uniform4('uCorruptionZone0').slice(2), [3220,3450,1450,1]);
+    assert.deepEqual(uniform4('uCorruptionZone3').slice(2), [1220,1260,900,.48]);
+    renderer.dispose();
+  } finally {
+    if (oldImage === undefined) delete globalThis.Image;
+    else globalThis.Image = oldImage;
+  }
 });
