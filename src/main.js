@@ -144,38 +144,6 @@ async function startWorld() {
     import('./npcs/NpcSelection.js'),
   ]);
   if (generation !== worldGeneration) return;
-  // TEMPORÁRIO: replay único da missão 16 da R1 para validação local.
-  // Restrito a localhost/LAN para nunca rebobinar jogadores da produção.
-  {
-    const hostname=globalThis.location?.hostname ?? '';
-    const localDev=hostname==='localhost' || hostname==='127.0.0.1'
-      || /^192\.168\./.test(hostname) || /^10\./.test(hostname)
-      || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
-    const snapshot=localSaves.load(currentUser.uid)?.payload ?? {};
-    const replayKey='devReplayR1FinaleOnceV1';
-    if(localDev && !snapshot.devFlags?.[replayKey] && (snapshot.progression?.activeRegion ?? 1)>=2){
-      const campaign=snapshot.campaign??{};
-      const quantities=snapshot.consumables?.quantities??{};
-      localSaves.save(currentUser.uid,{
-        ...snapshot,
-        progression:{...(snapshot.progression??{}),
-          activeRegion:1,
-          unlockedRegion:Math.max(2,Number(snapshot.progression?.unlockedRegion)||1)},
-        campaign:{
-          ...campaign,
-          active:[...new Set([...(campaign.active??[]).filter(id=>id!=='r1-finale'),'r1-finale'])],
-          claimed:(campaign.claimed??[]).filter(id=>id!=='r1-finale'),
-          progress:{...(campaign.progress??{}),'r1-finale':[0]},
-          processedEvents:(campaign.processedEvents??[]).filter(id=>!String(id).startsWith('r1-finale:exit:')),
-        },
-        consumables:{...(snapshot.consumables??{}),quantities:{...quantities,
-          'treasure-map':Math.max(0,(Number(quantities['treasure-map'])||0)-2)}},
-        playerPosition:{x:3740,y:1200},
-        devFlags:{...(snapshot.devFlags??{}),[replayKey]:true},
-      });
-    }
-  }
-
   const storedRegion = localSaves.load(currentUser.uid)?.payload?.progression?.activeRegion ?? 1;
   const region = storedRegion >= 3
     ? (await import('./world/regions/r3.js')).R3
