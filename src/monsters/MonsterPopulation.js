@@ -58,6 +58,8 @@ function updateLeviathanAmbush(monster,world,stepMs){
     monster.huntEngaged=true;
     const region=world.region;
     if(ready){
+      // Keep position and heading fixed for the entire fire animation.
+      if(!monster.huntFlameFired){
       const target=(Math.atan2(player.x-monster.x,-(player.y-monster.y))*180/Math.PI+360)%360;
       const angle=Number(monster.heading)||0;
       const delta=angleDelta(angle,target);
@@ -69,6 +71,7 @@ function updateLeviathanAmbush(monster,world,stepMs){
         const nx=clamp(monster.x+Math.sin(radians)*step,135,region.width-135);
         const ny=clamp(monster.y-Math.cos(radians)*step,135,region.height-135);
         if(!collidesWithIsland(region,nx,ny,120)){monster.x=nx;monster.y=ny;}
+      }
       }
       // Let the fire jet finish visibly before the diving animation starts.
       if(monster.huntFlameFired){
