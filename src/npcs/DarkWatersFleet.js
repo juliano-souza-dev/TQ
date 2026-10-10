@@ -49,6 +49,7 @@ function createRaider(config, region) {
     raidRadius: config.raidRadius ?? 86,
     rewardAmmoId: DARK_WATERS_SPECIAL_AMMO_ID,
     rewardAmmoAmount: DARK_WATERS_SPECIAL_AMMO_REWARD,
+    assistDisabled: true,
     raidCooldownMs: 0,
     stolenThisPass: false,
     respawnRemainingMs: null,
@@ -77,6 +78,7 @@ export function createDarkWatersFleet(world) {
     boss.cannonSlots = TERROR_DO_MAR_NPC.cannonSlots;
     boss.damage = TERROR_DO_MAR_NPC.damage;
     boss.range = TERROR_DO_MAR_NPC.range;
+    boss.assistDisabled = true;
     boss.anchor = { x: point.x, y: point.y };
     boss.patrolTimeMs = 2600;
     world.entities.set(boss.id, boss);
