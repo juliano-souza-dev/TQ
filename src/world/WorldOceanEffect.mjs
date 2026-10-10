@@ -96,6 +96,29 @@ const normalizeLayer=(input={},defaults,background)=>({
   tileScale:clamp(number(input.tileScale,defaults.tileScale),.2,2.5),
   opacity:clamp(number(input.opacity,defaults.opacity),0,1)
 });
+const normalizeCorruption=input=>{
+  const source=input&&typeof input==="object"?input:{};
+  const zones=Array.isArray(source.zones)?source.zones.slice(0,4):[];
+  return {
+    active:source.active===true&&zones.length>0,
+    colorR:clamp(number(source.colorR,24),0,255),
+    colorG:clamp(number(source.colorG,142),0,255),
+    colorB:clamp(number(source.colorB,78),0,255),
+    glow:clamp(number(source.glow,42),0,100),
+    noise:clamp(number(source.noise,46),0,100),
+    pulse:clamp(number(source.pulse,18),0,100),
+    zones:Array.from({length:4},(_,index)=>{
+      const zone=zones[index]??{};
+      return {
+        x:clamp(number(zone.x,0),0,100000),
+        y:clamp(number(zone.y,0),0,100000),
+        radius:clamp(number(zone.radius,1),1,10000),
+        intensity:clamp(number(zone.intensity,0),0,1)
+      };
+    })
+  };
+};
+
 
 export function normalizeOceanConfig(input={}){
   const preset=OCEAN_PRESETS[input.preset]?input.preset:"adventure";
@@ -128,6 +151,7 @@ export function normalizeOceanConfig(input={}){
     foamMix: clamp(number(input.foamMix,defaults.foamMix),0,100),
     sparkleIntensity: clamp(number(input.sparkleIntensity,defaults.sparkleIntensity),0,100),
     sparkleSharpness: clamp(number(input.sparkleSharpness,defaults.sparkleSharpness),2,48),
+    corruption:normalizeCorruption(input.corruption),
     layers:{
       deep:normalizeLayer(layersInput.deep,OCEAN_LAYER_DEFAULTS.deep,background),
       wave:normalizeLayer(layersInput.wave,OCEAN_LAYER_DEFAULTS.wave,background),
