@@ -838,6 +838,11 @@ export class NavalBattleController {
       if(isLeviathan&&!monster.huntActive&&!right&&!left)continue;
       if(isLeviathan&&monster.huntActive&&!monster.huntEngaged)continue;
       if(isLeviathan&&monster.huntActive&&monster.huntFlameFired)continue;
+      // A forward-facing mouth must be aimed at the player, not toward the tail.
+      if(isLeviathan&&monster.huntActive){
+        const bearing=(Math.atan2(player.x-monster.x,-(player.y-monster.y))*180/Math.PI+360)%360;
+        if(Math.abs(((heading-bearing+540)%360)-180)>14)continue;
+      }
       if(now<(this.nextKrakenStrike.get(monster.id)??-Infinity))continue;
       const destination={x:player.x,y:player.y};
       const viewport=this.renderer.canvas?.getBoundingClientRect();

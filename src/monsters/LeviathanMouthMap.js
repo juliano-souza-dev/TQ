@@ -18,7 +18,14 @@ export function leviathanSpriteWorldSize(width,height){
 }
 export function leviathanMouthOrigin(monster,viewportWidth,viewportHeight){
   const frame=leviathanFrameForHeading(monster.heading);
-  const [u,v]=LEVIATHAN_MOUTH_UV[frame];
   const size=leviathanSpriteWorldSize(viewportWidth,viewportHeight);
-  return {x:monster.x+(u-.5)*size,y:monster.y+(v-.5)*size,frame};
+  // The renderer crops the atlas to its upper 57%, leaving the visible body
+  // centered at y=-.215*size. Place the muzzle on the *forward* edge of the
+  // visible head. Raw atlas UVs were on the wrong side for some headings.
+  const radians=(((Number(monster.heading)||0)%360)+360)%360*Math.PI/180;
+  return {
+    x:monster.x+Math.sin(radians)*size*.21,
+    y:monster.y-size*.215-Math.cos(radians)*size*.21,
+    frame,
+  };
 }
