@@ -578,18 +578,24 @@ async function startWorld() {
   missionCompleteCard.append(missionCompleteTitle,missionCompleteText,goMissions,keepSailing);
   missionCompleteOverlay.append(missionCompleteCard);root.append(missionCompleteOverlay);
   keepSailing.addEventListener('click',()=>{missionCompleteOverlay.hidden=true;});
-  goMissions.addEventListener('click',()=>{
-    missionCompleteOverlay.hidden=true;
+  function routeToMissionsPort({announce=true}={}){
     const island=world.region.islands.find(i=>i.kind==='missions');
-    if(!island)return;
-    // Stop just outside the island artwork, on the side nearest the player.
+    if(!island)return false;
     const horizontal=Math.abs(world.camera.x-island.x)>Math.abs(world.camera.y-island.y);
     const destination=horizontal
       ?{x:island.x+Math.sign(world.camera.x-island.x||1)*(Number(island.width||820)/2+20),y:island.y}
       :{x:island.x,y:island.y+Math.sign(world.camera.y-island.y||1)*(Number(island.height||690)/2+20)};
+    pendingTreasureId=null;
     world.manualCamera=null;
+    navalBattle.firing=false;
     clickNavigation?.setDestination(destination);
-    showOceanReward('⚓ Rota para o Porto das Missões definida!');
+    void guideR2MissionTo('missions');
+    if(announce)showOceanReward('⚓ Rota para o Porto das Missões definida!');
+    return true;
+  }
+  goMissions.addEventListener('click',()=>{
+    missionCompleteOverlay.hidden=true;
+    routeToMissionsPort();
   });
   // Observe mission state, regardless of which gameplay action updates the save.
   // Seed ready contracts on load so reopening the game doesn't replay old popups.
@@ -607,6 +613,7 @@ async function startWorld() {
       notifiedMissionIds.add(mission.id);
       showOceanReward('🏆 Missão concluída: '+mission.name);
       announceMissionCompletion(mission.name);
+      if(world.region.id==='r2')routeToMissionsPort({announce:false});
       break;
     }
   }
@@ -1295,6 +1302,7 @@ async function startWorld() {
         : mission ? '📜 '+formatMissionHudObjectives(mission)
         : !readSave().progression?.r2PortVisited ? '📜 Primeiro objetivo: vá ao Porto das Missões'
         : '📜 Vá ao Porto das Missões para receber seu próximo contrato';
+      if(ready && !clickNavigation?.getDestination?.())routeToMissionsPort({announce:false});
       return;
     }
     const flow = getMissionFlow(readSave(), activeShip.id);
