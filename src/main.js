@@ -797,7 +797,17 @@ async function startWorld() {
         showOceanReward('🐙 Kraken derrotado! +'+gold+' ouro');
         return;
       }
-      if (world.region.id === 'r2' && npc.archetype === 'fugitive-frigate'
+      if (world.region.id === 'r3' && npc.archetype === 'dark-waters-raider') {
+        const ammoId=npc.rewardAmmoId || 'terror-rose';
+        const amount=Math.max(1,Math.floor(Number(npc.rewardAmmoAmount)||100));
+        writePatch({ammunition:{...(save.ammunition??{}),
+          [ammoId]:(Number(save.ammunition?.[ammoId])||0)+amount}});
+        recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
+        showOceanReward('🏴‍☠️ '+npc.name+' afundado! +'+amount+' Rosas do Terror.');
+      } else if (world.region.id === 'r3' && npc.archetype === 'terror-do-mar') {
+        recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
+        showOceanReward('🔥 Terror do Mar afundado! Capitão Varkor Tenebris foi derrotado.');
+      } else if (world.region.id === 'r2' && npc.archetype === 'fugitive-frigate'
         && save.r2Campaign?.active === 'r2-destroy-thief') {
         recordMissionEvent({type:'thief',id:npc.id});
         showOceanReward('🏴‍☠️ Ladrão das Sombras afundado!');
@@ -1729,7 +1739,24 @@ async function startWorld() {
         }
       }
       updatePursuitPopulation();
-      updateCorsairPopulation(world, stepMs);
+      const darkWaterRaids = updateCorsairPopulation(world, stepMs);
+      for (const raider of darkWaterRaids ?? []) {
+        const save=readSave();
+        const gold=Math.max(0,Math.floor(Number(save.profile?.gold)||0));
+        const storedIron=save.ammunition?.['rusted-iron'];
+        const iron=storedIron===undefined ? 20 : Math.max(0,Math.floor(Number(storedIron)||0));
+        const stolenGold=Math.min(25,Math.max(0,Math.ceil(gold*.08)));
+        const stolenIron=Math.min(20,Math.max(0,Math.floor(iron*.20)));
+        if(stolenGold||stolenIron){
+          writePatch({
+            profile:{...(save.profile??{}),gold:Math.max(0,gold-stolenGold)},
+            ammunition:{...(save.ammunition??{}),'rusted-iron':Math.max(0,iron-stolenIron)},
+          });
+          showOceanReward('☠️ '+raider.name+' saqueou '+stolenGold+' ouro e '+stolenIron+' munições de ferro!');
+        } else {
+          showOceanReward('☠️ '+raider.name+' tentou saquear, mas seu porão estava vazio.');
+        }
+      }
       updateNegotiationFrigate(world, readSave());
       updateFugitiveFrigatePopulation(world, stepMs);
       if (world.region.id === 'r2') {
