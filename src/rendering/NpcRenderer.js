@@ -143,7 +143,9 @@ export class NpcRenderer {
           const spriteY=y-monsterSize/2+(diving?18*dpr*elapsed/300:resurfacing?18*dpr*(1-alpha):0);
           if (isAtlas) {
             const columns = 4, frameDurationMs = npc.archetype==='sea-monster-leviathan' ? 420 : 105;
-            const frame = Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
+            const frame = leviathan
+              ? Math.round((((npc.heading??0)%360)+360)%360/22.5)%16
+              : Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
             this.scanWaterlines(npc.archetype,image,columns,columns);
             const frameW = image.naturalWidth / columns;
             const frameH = image.naturalHeight / columns;
@@ -164,7 +166,7 @@ export class NpcRenderer {
           }
           ctx.restore();
           if(leviathan){
-            const frameIndex=Math.floor((npc.animationTimeMs??0)/420)%16;
+            const frameIndex=Math.round((((npc.heading??0)%360)+360)%360/22.5)%16;
             const waterline=this.waterlines.get(npc.archetype)?.[frameIndex]??.82;
             const surfaceY=spriteY+monsterSize*Math.min(waterline,.57);
             ctx.save();ctx.globalCompositeOperation='screen';
