@@ -620,7 +620,8 @@ export class NavalBattleController {
       const accuracy = target.archetype === 'fugitive-frigate' && this.getThiefMissionTarget() ? 1 : cannon.accuracy;
       const destination = aimWithAccuracy(intercepted, muzzle, accuracy, this.random);
       const flameBoost = this.isFlameActive();
-      const damage = shotDamage(cannon, ammo.id) * (flameBoost ? 5 : 1);
+      const goldenMission = this.getRegionId() === 'r2' && save.r2Campaign?.active === 'r2-golden-ii' && target.id === 'r2-morbi';
+      const damage = shotDamage(cannon, ammo.id) * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
       const tracking = ammo.trackingDurationMs > 0;
       const accepted = this.renderer.fire({
         from: muzzle, to: destination,
@@ -805,6 +806,7 @@ export class NavalBattleController {
         onImpact:onImpact??(({at})=>this.resolveNpcImpact(npc.id,at,damage)),
       });
       if(!fired)return false;
+      playCannonSound(ammo?.id === 'aetherion-seeker' ? 'special' : 'normal');
 
       if(target===player)this.markCombatActivity(now);
       if(total===1 || cursor>=total-1){
