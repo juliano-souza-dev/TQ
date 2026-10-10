@@ -1,4 +1,4 @@
-// NPC exclusivo da Costa dos Corsários. Não é vendável, equipável ou concedido ao jogador.
+// Chefe exclusivo das Águas Escuras (Mapa 3). Não é vendável, equipável ou concedido ao jogador.
 export const TERROR_DO_MAR_SHIP = Object.freeze({
   id: 'terror-do-mar',
   name: 'Terror do Mar',
@@ -20,13 +20,13 @@ export const TERROR_DO_MAR_SHIP = Object.freeze({
   // são distribuídos ao longo dessa bateria para que nenhum slot volte ao
   // hardpoint genérico durante uma salva.
   visualGunports: Object.freeze({ port: 6, starboard: 6 }),
-  damage: 0,
-  range: 0,
+  damage: 12,
+  range: 520,
   speed: Object.freeze({ min: 45, initial: 70, max: 95 }),
   acceleration: 120,
   ai: Object.freeze({
     behavior: 'patrol',
-    attackPlayer: false,
+    attackPlayer: true,
   }),
   sprite: Object.freeze({
     path: '../../assets/ships/terror do mar.webp',
