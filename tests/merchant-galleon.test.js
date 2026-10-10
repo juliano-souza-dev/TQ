@@ -22,3 +22,14 @@ test('galeão mercador possui três canhões por bordo e está no catálogo NPC'
   assert.ok(BLACK_MARKET_SHIP.sprite.cannonMuzzles[8].starboard.length===3);
   assert.ok(NPC_SHIP_CATALOG.some(ship=>ship.id===BLACK_MARKET_SHIP.id));
 });
+
+
+test('mercador patrulha fora das missões de coordenada fixa', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source,/marketMissionFixed=\['r2-black-market','r2-hunt-prep'\]/);
+  assert.match(source,/blackMarketMerchantOrbitAngle/);
+  assert.match(source,/orbitRadiusX=620,orbitRadiusY=430/);
+  assert.match(source,/marketMerchant\.state='roaming'/);
+  assert.match(source,/marketMerchant\.x=marketAnchorX/);
+  assert.match(source,/marketMerchant\.y=marketAnchorY/);
+});
