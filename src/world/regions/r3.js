@@ -19,13 +19,13 @@ export const R3=Object.freeze({
   terrorRaiders:Object.freeze([
     Object.freeze({
       id:'r3-sombra-do-saque',name:'Sombra do Saque',
-      x:520,y:3260,heading:90,speed:520,maxHealth:45000,
+      x:520,y:3260,heading:90,speed:442,maxHealth:45000,
       detectionRange:650,raidRadius:86,
     }),
     Object.freeze({
       id:'r3-dente-do-pavor',name:'Dente do Pavor',
-      x:3570,y:3260,heading:270,speed:565,maxHealth:55000,
-      detectionRange:680,raidRadius:86,
+      x:3570,y:3260,heading:270,speed:285,maxHealth:55000,
+      detectionRange:680,raidRadius:86,role:'terror-guardian',
     }),
   ]),
   islands:Object.freeze([
