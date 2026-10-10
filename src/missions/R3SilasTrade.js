@@ -92,3 +92,83 @@ export function exchangeR3SilasCargo(save={}){
     consumables,
   };
 }
+
+
+/**
+ * Silent readiness verification on arrival at the R3 Leviathan encounter.
+ *
+ * The confirmed Silas exchange is the only source of entitlement. Reconcile
+ * permanent equipment and arm the current ship without requiring a shipyard
+ * visit. Consumable stocks are NOT topped up after use: only keys that were
+ * never delivered are repaired once, guarded by a persisted receipt.
+ */
+export function verifySilasArsenalAtLeviathan(save={}) {
+  const campaign=save.r3Campaign??{};
+  const equipment=save.equipment??{};
+  const shipId=equipment.equippedShipId;
+  if(campaign.active!=='r3-leviathan-hunt' || campaign.leviathanDefeated
+    || !campaign.silasTradeCompleted
+    || !campaign.claimed?.includes(R3_SILAS_MISSION_ID)
+    || !shipId) return null;
+
+  let equipmentChanged=false;
+  const updatedEquipment={...equipment};
+  const cannonCounts={...(equipment.cannonCounts??{})};
+  // Cannons and launchers are permanent gear, unlike expendable ammunition.
+  for(const [id,quantity] of Object.entries(R3_SILAS_REWARD.cannons)){
+    if((Number(cannonCounts[id])||0)<quantity){
+      cannonCounts[id]=quantity;
+      equipmentChanged=true;
+    }
+  }
+  if(equipmentChanged)updatedEquipment.cannonCounts=cannonCounts;
+
+  const ownedCannons=new Set(equipment.ownedCannonIds??[]);
+  for(const id of Object.keys(R3_SILAS_REWARD.cannons))ownedCannons.add(id);
+  if(ownedCannons.size!==(equipment.ownedCannonIds??[]).length){
+    updatedEquipment.ownedCannonIds=[...ownedCannons];
+    equipmentChanged=true;
+  }
+  const ownedHarpoons=new Set(equipment.ownedHarpoonIds??[]);
+  ownedHarpoons.add(HORIZON_HARPOON_ID);
+  if(ownedHarpoons.size!==(equipment.ownedHarpoonIds??[]).length){
+    updatedEquipment.ownedHarpoonIds=[...ownedHarpoons];
+    equipmentChanged=true;
+  }
+  if(equipment.equippedHarpoonId!==HORIZON_HARPOON_ID){
+    updatedEquipment.equippedHarpoonId=HORIZON_HARPOON_ID;
+    equipmentChanged=true;
+  }
+
+  const armed=Array.isArray(equipment.loadout?.[shipId])?equipment.loadout[shipId]:[];
+  const desired=silasReceivedLoadout({...save,equipment:{...updatedEquipment,equippedShipId:shipId}});
+  if(armed.length!==desired.length || armed.some((id,i)=>id!==desired[i])){
+    updatedEquipment.loadout={...(equipment.loadout??{}),[shipId]:desired};
+    equipmentChanged=true;
+  }
+
+  let ammunition,harpoonAmmo;
+  const firstVerification=!campaign.silasArsenalArrivalVerified;
+  if(firstVerification){
+    for(const [id,amount] of Object.entries(R3_SILAS_REWARD.ammunition)){
+      if(save.ammunition?.[id]===undefined || save.ammunition?.[id]===null){
+        ammunition??={...(save.ammunition??{})};
+        ammunition[id]=amount;
+      }
+    }
+    for(const [id,amount] of Object.entries(R3_SILAS_REWARD.harpoonAmmo)){
+      if(save.harpoonAmmo?.[id]===undefined || save.harpoonAmmo?.[id]===null){
+        harpoonAmmo??={...(save.harpoonAmmo??{})};
+        harpoonAmmo[id]=amount;
+      }
+    }
+  }
+
+  if(!firstVerification&&!equipmentChanged)return null;
+  return {
+    ...(equipmentChanged?{equipment:updatedEquipment}:{}),
+    ...(ammunition?{ammunition}:{}),
+    ...(harpoonAmmo?{harpoonAmmo}:{}),
+    ...(firstVerification?{r3Campaign:{...campaign,silasArsenalArrivalVerified:true}}:{}),
+  };
+}

@@ -1,5 +1,5 @@
 import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID } from './missions/RegionThreeCampaign.js';
-import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout } from './missions/R3SilasTrade.js';
+import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout, verifySilasArsenalAtLeviathan } from './missions/R3SilasTrade.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
 import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission,advanceR2Story } from './missions/RegionTwoCampaign.js';
@@ -2321,6 +2321,7 @@ async function startWorld() {
   let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
   let oceanTimeMs = 0;
   let blackMarketMerchantOrbitAngle = 0;
+  let leviathanArrivalArsenalChecked = false;
   loop = new GameLoop({
     update: (stepMs) => {
       state = advanceGameState(state, stepMs);
@@ -2331,12 +2332,30 @@ async function startWorld() {
         updateCamera(world,canvas.clientWidth,canvas.clientHeight);
         return;
       }
-      if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
-        &&!readSave().r3Campaign?.leviathanFound){
-        const leviathan=world.entities.get(R3_LEVIATHAN_ENTITY_ID);
-        if(leviathan?.health>0
-          && Math.hypot(world.camera.x-leviathan.x,world.camera.y-leviathan.y)<=950){
-          if(recordMissionEvent({type:'leviathan-found',id:leviathan.id}))
+      if(world.region.id==='r3'){
+        const save=readSave();
+        const hunting=save.r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
+          && !save.r3Campaign?.leviathanDefeated;
+        const leviathan=hunting?world.entities.get(R3_LEVIATHAN_ENTITY_ID):null;
+        const arrived=leviathan?.health>0
+          && Math.hypot(world.camera.x-leviathan.x,world.camera.y-leviathan.y)<=950;
+        if(!arrived)leviathanArrivalArsenalChecked=false;
+        else{
+          if(!leviathanArrivalArsenalChecked){
+            leviathanArrivalArsenalChecked=true;
+            // Restore only missing Silas delivery, then arm the current ship.
+            // This is silent, once per approach, with no dialogue or reward toast.
+            const patch=verifySilasArsenalAtLeviathan(save);
+            if(patch){
+              writePatch(patch);
+              navalBattle.selectedAmmoId=navalBattle.resolveSelectedAmmo();
+              navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
+              navalHud?.refresh();
+              islandPanel?.refreshMissionBoard?.();
+            }
+          }
+          if(!readSave().r3Campaign?.leviathanFound
+            && recordMissionEvent({type:'leviathan-found',id:leviathan.id}))
             showOceanReward('🐙 Leviathan avistado! O Fantasma Esmeralda vem ajudar: 250 de dano a cada 2 segundos!');
         }
       }
