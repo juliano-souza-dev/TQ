@@ -144,17 +144,18 @@ async function startWorld() {
     import('./npcs/NpcSelection.js'),
   ]);
   if (generation !== worldGeneration) return;
-  // TEMPORÁRIO: replay único da missão 16 após mover a passagem.
-  // Restrito a localhost/LAN e marcado para não repetir.
+  // TEMPORÁRIO: replay único da missão 16 para validar a nova passagem.
+  // V3 também restaura quando o save já foi trazido de volta para a R1.
   {
-    const hostname=globalThis.location?.hostname ?? '';
-    const localDev=hostname==='localhost' || hostname==='127.0.0.1'
-      || /^192\.168\./.test(hostname) || /^10\./.test(hostname)
-      || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
+    const localDev=(globalThis.location?.protocol ?? '')!=='https:';
     const snapshot=localSaves.load(currentUser.uid)?.payload ?? {};
-    const replayKey='devReplayR1FinaleOnceV2';
-    if(localDev && !snapshot.devFlags?.[replayKey] && (snapshot.progression?.activeRegion ?? 1)>=2){
-      const campaign=snapshot.campaign??{};
+    const replayKey='devReplayR1FinaleOnceV3';
+    const campaign=snapshot.campaign??{};
+    const hasReachedFinale=(campaign.claimed??[]).includes('r1-finale')
+      || (campaign.active??[]).includes('r1-finale')
+      || (snapshot.progression?.activeRegion ?? 1)>=2
+      || Boolean(snapshot.r2Campaign);
+    if(localDev && !snapshot.devFlags?.[replayKey] && hasReachedFinale){
       localSaves.save(currentUser.uid,{
         ...snapshot,
         progression:{...(snapshot.progression??{}),
