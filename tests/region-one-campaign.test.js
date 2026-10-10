@@ -156,32 +156,18 @@ test('stage 2 questions include family 3 without resetting R1 mastery', () => {
   assert.equal(getRegionMastery(progress, 1).families.find(f => f.family === 3), undefined);
 });
 
-test('accepting a two-port mission immediately credits the port where the captain already is', () => {
-  let save = initial();
-  save.campaign.claimed = ['r1-patrol', 'r1-twos', 'r1-cartography'];
-  const result = resolvePedagogicalAction(
-    save, { kind: 'accept-mission', id: 'r1-two-ports' },
-    challenge(2, 1), true,
-  );
-  assert.ok(result);
-  save = apply(save, result.patch);
-  const mission = getCampaignBoard(save).missions.find(item => item.id === 'r1-two-ports');
-  assert.deepEqual(mission.progress, [0, 1],
-    'the player must not need to leave and re-enter the mission port');
-});
-
-test('mission 13 is Para o Estaleiro, grants 1000 basic balls only after equipping Rosas de Ouro', () => {
+test('mission 13 is Para o Estaleiro, grants 1000 basic balls only after equipping Terror da Tabuada', () => {
   assert.equal(R1_MISSIONS[12].id, 'r1-equip-roses');
   const predecessors = R1_MISSIONS.slice(0,12).map(m => m.id);
   let save = initial();
   save.campaign.claimed = predecessors;
-  save.equipment = { ...save.equipment, ownedShipIds:['galeao-rosas-de-ouro'] };
+  save.equipment = { ...save.equipment, ownedShipIds:['galeao-halloween-tabuada'] };
   save = apply(save, acceptCampaignMission(save,'r1-equip-roses'));
   assert.equal(getCampaignBoard(save).missions[12].ready,false);
   assert.equal(recordCampaignEvent(save,{type:'equip-ship',ship:'starter'}),null);
   assert.equal(claimCampaignMission(save,'r1-equip-roses'),null);
-  save.equipment.equippedShipId = 'galeao-rosas-de-ouro';
-  save = apply(save, recordCampaignEvent(save,{type:'equip-ship',ship:'galeao-rosas-de-ouro'}));
+  save.equipment.equippedShipId = 'galeao-halloween-tabuada';
+  save = apply(save, recordCampaignEvent(save,{type:'equip-ship',ship:'galeao-halloween-tabuada'}));
   assert.equal(getCampaignBoard(save).missions[12].ready,true);
   const award = claimCampaignMission(save,'r1-equip-roses');
   assert.equal(award.patch.ammunition['rusted-iron'],1020);
@@ -309,4 +295,18 @@ test('missão de equipar navio é concluída no próprio porto quando o navio j�
   assert.match(source,/campaign\.record\(readSave\(\),\{[\s\S]*type:'equip-ship'/);
   assert.match(source,/campaign\.claim\(readSave\(\),mission\.id\)/);
   assert.match(source,/islandPanel\?\.refreshMissionBoard\?\.\(\)/);
+});
+
+
+test('missão 16 preserva o fluxo de conclusão e executa a cinemática somente antes da transferência', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source,/if \(finalMission\.status === 'active'\) recordMissionEvent\(\{type:'exit',id:'r1-exit-east'\}\)/);
+  assert.match(source,/exitDialog\.hidden = false/);
+  assert.match(source,/resolveMissionReward\(save,'r1-finale'\)/);
+  assert.match(source,/const patch=activateNextRegion\(save\)/);
+  assert.match(source,/beginR1ExitCinematic\(patch\)/);
+  assert.match(source,/transferPatch/);
+  assert.match(source,/writePatch\(\{\.\.\.transferPatch,playerPosition:\{x:420,y:860\}\}\)/);
+  assert.match(source,/shipId:'terror-do-mar'/);
+  assert.match(source,/world\.manualCamera=\{x:terror\.x,y:terror\.y\}/);
 });

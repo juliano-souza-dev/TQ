@@ -1200,24 +1200,95 @@ async function startWorld() {
   }
 
   let exitDismissed = false;
-  exitStay.addEventListener('click',()=>{exitDialog.hidden=true;exitDismissed=true;});
-  exitTravel.addEventListener('click',()=>{
-    let save = readSave();
-    const mission = getCampaignBoard(save).missions.find(m=>m.id==='r1-finale');
-    if (mission?.status === 'ready') {
-      const claimed = resolveMissionReward(save,'r1-finale');
-      if (!claimed) return;
-      writePatch(claimed.patch);
-      save = readSave();
-    }
-    const patch = activateNextRegion(save);
-    if (!patch) {
-      exitDescription.textContent = 'Conclua as missões anteriores para liberar a travessia.';
-      return;
-    }
-    writePatch({ ...patch, playerPosition:{x:420,y:860} });
+  let r1ExitCinematic=null;
+  const R1_EXIT_CINEMATIC_ID='r1-exit-terror-do-mar';
+
+  function completeR1PassageTransfer(){
+    if(!r1ExitCinematic?.transferPatch)return false;
+    const transferPatch=r1ExitCinematic.transferPatch;
+    world.entities.delete(R1_EXIT_CINEMATIC_ID);
+    world.manualCamera=null;
+    r1ExitCinematic=null;
+    writePatch({...transferPatch,playerPosition:{x:420,y:860}});
     exitDialog.hidden=true;
     startWorld();
+    return true;
+  }
+
+  function beginR1ExitCinematic(transferPatch){
+    if(r1ExitCinematic || world.region.id!=='r1' || !transferPatch)return false;
+    clickNavigation.cancel();
+    navalBattle.firing=false;
+    navalBattle.setTarget(null);
+    selectedNpcId=null;
+    exitDialog.hidden=true;
+
+    const start={x:360,y:3740};
+    const end={x:4310,y:830};
+    const dx=end.x-start.x,dy=end.y-start.y;
+    const headingToExit=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+    const terror={
+      id:R1_EXIT_CINEMATIC_ID,
+      name:'Terror do Mar · Capitão Varkor Tenebris',
+      type:'npc',archetype:'terror-do-mar',shipId:'terror-do-mar',
+      x:start.x,y:start.y,heading:headingToExit,
+      health:500000,maxHealth:500000,
+      state:'idle',aggression:'neutral',attackProtectedUntil:Infinity,
+      cannonSlots:0,damage:0,range:0,speed:0,
+      cinematic:true,
+    };
+    world.entities.set(terror.id,terror);
+    world.manualCamera={x:terror.x,y:terror.y};
+    r1ExitCinematic={
+      entityId:terror.id,start,end,elapsed:0,duration:5600,
+      player:{x:world.camera.x,y:world.camera.y},
+      transferPatch,
+    };
+    showOceanReward('🏴‍☠️ Algo cruza a passagem...');
+    return true;
+  }
+
+  function updateR1ExitCinematic(stepMs){
+    if(!r1ExitCinematic)return false;
+    const scene=r1ExitCinematic;
+    const terror=world.entities.get(scene.entityId);
+    if(!terror){
+      world.manualCamera=null;
+      r1ExitCinematic=null;
+      return false;
+    }
+    scene.elapsed+=Math.max(0,stepMs);
+    const t=Math.min(1,scene.elapsed/scene.duration);
+    const eased=t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+    terror.x=scene.start.x+(scene.end.x-scene.start.x)*eased;
+    terror.y=scene.start.y+(scene.end.y-scene.start.y)*eased;
+    terror.heading=(Math.atan2(scene.end.x-scene.start.x,-(scene.end.y-scene.start.y))*180/Math.PI+360)%360;
+    world.camera.x=scene.player.x;
+    world.camera.y=scene.player.y;
+    world.manualCamera={
+      x:Math.min(world.region.width,Math.max(0,terror.x)),
+      y:Math.min(world.region.height,Math.max(0,terror.y)),
+    };
+    if(t>=1)completeR1PassageTransfer();
+    return true;
+  }
+
+  exitStay.addEventListener('click',()=>{exitDialog.hidden=true;exitDismissed=true;});
+  exitTravel.addEventListener('click',()=>{
+    let save=readSave();
+    const mission=getCampaignBoard(save).missions.find(m=>m.id==='r1-finale');
+    if(mission?.status==='ready'){
+      const claimed=resolveMissionReward(save,'r1-finale');
+      if(!claimed)return;
+      writePatch(claimed.patch);
+      save=readSave();
+    }
+    const patch=activateNextRegion(save);
+    if(!patch){
+      exitDescription.textContent='Conclua as missões anteriores para liberar a travessia.';
+      return;
+    }
+    beginR1ExitCinematic(patch);
   });
 
   const {createDarkWatersPortal}=await import('./rendering/DarkWatersPortal.js');
@@ -1853,6 +1924,12 @@ async function startWorld() {
     update: (stepMs) => {
       state = advanceGameState(state, stepMs);
       oceanTimeMs += stepMs;
+      if(r1ExitCinematic){
+        updateR1ExitCinematic(stepMs);
+        renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
+        updateCamera(world,canvas.clientWidth,canvas.clientHeight);
+        return;
+      }
       if (world.region.id === 'r2') {
         const rendezvous=boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-meet-forgotten');
         const forgotten=world.region.islands.find(i=>i.id==='r2-scenery-north');
@@ -2324,13 +2401,13 @@ async function startWorld() {
         if (canUsePassage && distanceToExit <= exit.radius) {
           if (finalMission.status === 'active') recordMissionEvent({type:'exit',id:'r1-exit-east'});
           clickNavigation.cancel();
-          if (!exitDismissed && exitDialog.hidden && !mathGate.isOpen && !islandPanel.isOpen) {
+          if (!exitDismissed && exitDialog.hidden && !mathGate.isOpen && !islandPanel.isOpen && !r1ExitCinematic) {
             exitDialog.hidden = false;
             navalBattle.firing = false;
           }
         }
       }
-      if (world.region.id === 'r1' && !exitDialog.hidden) {
+      if (world.region.id === 'r1' && (!exitDialog.hidden || r1ExitCinematic)) {
         clickNavigation.cancel();
       }
       renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
