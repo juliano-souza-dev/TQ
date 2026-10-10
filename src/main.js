@@ -1580,6 +1580,7 @@ async function startWorld() {
     }
   }
 
+  let lastPortCombatBlockNoticeAt=-Infinity;
   function checkDockContact(fromX, fromY, inputX, inputY, stepMs) {
     if(combatMissionBlocksPorts()) { contactId=null; return; }
     const magnitude = Math.hypot(inputX, inputY);
@@ -1593,6 +1594,18 @@ async function startWorld() {
       return;
     }
     if (contact.kind !== 'decoration' && contactId !== contact.id) {
+      const protectedPort=contact.kind==='shipyard'||contact.kind==='missions';
+      if(protectedPort && navalBattle?.isPortInteractionLocked?.()){
+        contactId=null;
+        clickNavigation.cancel();
+        const remaining=Math.max(1,Math.ceil(navalBattle.getCombatLockRemainingMs()/1000));
+        const now=performance.now();
+        if(now-lastPortCombatBlockNoticeAt>900){
+          lastPortCombatBlockNoticeAt=now;
+          showOceanReward('⚔️ Em combate. '+(contact.kind==='shipyard'?'Estaleiro':'Porto das Missões')+' liberado em '+remaining+'s.');
+        }
+        return;
+      }
       contactId = contact.id;
       clickNavigation.cancel();
       const autoTerrorEquip=world.region.id==='r2' && contact.kind==='shipyard'
