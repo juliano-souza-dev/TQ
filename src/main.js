@@ -278,6 +278,31 @@ async function startWorld() {
       });
     }
   }
+  // Golden II now unlocks the Terror da Tabuada, followed by a guided
+  // equip mission before the rendezvous at the Forgotten Island.
+  {
+    const save=readSave(),state=save.r2Campaign??{},claimed=state.claimed??[];
+    const terrorId='galeao-halloween-tabuada';
+    const goldenDone=claimed.includes('r2-golden-ii');
+    const later=['r2-meet-forgotten','r2-why-help','r2-search-clues','r2-do-me-favor',
+      'r2-hunt-prep','r2-monster-meat','r2-mystery-light','r2-dark-voyage'];
+    const skippedEquip=!claimed.includes('r2-equip-terror')
+      && (state.active==='r2-meet-forgotten'||later.slice(1).includes(state.active)
+        || later.some(id=>claimed.includes(id)));
+    if(goldenDone && !save.equipment?.ownedShipIds?.includes(terrorId)){
+      const equipment=save.equipment??{};
+      writePatch({equipment:{...equipment,
+        ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),terrorId])]}});
+    }
+    if(goldenDone && skippedEquip){
+      const latest=readSave(),campaign=latest.r2Campaign??state;
+      writePatch({r2Campaign:{...campaign,active:'r2-equip-terror',
+        claimed:(campaign.claimed??[]).filter(id=>!later.includes(id)),
+        progress:{...(campaign.progress??{}),'r2-equip-terror':[0]},
+        processed:(campaign.processed??[]).filter(id=>!id.startsWith('equip-ship:terror-'))}});
+    }
+  }
+
   // Retroactively enforce the new rendezvous even for players who already
   // reached "Em Busca de Pistas" through the older direct ambush flow.
   {
@@ -1214,6 +1239,17 @@ async function startWorld() {
       firstVoyageGuide = null;
     }
   };
+  async function guideR2MissionTo(destination){
+    if(world.region.id!=='r2')return;
+    if(!firstVoyageGuide){
+      const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
+      if(generation!==worldGeneration)return;
+      firstVoyageGuide=createFirstVoyageGuide(world);
+      root.append(...firstVoyageGuide.elements);
+    }
+    firstVoyageGuide.guideTo(destination);
+  }
+
   function marketCannonsEquipped(loadout=readSave().equipment?.loadout){
     const save=readSave();
     const shipId=save.equipment?.equippedShipId;
@@ -1239,7 +1275,16 @@ async function startWorld() {
           }
           const patch=campaignFor(world.region.id).accept(readSave(),id);
           if(!patch)return false;
-          writePatch(patch);updateMissionHud();navalHud?.refresh();return true;
+          writePatch(patch);
+          if(id==='r2-equip-terror'){
+            if(activeShip.id==='galeao-halloween-tabuada'){
+              recordMissionEvent({type:'equip-ship',ship:'galeao-halloween-tabuada',id:'terror-already-equipped'});
+              void guideR2MissionTo('missions');
+            } else {
+              void guideR2MissionTo('shipyard');
+            }
+          }
+          updateMissionHud();navalHud?.refresh();return true;
         })()
         : mathGate.open({
         kind: 'accept-mission', id,
@@ -1290,7 +1335,11 @@ async function startWorld() {
         if (!ship || (save.storyFlags?.terrorTabuadaDestroyed && shipId==='galeao-halloween-tabuada') || (ship.id !== STARTER_SHIP.id && !save.equipment?.ownedShipIds?.includes(shipId))) return false;
         if(world.region.id==='r2' && save.r2Campaign?.active==='r2-why-help' && ship.id!=='galeao-halloween-tabuada')return false;
         if (ship.id === activeShip.id) {
-           if (world.region.id==='r2' && ship.id==='fragata-sombra-cacadora') recordMissionEvent({type:'equip-ship',ship:ship.id});
+           if (world.region.id==='r2' && ['fragata-sombra-cacadora','galeao-halloween-tabuada'].includes(ship.id)) {
+             recordMissionEvent({type:'equip-ship',ship:ship.id});
+             if(readSave().r2Campaign?.active==='r2-equip-terror' && ship.id==='galeao-halloween-tabuada')
+               void guideR2MissionTo('missions');
+           }
            return true;
          }
         const previous = activeShip;
@@ -1305,6 +1354,8 @@ async function startWorld() {
           navalBattle.selectedAmmoId = navalBattle.resolveSelectedAmmo();
           navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
           recordMissionEvent({ type: 'equip-ship', ship: ship.id });
+          if(world.region.id==='r2' && readSave().r2Campaign?.active==='r2-equip-terror'
+            && ship.id==='galeao-halloween-tabuada') void guideR2MissionTo('missions');
           navalHud?.refresh();
           updateMissionHud();
           return true;
@@ -1408,8 +1459,11 @@ async function startWorld() {
       }
       if (world.region.id === 'r1') recordMissionEvent({ type: 'visit', island: contact.kind });
 
-      if (world.region.id === 'r2' && contact.kind==='shipyard' && activeShip.id==='fragata-sombra-cacadora') {
+      if (world.region.id === 'r2' && contact.kind==='shipyard'
+        && ['fragata-sombra-cacadora','galeao-halloween-tabuada'].includes(activeShip.id)) {
         recordMissionEvent({type:'equip-ship',ship:activeShip.id});
+        if(readSave().r2Campaign?.active==='r2-equip-terror' && activeShip.id==='galeao-halloween-tabuada')
+          void guideR2MissionTo('missions');
       }
       if (world.region.id === 'r2' && contact.kind==='missions') {
         islandPanel.refreshMissionBoard();
