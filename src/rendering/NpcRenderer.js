@@ -54,6 +54,39 @@ export class NpcRenderer {
       this.waterlines.set(id,lines);
     }catch(error){console.warn('Waterline fallback',id,error);}
   }
+  updateFoam(entities,now){
+    const dt=this.lastFoamAt?Math.min(64,Math.max(0,now-this.lastFoamAt)):16;
+    this.lastFoamAt=now;
+    for(const p of this.foam){p.age+=dt;p.x+=p.vx*dt/1000;p.y+=p.vy*dt/1000;}
+    this.foam=this.foam.filter(p=>p.age<2000);
+    for(const npc of entities.values()){
+      if((npc.type!=='npc'&&npc.type!=='monster')||npc.health<=0)continue;
+      const previous=npc._foamLast;
+      npc._foamLast={x:npc.x,y:npc.y};
+      if(!previous)continue;
+      const dx=npc.x-previous.x,dy=npc.y-previous.y;
+      const len=Math.hypot(dx,dy);
+      if(len<.25||this.foam.length>240)continue;
+      const fx=dx/len,fy=dy/len,sideX=-fy,sideY=fx;
+      for(const side of [-1,1]){
+        this.foam.push({x:npc.x-fx*35+sideX*20*side,
+          y:npc.y-fy*35+sideY*20*side,
+          vx:-fx*21+sideX*9*side,vy:-fy*21+sideY*9*side,
+          size:5+Math.random()*7,age:0});
+      }
+    }
+  }
+  paintFoam(ctx,w,h,camera,zoom,dpr){
+    ctx.save();ctx.globalCompositeOperation='screen';
+    for(const p of this.foam){
+      const alpha=Math.max(0,1-p.age/2000);
+      const x=w/2+(p.x-camera.x)*zoom*dpr;
+      const y=h/2+(p.y-camera.y)*zoom*dpr;
+      const r=Math.max(1,p.size*zoom*dpr*(.4+.6*alpha));
+      ctx.fillStyle='rgba(225,255,249,'+(.35*alpha)+')';
+      ctx.beginPath();ctx.ellipse(x,y,r,r*.4,0,0,Math.PI*2);ctx.fill();
+    }ctx.restore();
+  }
   hasShipSprite(id) { return this.images.has(id); }
   render(entities, camera, zoom = 1, selectedId = null, krakenAttacks = [], now = performance.now()) {
     const bounds = this.canvas.getBoundingClientRect();
@@ -64,6 +97,8 @@ export class NpcRenderer {
       this.canvas.width = w; this.canvas.height = h;
     }
     const ctx = this.ctx; ctx.clearRect(0, 0, w, h);
+    this.updateFoam(entities,now);
+    this.paintFoam(ctx,w,h,camera,zoom,dpr);
     const size = Math.min(w * 0.32, h * 0.32, 185 * dpr) * zoom;
     const ordered=[...entities.values()].filter(n=>n.type==='npc'||n.type==='monster').sort((a,b)=>a.y-b.y);
     for (const npc of ordered) {
