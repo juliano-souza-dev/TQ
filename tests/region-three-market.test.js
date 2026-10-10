@@ -9,6 +9,7 @@ import {
 import { collidesWithIsland } from '../src/world/IslandCollision.js';
 import { BLOOD_RED_MARKET_MERCHANT } from '../src/npcs/BloodRedCorsairNpc.js';
 import { AMMUNITION, isItemVisible } from '../src/items/EquipmentCatalog.js';
+import { createMonsterPopulation } from '../src/monsters/MonsterPopulation.js';
 import {
   DARK_WATERS_RAIDER_ARCHETYPE,
   DARK_WATERS_SPECIAL_AMMO_ID,
@@ -89,4 +90,14 @@ test('Rosa do Terror permanece disponível fora de qualquer evento sazonal', () 
   assert.equal(ammo.event, null);
   assert.equal(ammo.acquisition.region, 'r3');
   assert.equal(isItemVisible(ammo, { halloween: false }), true);
+});
+
+
+test('Águas Escuras não recebe Krakens genéricos enquanto o conceito naval está sendo definido', () => {
+  const world = createWorldState(R3);
+  createCorsairPopulation(world, () => .42);
+  const before = world.entities.size;
+  assert.equal(createMonsterPopulation(world, () => .42), 0);
+  assert.equal(world.entities.size, before);
+  assert.equal([...world.entities.values()].some(entity => entity.type === 'monster'), false);
 });
