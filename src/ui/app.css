@@ -789,3 +789,13 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   z-index: 3;
   mix-blend-mode: screen;
 }
+
+
+.damage-text-layer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 12;
+}
