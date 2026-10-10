@@ -602,9 +602,11 @@ async function startWorld() {
   });
   // Observe mission state, regardless of which gameplay action updates the save.
   // Seed ready contracts on load so reopening the game doesn't replay old popups.
+  const readyAtLoad=boardFor(readSave(),world.region.id).missions.find(m=>m.status==='ready'&&!m.optional);
   const notifiedMissionIds=new Set(
     boardFor(readSave(),world.region.id).missions.filter(m=>m.status==='ready').map(m=>m.id)
   );
+  if(readyAtLoad)queueMicrotask(()=>routeToMissionsPort({announce:false}));
   function checkMissionCompletion(){
     const missions=boardFor(readSave(),world.region.id).missions;
     for(const mission of missions){
