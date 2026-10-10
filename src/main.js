@@ -1166,15 +1166,17 @@ async function startWorld() {
   npcCanvas = document.createElement('canvas');
   npcCanvas.className = 'npc-layer';
   shipCanvas = document.createElement('canvas');
+  const npcFrontCanvas=document.createElement('canvas');
+  npcFrontCanvas.className='npc-front-layer';
   shipCanvas.className = 'ship-layer';
   shipCanvas.setAttribute('aria-label', 'Navio do jogador');
-  root.append(islandCanvas, treasureGlowCanvas, treasureCanvas, npcCanvas, shipCanvas, joystick.element);
+  root.append(islandCanvas, treasureGlowCanvas, treasureCanvas, npcCanvas, shipCanvas, npcFrontCanvas, joystick.element);
   const shipRenderer = new ShipRenderer(shipCanvas, initialShip);
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
   const treasureRenderer = new TreasureRenderer(treasureCanvas);
   treasureGlowRenderer = new TreasureGlowWebGLRenderer(treasureGlowCanvas);
   treasureGlowRenderer.init();
-  const npcRenderer = new NpcRenderer(npcCanvas);
+  const npcRenderer = new NpcRenderer(npcCanvas,npcFrontCanvas);
   const leviathanAura=document.createElement('div');
   leviathanAura.className='leviathan-aura';
   leviathanAura.hidden=true;
@@ -2739,7 +2741,7 @@ async function startWorld() {
         leviathanAura.style.top=(canvas.clientHeight/2+(monster.y-c.y)*z)+'px';
         leviathanAura.style.setProperty('--leviathan-aura-size',Math.min(470,240*z)+'px');
       }
-      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now(), oceanTimeMs);
+      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now(), oceanTimeMs, world.camera.y);
       damageTextRenderer?.render(world.cameraView, world.camera.zoom, performance.now());
       spectralShipRenderer?.render(
         world.entities, world.cameraView, world.camera.zoom,
