@@ -413,6 +413,9 @@ export class NavalCombatWebGLRenderer{
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     const now=Number(time)||performance.now();
+    // Combat FX live in world space visually: when the camera pulls back,
+    // projectiles, trails, flashes and impacts shrink with the ships.
+    const combatVisualScale=clamp((Number(zoom)||1)/.88,.22,1.12);
 
     for(const shot of this.shots){
       if(shot.trackingTarget && !shot.impactSpawned) {
@@ -554,6 +557,8 @@ export class NavalCombatWebGLRenderer{
       gl.blendFunc(gl.SRC_ALPHA,additive?gl.ONE:gl.ONE_MINUS_SRC_ALPHA);
       gl.drawArrays(gl.POINTS,0,1);
     };
+    const drawCombatPoint=(x,y,size,effectType,progress=0,additive=true,style={})=>
+      drawPoint(x,y,Math.max(.75,Number(size)||0)*combatVisualScale,effectType,progress,additive,style);
 
     // 300ms submerge, 450ms outbound, 220ms tentacle strike,
     // 450ms return on the exact reverse trajectory, 300ms resurfacing.
@@ -650,12 +655,12 @@ export class NavalCombatWebGLRenderer{
     for(const muzzle of this.muzzles){
       const progress=clamp((now-muzzle.startTime)/muzzle.duration,0,1);
       const m=muzzle.fx.muzzle;
-      drawPoint(
+      drawCombatPoint(
         muzzle.x,muzzle.y,m.size*(.72+progress*.52),6,progress,true,
         {color:m.color,coreColor:m.coreColor,glow:m.intensity,opacity:clamp(m.intensity,0,1)}
       );
       if(m.starburst>0){
-        drawPoint(
+        drawCombatPoint(
           muzzle.x,muzzle.y,m.size*(.66+m.starburst*.54),5,progress,true,
           {color:m.accentColor,coreColor:m.coreColor,glow:m.intensity,opacity:clamp(m.starburst*(1-progress*.55),0,1)}
         );
@@ -667,7 +672,7 @@ export class NavalCombatWebGLRenderer{
         const jitter=hash-Math.floor(hash);
         const angle=(i/Math.max(1,muzzleSparkCount))*Math.PI*2+(jitter-.5)*.48;
         const travel=m.size*(.18+.95*progress)*(.5+jitter*.72);
-        drawPoint(
+        drawCombatPoint(
           muzzle.x+Math.cos(angle)*travel,
           muzzle.y+Math.sin(angle)*travel,
           (2.5+jitter*4.5)*muzzleFade,
@@ -676,7 +681,7 @@ export class NavalCombatWebGLRenderer{
         );
       }
       if(m.smoke>0&&progress>.18){
-        drawPoint(muzzle.x,muzzle.y-m.size*.18*progress,m.size*(.35+m.smoke*.55),3,progress,false,{opacity:clamp(m.smoke,0,1)});
+        drawCombatPoint(muzzle.x,muzzle.y-m.size*.18*progress,m.size*(.35+m.smoke*.55),3,progress,false,{opacity:clamp(m.smoke,0,1)});
       }
     }
 
@@ -707,7 +712,7 @@ export class NavalCombatWebGLRenderer{
             const beadGate=fx.trail.beads>0
               ?(.62+.38*Math.max(0,Math.sin((step*2.35)+(shot.startTime*.0017))))
               :1;
-            drawPoint(tx,ty,Math.max(2,fx.trail.width*taper*(1-fx.trail.beads*.22)),4,ratio,true,{
+            drawCombatPoint(tx,ty,Math.max(2,fx.trail.width*taper*(1-fx.trail.beads*.22)),4,ratio,true,{
               color:fx.trail.color,
               coreColor:fx.projectile.coreColor,
               glow:fx.projectile.glow,
@@ -715,7 +720,7 @@ export class NavalCombatWebGLRenderer{
             });
             if(fx.trail.beads>0&&step%2===0){
               const beadPulse=.72+.28*Math.sin(now*.021+step*1.7);
-              drawPoint(
+              drawCombatPoint(
                 tx,ty,
                 Math.max(2.4,fx.trail.width*taper*(.34+fx.trail.beads*.58)*beadPulse),
                 0,ratio,true,
@@ -729,8 +734,8 @@ export class NavalCombatWebGLRenderer{
             }
             if(fx.trail.ribbon>0&&step%2===0){
               const side=Math.sin((trailT*18)+(step*.92)+(shot.startTime*.0013));
-              const ribbonOffset=(fx.trail.width*(.35+fx.trail.ribbon*.72)*side)/Math.max(.2,Number(zoom)||1);
-              drawPoint(
+              const ribbonOffset=(fx.trail.width*(.35+fx.trail.ribbon*.72)*side)*combatVisualScale/Math.max(.2,Number(zoom)||1);
+              drawCombatPoint(
                 tx+(-dy/length)*ribbonOffset,
                 ty+(dx/length)*ribbonOffset,
                 Math.max(1.5,fx.trail.width*taper*(.34+fx.trail.ribbon*.22)),
@@ -746,9 +751,9 @@ export class NavalCombatWebGLRenderer{
             if(fx.trail.sparkle>0&&step%3===0){
               const hash=Math.sin((step+1)*57.13+shot.startTime*.0021)*43758.5453;
               const jitter=hash-Math.floor(hash);
-              const sparkleOffset=(fx.trail.width*(.45+jitter*1.1)*fx.trail.sparkle)/Math.max(.2,Number(zoom)||1);
+              const sparkleOffset=(fx.trail.width*(.45+jitter*1.1)*fx.trail.sparkle)*combatVisualScale/Math.max(.2,Number(zoom)||1);
               const side=jitter>.5?1:-1;
-              drawPoint(
+              drawCombatPoint(
                 tx+(-dy/length)*sparkleOffset*side,
                 ty+(dx/length)*sparkleOffset*side,
                 2.2+3.2*jitter*fx.trail.sparkle,
@@ -766,14 +771,14 @@ export class NavalCombatWebGLRenderer{
         if(shot.flameBoost) {
           // Layered orange/red flames on top of ordinary and guided ammo FX.
           const flamePulse=.83+.17*Math.sin(now*.021+shot.startTime*.002);
-          const fireRadius=11*flamePulse/Math.max(.4,Number(zoom)||1);
-          drawPoint(x,y,fireRadius*2.4,0,0,true,{
+          const fireRadius=11*flamePulse*combatVisualScale/Math.max(.4,Number(zoom)||1);
+          drawCombatPoint(x,y,fireRadius*2.4,0,0,true,{
             color:'#ff3200',coreColor:'#ffd43b',glow:2.4,opacity:.78});
-          drawPoint(x,y,fireRadius*1.2,4,(now*.002)%1,true,{
+          drawCombatPoint(x,y,fireRadius*1.2,4,(now*.002)%1,true,{
             color:'#ff7700',coreColor:'#fff3a2',glow:2.5,opacity:.9});
           for(let i=0;i<(this.reducedFx?3:7);i++){
             const a=now*.008+i*2.399,spread=fireRadius*(.7+.4*Math.sin(now*.014+i));
-            drawPoint(x+Math.cos(a)*spread,y+Math.sin(a)*spread,
+            drawCombatPoint(x+Math.cos(a)*spread,y+Math.sin(a)*spread,
               Math.max(2,fireRadius*.24),0,0,true,{
                 color:i%2?'#ff1e00':'#ffb11b',coreColor:'#fff8b5',
                 glow:2.3,opacity:.85});
@@ -783,7 +788,7 @@ export class NavalCombatWebGLRenderer{
             const point=trail?.length ? trail[Math.max(0,trail.length-1-j*2)] : {
               x:x-(x-shot.from.x)*j*.065,y:y-(y-shot.from.y)*j*.065};
             if(!point)continue;
-            drawPoint(point.x,point.y,Math.max(2,fireRadius*(1-j*.075)),0,0,true,{
+            drawCombatPoint(point.x,point.y,Math.max(2,fireRadius*(1-j*.075)),0,0,true,{
               color:j%2?'#f62209':'#ffad19',coreColor:'#ffe88c',
               glow:1.8,opacity:Math.max(.12,.68-j*.068)});
           }
@@ -792,13 +797,13 @@ export class NavalCombatWebGLRenderer{
           // Bi-chromatic ionized plasma corona. All rings, sparks and ribbons
           // follow the same simulation position, even when the target turns.
           const pulse=.86+.14*Math.sin(now*.027);
-          const halo=8*pulse/Math.max(.35,Number(zoom)||1);
-          drawPoint(x,y,halo*2.35,0,0,true,{color:'#075cff',coreColor:'#1eeaff',glow:2.4,opacity:.5});
-          drawPoint(x,y,halo*1.35,4,(now*.001)%1,true,{color:'#ff265a',coreColor:'#fff7fb',glow:2.5,opacity:.88});
+          const halo=8*pulse*combatVisualScale/Math.max(.35,Number(zoom)||1);
+          drawCombatPoint(x,y,halo*2.35,0,0,true,{color:'#075cff',coreColor:'#1eeaff',glow:2.4,opacity:.5});
+          drawCombatPoint(x,y,halo*1.35,4,(now*.001)%1,true,{color:'#ff265a',coreColor:'#fff7fb',glow:2.5,opacity:.88});
           for(let i=0;i<(this.reducedFx?3:7);i++){
             const angle=now*.010*(i%2?-1:1)+i*Math.PI*2/7;
             const radius=halo*(.65+.2*Math.sin(now*.012+i));
-            drawPoint(x+Math.cos(angle)*radius,y+Math.sin(angle)*radius,
+            drawCombatPoint(x+Math.cos(angle)*radius,y+Math.sin(angle)*radius,
               Math.max(2,halo*.19),0,0,true,{color:i%2?'#ff285a':'#17dfff',
               coreColor:'#ffffff',glow:2.4,opacity:.94});
           }
@@ -819,7 +824,7 @@ export class NavalCombatWebGLRenderer{
           const ey=shot.from.y+dy*echoEase+(dx/length)*echoWobble;
           const echoFade=1-echo/(echoCount+1);
           const echoPulse=.84+.16*Math.sin(now*.019+echo*1.8);
-          drawPoint(
+          drawCombatPoint(
             ex,ey,
             assetSize*fx.projectile.echoScale*echoFade*echoPulse,
             0,echo/(echoCount+1),true,
@@ -834,7 +839,7 @@ export class NavalCombatWebGLRenderer{
 
         if(fx.projectile.auraEnabled){
           const pulse=.88+.12*Math.sin(now*.012*fx.projectile.pulseSpeed+shot.startTime*.003);
-          drawPoint(
+          drawCombatPoint(
             x,y,
             assetSize*fx.projectile.auraScale*pulse,
             0,0,true,
@@ -845,7 +850,7 @@ export class NavalCombatWebGLRenderer{
               opacity:fx.projectile.auraOpacity
             }
           );
-          drawPoint(
+          drawCombatPoint(
             x,y,
             assetSize*Math.max(1.05,fx.projectile.auraScale*.72),
             4,(now*.0015*fx.projectile.pulseSpeed)%1,true,
@@ -857,11 +862,11 @@ export class NavalCombatWebGLRenderer{
             }
           );
           const orbitCount=this.reducedFx?0:Math.min(3,Math.max(0,fx.projectile.orbitCount));
-          const orbitRadius=(assetSize*fx.projectile.orbitRadius*.72)/Math.max(.2,Number(zoom)||1);
+          const orbitRadius=(assetSize*fx.projectile.orbitRadius*.72)*combatVisualScale/Math.max(.2,Number(zoom)||1);
           for(let i=0;i<orbitCount;i++){
             const phase=(i/Math.max(1,orbitCount))*Math.PI*2+now*.0045*fx.projectile.pulseSpeed;
             const breathe=.82+.18*Math.sin(now*.009*fx.projectile.pulseSpeed+i*1.7);
-            drawPoint(
+            drawCombatPoint(
               x+Math.cos(phase)*orbitRadius*breathe,
               y+Math.sin(phase)*orbitRadius*.62*breathe,
               Math.max(2,assetSize*(.07+.035*fx.projectile.sparkle)),
@@ -877,7 +882,7 @@ export class NavalCombatWebGLRenderer{
         }
 
         gl.bufferSubData(gl.ARRAY_BUFFER,0,this.pointCpuBuffer);
-        gl.uniform1f(this.uniforms.pointSize,assetSize*this.pixelRatio);
+        gl.uniform1f(this.uniforms.pointSize,assetSize*combatVisualScale*this.pixelRatio);
         gl.uniform1f(this.uniforms.effectType,0);
         gl.uniform1f(this.uniforms.progress,0);
         gl.uniform1f(this.uniforms.useTexture,textured?1:0);
@@ -905,7 +910,7 @@ export class NavalCombatWebGLRenderer{
         if(water.flash>0&&progress<.28){
           const flashProgress=clamp(progress/.28,0,1);
           const flashFade=1-smoothstep(.05,1,flashProgress);
-          drawPoint(
+          drawCombatPoint(
             impact.x,impact.y,
             water.size*(.52+water.flash*.42+flashProgress*.34),
             6,flashProgress,true,
@@ -916,7 +921,7 @@ export class NavalCombatWebGLRenderer{
               opacity:clamp(flashFade*water.flash,0,1)
             }
           );
-          drawPoint(
+          drawCombatPoint(
             impact.x,impact.y,
             water.size*(.28+water.flash*.22),
             0,flashProgress,true,
@@ -924,7 +929,7 @@ export class NavalCombatWebGLRenderer{
           );
         }
         const scale=.55+progress*.7;
-        drawPoint(impact.x,impact.y,water.size*scale,7,progress,false,{
+        drawCombatPoint(impact.x,impact.y,water.size*scale,7,progress,false,{
           color:water.color,coreColor:water.coreColor,
           glow:water.ripple,opacity:clamp(.34+water.splash*.3+water.foam*.26,0,1)
         });
@@ -932,7 +937,7 @@ export class NavalCombatWebGLRenderer{
         for(let ring=1;ring<ringCount;ring++){
           const ringProgress=clamp(progress-ring*.08,0,1);
           if(ringProgress<=0)continue;
-          drawPoint(
+          drawCombatPoint(
             impact.x,impact.y,
             water.size*(.52+ring*.18+ringProgress*.64),
             7,ringProgress,false,
@@ -952,7 +957,7 @@ export class NavalCombatWebGLRenderer{
             const jitter=hash-Math.floor(hash);
             const angle=(i/magicCount)*Math.PI*2+jitter*.6;
             const travel=water.size*(.12+.72*progress)*(.45+jitter*.58);
-            drawPoint(
+            drawCombatPoint(
               impact.x+Math.cos(angle)*travel,
               impact.y-water.size*.08*progress+Math.sin(angle)*travel*.42,
               2.5+jitter*5.5*water.magic,
@@ -967,7 +972,7 @@ export class NavalCombatWebGLRenderer{
           }
         }
         if(water.mist>0&&progress>.12){
-          drawPoint(impact.x,impact.y-water.size*.16*progress,water.size*(.22+water.mist*.42),3,progress,false,{opacity:clamp(water.mist,0,1)});
+          drawCombatPoint(impact.x,impact.y-water.size*.16*progress,water.size*(.22+water.mist*.42),3,progress,false,{opacity:clamp(water.mist,0,1)});
         }
         continue;
       }
@@ -978,7 +983,7 @@ export class NavalCombatWebGLRenderer{
         const fade=clamp(1-progress,0,1);
         const burst=Math.sin(Math.min(1,progress)*Math.PI);
         gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-        drawPoint(
+        drawCombatPoint(
           impact.x,
           impact.y+bloodSize*.035,
           bloodSize*(.28+.28*burst),
@@ -994,7 +999,7 @@ export class NavalCombatWebGLRenderer{
           const angle=(-Math.PI*.92)+(i/Math.max(1,dropCount-1))*Math.PI*.84+(jitter-.5)*.24;
           const travel=bloodSize*(.10+.62*Math.pow(progress,.72))*(.55+jitter*.62);
           const gravity=bloodSize*.34*progress*progress;
-          drawPoint(
+          drawCombatPoint(
             impact.x+Math.cos(angle)*travel,
             impact.y+Math.sin(angle)*travel+gravity,
             (3.5+jitter*6.5)*fade,
@@ -1016,7 +1021,7 @@ export class NavalCombatWebGLRenderer{
       if(shipFx.flash>0&&progress<.24){
         const flashProgress=clamp(progress/.24,0,1);
         const flashFade=1-smoothstep(.03,1,flashProgress);
-        drawPoint(
+        drawCombatPoint(
           impact.x,impact.y,
           shipFx.size*(.46+shipFx.flash*.46+flashProgress*.38),
           6,flashProgress,true,
@@ -1027,7 +1032,7 @@ export class NavalCombatWebGLRenderer{
             opacity:clamp(flashFade*shipFx.flash,0,1)
           }
         );
-        drawPoint(
+        drawCombatPoint(
           impact.x,impact.y,
           shipFx.size*(.22+shipFx.flash*.2),
           0,flashProgress,true,
@@ -1037,7 +1042,7 @@ export class NavalCombatWebGLRenderer{
       if(impact.effect==="piercing-shrapnel"){
         const burst=clamp(progress/.42,0,1);
         const fade=1-smoothstep(.34,1,progress);
-        drawPoint(impact.x,impact.y,shipFx.size*(.42+burst*.92)*fade,5,progress,true,{
+        drawCombatPoint(impact.x,impact.y,shipFx.size*(.42+burst*.92)*fade,5,progress,true,{
           color:shipFx.color,coreColor:shipFx.coreColor,glow:shipFx.shock,opacity:fade
         });
         const shardCount=Math.min(32,Math.max(6,shipFx.sparks));
@@ -1046,7 +1051,7 @@ export class NavalCombatWebGLRenderer{
           const jitter=hash-Math.floor(hash);
           const angle=(i/shardCount)*Math.PI*2+(jitter-.5)*.42;
           const travel=(18+shipFx.size*.72*(.72+jitter*.72))*Math.sin(Math.min(1,progress)*Math.PI*.72)*Math.pow(progress,.68);
-          drawPoint(
+          drawCombatPoint(
             impact.x+Math.cos(angle)*travel,
             impact.y+Math.sin(angle)*travel+progress*progress*28,
             (5+jitter*7)*clamp(1-progress,0,1),
@@ -1055,7 +1060,7 @@ export class NavalCombatWebGLRenderer{
           );
         }
       }else{
-        drawPoint(impact.x,impact.y,shipFx.size*(.55+progress*.68),1,progress,true,{
+        drawCombatPoint(impact.x,impact.y,shipFx.size*(.55+progress*.68),1,progress,true,{
           color:shipFx.color,coreColor:shipFx.coreColor,glow:shipFx.shock,opacity:1
         });
         const sparkCount=Math.min(24,Math.max(0,shipFx.sparks));
@@ -1065,7 +1070,7 @@ export class NavalCombatWebGLRenderer{
           const jitter=hash-Math.floor(hash);
           const angle=(i/Math.max(1,sparkCount))*Math.PI*2+(jitter-.5)*.5;
           const travel=shipFx.size*(.12+.48*progress)*(.55+jitter*.55);
-          drawPoint(
+          drawCombatPoint(
             impact.x+Math.cos(angle)*travel,
             impact.y+Math.sin(angle)*travel,
             (3+jitter*5)*sparkFade,
@@ -1078,7 +1083,7 @@ export class NavalCombatWebGLRenderer{
       for(let ring=1;ring<shipRingCount;ring++){
         const ringProgress=clamp(progress-ring*.065,0,1);
         if(ringProgress<=0)continue;
-        drawPoint(
+        drawCombatPoint(
           impact.x,impact.y,
           shipFx.size*(.48+ring*.18+ringProgress*.58),
           5,ringProgress,true,
@@ -1098,7 +1103,7 @@ export class NavalCombatWebGLRenderer{
           const jitter=hash-Math.floor(hash);
           const angle=(i/fireworkCount)*Math.PI*2+(jitter-.5)*.34;
           const travel=shipFx.size*(.1+.82*Math.pow(progress,.72))*(.5+jitter*.58);
-          drawPoint(
+          drawCombatPoint(
             impact.x+Math.cos(angle)*travel,
             impact.y+Math.sin(angle)*travel+progress*progress*shipFx.size*.12,
             (2.5+jitter*6)*fireworkFade,
@@ -1113,7 +1118,7 @@ export class NavalCombatWebGLRenderer{
         }
       }
       if(shipFx.smoke>0&&progress>.18){
-        drawPoint(impact.x,impact.y-shipFx.size*.12*progress,shipFx.size*(.28+shipFx.smoke*.52),3,progress,false,{opacity:clamp(shipFx.smoke,0,1)});
+        drawCombatPoint(impact.x,impact.y-shipFx.size*.12*progress,shipFx.size*(.28+shipFx.smoke*.52),3,progress,false,{opacity:clamp(shipFx.smoke,0,1)});
       }
     }
 
@@ -1133,7 +1138,7 @@ export class NavalCombatWebGLRenderer{
         const bloodPulse=((phase*.31)%1+1)%1;
         const bloodFade=clamp(1-bloodPulse,0,1);
         gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-        drawPoint(
+        drawCombatPoint(
           x+worldSize*.025*sway,
           y-worldSize*.10,
           screenSize*(.12+.035*intensity),
@@ -1146,7 +1151,7 @@ export class NavalCombatWebGLRenderer{
         for(let i=0;i<woundCount;i++){
           const cycle=((bloodPulse+i/woundCount)%1+1)%1;
           const side=(i-(woundCount-1)/2)*worldSize*.045;
-          drawPoint(
+          drawCombatPoint(
             x+side+sway*worldSize*.012,
             y-worldSize*.045+worldSize*.24*cycle*cycle,
             screenSize*(.022+.018*(1-cycle))*intensity,
@@ -1165,7 +1170,7 @@ export class NavalCombatWebGLRenderer{
         continue;
       }
 
-      drawPoint(
+      drawCombatPoint(
         x+worldSize*.045*sway,
         y-worldSize*.055,
         screenSize*(.25+.12*intensity),
@@ -1173,7 +1178,7 @@ export class NavalCombatWebGLRenderer{
         flameCycle,
         true
       );
-      drawPoint(
+      drawCombatPoint(
         x-worldSize*.055*(.55+sway*.25),
         y-worldSize*.015,
         screenSize*(.17+.08*intensity),
@@ -1181,7 +1186,7 @@ export class NavalCombatWebGLRenderer{
         (flameCycle+.37)%1,
         true
       );
-      drawPoint(
+      drawCombatPoint(
         x+worldSize*.025*Math.sin(phase),
         y-worldSize*(.09+.12*smokeCycle),
         screenSize*(.34+.28*smokeCycle)*(.72+.28*intensity),
@@ -1189,7 +1194,7 @@ export class NavalCombatWebGLRenderer{
         smokeCycle,
         false
       );
-      drawPoint(
+      drawCombatPoint(
         x-worldSize*.035*Math.cos(phase*.8),
         y-worldSize*(.06+.10*((smokeCycle+.48)%1)),
         screenSize*(.25+.22*((smokeCycle+.48)%1)),
@@ -1202,7 +1207,7 @@ export class NavalCombatWebGLRenderer{
     for(const effect of this.destructions){
       const progress=clamp((now-effect.startTime)/effect.duration,0,1);
       const screenSize=clamp(effect.size*(Number(zoom)||1),42,520);
-      drawPoint(
+      drawCombatPoint(
         effect.x,
         effect.y,
         screenSize*(.72+progress*.78),
@@ -1212,7 +1217,7 @@ export class NavalCombatWebGLRenderer{
       );
       if(progress>.14){
         const smokeProgress=clamp((progress-.14)/.86,0,1);
-        drawPoint(
+        drawCombatPoint(
           effect.x,
           effect.y-effect.size*.17*smokeProgress,
           screenSize*(.42+smokeProgress*.72),
