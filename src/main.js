@@ -1171,6 +1171,12 @@ async function startWorld() {
   shipCanvas.className = 'ship-layer';
   shipCanvas.setAttribute('aria-label', 'Navio do jogador');
   root.append(islandCanvas, treasureGlowCanvas, treasureCanvas, npcCanvas, shipCanvas, npcFrontCanvas, joystick.element);
+  if(world.region.id==='r3'){
+    const oceanGrade=document.createElement('div');
+    oceanGrade.className='r3-ocean-grade';
+    oceanGrade.setAttribute('aria-hidden','true');
+    root.append(oceanGrade);
+  }
   const shipRenderer = new ShipRenderer(shipCanvas, initialShip);
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
   const treasureRenderer = new TreasureRenderer(treasureCanvas);
