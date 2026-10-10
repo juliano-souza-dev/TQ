@@ -91,7 +91,6 @@ export class NpcRenderer {
         : npc.shipId === BLOOD_RED_CORSAIR_SHIP.id ? BLOOD_RED_CORSAIR_SHIP
         : npc.shipId === FUGITIVE_FRIGATE_SHIP.id ? FUGITIVE_FRIGATE_SHIP
         : npc.shipId === BLOOD_RED_CORSAIR_SHIP.id ? BLOOD_RED_CORSAIR_SHIP
-        : npc.shipId === BLACK_VEIL_CORSAIR_SHIP.id ? BLACK_VEIL_CORSAIR_SHIP
         : npc.shipId === HALLOWEEN_TABUADA_SHIP.id ? HALLOWEEN_TABUADA_SHIP : STARTER_SHIP;
       const image = this.images.get(ship.id);
       if (!image) continue;
