@@ -1540,6 +1540,18 @@ async function startWorld() {
         : '📜 Vá ao Porto das Missões para receber seu próximo contrato';
       return;
     }
+    if(world.region.id==='r3'){
+      const save=readSave();
+      const finished=save.r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID);
+      const arrived=!!save.progression?.r3PortVisited;
+      missionHud.hidden=false;
+      missionHud.textContent=finished
+        ? arrived?'📜 Águas Escuras · Aguarde o próximo capítulo'
+          :'✅ Galeão Dourado preparado · Vá ao Porto das Missões'
+        :'⚓ Prepare o Galeão Dourado no Estaleiro';
+      if(!arrived)void guideMissionTo(finished?'missions':'shipyard');
+      return;
+    }
     const board=boardFor(readSave(),world.region.id);
     const campaignMission=board.active?.[0] ?? null;
     const flow = getMissionFlow(readSave(), activeShip.id);
@@ -1929,6 +1941,14 @@ async function startWorld() {
       });
     } else {
       islandPanel.open(contact.kind);
+    }
+    if(world.region.id==='r3' && contact.kind==='missions'
+      && readSave().r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID)){
+      const save=readSave();
+      if(!save.progression?.r3PortVisited)
+        writePatch({progression:{...(save.progression??{}),r3PortVisited:true}});
+      clearMissionNavigation();
+      showOceanReward('📜 Primeiro capítulo concluído. A próxima missão ainda será definida.');
     }
     if (world.region.id === 'r2' && contact.kind === 'missions' && !readSave().progression?.r2PortVisited) {
       const save = readSave();
