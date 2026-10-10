@@ -58,7 +58,7 @@ export class NpcRenderer {
           // A posição no mundo fica fixa: só muda a região da textura desenhada.
           // A fonte pode ser um atlas 1600x1600 ou um WebP animado 400x400.
           // Nunca recortar 4x4 um WebP que já contém frames internos.
-          const isAtlas = image.naturalWidth >= 1600 && image.naturalHeight >= 1600;
+          const isAtlas = npc.archetype === 'sea-monster-leviathan' || (image.naturalWidth >= 1600 && image.naturalHeight >= 1600);
           // During the strike only the WebGL tentacles are visible.
           // Travel in both directions lasts 450ms; the body returns at its spawn.
           const diving=elapsed>=0&&elapsed<300;
