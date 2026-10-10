@@ -11,7 +11,8 @@ import {
 
 // The shortest cannon sets the Kraken's retaliation reach (currently 300 units).
 export const KRAKEN_RETALIATION_RANGE = Math.min(...CANNONS.map(cannon => cannonRange(cannon)));
-export const PLAYER_CANNON_SEQUENCE_MS = 160;
+export const CANNON_SEQUENCE_MS = 160;
+export const PLAYER_CANNON_SEQUENCE_MS = CANNON_SEQUENCE_MS;
 
 // The battle controller owns combat state, cooldowns, target selection, ammo
 // debits, moving-target impact checks and NPC retaliation. WebGL owns only FX.
@@ -42,6 +43,8 @@ export class NavalBattleController {
     this.nextPlayerSequenceAt = -Infinity;
     this.playerSequenceCursor = 0;
     this.nextNpcShot = new Map();
+    this.nextNpcSequenceAt = new Map();
+    this.npcSequenceCursor = new Map();
     this.nextKrakenStrike = new Map();
     this.previousPositions = new Map();
     this.velocities = new Map();
@@ -565,7 +568,7 @@ export class NavalBattleController {
       this.writePatch({ammunition: {...save.ammunition, ...ammoStockById}});
       this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000 / (flameBoost ? 5 : 1)));
       this.playerSequenceCursor = (batteryIndex + 1) % battery.length;
-      this.nextPlayerSequenceAt = now + (battery.length > 1 ? PLAYER_CANNON_SEQUENCE_MS : 0);
+      this.nextPlayerSequenceAt = now + (battery.length > 1 ? CANNON_SEQUENCE_MS : 0);
       this.onFeedback('💥 1 bala disparada.');
       return 1;
     }
@@ -676,16 +679,54 @@ export class NavalBattleController {
   fireNpcVolleys(now) {
     const player = this.getPlayer();
     if (this.getHealth() <= 0) return;
+
+    const fireSequenceShot = ({
+      npc,target,count,sequenceKey,reloadKey,reloadMs,damage,speed=400,
+      ammo=this.enemyAmmo,tracking=false,onImpact=null,
+    }) => {
+      const total=Math.max(1,Math.floor(Number(count)||1));
+      if(now<(this.nextNpcShot.get(reloadKey)??-Infinity))return false;
+      if(now<(this.nextNpcSequenceAt.get(sequenceKey)??-Infinity))return false;
+
+      const cursor=((this.npcSequenceCursor.get(sequenceKey)??0)%total+total)%total;
+      const muzzle=cannonHardpoint(npc,target,npc.heading,cursor,total);
+      const aim=tracking?{x:target.x,y:target.y}:aimWithAccuracy(target,muzzle,.66,this.random);
+      const controller=this;
+      const fired=this.renderer.fire({
+        from:muzzle,to:aim,
+        duration:tracking?9000:flightDurationMs(muzzle,aim,speed),
+        ammo,
+        ...(tracking?{trackingTarget:{
+          get x(){return controller.getPlayer().x;},
+          get y(){return controller.getPlayer().y;},
+          get health(){return controller.getHealth();}
+        },trackingSpeed:speed}:{}),
+        impactKind:'water',startTime:now,
+        onImpact:onImpact??(({at})=>this.resolveNpcImpact(npc.id,at,damage)),
+      });
+      if(!fired)return false;
+
+      if(total===1 || cursor>=total-1){
+        this.npcSequenceCursor.set(sequenceKey,0);
+        this.nextNpcSequenceAt.delete(sequenceKey);
+        this.nextNpcShot.set(reloadKey,now+Math.max(100,Number(reloadMs)||1800));
+      }else{
+        this.npcSequenceCursor.set(sequenceKey,cursor+1);
+        this.nextNpcSequenceAt.set(sequenceKey,now+CANNON_SEQUENCE_MS);
+      }
+      return true;
+    };
+
     for (const npc of this.getEntities().values()) {
       if(npc.id==='r2-pumpkin-ally'){
         const morbi=this.getEntities().get('r2-morbi');
         if(this.readSave().r2Campaign?.active==='r2-golden-ii'
-          && morbi?.health>0 && distanceBetween(npc,morbi)<=300 && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
-          const muzzle=cannonHardpoint(npc,morbi,npc.heading,0,8);
-          const aim={x:morbi.x,y:morbi.y};
-          const fired=this.renderer.fire({from:muzzle,to:aim,
-            duration:flightDurationMs(muzzle,aim,550),ammo:this.enemyAmmo,
-            impactKind:'ship',startTime:now,onImpact:({at})=>{
+          && morbi?.health>0 && distanceBetween(npc,morbi)<=300){
+          fireSequenceShot({
+            npc,target:morbi,count:Math.max(1,Number(npc.cannonSlots)||8),
+            sequenceKey:npc.id+':ally-sequence',reloadKey:npc.id+':ally-reload',
+            reloadMs:5000,damage:250,speed:550,
+            onImpact:({at})=>{
               const boss=this.getEntities().get('r2-morbi');
               if(!boss||boss.health<=0||!shipCollision(at,boss,110))return {kind:'water'};
               boss.health=Math.max(0,boss.health-250);
@@ -693,11 +734,12 @@ export class NavalBattleController {
                 x:boss.x,y:boss.y,heading:boss.heading,updatedAt:Date.now()}});
               if(boss.health===0){boss.state='sunk';this.onVictory(boss);}
               return {kind:'ship'};
-            }});
-          if(fired)this.nextNpcShot.set(npc.id,now+5000);
+            }
+          });
         }
         continue;
       }
+
       if(npc.id==='r2-morbi' && npc.health>0){
         const mission=this.readSave().r2Campaign?.active;
         const stageTwo=mission==='r2-golden-ii';
@@ -709,86 +751,58 @@ export class NavalBattleController {
         const broadsideRange=Math.max(1,Number(broadside.range)||specialRange);
         const engagementRange=firstEncounter?2400:(extreme?Math.max(specialRange,broadsideRange):specialRange);
         const distance=distanceBetween(npc,player);
-        if(['r2-golden-i','r2-golden-ii'].includes(mission) && distance<=engagementRange){
-          const controller=this;
-          const fireShot=({slot,count,damage,speed=650,tracking=false})=>{
-            const muzzle=cannonHardpoint(npc,player,npc.heading,slot,count);
-            const aimed={x:player.x,y:player.y};
-            return this.renderer.fire({
-              from:muzzle,to:aimed,
-              duration:flightDurationMs(muzzle,aimed,speed),ammo:this.enemyAmmo,
-              ...(tracking?{trackingTarget:{
-                get x(){return controller.getPlayer().x;},
-                get y(){return controller.getPlayer().y;},
-                get health(){return controller.getHealth();}
-              },trackingSpeed:850}:{}),
-              impactKind:'water',startTime:now,
-              onImpact:({at})=>this.resolveNpcImpact(npc.id,at,damage)
-            });
-          };
 
-          const specialKey=npc.id+':special';
-          if(now>=(this.nextNpcShot.get(specialKey)??-Infinity) && distance<=specialRange){
-            const specialDamage=Math.max(1,Number(cannon.damage)||Number(npc.damage)||1200);
-            const specialReload=Math.max(1000,Number(cannon.reloadMs)||45000);
+        if(['r2-golden-i','r2-golden-ii'].includes(mission) && distance<=engagementRange){
+          if(distance<=specialRange){
             const specialCount=extreme
               ? Math.max(2,Number(cannon.countAfterPhase)||2)
               : Math.max(1,Number(cannon.countBeforePhase)||1);
-            let firedSpecial=0;
-            for(let slot=0;slot<specialCount;slot++){
-              if(fireShot({slot,count:specialCount,damage:specialDamage,tracking:firstEncounter}))firedSpecial++;
-            }
-            if(firedSpecial)this.nextNpcShot.set(specialKey,now+specialReload);
+            fireSequenceShot({
+              npc,target:player,count:specialCount,
+              sequenceKey:npc.id+':special-sequence',
+              reloadKey:npc.id+':special-reload',
+              reloadMs:Math.max(1000,Number(cannon.reloadMs)||45000),
+              damage:Math.max(1,Number(cannon.damage)||Number(npc.damage)||1200),
+              speed:firstEncounter?850:650,
+              tracking:firstEncounter,
+            });
           }
 
           if(extreme && distance<=broadsideRange){
-            const broadsideKey=npc.id+':broadside';
-            if(now>=(this.nextNpcShot.get(broadsideKey)??-Infinity)){
-              const regularCount=Math.max(1,Number(broadside.regularCannons)||18);
-              const regularDamage=Math.max(1,Number(broadside.regularDamage)||300);
-              const reloadMs=Math.max(500,Number(broadside.reloadMs)||3000);
-              let firedRegular=0;
-              for(let slot=0;slot<regularCount;slot++){
-                if(fireShot({slot,count:regularCount,damage:regularDamage,speed:520}))firedRegular++;
-              }
-              if(firedRegular)this.nextNpcShot.set(broadsideKey,now+reloadMs);
-            }
+            fireSequenceShot({
+              npc,target:player,count:Math.max(1,Number(broadside.regularCannons)||18),
+              sequenceKey:npc.id+':broadside-sequence',
+              reloadKey:npc.id+':broadside-reload',
+              reloadMs:Math.max(500,Number(broadside.reloadMs)||3000),
+              damage:Math.max(1,Number(broadside.regularDamage)||300),
+              speed:520,
+            });
           }
         }
         continue;
       }
+
       if (npc.archetype === 'fugitive-frigate' && this.getThiefMissionTarget()?.id === npc.id) {
-        if (distanceBetween(npc, player) > 840 || now < (this.nextNpcShot.get(npc.id) ?? -Infinity)) continue;
-        const muzzle = cannonHardpoint(npc, player, npc.heading, 0, 1);
-        const aim = {x: player.x, y: player.y};
-        const controller = this;
-        const fired = this.renderer.fire({
-          from: muzzle, to: aim, duration: 9000,
-          trackingTarget: {
-            get x(){return controller.getPlayer().x;},
-            get y(){return controller.getPlayer().y;},
-            get health(){return controller.getHealth();}
-          },
-          trackingSpeed: 700, ammo: effectiveAmmo('aetherion-seeker'),
-          impactKind: 'water', startTime: now,
-          onImpact: ({ at }) => this.resolveNpcImpact(npc.id, at, 3),
+        if (distanceBetween(npc, player) > 840) continue;
+        fireSequenceShot({
+          npc,target:player,count:Math.max(1,Number(npc.cannonSlots)||1),
+          sequenceKey:npc.id+':thief-sequence',reloadKey:npc.id+':thief-reload',
+          reloadMs:1173,damage:3,speed:700,
+          ammo:effectiveAmmo('aetherion-seeker'),tracking:true,
         });
-        if (fired) this.nextNpcShot.set(npc.id, now + 1173);
         continue;
       }
+
       if (npc.type !== 'npc' || npc.health <= 0 || npc.state !== 'retaliating' ||
         npc.aggression === 'flee' || npc.cannonSlots === 0) continue;
       const npcRange = Math.max(1, Number(npc.range) || 340);
       if (distanceBetween(npc, player) > npcRange) continue;
-      if (now < (this.nextNpcShot.get(npc.id) ?? -Infinity)) continue;
-      const muzzle = cannonHardpoint(npc, player, npc.heading, 0, Math.max(1, npc.cannonSlots));
-      const aim = aimWithAccuracy(player, muzzle, .66, this.random);
-      const accepted = this.renderer.fire({
-        from: muzzle, to: aim, duration: flightDurationMs(muzzle, aim, 400),
-        ammo: this.enemyAmmo, impactKind: 'water', startTime: now,
-        onImpact: ({ at }) => this.resolveNpcImpact(npc.id, at, Math.max(1, Number(npc.damage) || 5)),
+
+      fireSequenceShot({
+        npc,target:player,count:Math.max(1,Number(npc.cannonSlots)||1),
+        sequenceKey:npc.id+':regular-sequence',reloadKey:npc.id+':regular-reload',
+        reloadMs:1800,damage:Math.max(1,Number(npc.damage)||5),speed:400,
       });
-      if (accepted) this.nextNpcShot.set(npc.id, now + 1800);
     }
   }
 
