@@ -41,7 +41,7 @@ test('Mapa 3 nasce com o chefe e exatamente dois ladrões do terror', () => {
   const world = createWorldState(R3);
   createCorsairPopulation(world, () => .42);
 
-  assert.equal(world.entities.size, 4);
+  assert.equal(world.entities.size, 5);
   assert.equal([...world.entities.values()].some(n => n.archetype === 'red-sail-corsair'), false);
 
   const boss = world.entities.get('r3-terror-do-mar');
@@ -116,4 +116,23 @@ test('oceano da R3 é mais verde, escuro e contaminado que o mapa anterior', () 
   assert.equal(ocean.corruption.zones[0].x, R3.terrorBoss.x);
   assert.equal(ocean.corruption.zones[0].y, R3.terrorBoss.y);
   assert.equal(ocean.corruption.zones[0].intensity, 1);
+});
+
+
+test('Fantasma Esmeralda entra na R3 com efeito espectral WebGL habilitado', async () => {
+  const { EMERALD_GHOST_SHIP } = await import('../src/ships/EmeraldGhostShip.js');
+  const world = createWorldState(R3);
+  createCorsairPopulation(world, () => .42);
+  const ghost = world.entities.get('r3-fantasma-esmeralda');
+  assert.ok(ghost);
+  assert.equal(ghost.name, 'Fantasma Esmeralda');
+  assert.equal(ghost.shipId, EMERALD_GHOST_SHIP.id);
+  assert.equal(ghost.archetype, 'emerald-ghost');
+  assert.equal(ghost.spectral, true);
+  assert.equal(ghost.attackProtectedUntil, Infinity);
+  assert.equal(EMERALD_GHOST_SHIP.sprite.path, '../../assets/ships/verde_fantasma.webp');
+  assert.equal(EMERALD_GHOST_SHIP.sprite.frameCount, 16);
+  assert.equal(EMERALD_GHOST_SHIP.spectralEffect.enabled, true);
+  assert.ok(EMERALD_GHOST_SHIP.spectralEffect.haloIntensity > .8);
+  assert.equal(collidesWithIsland(R3, ghost.x, ghost.y, 75), false);
 });
