@@ -24,6 +24,26 @@ export function createMinimap(world, { getPlayer, getNpcs = () => [], getTreasur
     ctx.beginPath(); ctx.arc(120,120,94,0,Math.PI*2); ctx.fill();
     ctx.strokeStyle = '#b58a4d'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(120,120,94,0,Math.PI*2); ctx.stroke();
+    const corruption=world.region.ocean?.corruption;
+    if(corruption?.active && Array.isArray(corruption.zones)){
+      ctx.save();
+      ctx.beginPath();ctx.arc(120,120,92,0,Math.PI*2);ctx.clip();
+      for(const zone of corruption.zones){
+        if(!zone?.intensity)continue;
+        const p=point(zone.x,zone.y);
+        const rx=184*Math.max(0,zone.radius)/Math.max(1,world.region.width);
+        const ry=184*Math.max(0,zone.radius)/Math.max(1,world.region.height);
+        const radius=Math.max(5,Math.max(rx,ry));
+        const gradient=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);
+        const alpha=Math.max(.05,Math.min(.32,Number(zone.intensity)*.26));
+        gradient.addColorStop(0,'rgba(42,190,92,'+alpha+')');
+        gradient.addColorStop(.55,'rgba(20,116,69,'+(alpha*.7)+')');
+        gradient.addColorStop(1,'rgba(8,72,54,0)');
+        ctx.fillStyle=gradient;
+        ctx.beginPath();ctx.ellipse(p.x,p.y,Math.max(5,rx),Math.max(5,ry),0,0,Math.PI*2);ctx.fill();
+      }
+      ctx.restore();
+    }
     for (const island of world.region.islands ?? []) {
       dot(island.x, island.y, island.kind === 'decoration' ? '#7b9988' : '#f0c66a', island.kind === 'decoration' ? 4 : 6);
     }
