@@ -7,12 +7,32 @@ export class IslandRenderer {
     this.images = new Map();
   }
   async init() {
-    await Promise.all(this.islands.map(island => new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => { this.images.set(island.id, image); resolve(); };
-      image.onerror = () => reject(new Error('Falha ao carregar ilha: ' + island.id));
-      image.src = island.asset;
-    })));
+    const byAsset = new Map();
+    const loadAsset = asset => {
+      if (byAsset.has(asset)) return byAsset.get(asset);
+      const pending = new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('Falha ao carregar asset de ilha: ' + asset));
+        image.src = asset;
+      });
+      byAsset.set(asset, pending);
+      return pending;
+    };
+    await Promise.all(this.islands.map(async island => {
+      try {
+        const image = await loadAsset(island.asset);
+        this.images.set(island.id, image);
+      } catch (error) {
+        // Decorative scenery must never prevent the ocean from starting.
+        // Ports remain required because they are gameplay destinations.
+        if (island.kind === 'decoration') {
+          console.warn('[TabuadaQuest] Ilha decorativa ignorada:', island.id, error);
+          return;
+        }
+        throw new Error('Falha ao carregar ilha: ' + island.id, { cause: error });
+      }
+    }));
   }
   render(cameraView, zoom = 1) {
     const rect = this.canvas.getBoundingClientRect();
