@@ -309,11 +309,28 @@ function updateEmeraldGhost(npc, world, deltaMs, random) {
   npc.y = moved.y;
 }
 
+function updateMerchant(npc,world,deltaMs){
+  const corruption=world.region.ocean?.corruption?.zones?.[1];
+  const center=corruption??{x:2140,y:2860};
+  npc.merchantOrbitAngle=(npc.merchantOrbitAngle??0)+Math.max(0,deltaMs)*0.000012;
+  const target={x:center.x+Math.cos(npc.merchantOrbitAngle)*420,
+    y:center.y+Math.sin(npc.merchantOrbitAngle)*320};
+  const dt=Math.min(64,Math.max(0,deltaMs))/1000;
+  const distance=Math.hypot(target.x-npc.x,target.y-npc.y);
+  if(distance<3)return;
+  npc.heading=turnToward(npc.heading,bearing(target.x-npc.x,target.y-npc.y),24*dt);
+  const movement=Math.min(distance,18*dt);
+  const dx=(target.x-npc.x)/distance,dy=(target.y-npc.y)/distance;
+  const moved=resolveIslandMovement(world.region,npc.x,npc.y,
+    npc.x+dx*movement,npc.y+dy*movement,55);
+  npc.x=moved.x;npc.y=moved.y;npc.speed=18;
+}
 export function updateDarkWatersFleet(world, deltaMs, random = Math.random) {
   if (world.region.id !== 'r3') return [];
   const raids = [];
   for (const npc of world.entities.values()) {
-    if (npc.archetype === TERROR_DO_MAR_NPC.id) updateBoss(npc, world, deltaMs, random);
+    if(npc.archetype==='blood-red-market-merchant')updateMerchant(npc,world,deltaMs);
+    else if (npc.archetype === TERROR_DO_MAR_NPC.id) updateBoss(npc, world, deltaMs, random);
     else if(npc.archetype==='terror-guardian')updateTerrorGuardian(npc,world,deltaMs);
     else if (npc.archetype === DARK_WATERS_RAIDER_ARCHETYPE) {
       updateRaider(npc, world, deltaMs, random, raids);
