@@ -810,3 +810,19 @@ test('câmera de combate mantém alvo manual fora do alcance em qualquer região
   assert.match(battle, /this\.targetId !== manuallyChosen\.id/);
   assert.match(main, /navalBattle\?\.getCameraTarget\?\.\(\)/);
 });
+
+
+test('câmera de combate muda visivelmente em tela grande', async () => {
+  const { computeOneVsOneFraming } = await import('../src/world/BattleCamera.js');
+  const normal=0.88;
+  const close=computeOneVsOneFraming({
+    player:{x:1000,y:1000},target:{x:1200,y:1000},
+    viewportWidth:1600,viewportHeight:900,normalZoom:normal,
+  });
+  const far=computeOneVsOneFraming({
+    player:{x:1000,y:1000},target:{x:2200,y:1000},
+    viewportWidth:1600,viewportHeight:900,normalZoom:normal,
+  });
+  assert.ok(close.zoom>normal,'desktop close combat must visibly push the camera in');
+  assert.ok(far.zoom<close.zoom,'desktop camera must open as target distance increases');
+});
