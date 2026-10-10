@@ -1315,13 +1315,22 @@ async function startWorld() {
         : '📜 Vá ao Porto das Missões para receber seu próximo contrato';
       return;
     }
+    const board=boardFor(readSave(),world.region.id);
+    const campaignMission=board.active?.[0] ?? null;
     const flow = getMissionFlow(readSave(), activeShip.id);
     missionHud.hidden = false;
-    missionHud.textContent = flow.stage === 'combat' ? '📜 Afunde 1 Corsário das Velas Rubras · 0/1'
+    missionHud.textContent = campaignMission
+      ? '📜 '+formatMissionHudObjectives(campaignMission)
+      : flow.stage === 'combat' ? '📜 Afunde 1 Corsário das Velas Rubras · 0/1'
       : flow.stage === 'next' ? '📜 Corsário afundado · 1/1 · Retorne ao porto'
       : '📜 ' + flow.objective;
-    if (firstVoyageGuide && flow.destination && flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
-    else if (firstVoyageGuide && !flow.destination) {
+
+    const campaignDestination = campaignMission && campaignMission.status!=='ready'
+      ? (['r1-shipyard-upgrade','r1-equip-roses'].includes(campaignMission.id) ? 'shipyard' : null)
+      : null;
+    if(campaignDestination) void guideMissionTo(campaignDestination);
+    else if (firstVoyageGuide && flow.destination && flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
+    else if (firstVoyageGuide && !flow.destination && !campaignMission) {
       firstVoyageGuide.finish();
       firstVoyageGuide.dispose();
       firstVoyageGuide = null;
@@ -1389,6 +1398,7 @@ async function startWorld() {
         description: 'Resolva uma continha para receber sua próxima missão.',
         afterSuccess: () => {
           clearMissionNavigation();
+          if(['r1-shipyard-upgrade','r1-equip-roses'].includes(id)) void guideMissionTo('shipyard');
           islandPanel.refreshMissionBoard();
           navalHud.refresh();
           updateMissionHud();
