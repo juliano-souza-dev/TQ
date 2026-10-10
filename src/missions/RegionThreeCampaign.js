@@ -57,3 +57,18 @@ export function claimR3Mission(save,id){
   return {mission:R3_MISSIONS[0],patch:{r3Campaign:{...(save.r3Campaign??{}),
     active:null,claimed:[...new Set([...(save.r3Campaign?.claimed??[]),id])]}}};
 }
+
+/**
+ * Reward hook for the mission immediately before Varkor.
+ * Invoke only when that future mission has been completed.
+ * Never invoke from the merchant exchange.
+ */
+export function awardR3PreVarkorFlame(save={}) {
+  if (save.r3Campaign?.varkorFlameUnlocked) return null;
+  const consumables=save.consumables??{};
+  return {
+    r3Campaign:{...(save.r3Campaign??{}),varkorFlameUnlocked:true},
+    consumables:{...consumables,quantities:{...(consumables.quantities??{}),
+      'flame-5x':Math.max(0,Math.floor(Number(consumables.quantities?.['flame-5x'])||0))+1}},
+  };
+}
