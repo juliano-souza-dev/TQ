@@ -694,6 +694,8 @@ async function startWorld() {
     boardFor(readSave(),world.region.id).missions.filter(m=>m.status==='ready').map(m=>m.id)
   );
   if(readyAtLoad)queueMicrotask(()=>routeToMissionsPort({announce:false}));
+  if(world.region.id==='r3' && !readSave().r3Campaign?.claimed?.includes('r3-equip-terror') && !readSave().r3Campaign?.active)
+    queueMicrotask(()=>{routeToMissionsPort({announce:false});showOceanReward('📜 Região 3: vá ao Porto das Missões buscar seu primeiro contrato.');});
   function checkMissionCompletion(){
     const missions=boardFor(readSave(),world.region.id).missions;
     for(const mission of missions){
@@ -1612,7 +1614,18 @@ async function startWorld() {
     missionBoardOptions: {
       getBoard: () => boardFor(readSave(),world.region.id),
       getPedagogy: () => readSave().pedagogy ?? {},
-      onAccept: id => world.region.id === 'r2'
+      onAccept: id => world.region.id === 'r3'
+        ? (()=>{
+          const patch=campaignFor('r3').accept(readSave(),id);
+          if(!patch)return false;
+          writePatch(patch);
+          clearMissionNavigation();
+          void guideMissionTo('shipyard');
+          showOceanReward('⚓ Missão aceita! Navegue até o Estaleiro para equipar seu navio.');
+          updateMissionHud();
+          return true;
+        })()
+        : world.region.id === 'r2'
         ? (()=>{
           if(['r2-meet-forgotten','r2-why-help'].includes(id)&&activeShip.id!=='galeao-halloween-tabuada'){
             showOceanReward('⚠️ Para descobrir quem o ajudou, equipe o Terror da Tabuada no Estaleiro.');
@@ -1829,6 +1842,72 @@ async function startWorld() {
     }
   }
 
+  let autoEquippingR3=false;
+  async function autoEquipR3AtShipyard(){
+    if(autoEquippingR3||world.region.id!=='r3'||readSave().r3Campaign?.active!=='r3-equip-terror')return false;
+    const shipId='galeao-halloween-tabuada';
+    const ship=playableShips.find(item=>item.id===shipId);
+    const save=readSave(),equipment=save.equipment??{};
+    if(!ship||!equipment.ownedShipIds?.includes(shipId)){
+      showOceanReward('⚠️ O Terror da Tabuada precisa estar disponível no seu estaleiro.');
+      return false;
+    }
+    autoEquippingR3=true;
+    const previous=activeShip;
+    try{
+      const capacity=Math.max(0,Number(ship.cannonSlots)||0)+(save.shipUpgrades?.masterShipwright?5:0);
+      const specialCount=Math.max(0,Math.floor(Number(equipment.cannonCounts?.['aetherion-mk1'])||0));
+      const cannons=['aetherion-mk1',...CANNONS.filter(c=>c.id!=='aetherion-mk1').sort((a,b)=>
+        (Number(b.damageMultiplier)||0)-(Number(a.damageMultiplier)||0))];
+      const slots=[];
+      for(const cannonId of cannons){
+        const cannon=CANNONS.find(c=>c.id===cannonId);
+        if(!cannon||cannon.event&&!isItemVisible(cannon,EVENTS))continue;
+        const count=cannonId==='aetherion-mk1'?Math.min(2,specialCount):
+          Math.max(0,Math.floor(Number(equipment.cannonCounts?.[cannonId])||0));
+        for(let i=0;i<count&&slots.length<capacity;i++)slots.push(cannonId);
+        if(slots.length>=capacity)break;
+      }
+      if(specialCount<2){
+        showOceanReward('⚠️ São necessários 2 Canhões Aetherion MK-I no inventário.');
+        return false;
+      }
+      if(slots.filter(id=>id==='aetherion-mk1').length!==2){
+        showOceanReward('⚠️ O navio não possui espaços suficientes para os 2 canhões especiais.');
+        return false;
+      }
+      if(activeShip.id!==shipId){
+        shipRenderer.definition=ship;
+        await shipRenderer.init();
+        activeShip=ship;
+        navalBattle.shipId=shipId;
+        navalBattle.firing=false;
+        shipSpeed=getShipSpeed(ship);
+      }
+      const current=readSave();
+      writePatch({equipment:{...(current.equipment??{}),equippedShipId:shipId,
+        loadout:{...(current.equipment?.loadout??{}),[shipId]:slots}}});
+      navalBattle.selectedAmmoId=navalBattle.resolveSelectedAmmo();
+      navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
+      recordMissionEvent({type:'r3-outfit',id:'r3-shipyard-outfit'});
+      navalHud?.refresh();
+      updateMissionHud();
+      void guideMissionTo('missions');
+      showOceanReward('⚓ Terror da Tabuada equipado com 2 Aetherion MK-I e a melhor artilharia disponível! Volte ao Porto das Missões.');
+      return true;
+    }catch(error){
+      console.error('Falha na equipagem automática da Região 3',error);
+      if(activeShip.id!==previous.id){
+        shipRenderer.definition=previous;
+        await shipRenderer.init().catch(console.error);
+        activeShip=previous;
+        navalBattle.shipId=previous.id;
+        shipSpeed=getShipSpeed(previous);
+      }
+      return false;
+    }finally{autoEquippingR3=false;}
+  }
+
   let lastPortCombatBlockNoticeAt=-Infinity;
   let pendingCombatPortId=null;
   function openDockContact(contact){
@@ -1836,9 +1915,15 @@ async function startWorld() {
     pendingCombatPortId=null;
     contactId = contact.id;
     clickNavigation.cancel();
+    const autoR3Equip=world.region.id==='r3' && contact.kind==='shipyard'
+      && readSave().r3Campaign?.active==='r3-equip-terror';
     const autoTerrorEquip=world.region.id==='r2' && contact.kind==='shipyard'
       && readSave().r2Campaign?.active==='r2-equip-terror';
-    if(autoTerrorEquip) {
+    if(autoR3Equip){
+      void autoEquipR3AtShipyard().then(equipped=>{
+        if(!equipped)islandPanel.open('shipyard');
+      });
+    } else if(autoTerrorEquip) {
       void autoEquipTerrorAtShipyard().then(equipped=>{
         if(!equipped) islandPanel.open('shipyard');
       });
