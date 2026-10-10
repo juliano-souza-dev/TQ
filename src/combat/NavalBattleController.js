@@ -584,9 +584,13 @@ export class NavalBattleController {
     if (target?.attackProtectedUntil && Date.now() < target.attackProtectedUntil) {
       const remaining = Number.isFinite(target.attackProtectedUntil)
         ? Math.ceil((target.attackProtectedUntil - Date.now()) / 1000) : null;
-      this.onFeedback(remaining === null
-        ? '🕊️ O informante está protegido durante a negociação.'
-        : '🕊️ Trégua do informante: ' + remaining + 's para liberar o combate.');
+      if (target.merchantKind === 'black-market') {
+        this.onFeedback('☠️ Este mercador não participa de combate. Aproxime-se para negociar.');
+      } else {
+        this.onFeedback(remaining === null
+          ? '🕊️ O informante está protegido durante a negociação.'
+          : '🕊️ Trégua do informante: ' + remaining + 's para liberar o combate.');
+      }
       return { kind: 'water' };
     }
     // Submerged Kraken cannot be hit: projectiles splash in the ocean.
