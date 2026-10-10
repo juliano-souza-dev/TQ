@@ -1581,6 +1581,37 @@ async function startWorld() {
   }
 
   let lastPortCombatBlockNoticeAt=-Infinity;
+  let pendingCombatPortId=null;
+  function openDockContact(contact){
+    if(!contact || contact.kind==='decoration')return false;
+    pendingCombatPortId=null;
+    contactId = contact.id;
+    clickNavigation.cancel();
+    const autoTerrorEquip=world.region.id==='r2' && contact.kind==='shipyard'
+      && readSave().r2Campaign?.active==='r2-equip-terror';
+    if(autoTerrorEquip) {
+      void autoEquipTerrorAtShipyard().then(equipped=>{
+        if(!equipped) islandPanel.open('shipyard');
+      });
+    } else {
+      islandPanel.open(contact.kind);
+    }
+    if (world.region.id === 'r2' && contact.kind === 'missions' && !readSave().progression?.r2PortVisited) {
+      const save = readSave();
+      writePatch({ progression: { ...save.progression, r2PortVisited: true } });
+      firstVoyageGuide?.finish();
+      firstVoyageGuide?.dispose();
+      firstVoyageGuide = null;
+    }
+    if (world.region.id === 'r1') recordMissionEvent({ type: 'visit', island: contact.kind });
+    if (world.region.id === 'r2' && contact.kind==='shipyard'
+      && activeShip.id==='fragata-sombra-cacadora') {
+      recordMissionEvent({type:'equip-ship',ship:activeShip.id});
+    }
+    if (world.region.id === 'r2' && contact.kind==='missions') islandPanel.refreshMissionBoard();
+    updateMissionHud();
+    return true;
+  }
   function checkDockContact(fromX, fromY, inputX, inputY, stepMs) {
     if(combatMissionBlocksPorts()) { contactId=null; return; }
     const magnitude = Math.hypot(inputX, inputY);
@@ -1590,13 +1621,17 @@ async function startWorld() {
       fromY + inputY / Math.max(1, magnitude) * step) : null;
     if (!contact) {
       const nearby = getIslandContact(world.region, world.camera.x, world.camera.y, 42);
-      if (!nearby) contactId = null;
+      if (!nearby) {
+        contactId = null;
+        pendingCombatPortId=null;
+      }
       return;
     }
     if (contact.kind !== 'decoration' && contactId !== contact.id) {
       const protectedPort=contact.kind==='shipyard'||contact.kind==='missions';
       if(protectedPort && navalBattle?.isPortInteractionLocked?.()){
         contactId=null;
+        pendingCombatPortId=contact.id;
         clickNavigation.cancel();
         const remaining=Math.max(1,Math.ceil(navalBattle.getCombatLockRemainingMs()/1000));
         const now=performance.now();
@@ -1606,35 +1641,7 @@ async function startWorld() {
         }
         return;
       }
-      contactId = contact.id;
-      clickNavigation.cancel();
-      const autoTerrorEquip=world.region.id==='r2' && contact.kind==='shipyard'
-        && readSave().r2Campaign?.active==='r2-equip-terror';
-      if(autoTerrorEquip) {
-        void autoEquipTerrorAtShipyard().then(equipped=>{
-          if(!equipped) islandPanel.open('shipyard');
-        });
-      } else {
-        islandPanel.open(contact.kind);
-      }
-      if (world.region.id === 'r2' && contact.kind === 'missions' && !readSave().progression?.r2PortVisited) {
-        const save = readSave();
-        writePatch({ progression: { ...save.progression, r2PortVisited: true } });
-        firstVoyageGuide?.finish();
-        firstVoyageGuide?.dispose();
-        firstVoyageGuide = null;
-      }
-      if (world.region.id === 'r1') recordMissionEvent({ type: 'visit', island: contact.kind });
-
-      if (world.region.id === 'r2' && contact.kind==='shipyard'
-        && activeShip.id==='fragata-sombra-cacadora') {
-        recordMissionEvent({type:'equip-ship',ship:activeShip.id});
-      }
-      if (world.region.id === 'r2' && contact.kind==='missions') {
-        islandPanel.refreshMissionBoard();
-      }
-
-      updateMissionHud();
+      openDockContact(contact);
     }
   }
   let renderer;
@@ -2159,6 +2166,15 @@ async function startWorld() {
           description:'Resolva uma multiplicação para ganhar 10 consumíveis 5X em Chamas e 10 Escudos.'});
       }
             navalBattle.update(stepMs,performance.now());
+      if(pendingCombatPortId && !islandPanel.isOpen && !navalBattle.isPortInteractionLocked()){
+        const pending=world.region.islands.find(i=>i.id===pendingCombatPortId);
+        const nearby=getIslandContact(world.region,world.camera.x,world.camera.y,42);
+        if(pending && nearby?.id===pending.id && ['shipyard','missions'].includes(pending.kind)){
+          openDockContact(pending);
+        }else{
+          pendingCombatPortId=null;
+        }
+      }
       repairTickMs += stepMs;
       if (repairTickMs >= 100) {
         repairTickMs = 0;
