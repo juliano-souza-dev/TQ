@@ -193,7 +193,8 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .voyage-welcome-card button { margin-top: 14px; }
 .voyage-arrow { position: fixed; top: max(80px, 14dvh); left: 50%; transform: translateX(-50%); z-index: 16; display: grid; justify-items: center; gap: 3px; pointer-events: none; color: #ffe49a; text-shadow: 0 2px 5px #001527, 0 0 10px #001527; font-weight: 900; font-size: 13px; }
 .voyage-arrow-symbol { display: grid; place-items: center; width: 82px; height: 76px; line-height: 1; transform: rotate(var(--voyage-angle, 0deg)); transform-origin: center; filter: drop-shadow(0 0 5px #f2c459); }
-.voyage-arrow-image { display: block; width: 100%; height: 100%; object-fit: contain; }
+.tq-guided-pointer-image { display:block; width:100%; height:100%; object-fit:contain; pointer-events:none; user-select:none; }
+.voyage-arrow-image { display:block; }
 
 
 /* Compact objective tracker, clear of minimap and movement joystick. */
@@ -474,7 +475,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   transform:rotate(var(--thief-angle,0deg));
   animation:thief-guide-glow 1.5s ease-in-out infinite alternate;
 }
-.thief-guide-image {display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;}
+.thief-guide-image {display:block;}
 .thief-guide-label {border:1px solid #d9b56a9c;border-radius:9px;background:#0b2635eb;padding:3px 8px;}
 .thief-guide.is-visible-target .thief-guide-arrow {width:37px;height:37px;font-size:29px;}
 @keyframes thief-guide-glow {from {box-shadow:0 0 0 3px #062b3699,0 0 8px #f1bf5860;}to {box-shadow:0 0 0 3px #062b3699,0 0 19px #ffe390bd;}}
@@ -632,8 +633,9 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   align-items:center;transform:translate(-50%,-100%);pointer-events:none;
   filter:drop-shadow(0 0 8px #ffd567);}
 .chase-supply-chest[hidden]{display:none!important;}
-.chase-supply-arrow {font:bold 23px/1 system-ui,sans-serif;color:#ffdf64;
-  text-shadow:0 0 7px #fba025;animation:chest-arrow-bob .95s infinite alternate ease-in-out;}
+.chase-supply-arrow {display:grid;place-items:center;width:36px;height:34px;
+  animation:chest-arrow-bob .95s infinite alternate ease-in-out;}
+.chase-supply-pointer {transform:rotate(90deg);transform-origin:center;filter:drop-shadow(0 0 7px #fba025);}
 .chase-supply-icon {font:36px/1 system-ui,sans-serif;}
 @keyframes chest-arrow-bob{to{transform:translateY(5px)}}
 @media(prefers-reduced-motion:reduce){.chase-supply-arrow{animation:none}}
