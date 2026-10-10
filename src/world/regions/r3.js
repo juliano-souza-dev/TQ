@@ -13,18 +13,18 @@ export const R3=Object.freeze({
   }),
   emeraldGhost:Object.freeze({
     id:'r3-fantasma-esmeralda',name:'Fantasma Esmeralda',
-    x:2710,y:3280,heading:320,speed:210,maxHealth:2200,
+    x:2710,y:3280,heading:320,speed:210,maxHealth:90000,
     roamRadius:620,
   }),
   terrorRaiders:Object.freeze([
     Object.freeze({
       id:'r3-sombra-do-saque',name:'Sombra do Saque',
-      x:520,y:3260,heading:90,speed:520,maxHealth:650,
+      x:520,y:3260,heading:90,speed:520,maxHealth:45000,
       detectionRange:650,raidRadius:86,
     }),
     Object.freeze({
       id:'r3-dente-do-pavor',name:'Dente do Pavor',
-      x:3570,y:3260,heading:270,speed:565,maxHealth:750,
+      x:3570,y:3260,heading:270,speed:565,maxHealth:55000,
       detectionRange:680,raidRadius:86,
     }),
   ]),
