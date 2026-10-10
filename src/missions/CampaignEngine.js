@@ -1,3 +1,4 @@
+import { getR3Board, acceptR3Mission, recordR3Event, claimR3Mission } from './RegionThreeCampaign.js';
 import { getCampaignBoard, acceptCampaignMission, recordCampaignEvent, claimCampaignMission } from './RegionOneCampaign.js';
 import { getR2Board, acceptR2Mission, recordR2Event, claimR2Mission } from './RegionTwoCampaign.js';
 
@@ -6,7 +7,7 @@ import { getR2Board, acceptR2Mission, recordR2Event, claimR2Mission } from './Re
 const catalogs = Object.freeze({
   r1: { board: getCampaignBoard, accept: acceptCampaignMission, record: recordCampaignEvent, claim: claimCampaignMission },
   r2: { board: getR2Board, accept: acceptR2Mission, record: recordR2Event, claim: claimR2Mission },
-  r3: {board: () => ({missions:[],active:[],available:[],claimable:[],unlockedRegion:3,activeRegion:3}),accept:()=>null,record:()=>null,claim:()=>null},
+  r3: {board:getR3Board,accept:acceptR3Mission,record:recordR3Event,claim:claimR3Mission},
 });
 export const campaignFor = regionId => catalogs[regionId] ?? catalogs.r1;
 export const boardFor = (save, regionId) => campaignFor(regionId).board(save);
