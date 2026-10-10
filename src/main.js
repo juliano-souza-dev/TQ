@@ -11,7 +11,7 @@ import { effectiveAmmo } from './combat/NavalBattleRules.js';
 import { NavalCombatWebGLRenderer } from './rendering/NavalCombatWebGLRenderer.mjs';
 import { createNavalCombatHud } from './ui/NavalCombatHud.js';
 import { SEA_GLINTS, collectSeaGlint } from './events/HalloweenSeaGlints.js';
-import { EVENTS, CANNONS } from './items/EquipmentCatalog.js';
+import { EVENTS, CANNONS, isItemVisible } from './items/EquipmentCatalog.js';
 import { isHalloweenAtmosphereActive } from './events/HalloweenAtmosphere.js';
 import { HalloweenFogRenderer } from './rendering/HalloweenFogRenderer.js';
 import { getMissionFlow } from './missions/MissionFlow.js';
