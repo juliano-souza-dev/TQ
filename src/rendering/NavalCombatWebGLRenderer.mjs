@@ -1135,97 +1135,12 @@ export class NavalCombatWebGLRenderer{
       const y=Number(ship.y)||0;
 
       if(String(ship.kind||"")==="shadow-thief"){
-        const fireProgress=clamp(Number(ship.fireProgress)||0,0,1);
-        const eased=fireProgress*fireProgress*(3-2*fireProgress);
-        const flameCount=this.reducedFx
-          ? Math.max(2,Math.round(2+eased*2))
-          : Math.max(3,Math.round(3+eased*4));
-        const flameSize=clamp(screenSize*(.075+.075*eased),14,46);
-
-        // Fogo preso ao casco. Nada de bolhas gigantes pela tela: os focos ficam
-        // sobre o convés/laterais e crescem pela quantidade, altura e brilho.
-        for(let i=0;i<flameCount;i++){
-          const lane=flameCount<=1?0:(i/(flameCount-1)-.5);
-          const flicker=.82+.18*Math.sin(phase*(7.1+i*.53)+i*3.7);
-          const tongue=((phase*.62+i/flameCount)%1+1)%1;
-          const flameX=x+lane*worldSize*(.30+.06*eased)
-            +Math.sin(phase*4.2+i*1.9)*worldSize*.010;
-          const flameY=y-worldSize*(.005+.035*eased)
-            -worldSize*(.025+.060*eased)*tongue;
-          drawCombatPoint(
-            flameX,flameY,
-            flameSize*(.78+.32*flicker)*(1-Math.abs(lane)*.10),
-            2,
-            tongue,
-            true,
-            {
-              color:eased>.70?"#ff2a00":"#ff5a00",
-              coreColor:eased>.55?"#fff0a8":"#ffd36a",
-              glow:.82+eased*.55,
-              opacity:.74+eased*.18
-            }
-          );
-        }
-
-        // Pequenos pontos quentes no casco dão sensação de incêndio se espalhando
-        // sem virar um flash branco cobrindo o navio.
-        const hotSpotCount=this.reducedFx?1:Math.max(1,Math.round(1+eased*2));
-        for(let i=0;i<hotSpotCount;i++){
-          const offset=(i-(hotSpotCount-1)/2)*worldSize*.11;
-          drawCombatPoint(
-            x+offset,
-            y+worldSize*.015,
-            clamp(screenSize*(.035+.025*eased),7,18),
-            4,
-            flameCycle,
-            true,
-            {color:"#ff3b00",coreColor:"#ffd56a",glow:.55+eased*.35,opacity:.32+eased*.24}
-          );
-        }
-
-        // Fumaça compacta, escura e ascendente. O tamanho foi limitado para nunca
-        // formar aqueles círculos translúcidos enormes vistos no desktop.
-        const smokeCount=this.reducedFx?1:2;
-        for(let i=0;i<smokeCount;i++){
-          const cycle=((smokeCycle+i/smokeCount)%1+1)%1;
-          const drift=Math.sin(phase*.85+i*2.7)*worldSize*(.018+.018*eased);
-          drawCombatPoint(
-            x+drift,
-            y-worldSize*(.07+.15*cycle),
-            clamp(screenSize*(.065+.055*cycle)*(.8+.35*eased),12,42),
-            3,
-            cycle,
-            false,
-            {opacity:clamp(.08+.16*eased,0,.26)}
-          );
-        }
-
-        if(!this.reducedFx && eased>.30){
-          const emberCount=Math.round(2+eased*6);
-          for(let i=0;i<emberCount;i++){
-            const seed=i*2.39996323+phase*1.4;
-            const rise=((phase*.38+i/emberCount)%1+1)%1;
-            const radius=worldSize*(.025+.095*rise)*eased;
-            drawCombatPoint(
-              x+Math.cos(seed)*radius,
-              y-worldSize*(.025+.17*rise)+Math.sin(seed)*radius*.12,
-              clamp(screenSize*(.006+.008*(1-rise)),2,6),
-              0,
-              rise,
-              true,
-              {
-                color:i%3===0?"#ff3200":"#ff9a00",
-                coreColor:"#fff0a0",
-                glow:.8,
-                opacity:(1-rise)*(.28+.38*eased)
-              }
-            );
-          }
-        }
+        // Visual fire/smoke effect disabled for Ladrão da Sombra.
+        // Keep combat state, damage thresholds and destruction logic untouched.
         continue;
       }
 
-            if(String(ship.kind||"")==="monster"){
+      if(String(ship.kind||"")==="monster"){
         const bloodPulse=((phase*.31)%1+1)%1;
         const bloodFade=clamp(1-bloodPulse,0,1);
         gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
