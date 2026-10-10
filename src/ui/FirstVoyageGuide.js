@@ -35,6 +35,10 @@ export function createFirstVoyageGuide(world, { onAcknowledge = () => {} } = {})
     const dx = target.x - world.camera.x;
     const dy = target.y - world.camera.y;
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    const merchantInteraction=typeof destination==='object'
+      && destination.id==='r3-mercador-do-breu';
+    arrow.classList.toggle('voyage-arrow--interaction',merchantInteraction);
+    arrow.querySelector('.voyage-arrow-symbol').textContent=merchantInteraction?'👆':'➤';
     arrow.style.setProperty('--voyage-angle', angle + 'deg');
     const distance = Math.round(Math.hypot(dx, dy));
     arrow.querySelector('.voyage-arrow-label').textContent = (typeof destination === 'object' ? destination.name : destination === 'shipyard' ? 'Estaleiro' : 'Porto das Missões') + ' · ' + distance + ' m';
