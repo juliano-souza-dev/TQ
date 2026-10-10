@@ -1,3 +1,4 @@
+import { R3_WRECKS } from './missions/RegionThreeCampaign.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
 import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission,advanceR2Story } from './missions/RegionTwoCampaign.js';
@@ -738,6 +739,15 @@ async function startWorld() {
     && readSave().r2Campaign?.active === 'r2-destroy-thief'
     && !readSave().consumables?.chaseChestClaimed;
     function resolveMathAction(action, cleanAnswer) {
+    if(action.kind==='r3-wreck-diary'){
+      if(world.region.id!=='r3'||readSave().r3Campaign?.active!=='r3-dark-waters-warning')return false;
+      const wreck=R3_WRECKS.find(w=>w.id===action.id);
+      if(!wreck||Math.hypot(world.camera.x-wreck.x,world.camera.y-wreck.y)>180)return false;
+      if(!recordMissionEvent({type:'wreck-diary',id:wreck.id}))return false;
+      showOceanReward('📜 Diário recuperado: '+wreck.name+'.');
+      updateMissionHud();
+      return 'Fragmento recuperado! Continue seguindo o guia.';
+    }
     if(action.kind==='r2-mystery-light'){
       if(readSave().r2Campaign?.active!=='r2-mystery-light')return false;
       recordMissionEvent({type:'study',id:'dark-waters-revelation'});
@@ -1541,15 +1551,28 @@ async function startWorld() {
       return;
     }
     if(world.region.id==='r3'){
-      const save=readSave();
-      const finished=save.r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID);
-      const arrived=!!save.progression?.r3PortVisited;
+      const save=readSave(),campaign=save.r3Campaign??{};
+      const finished=campaign.claimed?.includes(R3_FIRST_MISSION_ID);
+      const diaryMission=campaign.active==='r3-dark-waters-warning';
+      const wrecksCollected=campaign.wreckDiaries??[];
+      const nextWreck=R3_WRECKS.find(w=>!wrecksCollected.includes(w.id));
       missionHud.hidden=false;
-      missionHud.textContent=finished
-        ? arrived?'📜 Águas Escuras · Aguarde o próximo capítulo'
-          :'✅ Galeão Dourado preparado · Vá ao Porto das Missões'
-        :'⚓ Prepare o Galeão Dourado no Estaleiro';
-      if(!arrived)void guideMissionTo(finished?'missions':'shipyard');
+      if(!finished){
+        missionHud.textContent='⚓ Prepare o Galeão Dourado no Estaleiro';
+        void guideMissionTo('shipyard');
+      }else if(diaryMission && nextWreck){
+        missionHud.textContent='📜 Investigue os destroços · '+wrecksCollected.length+'/3 diários';
+        void guideMissionTo(nextWreck);
+      }else if(diaryMission){
+        missionHud.textContent='📜 Três diários recuperados · Retorne ao Porto das Missões';
+        void guideMissionTo('missions');
+      }else if(!campaign.claimed?.includes('r3-dark-waters-warning')){
+        missionHud.textContent='📜 Porto das Missões · O Aviso das Águas Escuras';
+        void guideMissionTo('missions');
+      }else{
+        missionHud.textContent='📜 Águas Escuras · Próximo capítulo em preparação';
+        firstVoyageGuide?.finish();
+      }
       return;
     }
     const board=boardFor(readSave(),world.region.id);
@@ -1640,10 +1663,9 @@ async function startWorld() {
           const patch=campaignFor('r3').accept(readSave(),id);
           if(!patch)return false;
           writePatch(patch);
-          clearMissionNavigation();
-          void guideMissionTo('shipyard');
-          showOceanReward('⚓ Missão aceita! Navegue até o Estaleiro para equipar seu navio.');
+          islandPanel.refreshMissionBoard();
           updateMissionHud();
+          showOceanReward('📜 Siga o guia e investigue os três destroços das Águas Escuras.');
           return true;
         })()
         : world.region.id === 'r2'
@@ -1941,6 +1963,12 @@ async function startWorld() {
       });
     } else {
       islandPanel.open(contact.kind);
+    }
+    if(world.region.id==='r3' && contact.kind==='missions' &&
+       readSave().r3Campaign?.active==='r3-dark-waters-warning' &&
+       (readSave().r3Campaign?.wreckDiaries??[]).length===3){
+      recordMissionEvent({type:'return-port',id:'r3-diaries-delivered'});
+      islandPanel.refreshMissionBoard();
     }
     if(world.region.id==='r3' && contact.kind==='missions'
       && readSave().r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID)){
@@ -2518,6 +2546,16 @@ async function startWorld() {
             recordMissionEvent({ type:'collect', id:nearby.id });
             showOceanReward('🎃 +'+result.rewards.simple+' ferro · +'+result.rewards.special+' Halloween · +'+result.rewards.gold+' ouro');
           }
+        }
+      }
+      if(world.region.id==='r3'&&readSave().r3Campaign?.active==='r3-dark-waters-warning'&&
+         !mathGate.isOpen&&!islandPanel.isOpen){
+        const missing=R3_WRECKS.find(w=>!(readSave().r3Campaign?.wreckDiaries??[]).includes(w.id));
+        if(missing&&Math.hypot(world.camera.x-missing.x,world.camera.y-missing.y)<125){
+          clickNavigation.cancel();
+          navalBattle.firing=false;
+          mathGate.open({kind:'r3-wreck-diary',id:missing.id,title:'📜 '+missing.name,
+            description:'Resolva a multiplicação para recuperar o diário perdido.'});
         }
       }
       const campaign = readSave().campaign ?? {};
