@@ -1439,6 +1439,49 @@ async function startWorld() {
     }
     return false;
   }
+  let autoEquippingTerror=false;
+  async function autoEquipTerrorAtShipyard(){
+    if(autoEquippingTerror || world.region.id!=='r2' || readSave().r2Campaign?.active!=='r2-equip-terror')return false;
+    const terrorId='galeao-halloween-tabuada';
+    const ship=playableShips.find(item=>item.id===terrorId);
+    const save=readSave();
+    if(!ship || save.storyFlags?.terrorTabuadaDestroyed || !save.equipment?.ownedShipIds?.includes(terrorId))return false;
+    if(activeShip.id===terrorId){
+      recordMissionEvent({type:'equip-ship',ship:terrorId,id:'terror-auto-equipped'});
+      void guideR2MissionTo('missions');
+      updateMissionHud();
+      navalHud?.refresh();
+      showOceanReward('⚓ Terror da Tabuada equipado! Volte ao Porto das Missões.');
+      return true;
+    }
+    autoEquippingTerror=true;
+    const previous=activeShip;
+    try{
+      shipRenderer.definition=ship;
+      await shipRenderer.init();
+      activeShip=ship;
+      navalBattle.shipId=ship.id;
+      navalBattle.firing=false;
+      shipSpeed=getShipSpeed(ship);
+      writePatch({equipment:{...save.equipment,equippedShipId:ship.id}});
+      navalBattle.selectedAmmoId=navalBattle.resolveSelectedAmmo();
+      navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
+      recordMissionEvent({type:'equip-ship',ship:ship.id,id:'terror-auto-equipped'});
+      void guideR2MissionTo('missions');
+      updateMissionHud();
+      navalHud?.refresh();
+      showOceanReward('⚓ Terror da Tabuada equipado automaticamente! Volte ao Porto das Missões.');
+      return true;
+    }catch(error){
+      console.error('Não foi possível equipar automaticamente o Terror da Tabuada',error);
+      shipRenderer.definition=previous;
+      await shipRenderer.init().catch(console.error);
+      return false;
+    }finally{
+      autoEquippingTerror=false;
+    }
+  }
+
   function checkDockContact(fromX, fromY, inputX, inputY, stepMs) {
     if(combatMissionBlocksPorts()) { contactId=null; return; }
     const magnitude = Math.hypot(inputX, inputY);
@@ -1454,7 +1497,15 @@ async function startWorld() {
     if (contact.kind !== 'decoration' && contactId !== contact.id) {
       contactId = contact.id;
       clickNavigation.cancel();
-      islandPanel.open(contact.kind);
+      const autoTerrorEquip=world.region.id==='r2' && contact.kind==='shipyard'
+        && readSave().r2Campaign?.active==='r2-equip-terror';
+      if(autoTerrorEquip) {
+        void autoEquipTerrorAtShipyard().then(equipped=>{
+          if(!equipped) islandPanel.open('shipyard');
+        });
+      } else {
+        islandPanel.open(contact.kind);
+      }
       if (world.region.id === 'r2' && contact.kind === 'missions' && !readSave().progression?.r2PortVisited) {
         const save = readSave();
         writePatch({ progression: { ...save.progression, r2PortVisited: true } });
@@ -1465,10 +1516,8 @@ async function startWorld() {
       if (world.region.id === 'r1') recordMissionEvent({ type: 'visit', island: contact.kind });
 
       if (world.region.id === 'r2' && contact.kind==='shipyard'
-        && ['fragata-sombra-cacadora','galeao-halloween-tabuada'].includes(activeShip.id)) {
+        && activeShip.id==='fragata-sombra-cacadora') {
         recordMissionEvent({type:'equip-ship',ship:activeShip.id});
-        if(readSave().r2Campaign?.active==='r2-equip-terror' && activeShip.id==='galeao-halloween-tabuada')
-          void guideR2MissionTo('missions');
       }
       if (world.region.id === 'r2' && contact.kind==='missions') {
         islandPanel.refreshMissionBoard();
