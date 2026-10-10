@@ -847,3 +847,12 @@ test('porto bloqueado abre automaticamente após o cooldown se o jogador continu
   assert.match(main, /nearby\?\.id===pending\.id/);
   assert.match(main, /openDockContact\(pending\)/);
 });
+
+
+test('Ladrão das Sombras recebe dano triplo ao cair para 60 mil PV ou menos', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/combat/NavalBattleController.js', import.meta.url), 'utf8'));
+  assert.match(source,/target\.archetype==='fugitive-frigate'[\s\S]*healthBefore<=60000/);
+  assert.match(source,/const appliedDamage=shadowThiefWeakened \? damage\*3 : damage/);
+  assert.match(source,/healthBefore>60000 && target\.health<=60000/);
+  assert.match(source,/recebe dano ×3/);
+});
