@@ -15,7 +15,17 @@ export const HARPOON_LAUNCHERS=Object.freeze([
     reloadSeconds:7,range:730,damageMultiplier:0,baseDamage:700,
     projectileSpeed:760,accuracy:.96,dotDamage:25,dotIntervalMs:3000,
   }),
+  Object.freeze({
+    id:'harpoon-horizon-eye-launcher',name:'Arpoeiro Olho do Horizonte',
+    // Temporary visuals reuse the existing, approved launcher/harpoon assets.
+    asset:new URL('../../assets/cannonball/lancador_arpoes_naval.webp',import.meta.url).href,
+    projectileAsset:new URL('../../assets/cannons/arpao_naval_simples.webp',import.meta.url).href,
+    reloadSeconds:9,range:1100,damageMultiplier:0,baseDamage:40,
+    projectileSpeed:950,accuracy:.92,
+    acquisition:{type:'mission-reward',mission:'r3-dark-waters-warning'},
+  }),
 ]);
+export const HORIZON_HARPOON_ID='harpoon-horizon-eye-launcher';
 export const STARTER_HARPOON=HARPOON_LAUNCHERS[0];
 export const STARTER_HARPOON_AMMO=500;
 export const HARPOON_AMMO_ID='harpoon-mariner';
