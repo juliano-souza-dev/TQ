@@ -148,8 +148,10 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   attackControls.append(fireButton, fireIconButton, consumablesWrap, centerButton, repairButton);
   element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
   let optionFingerprint = '';
+  let automaticFeedback = '';
 
   function setFeedback(text) {
+    automaticFeedback = '';
     feedback.textContent = String(text || '');
   }
 
@@ -246,8 +248,15 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     fireButton.title = status.ready || status.firing
       ? 'Disparos automáticos com os canhões equipados'
       : (MESSAGES[status.reason] || '');
-    if (!status.firing && !status.ready && !feedback.textContent) {
-      feedback.textContent = MESSAGES[status.reason] || '';
+    if (!status.firing && !status.ready) {
+      const nextAutomatic = MESSAGES[status.reason] || '';
+      if (!feedback.textContent || feedback.textContent === automaticFeedback) {
+        automaticFeedback = nextAutomatic;
+        feedback.textContent = nextAutomatic;
+      }
+    } else if (automaticFeedback && feedback.textContent === automaticFeedback) {
+      automaticFeedback = '';
+      feedback.textContent = '';
     }
   }
 
