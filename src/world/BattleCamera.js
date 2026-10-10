@@ -1,7 +1,7 @@
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
 
 export function computeOneVsOneFraming({
-  player,target,viewportWidth=900,viewportHeight=600,normalZoom=.88,
+  player,target,viewportWidth=900,viewportHeight=600,normalZoom=.88,minZoomOverride=null,
 }={}) {
   if(!player||!target)return null;
   const dx=Number(target.x)-Number(player.x);
@@ -21,7 +21,10 @@ export function computeOneVsOneFraming({
   const closeZoom=mobile
     ? Math.min(normalZoom,.78)
     : Math.min(1.06,Math.max(normalZoom,normalZoom*1.12));
-  const minZoom=mobile?.19:.24;
+  const defaultMinZoom=mobile?.19:.24;
+  const minZoom=Number.isFinite(Number(minZoomOverride))
+    ? clamp(Number(minZoomOverride),.08,closeZoom)
+    : defaultMinZoom;
   const distanceBlend=clamp((distance-320)/1250,0,1);
   const distanceZoom=closeZoom+(minZoom-closeZoom)*distanceBlend;
 
