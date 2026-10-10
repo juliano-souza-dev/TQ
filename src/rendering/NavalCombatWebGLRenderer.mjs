@@ -398,14 +398,14 @@ export class NavalCombatWebGLRenderer{
   }
 
   // Underwater ambush shared with the Kraken sprite renderer.
-  attackKraken({from,to,monsterId=null,kind='kraken',startTime=performance.now(),duration=1720,onImpact=null}={}){
+  attackKraken({from,to,monsterId=null,kind='kraken',startTime=performance.now(),duration=1720,travelMs=970,onTravel=null,onImpact=null}={}){
     if(!from||!to||!this.init())return false;
     if(this.krakenAttacks.length>=(this.reducedFx?3:8))return false;
     this.krakenAttacks.push({
       from:{x:Number(from.x)||0,y:Number(from.y)||0},
       to:{x:Number(to.x)||0,y:Number(to.y)||0},
-      monsterId,kind,
-      startTime,duration,impactSpawned:false,
+      monsterId,kind,travelMs,onTravel,lastTravelProgress:0,finished:false,
+      startTime,duration:kind==='leviathan'?travelMs+550:duration,impactSpawned:false,
       onImpact:typeof onImpact==="function"?onImpact:null
     });
     return true;
@@ -507,6 +507,24 @@ export class NavalCombatWebGLRenderer{
       }
     }
     for(const attack of this.krakenAttacks){
+      if(attack.kind==='leviathan'){
+        if(attack.finished)continue;
+        const next=Math.max(0,Math.min(1,(now-attack.startTime)/attack.travelMs));
+        const previous=attack.lastTravelProgress;
+        const from={x:attack.from.x+(attack.to.x-attack.from.x)*previous,
+          y:attack.from.y+(attack.to.y-attack.from.y)*previous};
+        const to={x:attack.from.x+(attack.to.x-attack.from.x)*next,
+          y:attack.from.y+(attack.to.y-attack.from.y)*next};
+        const collided=next>previous&&attack.onTravel?.({from,to});
+        attack.lastTravelProgress=next;
+        if(collided||next>=1){
+          attack.finished=true;attack.impactSpawned=true;
+          attack.to=collided?to:attack.to;
+          attack.duration=now-attack.startTime+550;
+          attack.impactTime=now;
+        }
+        continue;
+      }
       if(!attack.impactSpawned && now-attack.startTime>=970){
         attack.impactSpawned=true;
         try{attack.onImpact?.({at:attack.to});}catch(error){console.warn("[TabuadaQuest] Kraken impact failed:",error);}
@@ -584,7 +602,7 @@ export class NavalCombatWebGLRenderer{
     for(const attack of this.krakenAttacks){
       if(attack.kind!=='leviathan')continue;
       const elapsed=now-attack.startTime;
-      const progress=clamp(elapsed/970,0,1);
+      const progress=clamp(elapsed/attack.travelMs,0,1);
       const dx=attack.to.x-attack.from.x,dy=attack.to.y-attack.from.y;
       const distance=Math.max(1,Math.hypot(dx,dy));
       const lx=-dy/distance,ly=dx/distance;
@@ -595,7 +613,7 @@ export class NavalCombatWebGLRenderer{
         drawCombatPoint(attack.from.x,attack.from.y,35+42*charge,8,0,true,
           {color:'#ff7b14',coreColor:'#ffedac',glow:1.1,opacity:.58*charge});
       }
-      const fade=1-smoothstep(970,1640,elapsed);
+      const fade=attack.impactTime===undefined?1:1-smoothstep(0,550,now-attack.impactTime);
       const count=this.reducedFx?11:22;
       for(let i=0;i<count;i++){
         const u=i/Math.max(1,count-1);
@@ -616,8 +634,8 @@ export class NavalCombatWebGLRenderer{
         drawCombatPoint(attack.from.x+dx*p,attack.from.y+dy*p,115+k*7,7,p,false,
           {color:"#d15a1a",coreColor:"#ffcf62",glow:.1,opacity:.065*fade*(1-k/(trails+1))});
       }
-      if(elapsed>=850&&elapsed<=1470){
-        const t=clamp((elapsed-850)/620,0,1);
+      if(attack.impactTime!==undefined&&now-attack.impactTime<=550){
+        const t=clamp((now-attack.impactTime)/550,0,1);
         drawCombatPoint(attack.to.x,attack.to.y,185*(.65+t*.9),1,t,true,
           {color:"#ff6b16",coreColor:"#fff4bb",glow:1,opacity:.75*(1-t)});
         drawCombatPoint(attack.to.x,attack.to.y,215*(.7+t*.75),7,t,false,
