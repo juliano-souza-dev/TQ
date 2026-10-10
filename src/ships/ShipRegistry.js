@@ -25,9 +25,11 @@ export { BLOOD_RED_CORSAIR_SHIP };
 import { BLACK_VEIL_CORSAIR_SHIP } from './BlackVeilCorsairShip.js';
 export { BLACK_VEIL_CORSAIR_SHIP };
 import { EMERALD_GHOST_SHIP } from './EmeraldGhostShip.js';
+import { BLACK_MARKET_SHIP } from './BlackMarketShip.js';
+export { BLACK_MARKET_SHIP };
 export { EMERALD_GHOST_SHIP };
 // Catálogo NPC separado da frota que o jogador pode adquirir.
-export const NPC_SHIP_CATALOG = Object.freeze([FUGITIVE_FRIGATE_SHIP, TERROR_DO_MAR_SHIP, BLOOD_RED_CORSAIR_SHIP, EMERALD_GHOST_SHIP]);
+export const NPC_SHIP_CATALOG = Object.freeze([FUGITIVE_FRIGATE_SHIP, TERROR_DO_MAR_SHIP, BLOOD_RED_CORSAIR_SHIP, EMERALD_GHOST_SHIP, BLACK_MARKET_SHIP]);
 
 import { STARTER_SHIP } from './StarterShip.js';
 export { STARTER_SHIP };
