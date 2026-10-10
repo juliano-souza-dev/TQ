@@ -6,8 +6,10 @@ import { FUGITIVE_FRIGATE_SHIP, GREEN_GHOST_FUGITIVE_SHIP } from '../ships/Fugit
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 import { renderMonsterBlood } from '../monsters/MonsterBloodRenderer.js';
 export class NpcRenderer {
-  constructor(canvas) {
+  constructor(canvas,frontCanvas=null) {
     this.canvas = canvas;
+    this.frontCanvas=frontCanvas;
+    this.frontCtx=frontCanvas?.getContext('2d')??null;
     this.ctx = canvas.getContext('2d');
     this.images = new Map();
     this.monsterImage = null;
@@ -90,7 +92,7 @@ export class NpcRenderer {
     }ctx.restore();
   }
   hasShipSprite(id) { return this.images.has(id); }
-  render(entities, camera, zoom = 1, selectedId = null, krakenAttacks = [], now = performance.now(), oceanTimeMs = now) {
+  render(entities, camera, zoom = 1, selectedId = null, krakenAttacks = [], now = performance.now(), oceanTimeMs = now, playerY = null) {
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.max(1, Math.round(bounds.width * dpr));
@@ -98,12 +100,20 @@ export class NpcRenderer {
     if (this.canvas.width !== w || this.canvas.height !== h) {
       this.canvas.width = w; this.canvas.height = h;
     }
-    const ctx = this.ctx; ctx.clearRect(0, 0, w, h);
+    if(this.frontCanvas&&this.frontCtx){
+      if(this.frontCanvas.width!==w||this.frontCanvas.height!==h){
+        this.frontCanvas.width=w;this.frontCanvas.height=h;
+      }
+      this.frontCtx.clearRect(0,0,w,h);
+    }
+    const baseCtx=this.ctx;
+    let ctx=baseCtx;ctx.clearRect(0, 0, w, h);
     this.updateFoam(entities,now);
     this.paintFoam(ctx,w,h,camera,zoom,dpr,oceanTimeMs);
     const size = Math.min(w * 0.32, h * 0.32, 185 * dpr) * zoom;
     const ordered=[...entities.values()].filter(n=>n.type==='npc'||n.type==='monster').sort((a,b)=>a.y-b.y);
     for (const npc of ordered) {
+      ctx=(this.frontCtx&&Number.isFinite(playerY)&&npc.y>playerY)?this.frontCtx:baseCtx;
       if ((npc.type !== 'npc' && npc.type !== 'monster') || npc.health <= 0 || npc.phasedOut) continue;
       if (npc.type === 'monster') {
         const monsterSize = size * (npc.archetype==='sea-monster-leviathan'?2.6:1.75);
