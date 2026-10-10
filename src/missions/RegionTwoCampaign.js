@@ -72,6 +72,27 @@ export function recordR2Event(save,event) {
   });
   return changed?{r2Campaign:{...state,progress:{...state.progress,[mission.id]:progress},processed:key?[...(state.processed??[]).slice(-299),key]:state.processed??[]}}:null;
 }
+export function advanceR2Story(save={}, completedId, nextId) {
+  const state=stateOf(save);
+  if(state.active!==completedId)return null;
+  const completed=R2_MISSIONS.find(m=>m.id===completedId);
+  const next=R2_MISSIONS.find(m=>m.id===nextId);
+  if(!completed||!next)return null;
+  const completedIndex=R2_MISSIONS.findIndex(m=>m.id===completedId);
+  const nextIndex=R2_MISSIONS.findIndex(m=>m.id===nextId);
+  if(nextIndex!==completedIndex+1)return null;
+  return {r2Campaign:{
+    ...state,
+    active:nextId,
+    claimed:[...new Set([...state.claimed,completedId])],
+    progress:{
+      ...state.progress,
+      [completedId]:completed.objectives.map(o=>o.count),
+      [nextId]:next.objectives.map(()=>0),
+    },
+  }};
+}
+
 export function claimR2Mission(save,id) {
   const mission=getR2Board(save).missions.find(m=>m.id===id);
   if(mission?.status!=='ready')return null;
