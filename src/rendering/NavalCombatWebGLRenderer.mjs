@@ -39,6 +39,24 @@ void main(){
   }
   if(d>.5)discard;
 
+  if(uEffectType>7.5){
+    vec2 q=p;
+    float t=uPulse*6.2831853;
+    float turb=sin(q.x*26.0+q.y*17.0+t*3.0)*.035+
+               sin(q.x*49.0-q.y*31.0-t*2.4)*.018;
+    float shape=length(vec2(q.x*1.03,q.y*.83+turb));
+    float body=1.0-smoothstep(.20,.47,shape);
+    float core=1.0-smoothstep(.055,.25,shape);
+    float tongues=.55+.45*sin(q.x*36.0+q.y*22.0-t*4.0);
+    float flicker=.82+.18*sin(t*5.0+q.x*41.0);
+    vec3 color=mix(vec3(.56,.055,.013),vec3(1.0,.36,.025),body);
+    color=mix(color,vec3(1.0,.91,.48),core*.9);
+    float alpha=(body*(.60+.30*tongues)*flicker+core*.17)*uOpacity;
+    if(alpha<.012)discard;
+    outColor=vec4(color,clamp(alpha,0.0,.96));
+    return;
+  }
+
   if(uEffectType<.5){
     float core=1.0-smoothstep(.08,.22,d);
     float halo=1.0-smoothstep(.16,.50,d);
@@ -562,35 +580,42 @@ export class NavalCombatWebGLRenderer{
 
     // 300ms submerge, 450ms outbound, 220ms tentacle strike,
     // 450ms return on the exact reverse trajectory, 300ms resurfacing.
+    // A continuous crest of flame, smoke-darkened water and boiling foam.
     for(const attack of this.krakenAttacks){
       if(attack.kind!=='leviathan')continue;
       const elapsed=now-attack.startTime;
       const progress=clamp(elapsed/970,0,1);
       const dx=attack.to.x-attack.from.x,dy=attack.to.y-attack.from.y;
-      const length=Math.max(1,Math.hypot(dx,dy));
-      const acrossX=-dy/length,acrossY=dx/length;
-      const intensity=1-clamp((elapsed-970)/650,0,1);
-      const bands=this.reducedFx?5:9;
-      for(let i=0;i<bands;i++){
-        const lag=i/(bands+2)*.26;
-        const p=clamp((progress-lag)/(1-lag),0,1);
-        if(p<=0)continue;
-        const centerX=attack.from.x+dx*p,centerY=attack.from.y+dy*p;
-        const spread=(i-(bands-1)/2)*(this.reducedFx?15:10)*zoom;
-        const undulation=Math.sin(elapsed*.011+i*1.7)*9*zoom;
-        const x=centerX+acrossX*(spread+undulation);
-        const y=centerY+acrossY*(spread+undulation);
-        const strength=intensity*(.7+.3*Math.sin(elapsed*.014+i));
-        drawPoint(x,y,(68+24*Math.sin(i*2.3+elapsed*.009))*zoom,0,0,true,{
-          color:i%3===0?'#ff2f0c':'#ff8b17',coreColor:'#ffe7a3',
-          glow:1.15,opacity:.52*strength});
-        drawPoint(x-acrossX*7*zoom,y-acrossY*7*zoom,90*zoom,7,p,false,{
-          color:'#ffa12c',coreColor:'#ffdba6',glow:.25,opacity:.13*strength});
+      const distance=Math.max(1,Math.hypot(dx,dy));
+      const lx=-dy/distance,ly=dx/distance;
+      const headX=attack.from.x+dx*progress,headY=attack.from.y+dy*progress;
+      const fade=1-smoothstep(970,1640,elapsed);
+      const count=this.reducedFx?11:22;
+      for(let i=0;i<count;i++){
+        const u=i/Math.max(1,count-1);
+        const spread=(u-.5)*126;
+        const curl=Math.sin(elapsed*.009+u*17)*9+Math.sin(elapsed*.015-u*27)*5;
+        const back=26+Math.abs(spread)*.24+Math.sin(u*18+elapsed*.011)*10;
+        const x=headX+lx*(spread+curl)-dx/distance*back;
+        const y=headY+ly*(spread+curl)-dy/distance*back;
+        const tail=Math.max(0,1-Math.abs(u-.5)*.75);
+        drawCombatPoint(x,y,66+tail*48,8,progress,true,{opacity:.68*fade});
+        if(i%2===0)drawCombatPoint(x-dx/distance*25,y-dy/distance*25,80,7,progress,false,
+          {color:"#c8f0df",coreColor:"#ffffff",glow:.15,opacity:.19*fade});
       }
-      if(elapsed>=880&&elapsed<1300){
-        const burst=(1-clamp((elapsed-880)/420,0,1));
-        drawPoint(attack.to.x,attack.to.y,150*zoom,0,0,true,{
-          color:'#ff4811',coreColor:'#fff2bf',glow:1.4,opacity:.68*burst});
+      const trails=this.reducedFx?5:9;
+      for(let k=1;k<=trails;k++){
+        const p=Math.max(0,progress-k*.052);
+        if(p<=0)continue;
+        drawCombatPoint(attack.from.x+dx*p,attack.from.y+dy*p,115+k*7,7,p,false,
+          {color:"#d15a1a",coreColor:"#ffcf62",glow:.1,opacity:.065*fade*(1-k/(trails+1))});
+      }
+      if(elapsed>=850&&elapsed<=1470){
+        const t=clamp((elapsed-850)/620,0,1);
+        drawCombatPoint(attack.to.x,attack.to.y,185*(.65+t*.9),1,t,true,
+          {color:"#ff6b16",coreColor:"#fff4bb",glow:1,opacity:.75*(1-t)});
+        drawCombatPoint(attack.to.x,attack.to.y,215*(.7+t*.75),7,t,false,
+          {color:"#b8fff0",coreColor:"#ffffff",glow:.15,opacity:.25*(1-t)});
       }
     }
     for(const attack of this.krakenAttacks){
