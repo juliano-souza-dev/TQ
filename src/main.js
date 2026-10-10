@@ -1,5 +1,5 @@
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
-import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission } from './missions/RegionTwoCampaign.js';
+import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission,advanceR2Story } from './missions/RegionTwoCampaign.js';
 import { beginHullRecovery, advanceHullRecovery } from './combat/HullRepair.js';
 import { getCampaignBoard, recordCampaignEvent } from './missions/RegionOneCampaign.js';
 import { resolvePedagogicalAction, resolveMissionReward, activateNextRegion } from './gameplay/PedagogicalActions.js';
@@ -1668,13 +1668,11 @@ async function startWorld() {
     const e=save.equipment??{};
     const nextOwned=[...new Set([...(e.ownedShipIds??[]).filter(id=>id!==shipId),rescueId])];
     const loadout={[rescueId]:['aetherion-mk1','aetherion-mk1']};
-    const campaign=save.r2Campaign;
-    const claimed=[...new Set([...(campaign.claimed??[]),'r2-why-help'])];
-    const nextCampaign={...campaign,active:'r2-search-clues',claimed,
-      progress:{...(campaign.progress??{}),'r2-why-help':[1],'r2-search-clues':[0]}};
+    const transition=advanceR2Story(save,'r2-why-help','r2-search-clues');
+    if(!transition)return;
     writePatch({
       storyFlags:{...(save.storyFlags??{}),pumpkinAmbushResolved:true,terrorTabuadaDestroyed:true},
-      r2Campaign:nextCampaign,
+      ...transition,
       profile:{...save.profile,gold:0,rubies:0},
       ammunition:{'aetherion-seeker':1000,'rusted-iron':0},
       harpoonAmmo:{'harpoon-mariner':1000,'harpoon-armor-piercing':0},
@@ -1787,10 +1785,9 @@ async function startWorld() {
         if(rendezvous?.status==='active' && forgotten
           && Math.hypot(world.camera.x-forgotten.x,world.camera.y-forgotten.y)<600
           && activeShip.id==='galeao-halloween-tabuada'){
-          const save=readSave(),c=save.r2Campaign;
-          writePatch({r2Campaign:{...c,active:'r2-why-help',
-            claimed:[...new Set([...(c.claimed??[]),'r2-meet-forgotten'])],
-            progress:{...c.progress,'r2-meet-forgotten':[1],'r2-why-help':[0]}}});
+          const transition=advanceR2Story(readSave(),'r2-meet-forgotten','r2-why-help');
+          if(transition)writePatch(transition);
+          clearMissionNavigation();
           updateMissionHud();
         }
         // Touching the portal automatically travels to R3. Earlier R2 missions
