@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BLACK_MARKET_CORSAIR_MAPPING } from '../src/ships/BlackMarketCorsairMapping.js';
+import { BLOOD_RED_CORSAIR_SHIP } from '../src/ships/BloodRedCorsairShip.js';
 
 const lateralFrames = new Map([
   [0,'port'],[1,'port'],[2,'port'],[3,'port'],
@@ -24,4 +25,14 @@ test('corsário do mercado negro mapeia dez origens por bateria lateral', () => 
   }
   assert.equal(BLACK_MARKET_CORSAIR_MAPPING.cannonMuzzles[4], undefined);
   assert.equal(BLACK_MARKET_CORSAIR_MAPPING.cannonMuzzles[12], undefined);
+});
+
+
+test('Corsário Vermelho Sangue usa o asset enviado e o mapping compartilhado', () => {
+  assert.equal(BLOOD_RED_CORSAIR_SHIP.sprite.path, '../../assets/ships/corsário-vermelho-sangue.webp');
+  assert.equal(BLOOD_RED_CORSAIR_SHIP.sprite.frameWidth, 400);
+  assert.equal(BLOOD_RED_CORSAIR_SHIP.sprite.frameHeight, 400);
+  assert.equal(BLOOD_RED_CORSAIR_SHIP.sprite.frameCount, 16);
+  assert.equal(BLOOD_RED_CORSAIR_SHIP.cannonSlots, 10);
+  assert.equal(BLOOD_RED_CORSAIR_SHIP.sprite.cannonMuzzles, BLACK_MARKET_CORSAIR_MAPPING.cannonMuzzles);
 });
