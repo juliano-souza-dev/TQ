@@ -142,6 +142,20 @@ export class NpcRenderer {
             ctx.drawImage(image, spriteX, spriteY, monsterSize, monsterSize);
           }
           ctx.restore();
+          if(leviathan){
+            const frameIndex=Math.floor((npc.animationTimeMs??0)/420)%16;
+            const waterline=this.waterlines.get(npc.archetype)?.[frameIndex]??.82;
+            const surfaceY=spriteY+monsterSize*waterline;
+            ctx.save();ctx.globalCompositeOperation='screen';
+            for(let i=0;i<17;i++){
+              const u=i/16,phase=now*.002+u*15;
+              const px=x+(u-.5)*monsterSize*.68;
+              const py=surfaceY+Math.sin(phase)*3*dpr;
+              ctx.fillStyle='rgba(218,255,247,'+(.14+.13*Math.pow(Math.sin(phase),2))+')';
+              ctx.beginPath();ctx.ellipse(px,py,monsterSize*.05,monsterSize*.012,0,0,Math.PI*2);ctx.fill();
+            }
+            ctx.restore();
+          }
           if (diving || resurfacing) continue;
           renderMonsterBlood(ctx, npc, x, y, monsterSize, performance.now());
           const barW = monsterSize * 0.65;
