@@ -484,3 +484,10 @@ test('missão 11 prioriza ladrão e exige Caçadora com Aetherion MK-I', () => {
   t.battle.fireNpcVolleys(1100);
   assert.equal(t.shots.length,1,'recarga deve impedir disparo antecipado');
 });
+
+
+test('stale combat guidance clears after a valid target is selected', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/ui/NavalCombatHud.js', import.meta.url), 'utf8'));
+  assert.match(source, /automaticFeedback/);
+  assert.match(source, /feedback\.textContent === automaticFeedback/);
+});
