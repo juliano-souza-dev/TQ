@@ -783,3 +783,11 @@ test('navegação por clique aceita redirecionamento para alvo interativo', asyn
   assert.match(source, /handled\?\.destination/);
   assert.match(source, /destination = \{x:Number\(handled\.destination\.x\),y:Number\(handled\.destination\.y\)\}/);
 });
+
+
+test('Morbi permanece no enquadramento mesmo sem seleção manual e bloqueia desvios por tesouro', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source, /\['r2-golden-i','r2-golden-ii'\]\.includes\(activeR2Mission\)/);
+  assert.match(source, /oneVsOneTarget = !world\.manualCamera && morbiEncounter\?\.health > 0/);
+  assert.match(source, /\['r2-destroy-thief','r2-golden-i','r2-golden-ii'\]\.includes\(readSave\(\)\.r2Campaign\?\.active\)/);
+});
