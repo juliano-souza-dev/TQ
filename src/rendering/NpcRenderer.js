@@ -138,11 +138,15 @@ export class NpcRenderer {
           const resurfacing=!leviathan&&elapsed>=1420&&elapsed<1720;
           const hiddenBody=!leviathan&&elapsed>=300&&elapsed<1420;
           if(hiddenBody)continue;
-          const alpha=diving?1-elapsed/300:resurfacing?(elapsed-1420)/300:1;
+          const ambush=npc.ambushPhase;
+          if(leviathan&&ambush==='submerged')continue;
+          const fadeDown=leviathan&&ambush==='diving'?Math.max(0,1-(npc.ambushElapsedMs||0)/680):1;
+          const fadeUp=leviathan&&ambush==='surfacing'?Math.min(1,(npc.ambushElapsedMs||0)/720):1;
+          const alpha=(diving?1-elapsed/300:resurfacing?(elapsed-1420)/300:1)*fadeDown*fadeUp;
           ctx.save();
           ctx.globalAlpha*=Math.max(0,alpha);
           const spriteX=x-monsterSize/2;
-          const spriteY=y-monsterSize/2+(diving?18*dpr*elapsed/300:resurfacing?18*dpr*(1-alpha):0);
+          const spriteY=y-monsterSize/2+(diving?18*dpr*elapsed/300:resurfacing?18*dpr*(1-alpha):0)+(leviathan&&(ambush==='diving'||ambush==='surfacing')?(1-alpha)*monsterSize*.22:0);
           if (isAtlas) {
             const columns = 4, frameDurationMs = npc.archetype==='sea-monster-leviathan' ? 420 : 105;
             const frame = leviathan
@@ -167,7 +171,7 @@ export class NpcRenderer {
             ctx.drawImage(image, spriteX, spriteY, monsterSize, monsterSize);
           }
           ctx.restore();
-          if(leviathan){
+          if(leviathan&&ambush!=='diving'&&ambush!=='surfacing'){
             const frameIndex=Math.round((((npc.heading??0)%360)+360)%360/22.5)%16;
             const waterline=this.waterlines.get(npc.archetype)?.[frameIndex]??.82;
             const surfaceY=spriteY+monsterSize*Math.min(waterline,.57);
