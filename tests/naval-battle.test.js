@@ -838,3 +838,12 @@ test('portos ficam bloqueados por 3 segundos após combate em qualquer região',
   assert.match(main, /navalBattle\?\.isPortInteractionLocked\?\.\(\)/);
   assert.match(main, /Porto das Missões/);
 });
+
+
+test('porto bloqueado abre automaticamente após o cooldown se o jogador continuar no contato', async () => {
+  const main = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(main, /pendingCombatPortId=contact\.id/);
+  assert.match(main, /!navalBattle\.isPortInteractionLocked\(\)/);
+  assert.match(main, /nearby\?\.id===pending\.id/);
+  assert.match(main, /openDockContact\(pending\)/);
+});
