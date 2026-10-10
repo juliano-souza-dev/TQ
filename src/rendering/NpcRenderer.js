@@ -206,7 +206,7 @@ export class NpcRenderer {
       const frameH = image.height / rows;
       const frame = getShipFrame(npc.heading ?? 0, ship);
       this.scanWaterlines(ship.id,image,columns,rows);
-      const shipSize = npc.archetype === 'blood-red-market-merchant' ? size * 2.15 : ship.id === FUGITIVE_FRIGATE_SHIP.id || ship.id === GREEN_GHOST_FUGITIVE_SHIP.id ? size * 0.7 : size;
+      const shipSize = npc.archetype === 'blood-red-market-merchant' ? size * 1.935 : ship.id === FUGITIVE_FRIGATE_SHIP.id || ship.id === GREEN_GHOST_FUGITIVE_SHIP.id ? size * 0.7 : size;
       const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
       const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
       if (x < -shipSize || x > w + shipSize || y < -shipSize || y > h + shipSize) continue;
