@@ -6,6 +6,9 @@ export const MONSTER_GOLD_MIN = 20;
 export const MONSTER_GOLD_MAX = 80;
 
 export function createMonsterPopulation(world, random = Math.random) {
+  // Águas Escuras começa como uma região naval: por enquanto a população é
+  // composta apenas pela Frota do Terror e pelo mercador já registrados.
+  if (world.region.id === 'r3') return 0;
   const region = world.region;
   for (let i = 0; i < MONSTERS_PER_MAP; i++) {
     let x = region.width / 2, y = region.height / 2;
@@ -24,6 +27,7 @@ export function createMonsterPopulation(world, random = Math.random) {
       state: 'idle', respawnRemainingMs: null, animationTimeMs: random() * 2000,
     });
   }
+  return MONSTERS_PER_MAP;
 }
 
 export function updateMonsterPopulation(world, stepMs) {
