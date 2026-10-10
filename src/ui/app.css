@@ -193,6 +193,12 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .voyage-welcome-card button { margin-top: 14px; }
 .voyage-arrow { position: fixed; top: max(80px, 14dvh); left: 50%; transform: translateX(-50%); z-index: 16; display: grid; justify-items: center; gap: 3px; pointer-events: none; color: #ffe49a; text-shadow: 0 2px 5px #001527, 0 0 10px #001527; font-weight: 900; font-size: 13px; }
 .voyage-arrow-symbol { display: block; font-size: 54px; line-height: 1; transform: rotate(var(--voyage-angle, 0deg)); transform-origin: center; filter: drop-shadow(0 0 5px #f2c459); }
+.voyage-arrow--interaction .voyage-arrow-symbol {
+  transform: none;
+  font-size: 49px;
+  filter: drop-shadow(0 2px 5px #242424);
+}
+
 
 /* Compact objective tracker, clear of minimap and movement joystick. */
 .mission-progress-hud { position:fixed; z-index:14; top:max(12px,env(safe-area-inset-top)); left:max(10px,env(safe-area-inset-left)); max-width:min(47vw,240px); padding:7px 10px; border:1px solid #b9975b88; border-radius:9px; background:#071b2edb; color:#ffe1a1; font:600 12px/1.4 system-ui,sans-serif; pointer-events:none; }
