@@ -10,7 +10,7 @@ export function createMonsterPopulation(world, random = Math.random) {
   // composta apenas pela Frota do Terror e pelo mercador já registrados.
   if (world.region.id === 'r3') {
     const zone=world.region.ocean?.corruption?.zones?.[0] ?? {x:3220,y:3450};
-    const x=zone.x-510,y=zone.y+360;
+    const x=zone.x+300,y=zone.y+500;
     if (!collidesWithIsland(world.region,x,y,110)) {
       world.entities.set('r3-leviathan', {
         id:'r3-leviathan',name:'Leviatã das Águas Escuras',
