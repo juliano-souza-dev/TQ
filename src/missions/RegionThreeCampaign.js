@@ -2,9 +2,9 @@ import { canonicalSingleMissionState, missionStatus, activeBoardMissions, unique
 
 export const R3_MISSIONS=Object.freeze([
   Object.freeze({
-    id:'r3-equip-shadow',name:'Preparar a Jornada Sombria',
-    description:'A Fragata Caçadora das Sombras, preservada após a destruição do Terror da Tabuada, deve liderar a travessia. Vá ao Estaleiro: o mestre equipará automaticamente o navio, dois Canhões Aetherion MK-I e os melhores canhões restantes que você possui.',
-    objectives:[{kind:'r3-outfit',count:1,label:'Atracar no Estaleiro e preparar a Fragata Caçadora das Sombras'}],
+    id:'r3-equip-golden',name:'Preparar a Jornada Sombria',
+    description:'O Galeão Dourado recebido na Região 2 deve liderar a travessia. Vá ao Estaleiro: o mestre equipará automaticamente o navio, dois Canhões Aetherion MK-I e os melhores canhões restantes que você possui.',
+    objectives:[{kind:'r3-outfit',count:1,label:'Atracar no Estaleiro e preparar a Galeão Dourado'}],
     reward:{gold:300},
   }),
 ]);
