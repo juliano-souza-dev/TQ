@@ -3,7 +3,7 @@ import { HORIZON_HARPOON_ID } from '../combat/HarpoonCatalog.js';
 // Existing catalog items. Special cannons use the matching guided ammunition.
 export const R3_SILAS_MISSION_ID='r3-silas-pact';
 export const R3_SILAS_REWARD=Object.freeze({
-  cannons:Object.freeze({'aetherion-mk1':2,'royal-lion':18}),
+  cannons:Object.freeze({'aetherion-mk1':2,'pumpkin-terror':18}),
   ammunition:Object.freeze({'aetherion-seeker':2500,'volcanic-lava':2000,'terror-rose':250}),
   harpoonLaunchers:Object.freeze([HORIZON_HARPOON_ID]),
   harpoonAmmo:Object.freeze({'harpoon-mariner':1000}),
