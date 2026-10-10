@@ -1315,8 +1315,15 @@ async function startWorld() {
         : '📜 Vá ao Porto das Missões para receber seu próximo contrato';
       return;
     }
-    const board=boardFor(readSave(),world.region.id);
-    const campaignMission=board.active?.[0] ?? null;
+    let board=boardFor(readSave(),world.region.id);
+    let campaignMission=board.active?.[0] ?? null;
+    if(campaignMission?.objectives?.some(objective=>objective.kind==='equip-ship')){
+      const resolution=resolveAlreadyEquippedShipMission({announce:false});
+      if(resolution.claimed){
+        board=boardFor(readSave(),world.region.id);
+        campaignMission=board.active?.[0] ?? null;
+      }
+    }
     const flow = getMissionFlow(readSave(), activeShip.id);
     missionHud.hidden = false;
     missionHud.textContent = campaignMission
@@ -1355,6 +1362,36 @@ async function startWorld() {
     firstVoyageGuide.guideTo(destination);
   }
 
+  function resolveAlreadyEquippedShipMission({announce=true}={}){
+    const save=readSave();
+    const board=boardFor(save,world.region.id);
+    const mission=board.active?.find(item=>item.objectives?.some(objective=>objective.kind==='equip-ship')) ?? null;
+    if(!mission)return {handled:false,claimed:false};
+    const equippedShipId=save.equipment?.equippedShipId ?? activeShip?.id;
+    const objective=mission.objectives.find(item=>item.kind==='equip-ship');
+    if(!objective?.ship || objective.ship!==equippedShipId)return {handled:false,claimed:false};
+
+    const campaign=campaignFor(world.region.id);
+    const event=campaign.record(readSave(),{
+      type:'equip-ship',ship:equippedShipId,
+      id:'already-equipped:'+mission.id+':'+equippedShipId,
+    });
+    if(event)writePatch(event);
+
+    const ready=boardFor(readSave(),world.region.id).missions.find(item=>item.id===mission.id);
+    if(ready?.status!=='ready')return {handled:true,claimed:false};
+
+    const result=campaign.claim(readSave(),mission.id);
+    if(!result)return {handled:true,claimed:false};
+    writePatch(result.patch);
+    clearMissionNavigation();
+    islandPanel?.refreshMissionBoard?.();
+    navalHud?.refresh?.();
+    updateMissionHud();
+    if(announce)showOceanReward('🎁 '+mission.name+' concluída: o navio já estava equipado. Recompensa recebida.');
+    return {handled:true,claimed:true,mission:result.mission};
+  }
+
   function marketCannonsEquipped(loadout=readSave().equipment?.loadout){
     const save=readSave();
     const shipId=save.equipment?.equippedShipId;
@@ -1382,14 +1419,8 @@ async function startWorld() {
           if(!patch)return false;
           writePatch(patch);
           clearMissionNavigation();
-          if(id==='r2-equip-terror'){
-            if(activeShip.id==='galeao-halloween-tabuada'){
-              recordMissionEvent({type:'equip-ship',ship:'galeao-halloween-tabuada',id:'terror-already-equipped'});
-              void guideMissionTo('missions');
-            } else {
-              void guideMissionTo('shipyard');
-            }
-          }
+          const equippedResolution=resolveAlreadyEquippedShipMission();
+          if(!equippedResolution.handled && id==='r2-equip-terror') void guideMissionTo('shipyard');
           updateMissionHud();navalHud?.refresh();return true;
         })()
         : mathGate.open({
@@ -1398,7 +1429,8 @@ async function startWorld() {
         description: 'Resolva uma continha para receber sua próxima missão.',
         afterSuccess: () => {
           clearMissionNavigation();
-          if(['r1-shipyard-upgrade','r1-equip-roses'].includes(id)) void guideMissionTo('shipyard');
+          const equippedResolution=resolveAlreadyEquippedShipMission();
+          if(!equippedResolution.handled && ['r1-equip-roses'].includes(id)) void guideMissionTo('shipyard');
           islandPanel.refreshMissionBoard();
           navalHud.refresh();
           updateMissionHud();
