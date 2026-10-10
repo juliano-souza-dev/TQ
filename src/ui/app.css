@@ -858,3 +858,17 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 }
 .leviathan-aura{z-index:1}
 @media (prefers-reduced-motion:reduce){.r3-ocean-grade{transition:none}}
+
+/* Ocean gameplay is a fixed viewport, not a scrollable document.
+   Keep login, shop and modal panels free to scroll independently. */
+html:has(#ocean),body:has(#ocean),#app:has(#ocean){
+  width:100%;height:100dvh;max-height:100dvh;
+  overflow:hidden;overscroll-behavior:none;
+}
+body:has(#ocean) #ocean{
+  position:fixed;inset:0;display:block;
+  width:100vw;height:100dvh;max-width:100vw;
+}
+body:has(#ocean) .leviathan-aura{
+  position:fixed;pointer-events:none;
+}
