@@ -676,3 +676,47 @@ test('projéteis navais usam metade do tamanho visual', async () => {
   const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/rendering/NavalCombatWebGLRenderer.mjs', import.meta.url), 'utf8'));
   assert.match(source, /\*0\.5,2,13/);
 });
+
+
+test('NPC com vários canhões também dispara em sequência', () => {
+  const t = battleHarness();
+  t.enemy.cannonSlots = 3;
+  t.enemy.range = 520;
+  t.enemy.damage = 12;
+  t.enemy.x = 500;
+  t.enemy.state = 'retaliating';
+  t.enemy.aggression = 'attack';
+
+  t.battle.fireNpcVolleys(1000);
+  assert.equal(t.shots.length,1);
+
+  t.battle.fireNpcVolleys(1159);
+  assert.equal(t.shots.length,1);
+
+  t.battle.fireNpcVolleys(1160);
+  assert.equal(t.shots.length,2);
+
+  t.battle.fireNpcVolleys(1320);
+  assert.equal(t.shots.length,3);
+});
+
+test('Morbi extremo não solta os 20 tiros no mesmo frame', () => {
+  const t = battleHarness();
+  t.enemy.id='r2-morbi';
+  t.enemy.health=899700;
+  t.enemy.maxHealth=900000;
+  t.enemy.x=t.player.x+500;
+  t.enemy.specialCannon={damage:1200,reloadMs:45000,range:840,countBeforePhase:1,countAfterPhase:2};
+  t.enemy.broadside={unlockDamageTaken:300,regularCannons:18,regularDamage:300,reloadMs:3000,range:840};
+  t.enemy.broadsideActive=true;
+  t.save.r2Campaign={active:'r2-golden-ii'};
+
+  t.battle.fireNpcVolleys(1000);
+  assert.equal(t.shots.length,2,'uma especial e uma regular iniciam as duas sequências, sem aglomerado');
+
+  t.battle.fireNpcVolleys(1159);
+  assert.equal(t.shots.length,2);
+
+  t.battle.fireNpcVolleys(1160);
+  assert.equal(t.shots.length,4,'as duas baterias avançam um canhão por vez');
+});
