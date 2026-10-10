@@ -1648,6 +1648,15 @@ async function startWorld() {
       }else if(!campaign.claimed?.includes('r3-dark-waters-warning')){
         missionHud.textContent='📜 Porto das Missões · O Aviso das Águas Escuras';
         void guideMissionTo('missions');
+      }else if(campaign.active===R3_SILAS_MISSION_ID && !campaign.silasTradeCompleted){
+        missionHud.textContent='☠️ O Pacto de Silas Rubro · Navegue até o mercador';
+        void guideMissionTo(world.region.blackMarketMerchant);
+      }else if(campaign.silasTradeCompleted&&!campaign.claimed?.includes(R3_SILAS_MISSION_ID)){
+        missionHud.textContent='🎁 Pacto concluído · Volte ao Porto das Missões';
+        void guideMissionTo('missions');
+      }else if(!campaign.claimed?.includes(R3_SILAS_MISSION_ID)){
+        missionHud.textContent='📜 Porto das Missões · O Pacto de Silas Rubro';
+        void guideMissionTo('missions');
       }else{
         missionHud.textContent='📜 Águas Escuras · Próximo capítulo em preparação';
         firstVoyageGuide?.finish();
@@ -2275,6 +2284,33 @@ async function startWorld() {
         renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
         updateCamera(world,canvas.clientWidth,canvas.clientHeight);
         return;
+      }
+      if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_SILAS_MISSION_ID
+        &&!readSave().r3Campaign?.silasTradeCompleted){
+        const silas=world.entities.get('r3-mercador-do-breu');
+        if(silas){
+          const distance=Math.hypot(world.camera.x-silas.x,world.camera.y-silas.y);
+          if(distance>silas.interactionRadius+55){
+            marketDismissedNearby=false;
+            silasTradeAuthorized=false;
+          }
+          if(distance<=silas.interactionRadius&&!marketDismissedNearby
+            && !mathGate.isOpen && marketOverlay.hidden && !islandPanel.isOpen){
+            clickNavigation.cancel();
+            navalBattle.firing=false;
+            if(silasTradeAuthorized)showSilasTrade();
+            else mathGate.open({
+              kind:'r3-silas-trade',title:'☠️ Pacto de Silas Rubro',
+              description:'Resolva a multiplicação para negociar. Seu arsenal só será entregue após confirmar a troca.',
+              onClose:()=>{if(!silasTradeAuthorized)marketDismissedNearby=true;},
+              afterSuccess:()=>{
+                silasTradeAuthorized=true;
+                marketDismissedNearby=false;
+                showSilasTrade();
+              },
+            });
+          }
+        }
       }
       if (world.region.id === 'r2') {
         const rendezvous=boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-meet-forgotten');
