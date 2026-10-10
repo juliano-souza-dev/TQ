@@ -108,30 +108,35 @@ export function recordCampaignEvent(save = {}, event, events = EVENTS) {
   if (!event || !['defeat', 'study', 'travel', 'visit', 'collect', 'treasure', 'equip', 'equip-ship', 'negotiate', 'exit'].includes(event.type)) return null;
   if (save.missions?.corsair !== 'complete') return null;
   const campaign = campaignState(save);
-  const dedup = event.id ? event.type + ':' + String(event.id) : null;
-  if (dedup && campaign.processedEvents.includes(dedup)) return null;
   const amount = event.type === 'travel'
     ? Math.max(0, Math.min(200, Number(event.amount) || 0)) : 1;
   if (!(amount > 0)) return null;
   let changed = false;
   const progress = { ...campaign.progress };
+  const processed = [...campaign.processedEvents];
   for (const id of campaign.active) {
     const mission = R1_MISSIONS.find(entry => entry.id === id);
     if (!mission || (mission.event && events[mission.event] !== true)) continue;
+    const dedup = event.id ? id + ':' + event.type + ':' + String(event.id) : null;
+    if (dedup && processed.includes(dedup)) continue;
     const current = progressFor(campaign, mission);
+    let missionChanged = false;
     for (let index = 0; index < mission.objectives.length; index++) {
       const task = mission.objectives[index];
       if (!applies(task, event) || current[index] >= task.count) continue;
       current[index] = Math.min(task.count, current[index] + amount);
       changed = true;
+      missionChanged = true;
     }
-    progress[id] = current;
+    if (missionChanged) {
+      progress[id] = current;
+      if (dedup) processed.push(dedup);
+    }
   }
   if (!changed) return null;
   return { campaign: {
     ...campaign, progress,
-    processedEvents: dedup
-      ? [...campaign.processedEvents.slice(-299), dedup] : campaign.processedEvents,
+    processedEvents: processed.slice(-300),
   } };
 }
 
