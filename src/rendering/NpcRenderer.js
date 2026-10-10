@@ -130,9 +130,10 @@ export class NpcRenderer {
       }
       {
         ctx.save();
-        ctx.font = 'bold ' + Math.round(13 * dpr) + 'px system-ui';
+        const labelScale=Math.max(.42,Math.min(1.08,(Number(zoom)||1)/.88));
+        ctx.font = 'bold ' + Math.round(13 * dpr * labelScale) + 'px system-ui';
         ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-        ctx.lineWidth = 4 * dpr; ctx.strokeStyle = '#061729';
+        ctx.lineWidth = Math.max(1.5,4 * dpr * labelScale); ctx.strokeStyle = '#061729';
         ctx.strokeText(npc.name, x, y - shipSize * 0.57);
         ctx.fillStyle = '#fff0bc'; ctx.fillText(npc.name, x, y - shipSize * 0.57);
         ctx.restore();
