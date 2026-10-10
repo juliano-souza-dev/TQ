@@ -52,6 +52,24 @@ export class NavalBattleController {
     this.enemyAmmo = effectiveAmmo('rusted-iron');
     this.renderer.prepareAmmo?.(this.enemyAmmo);
     this.selectedAmmoId = this.resolveSelectedAmmo();
+    this.lastCombatActivityAt = -Infinity;
+  }
+
+  markCombatActivity(now = this.clock()) {
+    const value=Number(now);
+    if(Number.isFinite(value))this.lastCombatActivityAt=Math.max(this.lastCombatActivityAt,value);
+  }
+
+  getCombatLockRemainingMs(now = this.clock()) {
+    const value=Number(now);
+    if(!Number.isFinite(value))return 0;
+    const active=this.firing;
+    if(active)this.markCombatActivity(value);
+    return Math.max(0,10000-(value-this.lastCombatActivityAt));
+  }
+
+  isPortInteractionLocked(now = this.clock()) {
+    return this.getCombatLockRemainingMs(now)>0;
   }
 
   getConsumables() {
@@ -583,6 +601,7 @@ export class NavalBattleController {
       });
       if (!accepted) return 0;
 
+      this.markCombatActivity(now);
       ammoStockById[ammoId] = remaining - 1;
       this.writePatch({ammunition: {...save.ammunition, ...ammoStockById}});
       this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000 / (flameBoost ? 5 : 1)));
@@ -636,6 +655,7 @@ export class NavalBattleController {
       this.onFeedback('💦 A bala caiu na água.');
       return { kind: 'water' };
     }
+    this.markCombatActivity();
     const healthBefore=Math.max(0,Number(target.health)||0);
     if (target.archetype === RED_SAIL_CORSAIR.id) {
       damageCorsair(target, damage, 'player');
@@ -694,7 +714,10 @@ export class NavalBattleController {
           if(!health)this.firing=false;
         },
       });
-      if(accepted)this.nextKrakenStrike.set(monster.id,now+4500);
+      if(accepted){
+        this.markCombatActivity(now);
+        this.nextKrakenStrike.set(monster.id,now+4500);
+      }
     }
   }
 
@@ -728,6 +751,7 @@ export class NavalBattleController {
       });
       if(!fired)return false;
 
+      if(target===player)this.markCombatActivity(now);
       if(total===1 || cursor>=total-1){
         this.npcSequenceCursor.set(sequenceKey,0);
         this.nextNpcSequenceAt.delete(sequenceKey);
@@ -837,6 +861,7 @@ export class NavalBattleController {
     if (!shipCollision(point, { ...player, health: this.getHealth() }, 56)) {
       return { kind: 'water' };
     }
+    this.markCombatActivity();
     const scriptedMorbiSinking=npcId==='r2-morbi' && this.readSave().r2Campaign?.active==='r2-golden-i';
     if (!scriptedMorbiSinking && (this.isShieldActive() || this.readSave().combat?.repairingUntil)) return {kind:'ship'};
     const save = this.readSave();
