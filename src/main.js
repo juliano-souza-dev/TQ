@@ -274,7 +274,10 @@ async function startWorld() {
       || claimed.includes('r2-golden-ii') || state.active==='r2-golden-ii';
     const missingPackage=(Number(counts['aetherion-mk1'])||0)<1
       || (Number(counts['royal-lion'])||0)<8;
-    if(marketCompleted && missingPackage && !save.rewardMigrations?.blackMarketRollbackV1){
+    const postAmbushProgress=save.storyFlags?.pumpkinAmbushResolved===true
+      || ['r2-search-clues','r2-do-me-favor','r2-hunt-prep','r2-monster-meat','r2-mystery-light','r2-dark-voyage'].includes(state.active)
+      || claimed.some(id=>['r2-search-clues','r2-do-me-favor','r2-hunt-prep','r2-monster-meat','r2-mystery-light','r2-dark-voyage'].includes(id));
+    if(marketCompleted && missingPackage && !postAmbushProgress && !save.rewardMigrations?.blackMarketRollbackV1){
       const rolledBack=['r2-black-market','r2-golden-ii'];
       writePatch({
         r2Campaign:{...state,active:'r2-black-market',
@@ -294,6 +297,7 @@ async function startWorld() {
     const later=['r2-meet-forgotten','r2-why-help','r2-search-clues','r2-do-me-favor',
       'r2-hunt-prep','r2-monster-meat','r2-mystery-light','r2-dark-voyage'];
     const skippedEquip=!claimed.includes('r2-equip-terror')
+      && save.storyFlags?.pumpkinAmbushResolved!==true
       && (state.active==='r2-meet-forgotten'||later.slice(1).includes(state.active)
         || later.some(id=>claimed.includes(id)));
     if(goldenDone && !save.equipment?.ownedShipIds?.includes(terrorId)){
@@ -317,6 +321,7 @@ async function startWorld() {
     const later=['r2-why-help','r2-search-clues','r2-do-me-favor',
       'r2-monster-meat','r2-mystery-light','r2-dark-voyage'];
     const skippedMeeting=!claimed.includes('r2-meet-forgotten')
+      && save.storyFlags?.pumpkinAmbushResolved!==true
       && (later.includes(state.active)||later.some(id=>claimed.includes(id)));
     if(skippedMeeting){
       const equipment=save.equipment??{};
@@ -335,6 +340,33 @@ async function startWorld() {
       });
     }
   }
+  // Repair saves that were accidentally pushed backwards after the Terror
+  // was already destroyed. The ambush flag is authoritative story progress.
+  {
+    const save=readSave(),state=save.r2Campaign??{};
+    const active=state.active;
+    const preClue=['r2-black-market','r2-equip-market','r2-golden-ii',
+      'r2-equip-terror','r2-meet-forgotten','r2-why-help'];
+    if(save.storyFlags?.pumpkinAmbushResolved===true
+      && preClue.includes(active)
+      && !save.rewardMigrations?.postAmbushCampaignRepairV1){
+      const completedThroughAmbush=[
+        'r2-thieves','r2-informant','r2-map','r2-island','r2-admiral',
+        'r2-false-admiral','r2-shadow-plans','r2-shadow-materials','r2-shadow-trials',
+        'r2-equip-chaser','r2-destroy-thief','r2-golden-i','r2-strengthen-ship',
+        'r2-black-market','r2-equip-market','r2-golden-ii','r2-equip-terror',
+        'r2-meet-forgotten','r2-why-help'
+      ];
+      writePatch({
+        r2Campaign:{...state,active:'r2-search-clues',
+          claimed:[...new Set([...(state.claimed??[]),...completedThroughAmbush])],
+          progress:{...(state.progress??{}),
+            'r2-search-clues':state.progress?.['r2-search-clues']??[0]}},
+        rewardMigrations:{...(save.rewardMigrations??{}),postAmbushCampaignRepairV1:true},
+      });
+    }
+  }
+
   // Existing campaign saves that skipped the newly inserted hunt supply stop
   // return to the merchant without replaying completed older contracts.
   {
