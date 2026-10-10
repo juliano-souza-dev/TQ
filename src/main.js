@@ -33,6 +33,8 @@ let loop = null;
 let oceanRenderer = null;
 let halloweenFogRenderer = null;
 let halloweenFogCanvas = null;
+let spectralShipCanvas = null;
+let spectralShipRenderer = null;
 let cloudCanvas = null;
 let cloudRenderer = null;
 let shipCanvas = null;
@@ -63,6 +65,10 @@ function stopWorld() {
   halloweenFogRenderer = null;
   if (halloweenFogCanvas) halloweenFogCanvas.remove();
   halloweenFogCanvas = null;
+  spectralShipRenderer?.dispose();
+  spectralShipRenderer = null;
+  spectralShipCanvas?.remove();
+  spectralShipCanvas = null;
   cloudRenderer?.dispose();
   cloudRenderer = null;
   cloudCanvas?.remove();
@@ -733,6 +739,26 @@ async function startWorld() {
     root.append(cloudCanvas);
     cloudRenderer = new CloudLayerRenderer(cloudCanvas);
   }
+  if (world.region.id === 'r3') {
+    const [{ SpectralShipWebGLRenderer }, { EMERALD_GHOST_SHIP }] = await Promise.all([
+      import('./rendering/SpectralShipWebGLRenderer.js'),
+      import('./ships/EmeraldGhostShip.js'),
+    ]);
+    if (generation !== worldGeneration) return;
+    spectralShipCanvas = document.createElement('canvas');
+    spectralShipCanvas.className = 'spectral-ship-webgl';
+    spectralShipCanvas.setAttribute('aria-hidden', 'true');
+    root.append(spectralShipCanvas);
+    spectralShipRenderer = new SpectralShipWebGLRenderer(spectralShipCanvas);
+    if (!spectralShipRenderer.init()) {
+      spectralShipCanvas.remove();
+      spectralShipCanvas = null;
+      spectralShipRenderer = null;
+    } else {
+      spectralShipRenderer.definition = EMERALD_GHOST_SHIP;
+    }
+  }
+
   const glintCanvas=document.createElement('canvas');
   glintCanvas.className='glint-layer';
   root.append(glintCanvas);
@@ -1955,6 +1981,10 @@ async function startWorld() {
         navalBattle.setTarget(null);
       }
       npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now());
+      spectralShipRenderer?.render(
+        world.entities, world.cameraView, world.camera.zoom,
+        performance.now(), spectralShipRenderer.definition,
+      );
       // Rock the player ship only at the underwater impact, then damp the motion.
       const renderNow = performance.now();
       let krakenImpact = null;
