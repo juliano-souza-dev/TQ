@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BLACK_MARKET_CORSAIR_MAPPING } from '../src/ships/BlackMarketCorsairMapping.js';
 import { BLOOD_RED_CORSAIR_SHIP } from '../src/ships/BloodRedCorsairShip.js';
+import { BLACK_VEIL_CORSAIR_SHIP } from '../src/ships/BlackVeilCorsairShip.js';
 
 const lateralFrames = new Map([
   [0,'port'],[1,'port'],[2,'port'],[3,'port'],
@@ -35,4 +36,14 @@ test('Corsário Vermelho Sangue usa o asset enviado e o mapping compartilhado', 
   assert.equal(BLOOD_RED_CORSAIR_SHIP.sprite.frameCount, 16);
   assert.equal(BLOOD_RED_CORSAIR_SHIP.cannonSlots, 10);
   assert.equal(BLOOD_RED_CORSAIR_SHIP.sprite.cannonMuzzles, BLACK_MARKET_CORSAIR_MAPPING.cannonMuzzles);
+});
+
+
+test('Corsário do Véu Negro usa o asset enviado e o mapping compartilhado', () => {
+  assert.equal(BLACK_VEIL_CORSAIR_SHIP.sprite.path, '../../assets/ships/Corsario_do_Veu_Negro_1600x1600.webp');
+  assert.equal(BLACK_VEIL_CORSAIR_SHIP.sprite.frameWidth, 400);
+  assert.equal(BLACK_VEIL_CORSAIR_SHIP.sprite.frameHeight, 400);
+  assert.equal(BLACK_VEIL_CORSAIR_SHIP.sprite.frameCount, 16);
+  assert.equal(BLACK_VEIL_CORSAIR_SHIP.cannonSlots, 10);
+  assert.equal(BLACK_VEIL_CORSAIR_SHIP.sprite.cannonMuzzles, BLACK_MARKET_CORSAIR_MAPPING.cannonMuzzles);
 });
