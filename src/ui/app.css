@@ -819,3 +819,22 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   pointer-events: none;
   z-index: 12;
 }
+
+/* Leviathan: restrained water glow and vapour under the animated sprite. */
+.leviathan-aura{
+ position:absolute;pointer-events:none;z-index:9;transform:translate(-50%,-50%);
+ width:var(--leviathan-aura-size,280px);height:var(--leviathan-aura-size,280px);
+ border-radius:50%;opacity:.7;mix-blend-mode:screen;
+ background:radial-gradient(ellipse at 50% 65%,rgba(39,190,176,.24) 0%,rgba(17,108,107,.12) 31%,transparent 69%);
+ filter:blur(9px);animation:leviathan-water-breathe 4.8s ease-in-out infinite;
+}
+.leviathan-aura::before,.leviathan-aura::after{
+ content:"";position:absolute;inset:19% 3%;border-radius:50%;
+ border:2px solid rgba(117,237,218,.20);
+ box-shadow:0 0 22px rgba(65,213,197,.13),inset 0 0 18px rgba(38,185,175,.11);
+ transform:scaleY(.44);animation:leviathan-water-ripple 3.5s ease-out infinite;
+}
+.leviathan-aura::after{animation-delay:-1.75s}
+@keyframes leviathan-water-breathe{0%,100%{opacity:.42;filter:blur(10px)}50%{opacity:.75;filter:blur(7px)}}
+@keyframes leviathan-water-ripple{0%{transform:scale(.56,.26);opacity:.7}100%{transform:scale(1.2,.65);opacity:0}}
+@media(prefers-reduced-motion:reduce){.leviathan-aura,.leviathan-aura::before,.leviathan-aura::after{animation:none}}
