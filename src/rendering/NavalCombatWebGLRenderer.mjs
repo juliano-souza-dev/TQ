@@ -400,7 +400,7 @@ export class NavalCombatWebGLRenderer{
   // Underwater ambush shared with the Kraken sprite renderer.
   attackKraken({from,to,monsterId=null,kind='kraken',startTime=performance.now(),duration=1720,travelMs=970,onTravel=null,onImpact=null}={}){
     if(!from||!to||!this.init())return false;
-    if(this.krakenAttacks.length>=(this.reducedFx?3:8))return false;
+    if(this.krakenAttacks.length>=(this.reducedFx?8:16))return false;
     this.krakenAttacks.push({
       from:{x:Number(from.x)||0,y:Number(from.y)||0},
       to:{x:Number(to.x)||0,y:Number(to.y)||0},
@@ -519,6 +519,7 @@ export class NavalCombatWebGLRenderer{
         attack.lastTravelProgress=next;
         if(collided||next>=1){
           attack.finished=true;attack.impactSpawned=true;
+          attack.hit=Boolean(collided);
           attack.to=collided?to:attack.to;
           attack.duration=now-attack.startTime+550;
           attack.impactTime=now;
@@ -634,7 +635,7 @@ export class NavalCombatWebGLRenderer{
         drawCombatPoint(attack.from.x+dx*p,attack.from.y+dy*p,115+k*7,7,p,false,
           {color:"#d15a1a",coreColor:"#ffcf62",glow:.1,opacity:.065*fade*(1-k/(trails+1))});
       }
-      if(attack.impactTime!==undefined&&now-attack.impactTime<=550){
+      if(attack.hit&&attack.impactTime!==undefined&&now-attack.impactTime<=550){
         const t=clamp((now-attack.impactTime)/550,0,1);
         drawCombatPoint(attack.to.x,attack.to.y,185*(.65+t*.9),1,t,true,
           {color:"#ff6b16",coreColor:"#fff4bb",glow:1,opacity:.75*(1-t)});
