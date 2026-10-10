@@ -12,6 +12,9 @@ export class NpcRenderer {
     this.images = new Map();
     this.monsterImage = null;
     this.leviathanImage = null;
+    this.waterlines = new Map();
+    this.foam = [];
+    this.lastFoamAt = 0;
   }
   async init() {
     const ships = [STARTER_SHIP, HALLOWEEN_TABUADA_SHIP];
@@ -32,6 +35,25 @@ export class NpcRenderer {
     try { await leviathan.decode(); this.leviathanImage=leviathan; }
     catch(error){ console.warn('Sprite do Leviatã não carregado:',error); }
   }
+  scanWaterlines(id,image,columns=4,rows=4){
+    if(this.waterlines.has(id)||!image?.naturalWidth)return;
+    try{
+      const cw=Math.floor(image.naturalWidth/columns),ch=Math.floor(image.naturalHeight/rows);
+      const canvas=document.createElement('canvas');canvas.width=cw;canvas.height=ch;
+      const ctx=canvas.getContext('2d',{willReadFrequently:true}),lines=[];
+      for(let frame=0;frame<columns*rows;frame++){
+        ctx.clearRect(0,0,cw,ch);
+        ctx.drawImage(image,(frame%columns)*cw,Math.floor(frame/columns)*ch,cw,ch,0,0,cw,ch);
+        const data=ctx.getImageData(0,0,cw,ch).data;
+        let bottom=ch-1;
+        outer:for(let y=ch-1;y>=0;y--)for(let x=0;x<cw;x++){
+          if(data[(y*cw+x)*4+3]>12){bottom=y;break outer;}
+        }
+        lines.push(bottom/ch);
+      }
+      this.waterlines.set(id,lines);
+    }catch(error){console.warn('Waterline fallback',id,error);}
+  }
   hasShipSprite(id) { return this.images.has(id); }
   render(entities, camera, zoom = 1, selectedId = null, krakenAttacks = [], now = performance.now()) {
     const bounds = this.canvas.getBoundingClientRect();
@@ -43,7 +65,8 @@ export class NpcRenderer {
     }
     const ctx = this.ctx; ctx.clearRect(0, 0, w, h);
     const size = Math.min(w * 0.32, h * 0.32, 185 * dpr) * zoom;
-    for (const npc of entities.values()) {
+    const ordered=[...entities.values()].filter(n=>n.type==='npc'||n.type==='monster').sort((a,b)=>a.y-b.y);
+    for (const npc of ordered) {
       if ((npc.type !== 'npc' && npc.type !== 'monster') || npc.health <= 0 || npc.phasedOut) continue;
       if (npc.type === 'monster') {
         const monsterSize = size * (npc.archetype==='sea-monster-leviathan'?2.6:1.75);
@@ -74,6 +97,7 @@ export class NpcRenderer {
           if (isAtlas) {
             const columns = 4, frameDurationMs = npc.archetype==='sea-monster-leviathan' ? 420 : 105;
             const frame = Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
+            this.scanWaterlines(npc.archetype,image,columns,columns);
             const frameW = image.naturalWidth / columns;
             const frameH = image.naturalHeight / columns;
             ctx.drawImage(image, (frame % columns) * frameW,
@@ -107,6 +131,7 @@ export class NpcRenderer {
       const frameW = image.width / columns;
       const frameH = image.height / rows;
       const frame = getShipFrame(npc.heading ?? 0, ship);
+      this.scanWaterlines(ship.id,image,columns,rows);
       const shipSize = npc.archetype === 'blood-red-market-merchant' ? size * 2.15 : ship.id === FUGITIVE_FRIGATE_SHIP.id || ship.id === GREEN_GHOST_FUGITIVE_SHIP.id ? size * 0.7 : size;
       const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
       const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
