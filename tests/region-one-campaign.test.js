@@ -299,3 +299,14 @@ test('Artilharia Renovada usa nomes literais e guia ao Estaleiro', async () => {
   assert.match(source,/r1-shipyard-upgrade','r1-equip-roses/);
   assert.match(source,/guideMissionTo\('shipyard'\)/);
 });
+
+
+test('missão de equipar navio é concluída no próprio porto quando o navio já está equipado', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source,/function resolveAlreadyEquippedShipMission/);
+  assert.match(source,/objective\.kind==='equip-ship'/);
+  assert.match(source,/objective\.ship!==equippedShipId/);
+  assert.match(source,/campaign\.record\(readSave\(\),\{[\s\S]*type:'equip-ship'/);
+  assert.match(source,/campaign\.claim\(readSave\(\),mission\.id\)/);
+  assert.match(source,/islandPanel\?\.refreshMissionBoard\?\.\(\)/);
+});
