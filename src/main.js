@@ -26,6 +26,23 @@ import { computeOneVsOneFraming } from './world/BattleCamera.js';
 import { DamageTextRenderer } from './rendering/DamageTextRenderer.js';
 import { TreasureGlowWebGLRenderer } from './rendering/TreasureGlowWebGLRenderer.js';
 
+// Ocean ambience is owned by the world lifecycle, never by individual shots.
+const oceanAmbience = new Audio('https://raw.githubusercontent.com/juliano-souza-dev/tabuada-quest-2-dev/main/assets/sound/ocean_water.mp3');
+oceanAmbience.loop = true;
+oceanAmbience.volume = 0.28;
+oceanAmbience.preload = 'auto';
+function beginOceanAmbience() {
+  if (document.hidden) return;
+  oceanAmbience.play().catch(() => {});
+}
+function stopOceanAmbience() {
+  oceanAmbience.pause();
+  oceanAmbience.currentTime = 0;
+}
+document.addEventListener('pointerdown', () => {
+  if (loop && oceanAmbience.paused) beginOceanAmbience();
+}, { passive: true });
+
 const root = document.getElementById('app');
 if (!root) throw new Error('Elemento #app ausente');
 
@@ -63,6 +80,7 @@ const LOCAL_SESSION_KEY = 'tq:local-session:v1';
 let guestMode = false;
 
 function stopWorld() {
+  stopOceanAmbience();
   worldGeneration++;
   fireKeyCleanup?.();
   fireKeyCleanup = null;
@@ -131,6 +149,7 @@ async function startWorld() {
   canvas.id = 'ocean';
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
+  beginOceanAmbience();
   const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact, collidesWithIsland, resolveIslandMovement }, { getShipSpeed }, { STARTER_SHIP }, { NpcRenderer }, { createCorsairPopulation, updateCorsairPopulation }, { findNpcAtPoint }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
@@ -2679,8 +2698,8 @@ function resumeWorldLoop() {
 
 document.addEventListener('visibilitychange', () => {
   if (!loop) return;
-  if (document.hidden) loop.stop();
-  else resumeWorldLoop();
+  if (document.hidden) { loop.stop(); oceanAmbience.pause(); }
+  else { resumeWorldLoop(); beginOceanAmbience(); }
 });
 window.addEventListener('pageshow', resumeWorldLoop);
 window.addEventListener('focus', resumeWorldLoop);
