@@ -149,7 +149,7 @@ async function startWorld() {
   {
     const localDev=(globalThis.location?.protocol ?? '')!=='https:';
     const snapshot=localSaves.load(currentUser.uid)?.payload ?? {};
-    const replayKey='devReplayR1FinaleOnceV3';
+    const replayKey='devReplayR1FinaleOnceV4';
     const campaign=snapshot.campaign??{};
     const hasReachedFinale=(campaign.claimed??[]).includes('r1-finale')
       || (campaign.active??[]).includes('r1-finale')
