@@ -1,5 +1,6 @@
 import { createTerrorDoMar, TERROR_DO_MAR_NPC } from './TerrorDoMarNpc.js';
 import { BLOOD_RED_CORSAIR_SHIP } from '../ships/BloodRedCorsairShip.js';
+import { EMERALD_GHOST_SHIP } from '../ships/EmeraldGhostShip.js';
 import { resolveIslandMovement, collidesWithIsland } from '../world/IslandCollision.js';
 
 export const DARK_WATERS_RAIDER_ARCHETYPE = 'dark-waters-raider';
@@ -57,6 +58,36 @@ function createRaider(config, region) {
   };
 }
 
+function createEmeraldGhost(config, region) {
+  const point = safePosition(region, config);
+  if (!point) throw new Error('Posição inválida para o Fantasma Esmeralda.');
+  return {
+    id: config.id,
+    type: 'npc',
+    archetype: 'emerald-ghost',
+    name: config.name,
+    shipId: EMERALD_GHOST_SHIP.id,
+    x: point.x,
+    y: point.y,
+    heading: normalize(config.heading ?? 0),
+    health: config.maxHealth,
+    maxHealth: config.maxHealth,
+    state: 'spectral-roam',
+    aggression: 'neutral',
+    damage: 0,
+    range: 0,
+    cannonSlots: 0,
+    speed: config.speed,
+    baseSpeed: config.speed,
+    roamRadius: config.roamRadius ?? 620,
+    home: Object.freeze({ x: point.x, y: point.y }),
+    assistDisabled: true,
+    attackProtectedUntil: Infinity,
+    spectral: true,
+    wanderTimeMs: 1800,
+  };
+}
+
 export function createDarkWatersFleet(world) {
   if (world.region.id !== 'r3') return [];
 
@@ -90,6 +121,12 @@ export function createDarkWatersFleet(world) {
     const raider = createRaider(config, world.region);
     world.entities.set(raider.id, raider);
     created.push(raider);
+  }
+
+  if (world.region.emeraldGhost && !world.entities.has(world.region.emeraldGhost.id)) {
+    const ghost = createEmeraldGhost(world.region.emeraldGhost, world.region);
+    world.entities.set(ghost.id, ghost);
+    created.push(ghost);
   }
   return created;
 }
@@ -202,6 +239,34 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   }
 }
 
+
+function updateEmeraldGhost(npc, world, deltaMs, random) {
+  const dt = Math.min(64, Math.max(0, deltaMs)) / 1000;
+  npc.wanderTimeMs = (npc.wanderTimeMs ?? 0) - deltaMs;
+  if (npc.wanderTimeMs <= 0) {
+    npc.patrolHeading = normalize(npc.heading + (random() - .5) * 80);
+    npc.wanderTimeMs = 1800 + random() * 2200;
+  }
+
+  const home = npc.home ?? { x: npc.x, y: npc.y };
+  const distanceHome = Math.hypot(npc.x - home.x, npc.y - home.y);
+  const desired = distanceHome > npc.roamRadius
+    ? bearing(home.x - npc.x, home.y - npc.y)
+    : (npc.patrolHeading ?? npc.heading);
+
+  npc.heading = turnToward(npc.heading, desired, 44 * dt);
+  const radians = npc.heading * Math.PI / 180;
+  const movement = Math.max(0, Number(npc.baseSpeed) || 0) * dt;
+  const nx = Math.max(MARGIN, Math.min(world.region.width - MARGIN, npc.x + Math.sin(radians) * movement));
+  const ny = Math.max(MARGIN, Math.min(world.region.height - MARGIN, npc.y - Math.cos(radians) * movement));
+  const moved = resolveIslandMovement(world.region, npc.x, npc.y, nx, ny, 34);
+  if (Math.hypot(moved.x - npc.x, moved.y - npc.y) < movement * .3) {
+    npc.patrolHeading = normalize(npc.heading + 140);
+  }
+  npc.x = moved.x;
+  npc.y = moved.y;
+}
+
 export function updateDarkWatersFleet(world, deltaMs, random = Math.random) {
   if (world.region.id !== 'r3') return [];
   const raids = [];
@@ -209,6 +274,8 @@ export function updateDarkWatersFleet(world, deltaMs, random = Math.random) {
     if (npc.archetype === TERROR_DO_MAR_NPC.id) updateBoss(npc, world, deltaMs, random);
     else if (npc.archetype === DARK_WATERS_RAIDER_ARCHETYPE) {
       updateRaider(npc, world, deltaMs, random, raids);
+    } else if (npc.archetype === 'emerald-ghost') {
+      updateEmeraldGhost(npc, world, deltaMs, random);
     }
   }
   return raids;
