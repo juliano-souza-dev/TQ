@@ -5,14 +5,7 @@ import { HALLOWEEN_TABUADA_SHIP } from '../ships/HalloweenTabuadaShip.js';
 import { FUGITIVE_FRIGATE_SHIP, GREEN_GHOST_FUGITIVE_SHIP } from '../ships/FugitiveFrigateShip.js';
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 import { renderMonsterBlood } from '../monsters/MonsterBloodRenderer.js';
-// Atlas authored as portraits, not sequential compass headings.
-// Heading 0 = north (back visible), 90 = east, 180 = south (face visible), 270 = west.
-// Index is compass sector (22.5 degrees); value is zero-based 4x4 atlas cell.
-export const LEVIATHAN_FRAME_BY_HEADING = Object.freeze([9,10,11,3,2,1,0,15,15,14,13,12,4,5,6,8]);
-export function leviathanFrameForHeading(heading){
-  const sector=Math.round((((Number(heading)||0)%360)+360)%360/22.5)%16;
-  return LEVIATHAN_FRAME_BY_HEADING[sector];
-}
+import { leviathanFrameForHeading } from '../monsters/LeviathanMouthMap.js';
 
 export class NpcRenderer {
   constructor(canvas,frontCanvas=null) {
