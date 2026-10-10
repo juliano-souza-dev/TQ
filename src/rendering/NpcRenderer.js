@@ -61,9 +61,10 @@ export class NpcRenderer {
           const isAtlas = npc.archetype === 'sea-monster-leviathan' || (image.naturalWidth >= 1600 && image.naturalHeight >= 1600);
           // During the strike only the WebGL tentacles are visible.
           // Travel in both directions lasts 450ms; the body returns at its spawn.
-          const diving=elapsed>=0&&elapsed<300;
-          const resurfacing=elapsed>=1420&&elapsed<1720;
-          const hiddenBody=elapsed>=300&&elapsed<1420;
+          const leviathan=npc.archetype==='sea-monster-leviathan';
+          const diving=!leviathan&&elapsed>=0&&elapsed<300;
+          const resurfacing=!leviathan&&elapsed>=1420&&elapsed<1720;
+          const hiddenBody=!leviathan&&elapsed>=300&&elapsed<1420;
           if(hiddenBody)continue;
           const alpha=diving?1-elapsed/300:resurfacing?(elapsed-1420)/300:1;
           ctx.save();
@@ -71,7 +72,7 @@ export class NpcRenderer {
           const spriteX=x-monsterSize/2;
           const spriteY=y-monsterSize/2+(diving?18*dpr*elapsed/300:resurfacing?18*dpr*(1-alpha):0);
           if (isAtlas) {
-            const columns = 4, frameDurationMs = 105;
+            const columns = 4, frameDurationMs = npc.archetype==='sea-monster-leviathan' ? 420 : 105;
             const frame = Math.floor((npc.animationTimeMs ?? 0) / frameDurationMs) % 16;
             const frameW = image.naturalWidth / columns;
             const frameH = image.naturalHeight / columns;
