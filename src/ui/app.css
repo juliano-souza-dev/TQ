@@ -777,3 +777,15 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   filter:drop-shadow(0 0 22px #3ee4ffbb) drop-shadow(0 0 42px #9950ff99);
 }
 .dark-waters-portal[hidden]{display:none!important}
+
+
+/* Fantasma Esmeralda: emissive WebGL aura above NPC sprites, input-transparent. */
+.spectral-ship-webgl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+  mix-blend-mode: screen;
+}
