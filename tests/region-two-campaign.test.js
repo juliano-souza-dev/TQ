@@ -84,3 +84,13 @@ test('chegar ao Estaleiro equipa automaticamente o Terror da Tabuada durante a m
   assert.match(source, /recordMissionEvent\(\{type:'equip-ship',ship:ship\.id,id:'terror-auto-equipped'\}\)/);
   assert.match(source, /guideR2MissionTo\('missions'\)/);
 });
+
+
+test('save pós-emboscada não volta para o Galeão Dourado nem Mercado Negro', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source, /postAmbushProgress=save\.storyFlags\?\.pumpkinAmbushResolved===true/);
+  assert.match(source, /save\.storyFlags\?\.pumpkinAmbushResolved!==true/);
+  assert.match(source, /postAmbushCampaignRepairV1/);
+  assert.match(source, /active:'r2-search-clues'/);
+  assert.match(source, /'r2-why-help'/);
+});
