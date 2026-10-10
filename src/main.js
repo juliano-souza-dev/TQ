@@ -21,6 +21,7 @@ import { createGameState, setGameStatus, GAME_STATUS, advanceGameState } from '.
 import { renderLogin, renderLoading, renderConfigurationRequired } from './ui/Portal.js';
 import { createSyncPreferenceStore, SYNC_MODE } from './persistence/SyncPreference.js';
 import { createLocalSaveStore } from './persistence/LocalSaveStore.js';
+import { formatMissionHudObjectives } from './ui/MissionHud.js';
 
 const root = document.getElementById('app');
 if (!root) throw new Error('Elemento #app ausente');
@@ -1168,8 +1169,8 @@ async function startWorld() {
       const mission = boardFor(readSave(),world.region.id).active[0];
       const ready = missionReady(readSave(),world.region.id);
       missionHud.textContent = ready
-        ? '🎁 Recompensa aguardando resgate · '+ready.name+' · Vá ao Porto das Missões'
-        : mission ? '📜 '+mission.name+' · '+mission.objectives.map((o,i)=>mission.progress[i]+'/'+o.count).join(' · ')
+        ? '🎁 Objetivos concluídos · Vá ao Porto das Missões'
+        : mission ? '📜 '+formatMissionHudObjectives(mission)
         : !readSave().progression?.r2PortVisited ? '📜 Primeiro objetivo: vá ao Porto das Missões'
         : '📜 Vá ao Porto das Missões para receber seu próximo contrato';
       return;
