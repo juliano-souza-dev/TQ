@@ -8,6 +8,7 @@ import {
 } from '../src/npcs/CorsairPopulation.js';
 import { collidesWithIsland } from '../src/world/IslandCollision.js';
 import { BLOOD_RED_MARKET_MERCHANT } from '../src/npcs/BloodRedCorsairNpc.js';
+import { AMMUNITION, isItemVisible } from '../src/items/EquipmentCatalog.js';
 import {
   DARK_WATERS_RAIDER_ARCHETYPE,
   DARK_WATERS_SPECIAL_AMMO_ID,
@@ -78,4 +79,14 @@ test('ladrão gera evento de saque ao cruzar o jogador e respawna após ser afun
   updateCorsairPopulation(world, 30001, () => .42);
   assert.equal(raider.health, raider.maxHealth);
   assert.equal(raider.stolenThisPass, false);
+});
+
+
+test('Rosa do Terror permanece disponível fora de qualquer evento sazonal', () => {
+  const ammo = AMMUNITION.find(item => item.id === DARK_WATERS_SPECIAL_AMMO_ID);
+  assert.ok(ammo);
+  assert.equal(ammo.name, 'Rosa do Terror');
+  assert.equal(ammo.event, null);
+  assert.equal(ammo.acquisition.region, 'r3');
+  assert.equal(isItemVisible(ammo, { halloween: false }), true);
 });
