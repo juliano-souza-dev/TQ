@@ -832,10 +832,33 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 @keyframes ocean-reward-enter{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 .mission-complete-overlay{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:16px;background:#031322ba}
 .mission-complete-overlay[hidden]{display:none!important}
-.mission-complete-card{box-sizing:border-box;width:min(420px,94vw);padding:22px;border:2px solid #e0b865;border-radius:15px;background:linear-gradient(160deg,#133b51,#091e30);color:#ffebbf;text-align:center;box-shadow:0 12px 32px #000a}
-.mission-complete-card h2{margin:0 0 12px;color:#ffe29b}
-.mission-complete-card p{font:500 14px/1.5 system-ui,sans-serif}
-.mission-complete-card button{display:block;margin:10px auto 0;max-width:100%;cursor:pointer}
+/* Mission-finished image: preserve the approved pirate artwork's proportions.
+   Its two painted buttons are real, keyboard-focusable HTML hit targets. */
+.mission-complete-card{
+  position:relative;box-sizing:border-box;
+  width:min(94vw,680px,calc((100dvh - 32px)*1.5));
+  aspect-ratio:3/2;padding:0;border:0;border-radius:0;
+  background:transparent url('../../assets/ui/3542c099-9e6d-4d11-a839-1d51cf344f5d.png') center/100% 100% no-repeat;
+  text-align:center;filter:drop-shadow(0 12px 24px #0009);
+}
+.mission-complete-card h2,.mission-complete-card p{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+.mission-complete-card button{
+  position:absolute;left:7%;width:86%;height:19%;margin:0;padding:0;
+  border:0;border-radius:12%;background:transparent!important;
+  color:transparent!important;font-size:0;box-shadow:none!important;
+  text-shadow:none;cursor:pointer;opacity:1;
+  -webkit-tap-highlight-color:transparent;
+}
+.mission-complete-card button:nth-of-type(1){top:43.5%}
+.mission-complete-card button:nth-of-type(2){top:66.5%}
+.mission-complete-card button:focus-visible{
+  outline:3px solid #fff5a6;outline-offset:-5px;
+}
+.mission-complete-card button:hover{background:rgba(255,255,255,.07)!important}
+.mission-complete-card button:active{background:rgba(0,0,0,.12)!important}
 @media(prefers-reduced-motion:reduce){.ocean-reward-toast{animation:none}}
 
 /* Island panels must honor native hidden even when grid/flex CSS is defined. */

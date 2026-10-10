@@ -690,6 +690,7 @@ async function startWorld() {
   missionCompleteCard.className='mission-complete-card';
   missionCompleteCard.setAttribute('role','dialog');
   missionCompleteCard.setAttribute('aria-modal','true');
+  missionCompleteCard.setAttribute('aria-label','Missão concluída');
   const missionCompleteTitle=document.createElement('h2');
   const missionCompleteText=document.createElement('p');
   const goMissions=document.createElement('button');
@@ -698,6 +699,8 @@ async function startWorld() {
   const keepSailing=document.createElement('button');
   keepSailing.className='secondary-button';keepSailing.type='button';
   keepSailing.textContent='Continuar navegando';
+  // The illustrated asset already paints labels and buttons.
+  // Real HTML controls remain above their painted counterparts.
   missionCompleteCard.append(missionCompleteTitle,missionCompleteText,goMissions,keepSailing);
   missionCompleteOverlay.append(missionCompleteCard);root.append(missionCompleteOverlay);
   keepSailing.addEventListener('click',()=>{
