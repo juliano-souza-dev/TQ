@@ -17,6 +17,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
   let currentOwnedCannonIds = ownedCannonIds;
   let currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...ownedShipIds])];
   let currentCannonCounts = {};
+  let starterCannonTransferredToSilas = false;
   let currentEquippedShipId = equippedShipId;
   let shipPage = 0;
   const root = el('div', 'shipyard');
@@ -123,13 +124,16 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
     view.append(el('div', 'shipyard-cannon-capacity', '💣 '+cannonCapacity(equipped)+' espaços para canhões · Toque para equipar ou retirar'));
     const capacity = cannonCapacity(equipped);
     const slots = currentLoadout[currentEquippedShipId] ?? [];
-    const ownedCannons = cannons.filter(cannon => isItemVisible(cannon, events) && (isItemOwned(cannon, currentOwnedCannonIds) || (Number(currentCannonCounts[cannon.id]) || 0) > 0));
+    const ownedCannons = cannons.filter(cannon => isItemVisible(cannon, events)
+      && (Number(currentCannonCounts[cannon.id])>0
+        || currentOwnedCannonIds.includes(cannon.id)
+        || (!starterCannonTransferredToSilas&&isItemOwned(cannon, currentOwnedCannonIds))));
     const ownedIds = ownedCannons.map(cannon => cannon.id);
     const usedCounts = slots.filter(Boolean).reduce((counts, id) => { counts[id] = (counts[id] || 0) + 1; return counts; }, {});
     const slotsBox=el('div','shipyard-cannon-slots');
     const strength=c=>Number(c.damageMultiplier)||1;
     const sortedAvailable=()=>ownedCannons.filter(c=>
-      (Number(currentCannonCounts[c.id])||(c.acquisition?.type==='starter'?1:0))>(usedCounts[c.id]||0))
+      (Number(currentCannonCounts[c.id])||(!starterCannonTransferredToSilas&&c.acquisition?.type==='starter'?1:0))>(usedCounts[c.id]||0))
       .sort((a,b)=>strength(b)-strength(a)||(Number(b.range)||0)-(Number(a.range)||0));
     function chooseCannon(index){
       const overlay=el('div','shipyard-cannon-dialog-backdrop');
@@ -166,7 +170,7 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
         details.append(meta);option.append(art,details);
         option.addEventListener('click',()=>{
           const availableCounts={...currentCannonCounts,
-            'blue-gold-pirate':Number(currentCannonCounts['blue-gold-pirate'])||1};
+            'blue-gold-pirate':Number(currentCannonCounts['blue-gold-pirate'])||(!starterCannonTransferredToSilas?1:0)};
           const updated=equipCannon(currentLoadout,currentEquippedShipId,index,item.id,capacity,ownedIds,availableCounts);
           if(updated===currentLoadout)return;
           currentLoadout=updated;onLoadoutChange(currentLoadout);
@@ -205,6 +209,6 @@ export function createShipyard({ ships = [STARTER_SHIP, ROSE_GOLD_SHIP], equippe
   root.append(tabs, content);
   return {
     element: root,
-    show() { const fresh = getEquipment(); upgradedFleet=Boolean(fresh.masterShipwright); currentLoadout = fresh.loadout ?? loadout; currentOwnedCannonIds = fresh.ownedCannonIds ?? ownedCannonIds; currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...(fresh.ownedShipIds ?? ownedShipIds)])]; currentCannonCounts = fresh.cannonCounts ?? {}; currentEquippedShipId = fresh.equippedShipId ?? equippedShipId; shipPage = 0; renderShips(); renderCannons(); selectTab('ships'); },
+    show() { const fresh = getEquipment(); upgradedFleet=Boolean(fresh.masterShipwright); currentLoadout = fresh.loadout ?? loadout; currentOwnedCannonIds = fresh.ownedCannonIds ?? ownedCannonIds; currentOwnedShipIds = [...new Set([STARTER_SHIP.id, ...(fresh.ownedShipIds ?? ownedShipIds)])]; currentCannonCounts = fresh.cannonCounts ?? {}; starterCannonTransferredToSilas=Boolean(fresh.starterCannonTransferredToSilas); currentEquippedShipId = fresh.equippedShipId ?? equippedShipId; shipPage = 0; renderShips(); renderCannons(); selectTab('ships'); },
   };
 }
