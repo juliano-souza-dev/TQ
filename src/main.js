@@ -1638,8 +1638,14 @@ async function startWorld() {
             y:Math.min(world.region.height-280,world.camera.y+430),
             heading:Number.isFinite(Number(savedMorbi?.heading))?Number(savedMorbi.heading):180,
             health:Math.max(0,Math.min(900000,Number(savedMorbi?.health??900000))),maxHealth:900000,
-            state:'retaliating',aggression:'attack',cannonSlots:20,
-            range:2400,damage:300,
+            state:'retaliating',aggression:'attack',cannonSlots:1,
+            range:2400,damage:1200,
+            specialCannon:Object.freeze({
+              id:'morbi-golden-cannon',
+              name:'Canhão Dourado de Morbi',
+              damage:1200,
+              reloadMs:45000,
+            }),
           });
         }
         const morbi=world.entities.get('r2-morbi');
