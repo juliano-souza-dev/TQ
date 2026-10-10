@@ -24,3 +24,12 @@ test('HUD explicita o alvo literal em vez de reduzir tudo para NPC', () => {
   assert.equal(formatMissionHudObjectives(mission),'Derrotar 1 Kraken das Profundezas · 0/1');
   assert.equal(formatMissionHudObjectives(mission).includes('NPC'),false);
 });
+
+
+test('câmera de combate reassume no desktop mesmo após pan manual', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source,/const combatTarget = navalBattle\?\.getCameraTarget\?\.\(\) \?\? null/);
+  assert.match(source,/if\(combatTarget\?\.health>0 && !r1ExitCinematic\) world\.manualCamera=null/);
+  assert.match(source,/combatTarget\?\.type === 'npc' \|\| combatTarget\?\.type === 'monster'/);
+  assert.match(source,/selectedNpcId = npc\.id;[\s\S]*world\.manualCamera = null;/);
+});
