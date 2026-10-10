@@ -22,3 +22,11 @@ test('new world is empty and independently instantiated', () => {
 test('invalid region is rejected', () => {
   assert.throws(() => createWorldState({ width: 0, height: 10 }), TypeError);
 });
+
+
+test('ilha decorativa não bloqueia o oceano se o asset falhar', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/rendering/IslandRenderer.js', import.meta.url), 'utf8'));
+  assert.match(source, /island\.kind === 'decoration'/);
+  assert.match(source, /Ilha decorativa ignorada/);
+  assert.match(source, /throw new Error\('Falha ao carregar ilha: ' \+ island\.id/);
+});
