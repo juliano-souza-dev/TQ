@@ -1,5 +1,6 @@
 import { EVENTS } from '../items/EquipmentCatalog.js';
 import { getRegionMastery } from '../education/RegionMastery.js';
+import { activeBoardMissions, missionStatus, uniqueClaimedCount } from './CampaignState.js';
 
 // Contracts are completed through gameplay; no separate math academy.
 export const R1_MISSIONS = Object.freeze([
@@ -51,13 +52,19 @@ export function getCampaignBoard(save = {}, events = EVENTS) {
     const claimed = state.claimed.includes(mission.id);
     const active = state.active.includes(mission.id);
     return {
-      ...mission, progress, claimed, active, ready: active && ready,
-      status: claimed ? 'claimed' : active ? (ready ? 'ready' : 'active')
-        : !afterIntroduction || !eligible(mission, state, events) ? 'locked' : 'available',
+      ...mission, progress, claimed,
+      active: !claimed && active,
+      ready: !claimed && active && ready,
+      status: missionStatus({
+        claimed,
+        active: !claimed && active,
+        ready: !claimed && active && ready,
+        available: afterIntroduction && eligible(mission, state, events),
+      }),
     };
   });
   const mastery = getRegionMastery(save.pedagogy);
-  const essentialClaimed = missions.filter(mission => !mission.optional && mission.claimed).length;
+  const essentialClaimed = uniqueClaimedCount(state.claimed,R1_MISSIONS,{includeOptional:false});
   const finaleClaimed = state.claimed.includes('r1-finale');
   const canAdvance = afterIntroduction && finaleClaimed
     && essentialClaimed >= REQUIRED_R1_CONTRACTS;
@@ -66,7 +73,7 @@ export function getCampaignBoard(save = {}, events = EVENTS) {
     afterIntroduction, missions, mastery, essentialClaimed, canAdvance,
     unlockedRegion: unlocked ? 2 : 1,
     activeRegion: (save.progression?.activeRegion ?? 1) >= 2 && unlocked ? 2 : 1,
-    active: missions.filter(m => m.active),
+    active: activeBoardMissions(missions),
     claimable: missions.filter(m => m.ready),
     available: missions.filter(m => m.status === 'available'),
   };
@@ -140,7 +147,7 @@ export function claimCampaignMission(save = {}, id, events = EVENTS) {
     campaign: {
       ...state,
       active: state.active.filter(item => item !== id),
-      claimed: [...state.claimed, id],
+      claimed: [...new Set([...state.claimed, id])],
     },
     profile: { ...profile, gold: Math.max(0, Number(profile.gold) || 0) + (reward.gold ?? 0) },
     ammunition: {
