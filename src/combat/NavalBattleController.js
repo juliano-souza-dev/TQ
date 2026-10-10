@@ -773,8 +773,8 @@ export class NavalBattleController {
       const maximumRange=isLeviathan?Math.max(...CANNONS.map(cannonRange)):KRAKEN_RETALIATION_RANGE;
       if(distanceBetween(monster,player)>maximumRange)continue;
       const heading=(((Number(monster.heading)||0)%360)+360)%360;
-      const right=Math.abs(((heading-90+540)%360)-180)<=11.25;
-      const left=Math.abs(((heading-270+540)%360)-180)<=11.25;
+      const right=Math.abs(((heading-90+540)%360)-180)<=25;
+      const left=Math.abs(((heading-270+540)%360)-180)<=25;
       if(isLeviathan&&!right&&!left)continue;
       if(now<(this.nextKrakenStrike.get(monster.id)??-Infinity))continue;
       const destination={x:player.x,y:player.y};
