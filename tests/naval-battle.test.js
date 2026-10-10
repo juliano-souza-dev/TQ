@@ -186,6 +186,20 @@ test('Halloween event ammunition is separate from normal cannonball inventory', 
   assert.equal(t.shots[0].ammo.fx.preset, 'halloween');
 });
 
+test('NPC configurado usa alcance e dano próprios no disparo', () => {
+  const t = battleHarness();
+  t.enemy.x = 500;
+  t.enemy.state = 'retaliating';
+  t.enemy.aggression = 'attack';
+  t.enemy.cannonSlots = 10;
+  t.enemy.range = 520;
+  t.enemy.damage = 12;
+  t.battle.fireNpcVolleys(1000);
+  assert.equal(t.shots.length, 1, 'alcance configurado deve permitir a salva');
+  assert.equal(t.shots[0].onImpact({at:t.shots[0].to}).kind, 'ship');
+  assert.equal(t.save.combat.shipHealth, 88);
+});
+
 test('fragata em fuga nao atira, inclusive quando recebe dano', () => {
   const t = battleHarness();
   t.enemy.archetype = 'fugitive-frigate';
