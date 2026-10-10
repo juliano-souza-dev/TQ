@@ -588,8 +588,15 @@ async function startWorld() {
           Math.min(viewportW, viewportH) / 1300)) * 1.05 * 1.06
       : normalCameraZoom;
     const smoothing = 1-Math.exp(-Math.max(0,stepMs)/450);
-    pursuitCameraZoom += (targetZoom-pursuitCameraZoom)*smoothing;
-    world.camera.zoom = pursuitCameraZoom;
+    if(world.manualCamera){
+      // WASD/drag uses the normal static camera. Dynamic combat framing only
+      // resumes after the camera is re-centered on the player's ship.
+      pursuitCameraZoom = normalCameraZoom;
+      world.camera.zoom = normalCameraZoom;
+    }else{
+      pursuitCameraZoom += (targetZoom-pursuitCameraZoom)*smoothing;
+      world.camera.zoom = pursuitCameraZoom;
+    }
     // Follow the midpoint in a long pursuit, with smooth camera travel.
     // In close combat return near the player to keep the standard framing.
     const offsetTarget = thiefFraming && !world.manualCamera
