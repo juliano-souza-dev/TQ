@@ -448,7 +448,12 @@ async function startWorld() {
     const forgottenIsland = exploringIsland
       ? world.region.islands.find(island => island.id === 'r2-scenery-north') : null;
     const combatTarget = !world.manualCamera ? navalBattle?.getTarget?.() : null;
-    const oneVsOneTarget = combatTarget?.type === 'npc' && combatTarget.health > 0 ? combatTarget : null;
+    const activeR2Mission = world.region.id === 'r2' ? readSave().r2Campaign?.active : null;
+    const morbiEncounter = ['r2-golden-i','r2-golden-ii'].includes(activeR2Mission)
+      ? world.entities.get('r2-morbi') : null;
+    const oneVsOneTarget = !world.manualCamera && morbiEncounter?.health > 0
+      ? morbiEncounter
+      : combatTarget?.type === 'npc' && combatTarget.health > 0 ? combatTarget : null;
     const cinematicTarget = thief ?? oneVsOneTarget ?? forgottenIsland;
     const finalMission = world.region.id === 'r1'
       && readSave().campaign?.active?.includes('r1-finale')
@@ -958,7 +963,7 @@ async function startWorld() {
 
   let pendingTreasureId = null;
   const visibleTreasures = () => (world.region.id === 'r2'
-    && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active))
+    && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active))
       ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
   const openTreasureChallenge = treasure => {
     if(!treasure || mathGate.isOpen || islandPanel?.isOpen)return false;
@@ -1023,7 +1028,7 @@ async function startWorld() {
   const minimap = createMinimap(world, {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
-    getTreasures: () => (world.region.id === 'r2' && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active)) ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),
+    getTreasures: () => (world.region.id === 'r2' && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active)) ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),
     hasTreasureSense: () => Boolean(world.treasureSenseActive || navalBattle?.isTreasureMapActive()),
   });
   minimapElement = minimap.element;
@@ -2194,7 +2199,7 @@ async function startWorld() {
       cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
       const hidePursuitTreasures = world.region.id === 'r2'
-        && ['r2-destroy-thief','r2-golden-ii'].includes(readSave().r2Campaign?.active);
+        && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active);
       const renderedTreasures=hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
       treasureGlowRenderer?.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs,pendingTreasureId);
       treasureRenderer.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs);
