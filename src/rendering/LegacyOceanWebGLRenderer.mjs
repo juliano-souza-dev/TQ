@@ -33,6 +33,15 @@ uniform float uWaveMix;
 uniform float uFoamMix;
 uniform float uSparkleIntensity;
 uniform float uSparkleSharpness;
+uniform float uCorruptionEnabled;
+uniform vec3 uCorruptionColor;
+uniform float uCorruptionGlow;
+uniform float uCorruptionNoise;
+uniform float uCorruptionPulse;
+uniform vec4 uCorruptionZone0;
+uniform vec4 uCorruptionZone1;
+uniform vec4 uCorruptionZone2;
+uniform vec4 uCorruptionZone3;
 
 in vec2 vUv;
 out vec4 outColor;
@@ -40,6 +49,21 @@ out vec4 outColor;
 vec3 saturateColor(vec3 color,float amount){
   float luma=dot(color,vec3(0.299,0.587,0.114));
   return mix(vec3(luma),color,amount);
+}
+
+float corruptionZoneMask(vec2 world,vec4 zone,float noiseValue){
+  if(zone.w<=0.001||zone.z<=1.0)return 0.0;
+  float d=distance(world,zone.xy);
+  float broad=1.0-smoothstep(zone.z*0.40,zone.z*1.12,d);
+  float ragged=(noiseValue-0.5)*(uCorruptionNoise*0.01)*0.52;
+  return clamp((broad+ragged)*zone.w,0.0,1.0);
+}
+
+float corruptionNoiseAt(vec2 world){
+  float a=sin(world.x*0.0071+world.y*0.0037+uTime*0.10);
+  float b=sin(world.y*0.0103-world.x*0.0029-uTime*0.073);
+  float c=sin((world.x+world.y)*0.0049+uTime*0.051);
+  return 0.5+0.5*(a*0.46+b*0.34+c*0.20);
 }
 
 void main(){
@@ -88,6 +112,25 @@ void main(){
   color=saturateColor(color,uSaturation);
   color=(color-0.5)*uContrast+0.5;
   color*=uTint;
+
+  if(uCorruptionEnabled>0.5){
+    float n=corruptionNoiseAt(world);
+    float m0=corruptionZoneMask(world,uCorruptionZone0,n);
+    float m1=corruptionZoneMask(world,uCorruptionZone1,1.0-n);
+    float m2=corruptionZoneMask(world,uCorruptionZone2,fract(n+0.31));
+    float m3=corruptionZoneMask(world,uCorruptionZone3,fract(n+0.67));
+    float corruption=1.0-(1.0-m0)*(1.0-m1)*(1.0-m2)*(1.0-m3);
+    float breathing=0.86+0.14*sin(uTime*(0.18+uCorruptionPulse*0.004)+world.x*0.0017-world.y*0.0011);
+    corruption=clamp(corruption*breathing,0.0,1.0);
+
+    vec3 shadowed=color*vec3(0.54,0.78,0.62);
+    vec3 poisoned=mix(shadowed,uCorruptionColor,0.44+uCorruptionGlow*0.0025);
+    float veinWave=0.5+0.5*sin(world.x*0.019+sin(world.y*0.011)*2.4+uTime*0.24);
+    float veins=smoothstep(0.76,0.97,veinWave+n*0.16)*corruption;
+    poisoned+=uCorruptionColor*veins*(uCorruptionGlow*0.0018);
+    color=mix(color,poisoned,corruption*0.82);
+  }
+
   outColor=vec4(clamp(color,0.0,1.0),1.0);
 }
 `;
@@ -271,7 +314,9 @@ export class OceanWebGLRenderer{
         "uTexture","uResolution","uCamera","uDirection","uZoom","uTime",
         "uTileSize","uSpeed","uSwell","uBrightness","uSaturation","uContrast","uTint",
         "uDistortion","uWaveFrequencyA","uWaveFrequencyB","uWaveMix",
-        "uFoamMix","uSparkleIntensity","uSparkleSharpness"
+        "uFoamMix","uSparkleIntensity","uSparkleSharpness",
+        "uCorruptionEnabled","uCorruptionColor","uCorruptionGlow","uCorruptionNoise","uCorruptionPulse",
+        "uCorruptionZone0","uCorruptionZone1","uCorruptionZone2","uCorruptionZone3"
       ]){
         this.uniforms[name]=gl.getUniformLocation(this.program,name);
       }
@@ -424,6 +469,28 @@ export class OceanWebGLRenderer{
     gl.uniform1f(this.uniforms.uFoamMix,clamp(Number(ocean.foamMix)||0,0,100));
     gl.uniform1f(this.uniforms.uSparkleIntensity,clamp(Number(ocean.sparkleIntensity)||0,0,100));
     gl.uniform1f(this.uniforms.uSparkleSharpness,clamp(Number(ocean.sparkleSharpness)||18,2,48));
+
+    const corruption=ocean.corruption||{};
+    const corruptionZones=Array.isArray(corruption.zones)?corruption.zones:[];
+    gl.uniform1f(this.uniforms.uCorruptionEnabled,corruption.active===true?1:0);
+    gl.uniform3f(
+      this.uniforms.uCorruptionColor,
+      clamp(Number(corruption.colorR)||24,0,255)/255,
+      clamp(Number(corruption.colorG)||142,0,255)/255,
+      clamp(Number(corruption.colorB)||78,0,255)/255
+    );
+    gl.uniform1f(this.uniforms.uCorruptionGlow,clamp(Number(corruption.glow)||0,0,100));
+    gl.uniform1f(this.uniforms.uCorruptionNoise,clamp(Number(corruption.noise)||0,0,100));
+    gl.uniform1f(this.uniforms.uCorruptionPulse,clamp(Number(corruption.pulse)||0,0,100));
+    for(let index=0;index<4;index++){
+      const zone=corruptionZones[index]||{};
+      gl.uniform4f(
+        this.uniforms["uCorruptionZone"+index],
+        Number(zone.x)||0,Number(zone.y)||0,
+        Math.max(1,Number(zone.radius)||1),
+        clamp(Number(zone.intensity)||0,0,1)
+      );
+    }
 
     gl.drawArrays(gl.TRIANGLES,0,6);
     this.renderWake({time,camera,zoom,width:resolutionX,height:resolutionY,wake});
