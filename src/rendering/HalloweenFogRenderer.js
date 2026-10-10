@@ -45,9 +45,10 @@ function makeProgram(gl) {
  * consume ammunition or access player persistence.
  */
 export class HalloweenFogRenderer {
-  constructor(canvas, { getReducedMotion = () => false } = {}) {
+  constructor(canvas, { getReducedMotion = () => false, intensityScale = 1 } = {}) {
     this.canvas = canvas;
     this.getReducedMotion = getReducedMotion;
+    this.intensityScale = Math.max(0, Number(intensityScale) || 0);
     this.gl = null;
     this.program = null;
     this.buffer = null;
@@ -154,7 +155,7 @@ export class HalloweenFogRenderer {
     gl.uniform2f(this.uniforms.uCamera, camera.x, camera.y);
     gl.uniform1f(this.uniforms.uZoom, Math.max(0.01, Number(zoom) || 1));
     gl.uniform1f(this.uniforms.uTime, options.animate ? (timeMs % 1800000) / 1000 : 0);
-    gl.uniform1f(this.uniforms.uIntensity, options.intensity);
+    gl.uniform1f(this.uniforms.uIntensity, options.intensity * this.intensityScale);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     return true;
   }
