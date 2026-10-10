@@ -720,3 +720,13 @@ test('Morbi extremo não solta os 20 tiros no mesmo frame', () => {
   t.battle.fireNpcVolleys(1160);
   assert.equal(t.shots.length,4,'as duas baterias avançam um canhão por vez');
 });
+
+
+test('efeitos de combate acompanham o zoom da câmera', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/rendering/NavalCombatWebGLRenderer.mjs', import.meta.url), 'utf8'));
+  assert.match(source, /const combatVisualScale=clamp\(\(Number\(zoom\)\|\|1\)\/\.88,\.22,1\.12\)/);
+  assert.match(source, /drawCombatPoint\(x,y,Math\.max\(\.75,Number\(size\)\|\|0\)\*combatVisualScale/);
+  assert.match(source, /assetSize\*combatVisualScale\*this\.pixelRatio/);
+  assert.match(source, /for\(const impact of this\.impacts\)/);
+  assert.match(source, /drawCombatPoint\(\s*impact\.x,impact\.y/);
+});
