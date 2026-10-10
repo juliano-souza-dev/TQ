@@ -1928,6 +1928,7 @@ async function startWorld() {
   }
   let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
   let oceanTimeMs = 0;
+  let blackMarketMerchantOrbitAngle = 0;
   loop = new GameLoop({
     update: (stepMs) => {
       state = advanceGameState(state, stepMs);
@@ -1976,31 +1977,52 @@ async function startWorld() {
         updatePumpkinAmbush(stepMs);
         const active = boardFor(readSave(),world.region.id).active[0];
         const island = world.region.islands.find(i=>i.id==='r2-scenery-north');
-        // The Black Market merchant is stationary at the exact map center.
-        const marketX=world.region.width/2,marketY=world.region.height/2;
+        // Fora das missões que exigem encontro em coordenada fixa, o mercador
+        // navega lentamente em patrulha circular pela região.
+        const marketAnchorX=world.region.width/2,marketAnchorY=world.region.height/2;
+        const marketMissionFixed=['r2-black-market','r2-hunt-prep'].includes(active?.id)
+          && active.status==='active';
         if(!world.entities.has('r2-black-market-merchant')){
           world.entities.set('r2-black-market-merchant',{
             id:'r2-black-market-merchant',name:'Mercador do Mercado Negro',
             type:'npc',archetype:'black-market-merchant',shipId:'mercado-negro',
-            x:marketX,y:marketY,heading:0,health:100000,maxHealth:100000,
-            state:'idle',aggression:'neutral',attackProtectedUntil:Infinity,
-            cannonSlots:0,speed:0,
+            x:marketAnchorX,y:marketAnchorY,heading:90,health:100000,maxHealth:100000,
+            state:'roaming',aggression:'neutral',attackProtectedUntil:Infinity,
+            cannonSlots:0,speed:58,
           });
         }
-        if(Math.hypot(world.camera.x-marketX,world.camera.y-marketY)>220)marketDismissedNearby=false;
-        if(['r2-black-market','r2-hunt-prep'].includes(active?.id)
-          && active.status==='active'
-          && !marketDismissedNearby
-          && Math.hypot(world.camera.x-marketX,world.camera.y-marketY)<=180
-          && !mathGate.isOpen && marketOverlay.hidden && !islandPanel.isOpen){
-          clickNavigation.cancel();
-          navalBattle.firing=false;
-          if(blackMarketUnlocked)showBlackMarket();
-          else mathGate.open({
-            kind:'black-market',title:'☠️ Senha do Mercado Negro',
-            description:'Resolva a multiplicação para negociar com o mercador.',
-            afterSuccess:()=>showBlackMarket(),
-          });
+        const marketMerchant=world.entities.get('r2-black-market-merchant');
+        if(marketMerchant){
+          if(marketMissionFixed){
+            marketMerchant.x=marketAnchorX;
+            marketMerchant.y=marketAnchorY;
+            marketMerchant.heading=90;
+            marketMerchant.state='idle';
+          }else{
+            marketMerchant.state='roaming';
+            const orbitRadiusX=620,orbitRadiusY=430;
+            blackMarketMerchantOrbitAngle=(blackMarketMerchantOrbitAngle+stepMs*0.000075)%(Math.PI*2);
+            const nextX=marketAnchorX+Math.cos(blackMarketMerchantOrbitAngle)*orbitRadiusX;
+            const nextY=marketAnchorY+Math.sin(blackMarketMerchantOrbitAngle)*orbitRadiusY;
+            const dx=nextX-marketMerchant.x,dy=nextY-marketMerchant.y;
+            marketMerchant.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+            marketMerchant.x=nextX;
+            marketMerchant.y=nextY;
+          }
+          if(Math.hypot(world.camera.x-marketMerchant.x,world.camera.y-marketMerchant.y)>220)marketDismissedNearby=false;
+          if(marketMissionFixed
+            && !marketDismissedNearby
+            && Math.hypot(world.camera.x-marketMerchant.x,world.camera.y-marketMerchant.y)<=180
+            && !mathGate.isOpen && marketOverlay.hidden && !islandPanel.isOpen){
+            clickNavigation.cancel();
+            navalBattle.firing=false;
+            if(blackMarketUnlocked)showBlackMarket();
+            else mathGate.open({
+              kind:'black-market',title:'☠️ Senha do Mercado Negro',
+              description:'Resolva a multiplicação para negociar com o mercador.',
+              afterSuccess:()=>showBlackMarket(),
+            });
+          }
         }
         // A completed battle is no longer present on the ocean, even while
         // its reward is awaiting collection at the Missions port.
