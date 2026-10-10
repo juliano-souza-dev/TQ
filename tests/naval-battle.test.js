@@ -525,3 +525,27 @@ test('Morbi usa um único canhão pesado de 1200 de dano com recarga de 45 segun
   t.battle.fireNpcVolleys(46000);
   assert.equal(t.shots.length, 2, 'segundo disparo libera exatamente após 45 segundos');
 });
+
+
+test('câmera 1x1 aproxima quando os navios estão lado a lado e abre quando se afastam', async () => {
+  const { computeOneVsOneFraming } = await import('../src/world/BattleCamera.js');
+  const close = computeOneVsOneFraming({
+    player:{x:1000,y:1000},target:{x:1280,y:1000},
+    viewportWidth:390,viewportHeight:844,normalZoom:.88,
+  });
+  const far = computeOneVsOneFraming({
+    player:{x:1000,y:1000},target:{x:2300,y:1700},
+    viewportWidth:390,viewportHeight:844,normalZoom:.88,
+  });
+  assert.ok(close.zoom > far.zoom);
+  assert.deepEqual(close.offset, {x:140,y:-28});
+  assert.ok(far.zoom >= .18);
+});
+
+test('Rosa do Terror usa impacto reduzido para não encobrir a batalha', async () => {
+  const { AMMO_FX_PRESETS } = await import('../src/combat/fx/AmmoFxProfile.mjs');
+  const fx = AMMO_FX_PRESETS['terror-rose'];
+  assert.ok(fx.impactShip.size <= 110);
+  assert.ok(fx.impactShip.flash <= .6);
+  assert.ok(fx.impactShip.ringCount <= 2);
+});
