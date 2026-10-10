@@ -9,6 +9,36 @@ import {
   interceptPoint, shipCollision, shotDamage,
 } from './NavalBattleRules.js';
 
+// Distinct cannon sounds, with pooled voices to avoid clipping during volleys.
+const CANNON_AUDIO = Object.freeze({
+  special: './assets/sounds/special_cannon.wav',
+  normal: 'https://raw.githubusercontent.com/juliano-souza-dev/tabuada-quest-2-dev/main/assets/sound/cannon_shot.mp3',
+  impact: 'https://raw.githubusercontent.com/juliano-souza-dev/tabuada-quest-2-dev/main/assets/sound/cannon_impact_with_ship.mp3',
+  water: 'https://raw.githubusercontent.com/juliano-souza-dev/tabuada-quest-2-dev/main/assets/sound/cannon_ball_in_water.mp3',
+});
+const cannonAudioPools = new Map();
+function playCannonSound(kind) {
+  if (typeof Audio === 'undefined') return;
+  const src = CANNON_AUDIO[kind];
+  if (!src) return;
+  try {
+    let pool = cannonAudioPools.get(kind);
+    if (!pool) {
+      pool = { cursor: 0, voices: Array.from({length: kind === 'normal' ? 4 : 3}, () => {
+        const audio = new Audio(src);
+        audio.preload = 'auto';
+        audio.volume = kind === 'special' ? .85 : .7;
+        return audio;
+      }) };
+      cannonAudioPools.set(kind, pool);
+    }
+    const audio = pool.voices[pool.cursor++ % pool.voices.length];
+    audio.pause();
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  } catch { /* Audio is optional in non-browser runtimes. */ }
+}
+
 // The shortest cannon sets the Kraken's retaliation reach (currently 300 units).
 export const KRAKEN_RETALIATION_RANGE = Math.min(...CANNONS.map(cannon => cannonRange(cannon)));
 export const CANNON_SEQUENCE_MS = 160;
@@ -600,6 +630,7 @@ export class NavalBattleController {
         onImpact: ({ at }) => this.resolvePlayerImpact(target.id, at, damage),
       });
       if (!accepted) return 0;
+      playCannonSound(cannon.id === 'aetherion-mk1' ? 'special' : 'normal');
 
       this.markCombatActivity(now);
       ammoStockById[ammoId] = remaining - 1;
