@@ -732,14 +732,15 @@ export class NavalBattleController {
       }
       if (npc.type !== 'npc' || npc.health <= 0 || npc.state !== 'retaliating' ||
         npc.aggression === 'flee' || npc.cannonSlots === 0) continue;
-      if (distanceBetween(npc, player) > 340) continue;
+      const npcRange = Math.max(1, Number(npc.range) || 340);
+      if (distanceBetween(npc, player) > npcRange) continue;
       if (now < (this.nextNpcShot.get(npc.id) ?? -Infinity)) continue;
-      const muzzle = cannonHardpoint(npc, player, npc.heading, 0, 1);
+      const muzzle = cannonHardpoint(npc, player, npc.heading, 0, Math.max(1, npc.cannonSlots));
       const aim = aimWithAccuracy(player, muzzle, .66, this.random);
       const accepted = this.renderer.fire({
         from: muzzle, to: aim, duration: flightDurationMs(muzzle, aim, 400),
         ammo: this.enemyAmmo, impactKind: 'water', startTime: now,
-        onImpact: ({ at }) => this.resolveNpcImpact(npc.id, at),
+        onImpact: ({ at }) => this.resolveNpcImpact(npc.id, at, Math.max(1, Number(npc.damage) || 5)),
       });
       if (accepted) this.nextNpcShot.set(npc.id, now + 1800);
     }
