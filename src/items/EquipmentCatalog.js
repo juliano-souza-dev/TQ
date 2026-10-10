@@ -7,7 +7,7 @@ export const CANNONS = Object.freeze([
   { id:'royal-lion', name:'Canhão Real Dourado com Leão', asset:'Canhão Real Dourado com Leão.webp', reloadSeconds:1.15, accuracy:0.85, damageMultiplier:2, caliberPounder:28, range:840, acquisition:{type:'unconfigured'}, event:null },
   { id:'aetherion-mk1', name:'Canhão Aetherion MK-I', asset:'canhao_aetherion_mk1.webp', assetPending:false, reloadSeconds:1, accuracy:0.85, damageMultiplier:2, caliberPounder:28, range:840, exclusiveAmmoId:'aetherion-seeker', acquisition:{type:'mission-reward',mission:'r2-equip-chaser'}, event:null },
   { id:'spectral-necromancer', name:'Canhão Espectral Necromântico', asset:'Canhão Espectral Necromântico.webp', reloadSeconds:1, accuracy:0.84, damageMultiplier:2.2, caliberPounder:26, range:735, acquisition:{type:'event-reward',event:'halloween',condition:null}, event:'halloween' },
-  { id:'pumpkin-terror', name:'Canhão Terror da Abóbora', asset:'canhao terror da abóbora.webp', reloadSeconds:1, accuracy:0.84, damageMultiplier:2.2, caliberPounder:26, range:735, acquisition:{type:'event-reward',event:'halloween',condition:null}, event:'halloween' },
+  { id:'pumpkin-terror', name:'Terror da Abóbora', asset:'canhao terror da abóbora.webp', reloadSeconds:1, accuracy:0.84, damageMultiplier:2.2, caliberPounder:26, range:735, acquisition:{type:'event-reward',event:'halloween',condition:null}, event:'halloween' },
 ].map(item=>Object.freeze(item)));
 export const AMMUNITION = Object.freeze([
   {id:'aetherion-seeker',name:'Orbe Autoguiado Aetherion',asset:'orbe_autoguiado_aetherion.webp',assetPending:false,tracking:{enabled:true,maxDurationMs:9000,lockOn:'fired-target',retarget:false,impact:'single'},event:null,acquisition:{type:'mission-reward',mission:'r2-equip-chaser'}},
