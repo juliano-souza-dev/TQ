@@ -340,6 +340,16 @@ async function startWorld() {
       });
     }
   }
+  // An active contract can never also be marked as claimed.
+  // Older rollback/migration paths could leave exactly that contradictory state,
+  // which renders a completed card without the "Resgatar recompensa" button.
+  {
+    const save=readSave(),state=save.r2Campaign??{},active=state.active;
+    if(active && (state.claimed??[]).includes(active)){
+      writePatch({r2Campaign:{...state,claimed:(state.claimed??[]).filter(id=>id!==active)}});
+    }
+  }
+
   // Repair saves that were accidentally pushed backwards after the Terror
   // was already destroyed. The ambush flag is authoritative story progress.
   {
