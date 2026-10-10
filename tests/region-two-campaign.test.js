@@ -53,10 +53,11 @@ test('equipar o Terror da Tabuada vem antes do encontro na Ilha Esquecida', () =
 });
 
 test('missão guiada do Terror só libera o encontro depois de equipar e resgatar', () => {
-  const previous=R2_MISSIONS[R2_MISSIONS.findIndex(m=>m.id==='r2-equip-terror')-1];
+  const equipIndex=R2_MISSIONS.findIndex(m=>m.id==='r2-equip-terror');
+  const previous=R2_MISSIONS[equipIndex-1];
   let save={
     profile:{gold:0},
-    r2Campaign:{active:null,claimed:[previous.id],progress:{},processed:[]},
+    r2Campaign:{active:null,claimed:R2_MISSIONS.slice(0,equipIndex).map(m=>m.id),progress:{},processed:[]},
     equipment:{ownedShipIds:['galeao-halloween-tabuada']},
   };
   const accepted=acceptR2Mission(save,'r2-equip-terror');
