@@ -340,16 +340,6 @@ async function startWorld() {
       });
     }
   }
-  // An active contract can never also be marked as claimed.
-  // Older rollback/migration paths could leave exactly that contradictory state,
-  // which renders a completed card without the "Resgatar recompensa" button.
-  {
-    const save=readSave(),state=save.r2Campaign??{},active=state.active;
-    if(active && (state.claimed??[]).includes(active)){
-      writePatch({r2Campaign:{...state,claimed:(state.claimed??[]).filter(id=>id!==active)}});
-    }
-  }
-
   // Repair saves that were accidentally pushed backwards after the Terror
   // was already destroyed. The ambush flag is authoritative story progress.
   {
@@ -587,7 +577,10 @@ async function startWorld() {
   keepSailing.textContent='Continuar navegando';
   missionCompleteCard.append(missionCompleteTitle,missionCompleteText,goMissions,keepSailing);
   missionCompleteOverlay.append(missionCompleteCard);root.append(missionCompleteOverlay);
-  keepSailing.addEventListener('click',()=>{missionCompleteOverlay.hidden=true;});
+  keepSailing.addEventListener('click',()=>{
+    missionCompleteOverlay.hidden=true;
+    clearMissionNavigation();
+  });
   function routeToMissionsPort({announce=true}={}){
     const island=world.region.islands.find(i=>i.kind==='missions');
     if(!island)return false;
@@ -599,7 +592,7 @@ async function startWorld() {
     world.manualCamera=null;
     navalBattle.firing=false;
     clickNavigation?.setDestination(destination);
-    void guideR2MissionTo('missions');
+    void guideMissionTo('missions');
     if(announce)showOceanReward('⚓ Rota para o Porto das Missões definida!');
     return true;
   }
@@ -623,7 +616,7 @@ async function startWorld() {
       notifiedMissionIds.add(mission.id);
       showOceanReward('🏆 Missão concluída: '+mission.name);
       announceMissionCompletion(mission.name);
-      if(world.region.id==='r2')routeToMissionsPort({announce:false});
+      routeToMissionsPort({announce:false});
       break;
     }
   }
@@ -1312,7 +1305,6 @@ async function startWorld() {
         : mission ? '📜 '+formatMissionHudObjectives(mission)
         : !readSave().progression?.r2PortVisited ? '📜 Primeiro objetivo: vá ao Porto das Missões'
         : '📜 Vá ao Porto das Missões para receber seu próximo contrato';
-      if(ready && !clickNavigation?.getDestination?.())routeToMissionsPort({announce:false});
       return;
     }
     const flow = getMissionFlow(readSave(), activeShip.id);
@@ -1327,8 +1319,16 @@ async function startWorld() {
       firstVoyageGuide = null;
     }
   };
-  async function guideR2MissionTo(destination){
-    if(world.region.id!=='r2')return;
+  function clearMissionNavigation({disposeGuide=true}={}){
+    pendingTreasureId=null;
+    clickNavigation?.cancel();
+    if(disposeGuide){
+      firstVoyageGuide?.finish();
+      firstVoyageGuide?.dispose();
+      firstVoyageGuide=null;
+    }
+  }
+  async function guideMissionTo(destination){
     if(!firstVoyageGuide){
       const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
       if(generation!==worldGeneration)return;
@@ -1364,12 +1364,13 @@ async function startWorld() {
           const patch=campaignFor(world.region.id).accept(readSave(),id);
           if(!patch)return false;
           writePatch(patch);
+          clearMissionNavigation();
           if(id==='r2-equip-terror'){
             if(activeShip.id==='galeao-halloween-tabuada'){
               recordMissionEvent({type:'equip-ship',ship:'galeao-halloween-tabuada',id:'terror-already-equipped'});
-              void guideR2MissionTo('missions');
+              void guideMissionTo('missions');
             } else {
-              void guideR2MissionTo('shipyard');
+              void guideMissionTo('shipyard');
             }
           }
           updateMissionHud();navalHud?.refresh();return true;
@@ -1378,22 +1379,23 @@ async function startWorld() {
         kind: 'accept-mission', id,
         title: '📜 Aceitar contrato',
         description: 'Resolva uma continha para receber sua próxima missão.',
-        afterSuccess: () => { islandPanel.refreshMissionBoard(); navalHud.refresh(); },
+        afterSuccess: () => {
+          clearMissionNavigation();
+          islandPanel.refreshMissionBoard();
+          navalHud.refresh();
+          updateMissionHud();
+        },
       }),
       onClaim: id => {
         const result = campaignFor(world.region.id).claim(readSave(), id);
         if (!result) return false;
         writePatch(result.patch);
+        clearMissionNavigation();
         if(result.mission.reward?.shipUpgrade){
           const upgraded=readSave();
           writePatch({shipUpgrades:{...(upgraded.shipUpgrades??{}),masterShipwright:true},
             combat:{...(upgraded.combat??{}),shipHealth:upgraded.equipment?.equippedShipId==='fragata-sombra-cacadora' ? Math.min(600,(Number(upgraded.combat?.shipHealth)||100)+500) : Math.max(1500,Number(upgraded.combat?.shipHealth)||0)}});
           showOceanReward('🔨 Mestre construtor contratado! Cascos reforçados e novos espaços de canhão.');
-        }
-        if(id==='r2-equip-terror'){
-          firstVoyageGuide?.finish();
-          firstVoyageGuide?.dispose();
-          firstVoyageGuide=null;
         }
         navalHud.refresh();
         updateMissionHud();
@@ -1431,7 +1433,7 @@ async function startWorld() {
            if (world.region.id==='r2' && ['fragata-sombra-cacadora','galeao-halloween-tabuada'].includes(ship.id)) {
              recordMissionEvent({type:'equip-ship',ship:ship.id});
              if(readSave().r2Campaign?.active==='r2-equip-terror' && ship.id==='galeao-halloween-tabuada')
-               void guideR2MissionTo('missions');
+               void guideMissionTo('missions');
            }
            return true;
          }
@@ -1448,7 +1450,7 @@ async function startWorld() {
           navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
           recordMissionEvent({ type: 'equip-ship', ship: ship.id });
           if(world.region.id==='r2' && readSave().r2Campaign?.active==='r2-equip-terror'
-            && ship.id==='galeao-halloween-tabuada') void guideR2MissionTo('missions');
+            && ship.id==='galeao-halloween-tabuada') void guideMissionTo('missions');
           navalHud?.refresh();
           updateMissionHud();
           return true;
@@ -1536,7 +1538,7 @@ async function startWorld() {
     if(!ship || save.storyFlags?.terrorTabuadaDestroyed || !save.equipment?.ownedShipIds?.includes(terrorId))return false;
     if(activeShip.id===terrorId){
       recordMissionEvent({type:'equip-ship',ship:terrorId,id:'terror-auto-equipped'});
-      void guideR2MissionTo('missions');
+      void guideMissionTo('missions');
       updateMissionHud();
       navalHud?.refresh();
       showOceanReward('⚓ Terror da Tabuada equipado! Volte ao Porto das Missões.');
@@ -1555,7 +1557,7 @@ async function startWorld() {
       navalBattle.selectedAmmoId=navalBattle.resolveSelectedAmmo();
       navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
       recordMissionEvent({type:'equip-ship',ship:ship.id,id:'terror-auto-equipped'});
-      void guideR2MissionTo('missions');
+      void guideMissionTo('missions');
       updateMissionHud();
       navalHud?.refresh();
       showOceanReward('⚓ Terror da Tabuada equipado automaticamente! Volte ao Porto das Missões.');
