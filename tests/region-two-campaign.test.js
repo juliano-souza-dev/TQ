@@ -94,3 +94,13 @@ test('save pós-emboscada não volta para o Galeão Dourado nem Mercado Negro', 
   assert.match(source, /active:'r2-search-clues'/);
   assert.match(source, /'r2-why-help'/);
 });
+
+
+test('missão R2 concluída traça rota automática para o Porto das Missões', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source, /function routeToMissionsPort\(/);
+  assert.match(source, /clickNavigation\?\.setDestination\(destination\)/);
+  assert.match(source, /void guideR2MissionTo\('missions'\)/);
+  assert.match(source, /if\(world\.region\.id==='r2'\)routeToMissionsPort\(\{announce:false\}\)/);
+  assert.match(source, /if\(ready && !clickNavigation\?\.getDestination\?\.\(\)\)routeToMissionsPort/);
+});
