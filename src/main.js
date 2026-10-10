@@ -2740,7 +2740,7 @@ async function startWorld() {
         navalBattle.setTarget(null);
       }
       const monster=world.entities.get('r3-leviathan');
-      leviathanAura.hidden=!monster||monster.health<=0;
+      leviathanAura.hidden=!monster||monster.health<=0||monster.ambushPhase==='submerged';
       if(!leviathanAura.hidden){
         const z=world.camera.zoom,c=world.cameraView;
         leviathanAura.style.left=(canvas.clientWidth/2+(monster.x-c.x)*z)+'px';
