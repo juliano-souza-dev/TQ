@@ -599,48 +599,50 @@ export class NavalCombatWebGLRenderer{
 
     // 300ms submerge, 450ms outbound, 220ms tentacle strike,
     // 450ms return on the exact reverse trajectory, 300ms resurfacing.
-    // A continuous crest of flame, smoke-darkened water and boiling foam.
+    // Leviathan flamethrower: tapered jet anchored at the mapped mouth.
+    // Each pulse travels and collides independently; overlapping jets read as continuous fire.
     for(const attack of this.krakenAttacks){
       if(attack.kind!=='leviathan')continue;
       const elapsed=now-attack.startTime;
       const progress=clamp(elapsed/attack.travelMs,0,1);
       const dx=attack.to.x-attack.from.x,dy=attack.to.y-attack.from.y;
       const distance=Math.max(1,Math.hypot(dx,dy));
-      const lx=-dy/distance,ly=dx/distance;
-      const headX=attack.from.x+dx*progress,headY=attack.from.y+dy*progress;
-      // Ignition remains fixed at the actual mouth anchor before the wave advances.
-      if(elapsed>=0&&elapsed<260){
-        const charge=1-Math.abs(elapsed-130)/130;
-        drawCombatPoint(attack.from.x,attack.from.y,35+42*charge,8,0,true,
-          {color:'#ff7b14',coreColor:'#ffedac',glow:1.1,opacity:.58*charge});
+      const dirX=dx/distance,dirY=dy/distance;
+      const sideX=-dirY,sideY=dirX;
+      const length=distance*progress;
+      const time=elapsed*.001;
+      const fade=attack.impactTime===undefined?1:1-smoothstep(0,420,now-attack.impactTime);
+      if(fade<=0)continue;
+      // A small ignition stays exactly at the mouth, not in front of the monster.
+      if(elapsed<220){
+        const charge=Math.sin(Math.PI*clamp(elapsed/220,0,1));
+        drawCombatPoint(attack.from.x,attack.from.y,18+12*charge,8,0,true,
+          {color:'#ff8317',coreColor:'#fff1b9',glow:.9,opacity:.65*charge});
       }
-      const fade=attack.impactTime===undefined?1:1-smoothstep(0,550,now-attack.impactTime);
-      const count=this.reducedFx?11:22;
-      for(let i=0;i<count;i++){
-        const u=i/Math.max(1,count-1);
-        const spread=(u-.5)*126;
-        const curl=Math.sin(elapsed*.009+u*17)*9+Math.sin(elapsed*.015-u*27)*5;
-        const back=26+Math.abs(spread)*.24+Math.sin(u*18+elapsed*.011)*10;
-        const x=headX+lx*(spread+curl)-dx/distance*back;
-        const y=headY+ly*(spread+curl)-dy/distance*back;
-        const tail=Math.max(0,1-Math.abs(u-.5)*.75);
-        drawCombatPoint(x,y,66+tail*48,8,progress,true,{opacity:.68*fade});
-        if(i%2===0)drawCombatPoint(x-dx/distance*25,y-dy/distance*25,80,7,progress,false,
-          {color:"#c8f0df",coreColor:"#ffffff",glow:.15,opacity:.19*fade});
+      const steps=this.reducedFx?34:62;
+      for(let i=0;i<steps;i++){
+        const t=i/Math.max(1,steps-1);
+        const along=length*t;
+        // Very narrow at the mouth, gradually widening toward the travelling tip.
+        const width=4+29*Math.pow(t,.83);
+        const flutter=(Math.sin(time*17+t*23)*2+Math.sin(time*11-t*37)*1.2)*t;
+        const x=attack.from.x+dirX*along+sideX*flutter;
+        const y=attack.from.y+dirY*along+sideY*flutter;
+        const tipFade=1-smoothstep(.88,1,t)*.38;
+        drawCombatPoint(x,y,width*1.9,8,t,true,
+          {color:'#ff6314',coreColor:'#fff3ad',glow:1.08,opacity:.84*fade*tipFade});
+        // Outer flame envelope remains thin at the nozzle and dances along the jet.
+        if(i%2===0)drawCombatPoint(x+sideX*flutter*.7,y+sideY*flutter*.7,width*3.2,8,t,true,
+          {color:'#e93a0c',coreColor:'#ff9c2f',glow:.55,opacity:.24*fade*tipFade});
+        // Subtle water reflection beneath the flame, not separate fireballs.
+        if(i%5===0)drawCombatPoint(x,y+12,Math.max(8,width*2.3),7,t,false,
+          {color:'#ff7b22',coreColor:'#ffe2a2',glow:.12,opacity:.07*fade});
       }
-      const trails=this.reducedFx?5:9;
-      for(let k=1;k<=trails;k++){
-        const p=Math.max(0,progress-k*.052);
-        if(p<=0)continue;
-        drawCombatPoint(attack.from.x+dx*p,attack.from.y+dy*p,115+k*7,7,p,false,
-          {color:"#d15a1a",coreColor:"#ffcf62",glow:.1,opacity:.065*fade*(1-k/(trails+1))});
-      }
-      if(attack.hit&&attack.impactTime!==undefined&&now-attack.impactTime<=550){
-        const t=clamp((now-attack.impactTime)/550,0,1);
-        drawCombatPoint(attack.to.x,attack.to.y,185*(.65+t*.9),1,t,true,
-          {color:"#ff6b16",coreColor:"#fff4bb",glow:1,opacity:.75*(1-t)});
-        drawCombatPoint(attack.to.x,attack.to.y,215*(.7+t*.75),7,t,false,
-          {color:"#b8fff0",coreColor:"#ffffff",glow:.15,opacity:.25*(1-t)});
+      // An impact flash only exists when the swept collision really hit something.
+      if(attack.hit&&attack.impactTime!==undefined&&now-attack.impactTime<420){
+        const t=clamp((now-attack.impactTime)/420,0,1);
+        drawCombatPoint(attack.to.x,attack.to.y,55+t*115,1,t,true,
+          {color:'#ff6814',coreColor:'#fff0ae',glow:1,opacity:.62*(1-t)});
       }
     }
     for(const attack of this.krakenAttacks){
