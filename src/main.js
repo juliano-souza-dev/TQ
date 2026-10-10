@@ -507,6 +507,7 @@ async function startWorld() {
   // Wide cinematic pursuit framing, local to R2 mission 11.
   const normalCameraZoom = world.camera.zoom;
   let pursuitCameraZoom = normalCameraZoom;
+  let automaticBattleCameraActive = false;
   const pursuitHiddenEntities = new Map();
   function updatePursuitPopulation() {
     const mission=world.region.id==='r2' ? readSave().r2Campaign?.active : null;
@@ -585,6 +586,15 @@ async function startWorld() {
       && (combatTarget?.type === 'npc' || combatTarget?.type === 'monster')
         ? combatTarget : null;
     const cinematicTarget = thief ?? oneVsOneTarget ?? forgottenIsland;
+    // On the transition into combat, restore the ship-focused dynamic camera.
+    // An actively held WASD key keeps absolute priority; after the transition
+    // deliberate manual panning remains detached until the player recenters.
+    const activeBattleCamera=Boolean(oneVsOneTarget || thief);
+    if(activeBattleCamera&&!automaticBattleCameraActive&&!r1ExitCinematic){
+      const pan=keyboardCamera?.getVector?.()??{x:0,y:0};
+      if(!pan.x&&!pan.y)world.manualCamera=null;
+    }
+    automaticBattleCameraActive=activeBattleCamera;
     const finalMission = world.region.id === 'r1'
       && readSave().campaign?.active?.includes('r1-finale')
       && !(readSave().campaign?.progress?.['r1-finale']?.[0] >= 1);
