@@ -694,7 +694,7 @@ async function startWorld() {
     boardFor(readSave(),world.region.id).missions.filter(m=>m.status==='ready').map(m=>m.id)
   );
   if(readyAtLoad)queueMicrotask(()=>routeToMissionsPort({announce:false}));
-  if(world.region.id==='r3' && !readSave().r3Campaign?.claimed?.includes('r3-equip-shadow') && !readSave().r3Campaign?.active)
+  if(world.region.id==='r3' && !readSave().r3Campaign?.claimed?.includes('r3-equip-golden') && !readSave().r3Campaign?.active)
     queueMicrotask(()=>{routeToMissionsPort({announce:false});showOceanReward('📜 Região 3: vá ao Porto das Missões buscar seu primeiro contrato.');});
   function checkMissionCompletion(){
     const missions=boardFor(readSave(),world.region.id).missions;
