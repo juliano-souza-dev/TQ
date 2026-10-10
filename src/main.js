@@ -144,6 +144,36 @@ async function startWorld() {
     import('./npcs/NpcSelection.js'),
   ]);
   if (generation !== worldGeneration) return;
+  // TEMPORÁRIO: replay único da missão 16 após mover a passagem.
+  // Restrito a localhost/LAN e marcado para não repetir.
+  {
+    const hostname=globalThis.location?.hostname ?? '';
+    const localDev=hostname==='localhost' || hostname==='127.0.0.1'
+      || /^192\.168\./.test(hostname) || /^10\./.test(hostname)
+      || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
+    const snapshot=localSaves.load(currentUser.uid)?.payload ?? {};
+    const replayKey='devReplayR1FinaleOnceV2';
+    if(localDev && !snapshot.devFlags?.[replayKey] && (snapshot.progression?.activeRegion ?? 1)>=2){
+      const campaign=snapshot.campaign??{};
+      localSaves.save(currentUser.uid,{
+        ...snapshot,
+        progression:{...(snapshot.progression??{}),
+          activeRegion:1,
+          unlockedRegion:Math.max(2,Number(snapshot.progression?.unlockedRegion)||1)},
+        campaign:{
+          ...campaign,
+          active:[...new Set([...(campaign.active??[]).filter(id=>id!=='r1-finale'),'r1-finale'])],
+          claimed:(campaign.claimed??[]).filter(id=>id!=='r1-finale'),
+          progress:{...(campaign.progress??{}),'r1-finale':[0]},
+          processedEvents:(campaign.processedEvents??[]).filter(id=>!String(id).startsWith('r1-finale:exit:')),
+        },
+        transitionFlags:{...(snapshot.transitionFlags??{}),r1FinalePending:false},
+        playerPosition:{x:3660,y:3660},
+        devFlags:{...(snapshot.devFlags??{}),[replayKey]:true},
+      });
+    }
+  }
+
   const storedRegion = localSaves.load(currentUser.uid)?.payload?.progression?.activeRegion ?? 1;
   const region = storedRegion >= 3
     ? (await import('./world/regions/r3.js')).R3
@@ -1248,8 +1278,8 @@ async function startWorld() {
     exitDialog.hidden=true;
     exitDismissed=true;
 
-    const start={x:360,y:3740};
-    const end={x:4310,y:830};
+    const start={x:420,y:3000};
+    const end={x:4380,y:4380};
     const dx=end.x-start.x,dy=end.y-start.y;
     const headingToExit=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
     const terror={
