@@ -67,7 +67,8 @@ export function getCampaignBoard(save = {}, events = EVENTS) {
   const essentialClaimed = uniqueClaimedCount(state.claimed,R1_MISSIONS,{includeOptional:false});
   const finaleClaimed = state.claimed.includes('r1-finale');
   const canAdvance = afterIntroduction && finaleClaimed
-    && essentialClaimed >= REQUIRED_R1_CONTRACTS;
+    && essentialClaimed >= REQUIRED_R1_CONTRACTS
+    && mastery.mastered === true;
   const unlocked = canAdvance || (save.progression?.unlockedRegion ?? 1) >= 2;
   return {
     afterIntroduction, missions, mastery, essentialClaimed, canAdvance,
