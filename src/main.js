@@ -180,6 +180,22 @@ async function startWorld() {
   let hudRefreshElapsed = 0;
   const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+
+  // A missão final da R1 só é concluída depois que o novo mapa já carregou.
+  if(world.region.id==='r2' && readSave().transitionFlags?.r1FinalePending){
+    const before=readSave();
+    const progress=recordCampaignEvent(before,{type:'exit',id:'r1-exit-east-arrival'});
+    if(progress)writePatch(progress);
+    const arrived=readSave();
+    const reward=resolveMissionReward(arrived,'r1-finale');
+    if(reward)writePatch({
+      ...reward.patch,
+      transitionFlags:{...(arrived.transitionFlags??{}),r1FinalePending:false},
+    });
+    else writePatch({
+      transitionFlags:{...(arrived.transitionFlags??{}),r1FinalePending:false},
+    });
+  }
   // Grant Veloz+ only once per player, never reset inventory on reload.
   {
     const save=readSave(),c=save.consumables??{};
@@ -1204,24 +1220,33 @@ async function startWorld() {
   const R1_EXIT_CINEMATIC_ID='r1-exit-terror-do-mar';
 
   function completeR1PassageTransfer(){
-    if(!r1ExitCinematic?.transferPatch)return false;
-    const transferPatch=r1ExitCinematic.transferPatch;
+    if(!r1ExitCinematic)return false;
+    const save=readSave();
     world.entities.delete(R1_EXIT_CINEMATIC_ID);
     world.manualCamera=null;
     r1ExitCinematic=null;
-    writePatch({...transferPatch,playerPosition:{x:420,y:860}});
+    writePatch({
+      progression:{...(save.progression??{}),activeRegion:2,unlockedRegion:Math.max(2,Number(save.progression?.unlockedRegion)||1)},
+      playerPosition:{x:420,y:860},
+      transitionFlags:{...(save.transitionFlags??{}),r1FinalePending:true},
+    });
     exitDialog.hidden=true;
     startWorld();
     return true;
   }
 
-  function beginR1ExitCinematic(transferPatch){
-    if(r1ExitCinematic || world.region.id!=='r1' || !transferPatch)return false;
+  function beginR1ExitCinematic(){
+    if(r1ExitCinematic || world.region.id!=='r1')return false;
+    const board=getCampaignBoard(readSave());
+    const mission=board.missions.find(m=>m.id==='r1-finale');
+    if(!mission || mission.status!=='active' || board.mastery?.mastered!==true)return false;
+
     clickNavigation.cancel();
     navalBattle.firing=false;
     navalBattle.setTarget(null);
     selectedNpcId=null;
     exitDialog.hidden=true;
+    exitDismissed=true;
 
     const start={x:360,y:3740};
     const end={x:4310,y:830};
@@ -1242,9 +1267,7 @@ async function startWorld() {
     r1ExitCinematic={
       entityId:terror.id,start,end,elapsed:0,duration:5600,
       player:{x:world.camera.x,y:world.camera.y},
-      transferPatch,
     };
-    showOceanReward('🏴‍☠️ Algo cruza a passagem...');
     return true;
   }
 
@@ -1274,22 +1297,7 @@ async function startWorld() {
   }
 
   exitStay.addEventListener('click',()=>{exitDialog.hidden=true;exitDismissed=true;});
-  exitTravel.addEventListener('click',()=>{
-    let save=readSave();
-    const mission=getCampaignBoard(save).missions.find(m=>m.id==='r1-finale');
-    if(mission?.status==='ready'){
-      const claimed=resolveMissionReward(save,'r1-finale');
-      if(!claimed)return;
-      writePatch(claimed.patch);
-      save=readSave();
-    }
-    const patch=activateNextRegion(save);
-    if(!patch){
-      exitDescription.textContent='Conclua as missões anteriores para liberar a travessia.';
-      return;
-    }
-    beginR1ExitCinematic(patch);
-  });
+  exitTravel.addEventListener('click',()=>{ exitDialog.hidden=true; });
 
   const {createDarkWatersPortal}=await import('./rendering/DarkWatersPortal.js');
   const darkWatersExit={x:Math.min(world.region.width-160,3930),y:Math.min(world.region.height-180,3890)};
@@ -1920,6 +1928,7 @@ async function startWorld() {
   }
   let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
   let oceanTimeMs = 0;
+  let blackMarketMerchantOrbitAngle = 0;
   loop = new GameLoop({
     update: (stepMs) => {
       state = advanceGameState(state, stepMs);
@@ -1968,31 +1977,52 @@ async function startWorld() {
         updatePumpkinAmbush(stepMs);
         const active = boardFor(readSave(),world.region.id).active[0];
         const island = world.region.islands.find(i=>i.id==='r2-scenery-north');
-        // The Black Market merchant is stationary at the exact map center.
-        const marketX=world.region.width/2,marketY=world.region.height/2;
+        // Fora das missões que exigem encontro em coordenada fixa, o mercador
+        // navega lentamente em patrulha circular pela região.
+        const marketAnchorX=world.region.width/2,marketAnchorY=world.region.height/2;
+        const marketMissionFixed=['r2-black-market','r2-hunt-prep'].includes(active?.id)
+          && active.status==='active';
         if(!world.entities.has('r2-black-market-merchant')){
           world.entities.set('r2-black-market-merchant',{
             id:'r2-black-market-merchant',name:'Mercador do Mercado Negro',
             type:'npc',archetype:'black-market-merchant',shipId:'mercado-negro',
-            x:marketX,y:marketY,heading:0,health:100000,maxHealth:100000,
-            state:'idle',aggression:'neutral',attackProtectedUntil:Infinity,
-            cannonSlots:0,speed:0,
+            x:marketAnchorX,y:marketAnchorY,heading:90,health:100000,maxHealth:100000,
+            state:'roaming',aggression:'neutral',attackProtectedUntil:Infinity,
+            cannonSlots:0,speed:58,
           });
         }
-        if(Math.hypot(world.camera.x-marketX,world.camera.y-marketY)>220)marketDismissedNearby=false;
-        if(['r2-black-market','r2-hunt-prep'].includes(active?.id)
-          && active.status==='active'
-          && !marketDismissedNearby
-          && Math.hypot(world.camera.x-marketX,world.camera.y-marketY)<=180
-          && !mathGate.isOpen && marketOverlay.hidden && !islandPanel.isOpen){
-          clickNavigation.cancel();
-          navalBattle.firing=false;
-          if(blackMarketUnlocked)showBlackMarket();
-          else mathGate.open({
-            kind:'black-market',title:'☠️ Senha do Mercado Negro',
-            description:'Resolva a multiplicação para negociar com o mercador.',
-            afterSuccess:()=>showBlackMarket(),
-          });
+        const marketMerchant=world.entities.get('r2-black-market-merchant');
+        if(marketMerchant){
+          if(marketMissionFixed){
+            marketMerchant.x=marketAnchorX;
+            marketMerchant.y=marketAnchorY;
+            marketMerchant.heading=90;
+            marketMerchant.state='idle';
+          }else{
+            marketMerchant.state='roaming';
+            const orbitRadiusX=620,orbitRadiusY=430;
+            blackMarketMerchantOrbitAngle=(blackMarketMerchantOrbitAngle+stepMs*0.000075)%(Math.PI*2);
+            const nextX=marketAnchorX+Math.cos(blackMarketMerchantOrbitAngle)*orbitRadiusX;
+            const nextY=marketAnchorY+Math.sin(blackMarketMerchantOrbitAngle)*orbitRadiusY;
+            const dx=nextX-marketMerchant.x,dy=nextY-marketMerchant.y;
+            marketMerchant.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+            marketMerchant.x=nextX;
+            marketMerchant.y=nextY;
+          }
+          if(Math.hypot(world.camera.x-marketMerchant.x,world.camera.y-marketMerchant.y)>220)marketDismissedNearby=false;
+          if(marketMissionFixed
+            && !marketDismissedNearby
+            && Math.hypot(world.camera.x-marketMerchant.x,world.camera.y-marketMerchant.y)<=180
+            && !mathGate.isOpen && marketOverlay.hidden && !islandPanel.isOpen){
+            clickNavigation.cancel();
+            navalBattle.firing=false;
+            if(blackMarketUnlocked)showBlackMarket();
+            else mathGate.open({
+              kind:'black-market',title:'☠️ Senha do Mercado Negro',
+              description:'Resolva a multiplicação para negociar com o mercador.',
+              afterSuccess:()=>showBlackMarket(),
+            });
+          }
         }
         // A completed battle is no longer present on the ocean, even while
         // its reward is awaiting collection at the Missions port.
@@ -2397,14 +2427,10 @@ async function startWorld() {
         if (distanceToExit > (exit?.radius ?? 0) + 45) exitDismissed = false;
         const board = getCampaignBoard(readSave());
         const finalMission = board.missions.find(m => m.id === 'r1-finale');
-        const canUsePassage = finalMission && ['active','ready','claimed'].includes(finalMission.status);
-        if (canUsePassage && distanceToExit <= exit.radius) {
-          if (finalMission.status === 'active') recordMissionEvent({type:'exit',id:'r1-exit-east'});
+        const canUsePassage = finalMission?.status==='active' && board.mastery?.mastered===true;
+        if (canUsePassage && distanceToExit <= exit.radius && !mathGate.isOpen && !islandPanel.isOpen && !r1ExitCinematic) {
           clickNavigation.cancel();
-          if (!exitDismissed && exitDialog.hidden && !mathGate.isOpen && !islandPanel.isOpen && !r1ExitCinematic) {
-            exitDialog.hidden = false;
-            navalBattle.firing = false;
-          }
+          beginR1ExitCinematic();
         }
       }
       if (world.region.id === 'r1' && (!exitDialog.hidden || r1ExitCinematic)) {
