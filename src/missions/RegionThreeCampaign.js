@@ -1,5 +1,5 @@
 import { CANNONS, EVENTS, isItemVisible } from '../items/EquipmentCatalog.js';
-import { HORIZON_HARPOON_ID } from '../combat/HarpoonCatalog.js';
+import { R3_SILAS_MISSION_ID, R3_SILAS_REWARD } from './R3SilasTrade.js';
 
 export const R3_FIRST_MISSION_ID = 'r3-equip-golden';
 export const R3_GOLDEN_SHIP_ID = 'galeao-dourado';
@@ -15,7 +15,14 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
   description:'Investigue três destroços, recupere seus diários resolvendo multiplicações e entregue os fragmentos no Porto das Missões. As páginas revelam uma pista sobre o Coração do Abismo.',
   objectives:[{kind:'wreck-diaries',count:3,label:'Recuperar os três diários dos destroços'},
     {kind:'return-port',count:1,label:'Entregar os diários no Porto das Missões'}],
-  reward:{gold:100000,harpoonLaunchers:[HORIZON_HARPOON_ID]},
+  reward:{gold:100000},
+}),Object.freeze({
+  id:R3_SILAS_MISSION_ID,
+  name:'O Pacto de Silas Rubro',
+  description:'Navegue até Silas Rubro, o Mercador do Breu. Resolva a multiplicação e confirme a troca: entregue todo seu estoque de canhões, munições, arpões, lançadores e consumíveis em troca de um arsenal especial. Ouro, rubis, navios e outros itens não fazem parte da negociação.',
+  objectives:[{kind:'silas-trade',count:1,label:'Encontrar Silas Rubro e confirmar a troca de todo o arsenal'}],
+  reward:{cannons:R3_SILAS_REWARD.cannons,ammo:R3_SILAS_REWARD.ammunition,
+    harpoonAmmo:R3_SILAS_REWARD.harpoonAmmo,harpoonLaunchers:R3_SILAS_REWARD.harpoonLaunchers},
 })]);
 
 export function expectedR3GoldenLoadout(save, capacity) {
@@ -56,6 +63,7 @@ export function getR3Board(save={}) {
   const claimed=save.r3Campaign?.claimed??[];
   const firstDone=claimed.includes(R3_FIRST_MISSION_ID);
   const secondDone=claimed.includes('r3-dark-waters-warning');
+  const thirdDone=claimed.includes(R3_SILAS_MISSION_ID);
   const wreckCount=Math.min(3,(save.r3Campaign?.wreckDiaries??[]).length);
   const delivered=Boolean(save.r3Campaign?.wreckDelivered);
   const first=R3_MISSIONS[0];
@@ -69,12 +77,27 @@ export function getR3Board(save={}) {
   const secondItem={...second,status:secondStatus,
     progress:[wreckCount,delivered?1:0],claimed:secondDone,
     active:['active','ready'].includes(secondStatus),ready:secondStatus==='ready'};
-  const current=firstDone?secondItem:firstItem;
-  return {missions:[firstItem,secondItem],essentialClaimed:claimed.filter(id=>R3_MISSIONS.some(m=>m.id===id)).length,
-    unlockedRegion:3,activeRegion:3,active:current.active?[current]:[],
-    claimable:current.ready?[current]:[],available:current.status==='available'?[current]:[]};
+  const third=R3_MISSIONS[2];
+  const thirdStatus=thirdDone?'claimed':!secondDone?'locked':
+    save.r3Campaign?.silasTradeCompleted?'ready':
+    save.r3Campaign?.active===third.id?'active':'available';
+  const thirdItem={...third,status:thirdStatus,
+    progress:[save.r3Campaign?.silasTradeCompleted||thirdDone?1:0],
+    claimed:thirdDone,active:['active','ready'].includes(thirdStatus),
+    ready:thirdStatus==='ready'};
+  const current=firstDone?(secondDone?thirdItem:secondItem):firstItem;
+  return {missions:[firstItem,secondItem,thirdItem],
+    essentialClaimed:claimed.filter(id=>R3_MISSIONS.some(m=>m.id===id)).length,
+    unlockedRegion:3,activeRegion:3,
+    active:current.active?[current]:[],claimable:current.ready?[current]:[],
+    available:current.status==='available'?[current]:[]};
 }
 export function acceptR3Mission(save,id){
+  if(id===R3_SILAS_MISSION_ID){
+    if(!save.r3Campaign?.claimed?.includes('r3-dark-waters-warning')
+      ||save.r3Campaign?.claimed?.includes(id)||save.r3Campaign?.active===id)return null;
+    return {r3Campaign:{...(save.r3Campaign??{}),active:id}};
+  }
   if(id!=='r3-dark-waters-warning'||!save.r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID)||
     save.r3Campaign?.claimed?.includes(id)||save.r3Campaign?.active===id)return null;
   return {r3Campaign:{...(save.r3Campaign??{}),active:id,wreckDiaries:[],wreckDelivered:false}};
@@ -90,32 +113,25 @@ export function recordR3Event(save,event){
     return {r3Campaign:{...state,wreckDelivered:true}};
   return null;
 }
-// Claim and legacy-save backfill share one idempotent equipment operation.
-// Do not replace launcher ownership or re-equip if the reward was granted before.
-export function grantR3HorizonHarpoon(save={}){
-  const equipment=save.equipment??{};
-  const owned=equipment.ownedHarpoonIds??[];
-  if(owned.includes(HORIZON_HARPOON_ID))return null;
-  return {
-    ...equipment,
-    ownedHarpoonIds:[...new Set([...owned,HORIZON_HARPOON_ID])],
-    equippedHarpoonId:HORIZON_HARPOON_ID,
-  };
-}
-
 export function claimR3Mission(save,id){
   if(id===R3_FIRST_MISSION_ID){
     if(!r3GoldenReady(save)||save.r3Campaign?.claimed?.includes(id))return null;
     return {mission:R3_MISSIONS[0],patch:{r3Campaign:{...(save.r3Campaign??{}),
       active:null,claimed:[...new Set([...(save.r3Campaign?.claimed??[]),id])]}}};
   }
+  if(id===R3_SILAS_MISSION_ID){
+    if(!save.r3Campaign?.silasTradeCompleted
+      ||save.r3Campaign?.claimed?.includes(id))return null;
+    return {mission:R3_MISSIONS[2],patch:{
+      r3Campaign:{...save.r3Campaign,active:null,
+        claimed:[...new Set([...(save.r3Campaign.claimed??[]),id])]},
+    }};
+  }
   if(id!=='r3-dark-waters-warning'||save.r3Campaign?.active!==id||
     !save.r3Campaign?.wreckDelivered||save.r3Campaign?.claimed?.includes(id))return null;
-  const horizonEquipment=grantR3HorizonHarpoon(save);
   return {mission:R3_MISSIONS[1],patch:{
     r3Campaign:{...save.r3Campaign,active:null,claimed:[...new Set([...(save.r3Campaign.claimed??[]),id])]},
     profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+100000},
-    ...(horizonEquipment?{equipment:horizonEquipment}:{}),
   }};
 }
 
