@@ -768,23 +768,50 @@ export class NavalBattleController {
     const player=this.getPlayer();
     for(const monster of this.getEntities().values()){
       if(monster.type!=='monster'||monster.health<=0||monster.state!=='retaliating')continue;
-      if(distanceBetween(monster,player)>KRAKEN_RETALIATION_RANGE)continue;
+      const isLeviathan=monster.archetype==='sea-monster-leviathan';
+      const maximumRange=isLeviathan?Math.max(...CANNONS.map(cannonRange)):KRAKEN_RETALIATION_RANGE;
+      if(distanceBetween(monster,player)>maximumRange)continue;
+      const heading=(((Number(monster.heading)||0)%360)+360)%360;
+      const right=Math.abs(((heading-90+540)%360)-180)<=11.25;
+      const left=Math.abs(((heading-270+540)%360)-180)<=11.25;
+      if(isLeviathan&&!right&&!left)continue;
       if(now<(this.nextKrakenStrike.get(monster.id)??-Infinity))continue;
       const destination={x:player.x,y:player.y};
-      const isLeviathan=monster.archetype==='sea-monster-leviathan';
       const viewport=this.renderer.canvas?.getBoundingClientRect();
       const origin=isLeviathan
         ? leviathanMouthOrigin(monster,viewport?.width||window.innerWidth,viewport?.height||window.innerHeight)
         : monster;
+      const fireEnd=isLeviathan
+        ? {x:origin.x+(right?maximumRange:-maximumRange),y:origin.y}
+        : destination;
       const accepted=this.renderer.attackKraken?.({
-        from:origin,to:destination,monsterId:monster.id,
+        from:origin,to:fireEnd,monsterId:monster.id,
+        travelMs:isLeviathan?2400:970,
+        onTravel:isLeviathan?({from,to})=>{
+          const ship=this.getPlayer();
+          if(this.getHealth()<=0)return false;
+          const vx=to.x-from.x,vy=to.y-from.y;
+          const denom=vx*vx+vy*vy;
+          const u=denom?Math.max(0,Math.min(1,((ship.x-from.x)*vx+(ship.y-from.y)*vy)/denom)):0;
+          const hit={x:from.x+vx*u,y:from.y+vy*u};
+          if(!shipCollision(hit,{...ship,health:this.getHealth()},56))return false;
+          const current=this.getEntities().get(monster.id);
+          if(!current||current.health<=0||this.isShieldActive()||this.readSave().combat?.repairingUntil)return true;
+          const save=this.readSave();
+          const health=Math.max(0,this.getHealth()-50000);
+          this.writePatch({combat:{...save.combat,shipHealth:health}});
+          this.onFeedback(health>0?'🔥 Leviatã atingiu o casco! -50.000 PV.':'☠️ O fogo do Leviatã afundou seu navio!');
+          if(!health)this.firing=false;
+          return true;
+        }:null,
         kind:monster.archetype==='sea-monster-leviathan'?'leviathan':'kraken',
         startTime:now,duration:1720,
         onImpact:({at})=>{
           const ship=this.getPlayer();
           const current=this.getEntities().get(monster.id);
+          if(isLeviathan)return;
           if(!current||current.health<=0||this.getHealth()<=0
-            ||distanceBetween(current,ship)>KRAKEN_RETALIATION_RANGE
+            ||distanceBetween(current,ship)>(isLeviathan?maximumRange:KRAKEN_RETALIATION_RANGE)
             ||!shipCollision(at,{...ship,health:this.getHealth()},56))return;
           const save=this.readSave();
           const monsterDamage=Math.max(1,Number(current.attackDamage)||8);
