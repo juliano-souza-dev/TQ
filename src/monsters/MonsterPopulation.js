@@ -16,7 +16,7 @@ export function createMonsterPopulation(world, random = Math.random) {
         id:'r3-leviathan',name:'Leviatã das Águas Escuras',
         type:'monster',archetype:'sea-monster-leviathan',
         x,y,heading:0,health:25000,maxHealth:25000,
-        attackDamage:30,state:'retaliating',
+        attackDamage:50000,state:'retaliating',
         respawnRemainingMs:null,animationTimeMs:0,
       });
       return 1;
