@@ -1,5 +1,6 @@
 import { createTerrorDoMar, TERROR_DO_MAR_NPC } from './TerrorDoMarNpc.js';
 import { BLOOD_RED_CORSAIR_SHIP } from '../ships/BloodRedCorsairShip.js';
+import { GREEN_GHOST_FUGITIVE_SHIP } from '../ships/FugitiveFrigateShip.js';
 import { EMERALD_GHOST_SHIP } from '../ships/EmeraldGhostShip.js';
 import { resolveIslandMovement, collidesWithIsland } from '../world/IslandCollision.js';
 
@@ -31,19 +32,19 @@ function createRaider(config, region) {
   return {
     id: config.id,
     type: 'npc',
-    archetype: DARK_WATERS_RAIDER_ARCHETYPE,
+    archetype: config.role==='terror-guardian' ? 'terror-guardian' : DARK_WATERS_RAIDER_ARCHETYPE,
     name: config.name,
-    shipId: BLOOD_RED_CORSAIR_SHIP.id,
+    shipId: config.role==='terror-guardian' ? BLOOD_RED_CORSAIR_SHIP.id : GREEN_GHOST_FUGITIVE_SHIP.id,
     x: point.x,
     y: point.y,
     heading: normalize(config.heading ?? 90),
     health: config.maxHealth,
     maxHealth: config.maxHealth,
     state: 'raiding',
-    aggression: 'flee',
-    damage: 0,
-    range: 0,
-    cannonSlots: 0,
+    aggression: config.role==='terror-guardian' ? 'attack' : 'flee',
+    damage: config.role==='terror-guardian' ? 12 : 0,
+    range: config.role==='terror-guardian' ? 520 : 0,
+    cannonSlots: config.role==='terror-guardian' ? 4 : 0,
     speed: config.speed,
     baseSpeed: config.speed,
     detectionRange: config.detectionRange ?? 620,
@@ -112,6 +113,11 @@ export function createDarkWatersFleet(world) {
     boss.assistDisabled = true;
     boss.anchor = { x: point.x, y: point.y };
     boss.patrolTimeMs = 2600;
+    boss.phasedOut = true;
+    boss.phaseRemainingMs = 30000;
+    boss.attackProtectedUntil = Infinity;
+    boss.damage = 0;
+    boss.cannonSlots = 0;
     world.entities.set(boss.id, boss);
     created.push(boss);
   }
@@ -148,6 +154,23 @@ function respawnRaider(npc, region) {
 
 function updateBoss(npc, world, deltaMs, random) {
   if (npc.health <= 0) return;
+  if(!npc.varkorBattleUnlocked){
+    npc.phaseRemainingMs=(npc.phaseRemainingMs??30000)-Math.max(0,deltaMs);
+    if(npc.phaseRemainingMs<=0){
+      npc.phasedOut=!npc.phasedOut;
+      npc.phaseRemainingMs=npc.phasedOut?30000:60000;
+      if(!npc.phasedOut){
+        npc.x=npc.anchor.x;
+        npc.y=npc.anchor.y;
+      }
+    }
+    if(npc.phasedOut)return;
+  }else{
+    npc.phasedOut=false;
+    npc.attackProtectedUntil=0;
+    npc.damage=TERROR_DO_MAR_NPC.damage;
+    npc.cannonSlots=TERROR_DO_MAR_NPC.cannonSlots;
+  }
   if (npc.monsterAssisting) return;
   const dt = Math.min(64, Math.max(0, deltaMs)) / 1000;
   const player = world.camera;
@@ -240,6 +263,25 @@ function updateRaider(npc, world, deltaMs, random, raids) {
 }
 
 
+function updateTerrorGuardian(npc,world,deltaMs){
+  if(npc.health<=0)return;
+  const boss=world.entities.get(world.region.terrorBoss?.id);
+  const anchor=boss?.anchor??{x:3220,y:3450};
+  const dt=Math.min(64,Math.max(0,deltaMs))/1000;
+  const player=world.camera;
+  const distance=Math.hypot(player.x-npc.x,player.y-npc.y);
+  const protecting=Math.hypot(player.x-anchor.x,player.y-anchor.y)<820;
+  const target=protecting&&distance<640?player:anchor;
+  npc.state=protecting?'guarding':'patrolling';
+  npc.heading=turnToward(npc.heading,bearing(target.x-npc.x,target.y-npc.y),95*dt);
+  if(Math.hypot(target.x-npc.x,target.y-npc.y)<185)return;
+  const angle=npc.heading*Math.PI/180;
+  const movement=(npc.baseSpeed||0)*dt;
+  const moved=resolveIslandMovement(world.region,npc.x,npc.y,
+    npc.x+Math.sin(angle)*movement,npc.y-Math.cos(angle)*movement,34);
+  npc.x=moved.x;npc.y=moved.y;
+}
+
 function updateEmeraldGhost(npc, world, deltaMs, random) {
   const dt = Math.min(64, Math.max(0, deltaMs)) / 1000;
   npc.wanderTimeMs = (npc.wanderTimeMs ?? 0) - deltaMs;
@@ -272,6 +314,7 @@ export function updateDarkWatersFleet(world, deltaMs, random = Math.random) {
   const raids = [];
   for (const npc of world.entities.values()) {
     if (npc.archetype === TERROR_DO_MAR_NPC.id) updateBoss(npc, world, deltaMs, random);
+    else if(npc.archetype==='terror-guardian')updateTerrorGuardian(npc,world,deltaMs);
     else if (npc.archetype === DARK_WATERS_RAIDER_ARCHETYPE) {
       updateRaider(npc, world, deltaMs, random, raids);
     } else if (npc.archetype === 'emerald-ghost') {
