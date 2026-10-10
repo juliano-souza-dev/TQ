@@ -1,5 +1,5 @@
-import { R3_WRECKS } from './missions/RegionThreeCampaign.js';
-import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo } from './missions/R3SilasTrade.js';
+import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID } from './missions/RegionThreeCampaign.js';
+import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout } from './missions/R3SilasTrade.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
 import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission,advanceR2Story } from './missions/RegionTwoCampaign.js';
@@ -483,6 +483,12 @@ async function startWorld() {
     return true;
   }
   if(readSave().r2Campaign?.active==='r2-destroy-thief')ensureThiefHuntCannon();
+  // Reconcile once for older saves whose Silas trade left their active ship empty.
+  // Never overwrite a battery the player has already arranged manually.
+  if(world.region.id==='r3'){
+    const recovered=reconcileSilasAutomaticLoadout(readSave());
+    if(recovered)writePatch(recovered);
+  }
   // O navio inicial já pertence ao jogador desde o primeiro acesso.
   // Normaliza saves antigos sem excluir equipamentos ou navios conquistados.
   const initialEquipment = readSave().equipment ?? {};
@@ -1102,11 +1108,19 @@ async function startWorld() {
       if (npc.type === 'monster') {
         const gold = monsterGoldReward();
         writePatch({ profile: { ...save.profile, gold: (Number(save.profile?.gold) || 0) + gold } });
-        recordMissionEvent({
-          type: 'defeat', archetype: npc.archetype,
-          id: npc.id + ':' + Date.now() + ':' + performance.now(),
-        });
-        showOceanReward('🐙 Kraken derrotado! +'+gold+' ouro');
+        if (world.region.id==='r3' && npc.id===R3_LEVIATHAN_ENTITY_ID
+          && save.r3Campaign?.active===R3_LEVIATHAN_MISSION_ID) {
+          // A kill already proves the player discovered the actual monster.
+          recordMissionEvent({type:'leviathan-found',id:npc.id});
+          recordMissionEvent({type:'leviathan-defeated',id:npc.id});
+          showOceanReward('🐙 Leviathan derrotado! Retorne ao Porto das Missões. +'+gold+' ouro.');
+        }else{
+          recordMissionEvent({
+            type: 'defeat', archetype: npc.archetype,
+            id: npc.id + ':' + Date.now() + ':' + performance.now(),
+          });
+          showOceanReward('🐙 '+npc.name+' derrotado! +'+gold+' ouro');
+        }
         return;
       }
       if (world.region.id === 'r3' && npc.archetype === 'dark-waters-raider') {
@@ -1665,8 +1679,24 @@ async function startWorld() {
       }else if(!campaign.claimed?.includes(R3_SILAS_MISSION_ID)){
         missionHud.textContent='📜 Porto das Missões · O Pacto de Silas Rubro';
         void guideMissionTo('missions');
+      }else if(campaign.active===R3_LEVIATHAN_MISSION_ID){
+        if(campaign.leviathanDefeated){
+          missionHud.textContent=campaign.leviathanReturned
+            ? '🎁 Caça ao Leviathan concluída · Resgate a descoberta no Porto'
+            : '🐙 Leviathan derrotado · Retorne ao Porto das Missões';
+          void guideMissionTo('missions');
+        }else{
+          const leviathan=world.entities.get(R3_LEVIATHAN_ENTITY_ID);
+          missionHud.textContent=campaign.leviathanFound
+            ? '⚔️ Caça ao Leviathan · Derrote a criatura das Águas Escuras'
+            : '🐙 Caça ao Leviathan · Localize a criatura no oceano';
+          if(leviathan?.health>0)void guideMissionTo(leviathan);
+        }
+      }else if(!campaign.claimed?.includes(R3_LEVIATHAN_MISSION_ID)){
+        missionHud.textContent='📜 Porto das Missões · Caça ao Leviathan';
+        void guideMissionTo('missions');
       }else{
-        missionHud.textContent='📜 Águas Escuras · Próximo capítulo em preparação';
+        missionHud.textContent='📜 A queda do Leviathan revelou uma pista sobre o Coração do Abismo · A saga continua';
         firstVoyageGuide?.finish();
       }
       return;
@@ -1759,9 +1789,14 @@ async function startWorld() {
           const patch=campaignFor('r3').accept(readSave(),id);
           if(!patch)return false;
           writePatch(patch);
+          clearMissionNavigation();
           islandPanel.refreshMissionBoard();
           updateMissionHud();
-          showOceanReward('📜 Siga o guia e investigue os três destroços das Águas Escuras.');
+          showOceanReward(id===R3_LEVIATHAN_MISSION_ID
+            ? '🐙 Caça ao Leviathan iniciada! Siga a mão caveirinha até a criatura.'
+            : id===R3_SILAS_MISSION_ID
+              ? '☠️ Siga o guia até Silas Rubro para negociar o arsenal.'
+              : '📜 Siga o guia e investigue os três destroços das Águas Escuras.');
           return true;
         })()
         : world.region.id === 'r2'
@@ -1808,7 +1843,9 @@ async function startWorld() {
         }
         navalHud.refresh();
         updateMissionHud();
-        showOceanReward(result.region2Unlocked?'🎉 Região 2 desbloqueada!':'🎁 Recompensa recebida: '+result.mission.name);
+        showOceanReward(id===R3_LEVIATHAN_MISSION_ID
+          ? '📜 Os registros da caçada revelam uma nova pista sobre o Coração do Abismo. A saga continua!'
+          : result.region2Unlocked?'🎉 Região 2 desbloqueada!':'🎁 Recompensa recebida: '+result.mission.name);
         return true;
       },
       onPracticeAnswer: (challenge, firstTry) => {
@@ -2060,6 +2097,13 @@ async function startWorld() {
     } else {
       islandPanel.open(contact.kind);
     }
+    if(world.region.id==='r3' && contact.kind==='missions'
+      && readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
+      && readSave().r3Campaign?.leviathanDefeated){
+      if(recordMissionEvent({type:'return-port',id:'r3-leviathan-return'}))
+        showOceanReward('📜 Caçada concluída! Resgate a pista sobre o Coração do Abismo.');
+      islandPanel.refreshMissionBoard();
+    }
     if(world.region.id==='r3' && contact.kind==='missions' &&
        readSave().r3Campaign?.active==='r3-dark-waters-warning' &&
        (readSave().r3Campaign?.wreckDiaries??[]).length===3){
@@ -2292,6 +2336,15 @@ async function startWorld() {
         renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
         updateCamera(world,canvas.clientWidth,canvas.clientHeight);
         return;
+      }
+      if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
+        &&!readSave().r3Campaign?.leviathanFound){
+        const leviathan=world.entities.get(R3_LEVIATHAN_ENTITY_ID);
+        if(leviathan?.health>0
+          && Math.hypot(world.camera.x-leviathan.x,world.camera.y-leviathan.y)<=950){
+          if(recordMissionEvent({type:'leviathan-found',id:leviathan.id}))
+            showOceanReward('🐙 Leviathan avistado! Prepare seus arpões e sobreviva aos mergulhos.');
+        }
       }
       if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_SILAS_MISSION_ID
         &&!readSave().r3Campaign?.silasTradeCompleted){

@@ -72,7 +72,10 @@ test('Silas receives entire arsenal once and grants exact Terror da Abobora pack
   assert.ok(patch);
   assert.deepEqual(patch.equipment.cannonCounts,{'aetherion-mk1':2,'pumpkin-terror':18});
   assert.deepEqual(patch.equipment.ownedCannonIds,['aetherion-mk1','pumpkin-terror']);
-  assert.deepEqual(patch.equipment.loadout,{'my-ship':[]});
+  assert.deepEqual(patch.equipment.loadout,{'my-ship':[
+    'aetherion-mk1','aetherion-mk1',...Array(10).fill('pumpkin-terror'),
+  ]});
+  assert.equal(patch.r3Campaign.silasLoadoutReconciled,true);
   assert.equal(patch.equipment.equippedShipId,'my-ship');
   assert.equal(patch.equipment.starterCannonTransferredToSilas,true);
   assert.deepEqual(patch.equipment.ownedHarpoonIds,[HORIZON_HARPOON_ID]);

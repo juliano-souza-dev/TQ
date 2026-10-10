@@ -6,8 +6,7 @@ export const MONSTER_GOLD_MIN = 20;
 export const MONSTER_GOLD_MAX = 80;
 
 export function createMonsterPopulation(world, random = Math.random) {
-  // Águas Escuras começa como uma região naval: por enquanto a população é
-  // composta apenas pela Frota do Terror e pelo mercador já registrados.
+  // Região 3 possui um único Leviathan que serve de alvo para a caçada.
   if (world.region.id === 'r3') {
     const zone=world.region.ocean?.corruption?.zones?.[0] ?? {x:3220,y:3450};
     const x=zone.x+300,y=zone.y+500;
@@ -15,7 +14,7 @@ export function createMonsterPopulation(world, random = Math.random) {
       world.entities.set('r3-leviathan', {
         id:'r3-leviathan',name:'Leviatã das Águas Escuras',
         type:'monster',archetype:'sea-monster-leviathan',
-        x,y,heading:0,health:25000,maxHealth:25000,
+        x,y,heading:0,health:250000,maxHealth:250000,
         attackDamage:50000,state:'retaliating',ambushPhase:'surface',ambushSurfaceMs:1500,
         respawnRemainingMs:null,animationTimeMs:0,
       });

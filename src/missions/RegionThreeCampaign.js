@@ -3,6 +3,8 @@ import { R3_SILAS_MISSION_ID, R3_SILAS_REWARD } from './R3SilasTrade.js';
 
 export const R3_FIRST_MISSION_ID = 'r3-equip-golden';
 export const R3_GOLDEN_SHIP_ID = 'galeao-dourado';
+export const R3_LEVIATHAN_MISSION_ID = 'r3-leviathan-hunt';
+export const R3_LEVIATHAN_ENTITY_ID = 'r3-leviathan';
 export const R3_MISSIONS = Object.freeze([Object.freeze({
   id: R3_FIRST_MISSION_ID,
   name: 'Preparar o Galeão Dourado',
@@ -23,6 +25,16 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
   objectives:[{kind:'silas-trade',count:1,label:'Encontrar Silas Rubro e confirmar a troca de todo o arsenal'}],
   reward:{cannons:R3_SILAS_REWARD.cannons,ammo:R3_SILAS_REWARD.ammunition,
     harpoonAmmo:R3_SILAS_REWARD.harpoonAmmo,harpoonLaunchers:R3_SILAS_REWARD.harpoonLaunchers},
+}),Object.freeze({
+  id:R3_LEVIATHAN_MISSION_ID,
+  name:'Caça ao Leviathan',
+  description:'Os diários dos destroços falavam de uma criatura colossal. Com o arsenal recebido de Silas Rubro, siga a mão caveirinha até o Leviathan das Águas Escuras, sobreviva aos seus mergulhos e derrote-o. Depois, retorne ao Porto das Missões para revelar uma pista sobre o Coração do Abismo.',
+  objectives:[
+    {kind:'leviathan-found',count:1,label:'Encontrar o Leviathan nas Águas Escuras'},
+    {kind:'leviathan-defeated',count:1,label:'Derrotar o Leviathan'},
+    {kind:'return-port',count:1,label:'Voltar ao Porto das Missões após a caçada'},
+  ],
+  reward:{story:'Uma pista sobre o Coração do Abismo'},
 })]);
 
 export function expectedR3GoldenLoadout(save, capacity) {
@@ -64,6 +76,7 @@ export function getR3Board(save={}) {
   const firstDone=claimed.includes(R3_FIRST_MISSION_ID);
   const secondDone=claimed.includes('r3-dark-waters-warning');
   const thirdDone=claimed.includes(R3_SILAS_MISSION_ID);
+  const fourthDone=claimed.includes(R3_LEVIATHAN_MISSION_ID);
   const wreckCount=Math.min(3,(save.r3Campaign?.wreckDiaries??[]).length);
   const delivered=Boolean(save.r3Campaign?.wreckDelivered);
   const first=R3_MISSIONS[0];
@@ -85,14 +98,32 @@ export function getR3Board(save={}) {
     progress:[save.r3Campaign?.silasTradeCompleted||thirdDone?1:0],
     claimed:thirdDone,active:['active','ready'].includes(thirdStatus),
     ready:thirdStatus==='ready'};
-  const current=firstDone?(secondDone?thirdItem:secondItem):firstItem;
-  return {missions:[firstItem,secondItem,thirdItem],
+  const fourth=R3_MISSIONS[3];
+  const fourthActive=save.r3Campaign?.active===R3_LEVIATHAN_MISSION_ID;
+  const fourthReady=fourthActive && !!save.r3Campaign?.leviathanFound
+    && !!save.r3Campaign?.leviathanDefeated && !!save.r3Campaign?.leviathanReturned;
+  const fourthStatus=fourthDone?'claimed':!thirdDone?'locked':
+    fourthReady?'ready':fourthActive?'active':'available';
+  const fourthItem={...fourth,status:fourthStatus,
+    progress:[
+      save.r3Campaign?.leviathanFound||fourthDone?1:0,
+      save.r3Campaign?.leviathanDefeated||fourthDone?1:0,
+      save.r3Campaign?.leviathanReturned||fourthDone?1:0,
+    ],claimed:fourthDone,active:['active','ready'].includes(fourthStatus),ready:fourthStatus==='ready'};
+  const current=firstDone?(secondDone?(thirdDone?fourthItem:thirdItem):secondItem):firstItem;
+  return {missions:[firstItem,secondItem,thirdItem,fourthItem],
     essentialClaimed:claimed.filter(id=>R3_MISSIONS.some(m=>m.id===id)).length,
     unlockedRegion:3,activeRegion:3,
     active:current.active?[current]:[],claimable:current.ready?[current]:[],
     available:current.status==='available'?[current]:[]};
 }
 export function acceptR3Mission(save,id){
+  if(id===R3_LEVIATHAN_MISSION_ID){
+    if(!save.r3Campaign?.claimed?.includes(R3_SILAS_MISSION_ID)
+      ||save.r3Campaign?.claimed?.includes(id)||save.r3Campaign?.active===id)return null;
+    return {r3Campaign:{...(save.r3Campaign??{}),active:id,
+      leviathanFound:false,leviathanDefeated:false,leviathanReturned:false}};
+  }
   if(id===R3_SILAS_MISSION_ID){
     if(!save.r3Campaign?.claimed?.includes('r3-dark-waters-warning')
       ||save.r3Campaign?.claimed?.includes(id)||save.r3Campaign?.active===id)return null;
@@ -103,6 +134,17 @@ export function acceptR3Mission(save,id){
   return {r3Campaign:{...(save.r3Campaign??{}),active:id,wreckDiaries:[],wreckDelivered:false}};
 }
 export function recordR3Event(save,event){
+  if(save.r3Campaign?.active===R3_LEVIATHAN_MISSION_ID){
+    const state=save.r3Campaign;
+    if(event.type==='leviathan-found'&&event.id===R3_LEVIATHAN_ENTITY_ID&&!state.leviathanFound)
+      return {r3Campaign:{...state,leviathanFound:true}};
+    if(event.type==='leviathan-defeated'&&event.id===R3_LEVIATHAN_ENTITY_ID
+      &&state.leviathanFound&&!state.leviathanDefeated)
+      return {r3Campaign:{...state,leviathanDefeated:true}};
+    if(event.type==='return-port'&&state.leviathanDefeated&&!state.leviathanReturned)
+      return {r3Campaign:{...state,leviathanReturned:true}};
+    return null;
+  }
   if(save.r3Campaign?.active!=='r3-dark-waters-warning')return null;
   const state=save.r3Campaign;
   if(event.type==='wreck-diary'){
@@ -114,6 +156,15 @@ export function recordR3Event(save,event){
   return null;
 }
 export function claimR3Mission(save,id){
+  if(id===R3_LEVIATHAN_MISSION_ID){
+    if(save.r3Campaign?.active!==id
+      ||!save.r3Campaign?.claimed?.includes(R3_SILAS_MISSION_ID)
+      ||!save.r3Campaign?.leviathanFound||!save.r3Campaign?.leviathanDefeated
+      ||!save.r3Campaign?.leviathanReturned
+      ||save.r3Campaign?.claimed?.includes(id))return null;
+    return {mission:R3_MISSIONS[3],patch:{r3Campaign:{...save.r3Campaign,
+      active:null,claimed:[...new Set([...(save.r3Campaign.claimed??[]),id])]}}};
+  }
   if(id===R3_FIRST_MISSION_ID){
     if(!r3GoldenReady(save)||save.r3Campaign?.claimed?.includes(id))return null;
     return {mission:R3_MISSIONS[0],patch:{r3Campaign:{...(save.r3Campaign??{}),

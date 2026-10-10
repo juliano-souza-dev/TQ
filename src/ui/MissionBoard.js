@@ -6,7 +6,7 @@ export function createMissionBoard({getBoard=()=>null,onAccept=()=>false,onClaim
  summary.className='campaign-progress';slot.className='campaign-missions';element.append(title,summary,slot);
  const btn=(label,action)=>{const b=document.createElement('button');b.type='button';b.className='primary-button';b.textContent=label;b.addEventListener('click',action);return b;};
  const rewards=r=>[
- r.gold&&r.gold+' ouro',r.iron&&r.iron+' munições comuns',
+ r.gold&&r.gold+' ouro',r.iron&&r.iron+' munições comuns',r.story,
  ...Object.entries(r.ammo??{}).map(([id,n])=>n+' '+({'volcanic-lava':'Orbes Vulcânicos','aetherion-seeker':'Orbes Autoguiados Aetherion','terror-rose':'Rosas do Terror','halloween-purple-ball':'munições Halloween'}[id]??id)),
  ...Object.entries(r.cannons??{}).map(([id,n])=>n+' '+({'royal-lion':'Canhão Real Dourado','blue-gold-pirate':'canhões iniciais','aetherion-mk1':'Canhões Aetherion MK-I','pumpkin-terror':'Terror da Abóbora'}[id]??id)),
  ...Object.entries(r.harpoonAmmo??{}).map(([id,n])=>n+' '+(id==='harpoon-armor-piercing'?'Arpões Quebra-Couraça':id)),
