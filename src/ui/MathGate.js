@@ -19,6 +19,7 @@ export function createMathGate({
   card.className = 'math-gate-card';
   const title = document.createElement('h2');
   const description = document.createElement('p');
+  description.className = 'math-gate-description';
   const problem = document.createElement('p');
   problem.className = 'math-gate-question';
   const answers = document.createElement('div');
@@ -28,7 +29,8 @@ export function createMathGate({
   feedback.setAttribute('aria-live', 'polite');
   const cancel = document.createElement('button');
   cancel.type = 'button';
-  cancel.textContent = 'Voltar sem realizar a ação';
+  // The artwork already renders this label; the button remains accessible and clickable.
+  cancel.textContent = 'De volta ao mar';
   cancel.className = 'secondary-button';
   card.append(title, description, problem, answers, feedback, cancel);
   element.append(card);
