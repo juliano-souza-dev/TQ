@@ -99,7 +99,7 @@ export function claimR3Mission(save,id){
     !save.r3Campaign?.wreckDelivered||save.r3Campaign?.claimed?.includes(id))return null;
   return {mission:R3_MISSIONS[1],patch:{
     r3Campaign:{...save.r3Campaign,active:null,claimed:[...(save.r3Campaign.claimed??[]),id]},
-    gold:(Number(save.gold)||0)+100000,
+    profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+100000},
   }};
 }
 
