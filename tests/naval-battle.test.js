@@ -826,3 +826,15 @@ test('câmera de combate muda visivelmente em tela grande', async () => {
   assert.ok(close.zoom>normal,'desktop close combat must visibly push the camera in');
   assert.ok(far.zoom<close.zoom,'desktop camera must open as target distance increases');
 });
+
+
+test('portos ficam bloqueados por 10 segundos após combate em qualquer região', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/combat/NavalBattleController.js', import.meta.url), 'utf8'));
+  const main = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source, /getCombatLockRemainingMs/);
+  assert.match(source, /10000-\(value-this\.lastCombatActivityAt\)/);
+  assert.match(source, /isPortInteractionLocked/);
+  assert.match(main, /contact\.kind==='shipyard'\|\|contact\.kind==='missions'/);
+  assert.match(main, /navalBattle\?\.isPortInteractionLocked\?\.\(\)/);
+  assert.match(main, /Porto das Missões/);
+});
