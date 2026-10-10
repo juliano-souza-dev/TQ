@@ -65,7 +65,7 @@ export class NavalBattleController {
     if(!Number.isFinite(value))return 0;
     const active=this.firing;
     if(active)this.markCombatActivity(value);
-    return Math.max(0,10000-(value-this.lastCombatActivityAt));
+    return Math.max(0,3000-(value-this.lastCombatActivityAt));
   }
 
   isPortInteractionLocked(now = this.clock()) {
