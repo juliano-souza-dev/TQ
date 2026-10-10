@@ -577,3 +577,11 @@ test('duel camera call never references undefined normalZoom', async () => {
   assert.match(source, /normalZoom:normalCameraZoom/);
   assert.doesNotMatch(source, /viewportHeight:viewportH,normalZoom,\s*\}\)/);
 });
+
+
+test('Morbi entra na área de combate da bateria inteira, não só dos canhões de maior alcance', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source, /Math\.min\(\.\.\.playerRanges\)/);
+  assert.doesNotMatch(source, /Math\.max\(\.\.\.playerRanges\)/);
+  assert.match(source, /playerCombatRange\*\.88/);
+});
