@@ -25,3 +25,5 @@ Critério de **mapeamento completo**: atlas de navegação configurado e origens
 ## Novos NPCs mapeados aguardando integração do asset
 
 - [x] **Corsário Vermelho Sangue** (`corsario-vermelho-sangue`) — asset integrado ao catálogo NPC e ao Mapa 3 como **Silas Rubro, o Mercador do Breu**; atlas 4x4/16 direções e 10 origens de canhão por bateria lateral mapeados. [Asset](../assets/ships/corsário-vermelho-sangue.webp)
+
+- [x] **Corsário do Véu Negro** (`corsario-do-veu-negro`) — asset integrado ao catálogo NPC; reutiliza o atlas 4x4/16 direções e as 10 origens de canhão por bateria do casco compartilhado. [Asset](../assets/ships/Corsario_do_Veu_Negro_1600x1600.webp)
