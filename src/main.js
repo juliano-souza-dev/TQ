@@ -23,6 +23,7 @@ import { createSyncPreferenceStore, SYNC_MODE } from './persistence/SyncPreferen
 import { createLocalSaveStore } from './persistence/LocalSaveStore.js';
 import { formatMissionHudObjectives } from './ui/MissionHud.js';
 import { computeOneVsOneFraming } from './world/BattleCamera.js';
+import { DamageTextRenderer } from './rendering/DamageTextRenderer.js';
 
 const root = document.getElementById('app');
 if (!root) throw new Error('Elemento #app ausente');
@@ -44,6 +45,8 @@ let islandCanvas = null;
 let npcCanvas = null;
 let treasureCanvas = null;
 let navalCanvas = null;
+let damageTextCanvas = null;
+let damageTextRenderer = null;
 let navalBattle = null;
 let minimapElement = null;
 let islandPanelElement = null;
@@ -79,6 +82,10 @@ function stopWorld() {
   navalBattle = null;
   if (navalCanvas) navalCanvas.remove();
   navalCanvas = null;
+  damageTextRenderer?.clear();
+  damageTextRenderer = null;
+  if (damageTextCanvas) damageTextCanvas.remove();
+  damageTextCanvas = null;
   oceanRenderer = null;
   if (keyboardCamera) keyboardCamera.dispose();
   if (firstVoyageGuide) firstVoyageGuide.dispose();
@@ -807,6 +814,7 @@ async function startWorld() {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getEntities: () => world.entities,
     onFeedback: message => navalHud?.setFeedback(message),
+    onDamageVisual: event => damageTextRenderer?.add(event),
     onPlayerSunk: npcId => {
       if(npcId!=='r2-morbi'||readSave().r2Campaign?.active!=='r2-golden-i')return;
       const defeatedMorbi=world.entities.get('r2-morbi');
@@ -955,6 +963,11 @@ async function startWorld() {
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
   const treasureRenderer = new TreasureRenderer(treasureCanvas);
   const npcRenderer = new NpcRenderer(npcCanvas);
+  damageTextCanvas = document.createElement('canvas');
+  damageTextCanvas.className = 'damage-text-layer';
+  damageTextCanvas.setAttribute('aria-hidden','true');
+  root.append(damageTextCanvas);
+  damageTextRenderer = new DamageTextRenderer(damageTextCanvas);
   const minimap = createMinimap(world, {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
@@ -2034,6 +2047,7 @@ async function startWorld() {
         navalBattle.setTarget(null);
       }
       npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now());
+      damageTextRenderer?.render(world.cameraView, world.camera.zoom, performance.now());
       spectralShipRenderer?.render(
         world.entities, world.cameraView, world.camera.zoom,
         performance.now(), spectralShipRenderer.definition,
