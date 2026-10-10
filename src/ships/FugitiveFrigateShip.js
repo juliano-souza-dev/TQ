@@ -33,3 +33,12 @@ export const FUGITIVE_FRIGATE_SHIP = Object.freeze({
     flipXByHeading: Object.freeze(Array(16).fill(false)),
   }),
 });
+
+// Variante espectral exclusiva do Sombra do Saque na Região 3.
+export const GREEN_GHOST_FUGITIVE_SHIP = Object.freeze({
+  ...FUGITIVE_FRIGATE_SHIP,
+  id:'sombra-fugitiva-verde-fantasma',
+  name:'Sombra do Saque',
+  sprite:Object.freeze({...FUGITIVE_FRIGATE_SHIP.sprite,
+    path:'../../assets/ships/sombra_fugitiva_verde_fantasma.webp'}),
+});
