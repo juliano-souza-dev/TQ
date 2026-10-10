@@ -772,13 +772,13 @@ export class NavalCombatWebGLRenderer{
           // Layered orange/red flames on top of ordinary and guided ammo FX.
           const flamePulse=.83+.17*Math.sin(now*.021+shot.startTime*.002);
           const fireRadius=11*flamePulse*combatVisualScale/Math.max(.4,Number(zoom)||1);
-          drawCombatPoint(x,y,fireRadius*2.4,0,0,true,{
+          drawPoint(x,y,fireRadius*2.4,0,0,true,{
             color:'#ff3200',coreColor:'#ffd43b',glow:2.4,opacity:.78});
-          drawCombatPoint(x,y,fireRadius*1.2,4,(now*.002)%1,true,{
+          drawPoint(x,y,fireRadius*1.2,4,(now*.002)%1,true,{
             color:'#ff7700',coreColor:'#fff3a2',glow:2.5,opacity:.9});
           for(let i=0;i<(this.reducedFx?3:7);i++){
             const a=now*.008+i*2.399,spread=fireRadius*(.7+.4*Math.sin(now*.014+i));
-            drawCombatPoint(x+Math.cos(a)*spread,y+Math.sin(a)*spread,
+            drawPoint(x+Math.cos(a)*spread,y+Math.sin(a)*spread,
               Math.max(2,fireRadius*.24),0,0,true,{
                 color:i%2?'#ff1e00':'#ffb11b',coreColor:'#fff8b5',
                 glow:2.3,opacity:.85});
@@ -788,7 +788,7 @@ export class NavalCombatWebGLRenderer{
             const point=trail?.length ? trail[Math.max(0,trail.length-1-j*2)] : {
               x:x-(x-shot.from.x)*j*.065,y:y-(y-shot.from.y)*j*.065};
             if(!point)continue;
-            drawCombatPoint(point.x,point.y,Math.max(2,fireRadius*(1-j*.075)),0,0,true,{
+            drawPoint(point.x,point.y,Math.max(2,fireRadius*(1-j*.075)),0,0,true,{
               color:j%2?'#f62209':'#ffad19',coreColor:'#ffe88c',
               glow:1.8,opacity:Math.max(.12,.68-j*.068)});
           }
@@ -798,12 +798,12 @@ export class NavalCombatWebGLRenderer{
           // follow the same simulation position, even when the target turns.
           const pulse=.86+.14*Math.sin(now*.027);
           const halo=8*pulse*combatVisualScale/Math.max(.35,Number(zoom)||1);
-          drawCombatPoint(x,y,halo*2.35,0,0,true,{color:'#075cff',coreColor:'#1eeaff',glow:2.4,opacity:.5});
-          drawCombatPoint(x,y,halo*1.35,4,(now*.001)%1,true,{color:'#ff265a',coreColor:'#fff7fb',glow:2.5,opacity:.88});
+          drawPoint(x,y,halo*2.35,0,0,true,{color:'#075cff',coreColor:'#1eeaff',glow:2.4,opacity:.5});
+          drawPoint(x,y,halo*1.35,4,(now*.001)%1,true,{color:'#ff265a',coreColor:'#fff7fb',glow:2.5,opacity:.88});
           for(let i=0;i<(this.reducedFx?3:7);i++){
             const angle=now*.010*(i%2?-1:1)+i*Math.PI*2/7;
             const radius=halo*(.65+.2*Math.sin(now*.012+i));
-            drawCombatPoint(x+Math.cos(angle)*radius,y+Math.sin(angle)*radius,
+            drawPoint(x+Math.cos(angle)*radius,y+Math.sin(angle)*radius,
               Math.max(2,halo*.19),0,0,true,{color:i%2?'#ff285a':'#17dfff',
               coreColor:'#ffffff',glow:2.4,opacity:.94});
           }
