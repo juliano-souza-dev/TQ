@@ -22,7 +22,8 @@ export function computeOneVsOneFraming({
     ? Math.min(normalZoom,.78)
     : Math.min(1.06,Math.max(normalZoom,normalZoom*1.12));
   const defaultMinZoom=mobile?.19:.24;
-  const minZoom=Number.isFinite(Number(minZoomOverride))
+  // null is not an override: Number(null) === 0 previously forced 0.08.
+  const minZoom=minZoomOverride!=null && Number.isFinite(Number(minZoomOverride))
     ? clamp(Number(minZoomOverride),.08,closeZoom)
     : defaultMinZoom;
   const distanceBlend=clamp((distance-320)/1250,0,1);
