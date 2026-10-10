@@ -20,3 +20,8 @@ Critério de **mapeamento completo**: atlas de navegação configurado e origens
 ## Sem trabalho de canhão
 
 - [x] **Ladrão da Sombra** (`fragata-sombra-fugitiva`) — possui `cannonSlots: 0`; não requer `cannonMuzzles` enquanto permanecer desarmado. [Asset](../assets/ships/sombra_fugitiva.webp)
+
+
+## Novos NPCs mapeados aguardando integração do asset
+
+- [x] **Corsário Vermelho Sangue** — atlas 4x4/16 direções e 10 origens de canhão por bateria lateral mapeados. As variantes de cor com geometria idêntica podem reutilizar o mesmo mapa. Integração ao catálogo aguarda o asset ser adicionado ao repositório.
