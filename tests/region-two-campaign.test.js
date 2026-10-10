@@ -104,3 +104,10 @@ test('missão R2 concluída traça rota automática para o Porto das Missões', 
   assert.match(source, /if\(world\.region\.id==='r2'\)routeToMissionsPort\(\{announce:false\}\)/);
   assert.match(source, /if\(ready && !clickNavigation\?\.getDestination\?\.\(\)\)routeToMissionsPort/);
 });
+
+
+test('missão ativa não pode também estar marcada como resgatada', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source, /if\(active && \(state\.claimed\?\?\[\]\)\.includes\(active\)\)/);
+  assert.match(source, /claimed:\(state\.claimed\?\?\[\]\)\.filter\(id=>id!==active\)/);
+});
