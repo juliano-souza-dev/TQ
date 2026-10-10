@@ -25,6 +25,7 @@ import { renderLogin, renderLoading, renderConfigurationRequired } from './ui/Po
 import { createSyncPreferenceStore, SYNC_MODE } from './persistence/SyncPreference.js';
 import { createLocalSaveStore } from './persistence/LocalSaveStore.js';
 import { formatMissionHudObjectives } from './ui/MissionHud.js';
+import {createGuidedPointerImage,angleToGuidedTarget} from './ui/GuidedPointer.js';
 import { computeOneVsOneFraming } from './world/BattleCamera.js';
 import { DamageTextRenderer } from './rendering/DamageTextRenderer.js';
 import { TreasureGlowWebGLRenderer } from './rendering/TreasureGlowWebGLRenderer.js';
@@ -1295,7 +1296,8 @@ async function startWorld() {
   root.append(missionHud);
   const supplyChestEl=document.createElement('div');
   supplyChestEl.className='chase-supply-chest';
-  supplyChestEl.innerHTML='<span class="chase-supply-arrow">⬇</span><span class="chase-supply-icon">🧰</span>';
+  supplyChestEl.innerHTML='<span class="chase-supply-arrow"></span><span class="chase-supply-icon">🧰</span>';
+  supplyChestEl.querySelector('.chase-supply-arrow').append(createGuidedPointerImage('chase-supply-pointer'));
   supplyChestEl.hidden=true;
   supplyChestEl.setAttribute('aria-label','Baú de suprimentos da caçada');
   root.append(supplyChestEl);
@@ -1337,7 +1339,8 @@ async function startWorld() {
   thiefGuide.className = 'thief-guide';
   thiefGuide.hidden = true;
   thiefGuide.setAttribute('aria-label', 'Direção da fragata fugitiva');
-  thiefGuide.innerHTML = '<span class="thief-guide-arrow"><img class="thief-guide-image" src="./assets/ui/seta.png" alt="" draggable="false"></span><span class="thief-guide-label">Ladrão</span>';
+  thiefGuide.innerHTML = '<span class="thief-guide-arrow"></span><span class="thief-guide-label">Ladrão</span>';
+  thiefGuide.querySelector('.thief-guide-arrow').append(createGuidedPointerImage('thief-guide-image'));
   root.append(thiefGuide);
   const exitDialog = document.createElement('section');
   exitDialog.className = 'region-exit-dialog';
@@ -1593,7 +1596,9 @@ async function startWorld() {
     thiefGuide.style.left = px + 'px';
     thiefGuide.style.top = py + 'px';
     thiefGuide.classList.toggle('is-route-guide',!inView);
-    thiefGuide.style.setProperty('--thief-angle', (inView ? 90 : Math.atan2(y-py, x-px)*180/Math.PI) + 'deg');
+    thiefGuide.style.setProperty('--thief-angle',angleToGuidedTarget({
+      pointerX:px,pointerY:py,targetX:x,targetY:y,
+    })+'deg');
     thiefGuide.classList.toggle('is-visible-target', inView);
     thiefGuide.querySelector('.thief-guide-label').textContent =
       (guideTarget ? (r2?.id === 'r2-black-market' ? 'Mercado Negro' : r2?.id?.startsWith('r2-golden-') ? 'Galeão Dourado' : r2?.id === 'r2-informant' ? 'Informante' : r2?.id === 'r2-island' ? 'Ilha Esquecida' : r2?.id === 'r2-equip-market' ? 'Estaleiro · Equipar Canhões' : r2?.id === 'r2-equip-chaser' ? 'Estaleiro · Equipar Fragata' : r2?.id === 'r2-destroy-thief' ? 'Ladrão das Sombras' : darkPassageActive ? '🌑 Passagem · Águas Escuras' : r2?.id === 'r2-meet-forgotten' ? 'Ilha Esquecida' : r2?.id === 'r2-admiral' ? 'Baltazar Ferrugem' : 'Destino da missão') : exitActive ? 'Costa dos Corsários' : 'Ladrão') + ' · ' + Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y)) + ' m';
@@ -1601,7 +1606,7 @@ async function startWorld() {
     if(darkPassageActive){
       // Keep a persistent route cue even while the destination is off-screen.
       thiefGuide.style.zIndex='45';
-      thiefGuide.title='Siga a seta dourada até a passagem para as Águas Escuras.';
+      thiefGuide.title='Siga a mão caveirinha até a passagem para as Águas Escuras.';
     }else{
       thiefGuide.style.zIndex='';
       thiefGuide.title='';

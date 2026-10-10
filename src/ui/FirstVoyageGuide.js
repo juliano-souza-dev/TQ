@@ -1,13 +1,5 @@
-// Calculate heading from the fixed on-screen hand to the visible destination.
-// The hand artwork faces right at 0deg; positive screen angles turn clockwise.
-export function computeGuidePointerAngle({target,cameraView,zoom=1,viewportRect,pointerRect}) {
-  const screenX=viewportRect.left+viewportRect.width/2+(target.x-cameraView.x)*zoom;
-  const screenY=viewportRect.top+viewportRect.height/2+(target.y-cameraView.y)*zoom;
-  const pointerX=pointerRect.left+pointerRect.width/2;
-  const pointerY=pointerRect.top+pointerRect.height/2;
-  return Math.atan2(screenY-pointerY,screenX-pointerX)*180/Math.PI;
-}
-
+import {createGuidedPointerImage,computeGuidePointerAngle} from './GuidedPointer.js';
+export {computeGuidePointerAngle} from './GuidedPointer.js';
 // First-voyage onboarding. The visual guide points at the selected destination.
 export function createFirstVoyageGuide(world, { onAcknowledge = () => {} } = {}) {
   let destination = 'missions';
@@ -15,7 +7,8 @@ export function createFirstVoyageGuide(world, { onAcknowledge = () => {} } = {})
   const arrow = document.createElement('div');
   arrow.className = 'voyage-arrow';
   arrow.setAttribute('aria-label', 'Direção do porto das missões');
-  arrow.innerHTML = '<span class="voyage-arrow-symbol"><img class="voyage-arrow-image" src="./assets/ui/seta.png" alt="" draggable="false"></span><span class="voyage-arrow-label">Porto das Missões</span>';
+  arrow.innerHTML = '<span class="voyage-arrow-symbol"></span><span class="voyage-arrow-label">Porto das Missões</span>';
+  arrow.querySelector('.voyage-arrow-symbol').append(createGuidedPointerImage('voyage-arrow-image'));
   arrow.hidden = true;
   const pointerIcon=arrow.querySelector('.voyage-arrow-symbol');
   const pointerLabel=arrow.querySelector('.voyage-arrow-label');
