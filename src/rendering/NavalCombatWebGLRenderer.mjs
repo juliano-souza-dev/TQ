@@ -1137,85 +1137,87 @@ export class NavalCombatWebGLRenderer{
       if(String(ship.kind||"")==="shadow-thief"){
         const fireProgress=clamp(Number(ship.fireProgress)||0,0,1);
         const eased=fireProgress*fireProgress*(3-2*fireProgress);
-        const heat=.20+.80*eased;
-        const baseFlame=screenSize*(.13+.24*eased);
         const flameCount=this.reducedFx
-          ? Math.max(2,Math.round(2+eased*3))
-          : Math.max(3,Math.round(3+eased*7));
+          ? Math.max(2,Math.round(2+eased*2))
+          : Math.max(3,Math.round(3+eased*4));
+        const flameSize=clamp(screenSize*(.075+.075*eased),14,46);
 
-        // Low HP turns the whole hull into a layered furnace. Every tongue gets
-        // its own phase so the fire grows organically instead of scaling one blob.
+        // Fogo preso ao casco. Nada de bolhas gigantes pela tela: os focos ficam
+        // sobre o convés/laterais e crescem pela quantidade, altura e brilho.
         for(let i=0;i<flameCount;i++){
           const lane=flameCount<=1?0:(i/(flameCount-1)-.5);
-          const jitter=Math.sin(phase*(3.1+i*.37)+i*8.73);
-          const flicker=.80+.20*Math.sin(phase*(6.4+i*.61)+i*4.31);
-          const flameX=x+lane*worldSize*(.46+.10*eased)+jitter*worldSize*.025;
-          const flameY=y-worldSize*(.015+.08*eased)
-            -Math.abs(Math.sin(phase*2.9+i))*worldSize*.045*eased;
+          const flicker=.82+.18*Math.sin(phase*(7.1+i*.53)+i*3.7);
+          const tongue=((phase*.62+i/flameCount)%1+1)%1;
+          const flameX=x+lane*worldSize*(.30+.06*eased)
+            +Math.sin(phase*4.2+i*1.9)*worldSize*.010;
+          const flameY=y-worldSize*(.005+.035*eased)
+            -worldSize*(.025+.060*eased)*tongue;
           drawCombatPoint(
             flameX,flameY,
-            baseFlame*(.68+.52*flicker)*(1-Math.abs(lane)*.18),
+            flameSize*(.78+.32*flicker)*(1-Math.abs(lane)*.10),
             2,
-            (flameCycle+i*.137)%1,
+            tongue,
             true,
             {
-              color:eased>.72?"#ff2500":"#ff4a00",
-              coreColor:eased>.55?"#fff3a0":"#ffd36a",
-              glow:1.15+heat*.85,
-              opacity:.72+heat*.26
+              color:eased>.70?"#ff2a00":"#ff5a00",
+              coreColor:eased>.55?"#fff0a8":"#ffd36a",
+              glow:.82+eased*.55,
+              opacity:.74+eased*.18
             }
           );
         }
 
-        // Hot core across the deck. It becomes almost white immediately before
-        // the final destruction, visually warning that the hull is about to go.
-        drawCombatPoint(
-          x,y-worldSize*.025,
-          screenSize*(.16+.34*eased),
-          6,
-          flameCycle,
-          true,
-          {
-            color:eased>.75?"#ff2c00":"#ff6a00",
-            coreColor:"#fffbd0",
-            glow:1.25+eased*1.1,
-            opacity:.38+eased*.48
-          }
-        );
-
-        const smokeCount=this.reducedFx?2:4;
-        for(let i=0;i<smokeCount;i++){
-          const cycle=((smokeCycle+i/smokeCount)%1+1)%1;
-          const drift=Math.sin(phase*.72+i*2.4)*worldSize*(.04+.08*eased);
+        // Pequenos pontos quentes no casco dão sensação de incêndio se espalhando
+        // sem virar um flash branco cobrindo o navio.
+        const hotSpotCount=this.reducedFx?1:Math.max(1,Math.round(1+eased*2));
+        for(let i=0;i<hotSpotCount;i++){
+          const offset=(i-(hotSpotCount-1)/2)*worldSize*.11;
           drawCombatPoint(
-            x+drift,
-            y-worldSize*(.09+.34*cycle),
-            screenSize*(.20+.35*cycle)*(.55+.72*eased),
-            3,
-            cycle,
-            false,
-            {opacity:clamp(.20+.54*eased,0,.82)}
+            x+offset,
+            y+worldSize*.015,
+            clamp(screenSize*(.035+.025*eased),7,18),
+            4,
+            flameCycle,
+            true,
+            {color:"#ff3b00",coreColor:"#ffd56a",glow:.55+eased*.35,opacity:.32+eased*.24}
           );
         }
 
-        if(!this.reducedFx && eased>.34){
-          const emberCount=Math.round(4+eased*11);
+        // Fumaça compacta, escura e ascendente. O tamanho foi limitado para nunca
+        // formar aqueles círculos translúcidos enormes vistos no desktop.
+        const smokeCount=this.reducedFx?1:2;
+        for(let i=0;i<smokeCount;i++){
+          const cycle=((smokeCycle+i/smokeCount)%1+1)%1;
+          const drift=Math.sin(phase*.85+i*2.7)*worldSize*(.018+.018*eased);
+          drawCombatPoint(
+            x+drift,
+            y-worldSize*(.07+.15*cycle),
+            clamp(screenSize*(.065+.055*cycle)*(.8+.35*eased),12,42),
+            3,
+            cycle,
+            false,
+            {opacity:clamp(.08+.16*eased,0,.26)}
+          );
+        }
+
+        if(!this.reducedFx && eased>.30){
+          const emberCount=Math.round(2+eased*6);
           for(let i=0;i<emberCount;i++){
-            const seed=i*2.39996323+phase*1.7;
-            const rise=((phase*.31+i/emberCount)%1+1)%1;
-            const radius=worldSize*(.05+.25*rise)*eased;
+            const seed=i*2.39996323+phase*1.4;
+            const rise=((phase*.38+i/emberCount)%1+1)%1;
+            const radius=worldSize*(.025+.095*rise)*eased;
             drawCombatPoint(
               x+Math.cos(seed)*radius,
-              y-worldSize*(.03+.32*rise)+Math.sin(seed)*radius*.18,
-              screenSize*(.012+.018*(1-rise)),
+              y-worldSize*(.025+.17*rise)+Math.sin(seed)*radius*.12,
+              clamp(screenSize*(.006+.008*(1-rise)),2,6),
               0,
               rise,
               true,
               {
-                color:i%3===0?"#ff2400":"#ff8a00",
-                coreColor:"#fff5a8",
-                glow:1.45,
-                opacity:(1-rise)*(.35+.60*eased)
+                color:i%3===0?"#ff3200":"#ff9a00",
+                coreColor:"#fff0a0",
+                glow:.8,
+                opacity:(1-rise)*(.28+.38*eased)
               }
             );
           }
@@ -1223,7 +1225,7 @@ export class NavalCombatWebGLRenderer{
         continue;
       }
 
-      if(String(ship.kind||"")==="monster"){
+            if(String(ship.kind||"")==="monster"){
         const bloodPulse=((phase*.31)%1+1)%1;
         const bloodFade=clamp(1-bloodPulse,0,1);
         gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
