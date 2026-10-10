@@ -50,7 +50,7 @@ function updateLeviathanAmbush(monster,world,stepMs){
   const dt=Math.max(0,stepMs);
   const player=world.camera;
   const distance=Math.hypot(player.x-monster.x,player.y-monster.y);
-  const aligned=Math.abs(player.y-monster.y)<100 && distance<800;
+  const aligned=Math.abs(player.y-monster.y)<125 && distance<=840;
   const ready=monster.ambushPhase==='surface'||!monster.ambushPhase;
   if(!monster.ambushPhase)monster.ambushPhase='surface';
   if(ready){
@@ -63,7 +63,7 @@ function updateLeviathanAmbush(monster,world,stepMs){
       monster.ambushSurfaceMs=(monster.ambushSurfaceMs||0)+dt;
     }else{
       monster.ambushMisalignedMs=(monster.ambushMisalignedMs||0)+dt;
-      if(monster.ambushMisalignedMs>=1250 && (monster.ambushSurfaceMs||0)>=1100){
+      if(distance<=1200 && monster.ambushMisalignedMs>=1250 && (monster.ambushSurfaceMs||0)>=1100){
         const region=world.region;
         const side=player.x<region.width*.5?-1:1;
         let selected=null;
