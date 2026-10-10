@@ -570,3 +570,10 @@ test('Morbi não fica parado fora do alcance e usa o alcance configurado do canh
   t.battle.fireNpcVolleys(1000);
   assert.equal(t.shots.length, 1, 'no limite do alcance o canhão já pode disparar');
 });
+
+
+test('duel camera call never references undefined normalZoom', async () => {
+  const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
+  assert.match(source, /normalZoom:normalCameraZoom/);
+  assert.doesNotMatch(source, /viewportHeight:viewportH,normalZoom,\s*\}\)/);
+});
