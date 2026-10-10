@@ -17,6 +17,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   const title = document.createElement('h2');
   const description = document.createElement('p');
   const list = document.createElement('div');
+  list.className = 'island-panel-list';
   const shipyard = createShipyard(shipyardOptions);
   const missionBoard = createMissionBoard({ ...missionBoardOptions, onAccept: id => { const ok=missionBoardOptions.onAccept?.(id); if(ok)panel.hidden=true; return ok; } });
   const acceptMission = document.createElement('button');
@@ -86,7 +87,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
   }
   mathBox.append(question, choices, feedback);
   const close = document.createElement('button');
-  close.type = 'button'; close.className = 'primary-button';
+  close.type = 'button'; close.className = 'primary-button island-panel-return';
   close.textContent = 'Voltar ao mar';
   close.addEventListener('click', () => { panel.hidden = true; });
   // Mission board and shipyard are mutually exclusive DOM children.
@@ -99,6 +100,7 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       const content = CONTENT[kind];
       if (!content) return false;
       panel.dataset.island = kind;
+      panel.setAttribute('aria-label',kind === 'missions' ? 'Quadro de missões' : 'Estaleiro');
       title.textContent = content.title;
       description.textContent = kind === 'shipyard' ? 'Gerencie sua frota e seus equipamentos.' : content.description;
       shipyard.element.remove();
@@ -121,7 +123,8 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
         p.textContent = item; return p;
       }));
       panel.hidden = false;
-      close.focus();
+      if (kind === 'missions') { panel.tabIndex = -1; panel.focus({ preventScroll: true }); }
+      else close.focus();
       return true;
     },
     refreshMissionBoard() { missionBoard.refresh(); },
