@@ -1976,7 +1976,8 @@ async function startWorld() {
       if(!save.progression?.r3PortVisited)
         writePatch({progression:{...(save.progression??{}),r3PortVisited:true}});
       clearMissionNavigation();
-      showOceanReward('📜 Primeiro capítulo concluído. A próxima missão ainda será definida.');
+      if(!readSave().r3Campaign?.active && !readSave().r3Campaign?.claimed?.includes('r3-dark-waters-warning'))
+        showOceanReward('📜 O Aviso das Águas Escuras está disponível no Porto das Missões.');
     }
     if (world.region.id === 'r2' && contact.kind === 'missions' && !readSave().progression?.r2PortVisited) {
       const save = readSave();
@@ -2717,7 +2718,9 @@ async function startWorld() {
         && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active);
       const renderedTreasures=hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
       treasureGlowRenderer?.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs,pendingTreasureId);
-      treasureRenderer.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs);
+      const visibleMissionWrecks=world.region.id==='r3' && readSave().r3Campaign?.active==='r3-dark-waters-warning'
+        ?R3_WRECKS.filter(w=>!(readSave().r3Campaign?.wreckDiaries??[]).includes(w.id)):[];
+      treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks],world.cameraView,world.camera.zoom,oceanTimeMs);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
         selectedNpcId = null;
