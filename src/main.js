@@ -1302,6 +1302,11 @@ async function startWorld() {
             combat:{...(upgraded.combat??{}),shipHealth:upgraded.equipment?.equippedShipId==='fragata-sombra-cacadora' ? Math.min(600,(Number(upgraded.combat?.shipHealth)||100)+500) : Math.max(1500,Number(upgraded.combat?.shipHealth)||0)}});
           showOceanReward('🔨 Mestre construtor contratado! Cascos reforçados e novos espaços de canhão.');
         }
+        if(id==='r2-equip-terror'){
+          firstVoyageGuide?.finish();
+          firstVoyageGuide?.dispose();
+          firstVoyageGuide=null;
+        }
         navalHud.refresh();
         updateMissionHud();
         showOceanReward(result.region2Unlocked?'🎉 Região 2 desbloqueada!':'🎁 Recompensa recebida: '+result.mission.name);
@@ -1495,14 +1500,19 @@ async function startWorld() {
   }
   const previousSave = localSaves.load(currentUser.uid);
   const flow = getMissionFlow(previousSave?.payload ?? {}, STARTER_SHIP.id);
-  if ((world.region.id === 'r2' && !readSave().progression?.r2PortVisited)
-      || (world.region.id === 'r1' && flow.destination)) {
+  const r2GuidedMission=world.region.id==='r2' ? readSave().r2Campaign?.active : null;
+  const needsR2Guide=world.region.id==='r2'
+    && (!readSave().progression?.r2PortVisited || r2GuidedMission==='r2-equip-terror');
+  if (needsR2Guide || (world.region.id === 'r1' && flow.destination)) {
     const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
     if (generation !== worldGeneration) return;
     firstVoyageGuide = createFirstVoyageGuide(world);
     root.append(...firstVoyageGuide.elements);
-    if (world.region.id === 'r2') firstVoyageGuide.guideTo('missions');
-    else if (flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
+    if (world.region.id === 'r2') {
+      const equipTerror=boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-equip-terror');
+      firstVoyageGuide.guideTo(equipTerror?.status==='ready' ? 'missions'
+        : r2GuidedMission==='r2-equip-terror' ? 'shipyard' : 'missions');
+    } else if (flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
   }
   updateMissionHud();
   // The ambush must be transactional: inventory loss and campaign progress are
