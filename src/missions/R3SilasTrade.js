@@ -1,4 +1,4 @@
-import { HORIZON_HARPOON_ID } from '../combat/HarpoonCatalog.js';
+import { HORIZON_HARPOON_ID, HORIZON_HARPOON_AMMO_ID } from '../combat/HarpoonCatalog.js';
 import { SHIP_CATALOG, STARTER_SHIP } from '../ships/ShipRegistry.js';
 
 // Existing catalog items. Special cannons use the matching guided ammunition.
@@ -7,7 +7,7 @@ export const R3_SILAS_REWARD=Object.freeze({
   cannons:Object.freeze({'aetherion-mk1':2,'pumpkin-terror':18}),
   ammunition:Object.freeze({'aetherion-seeker':2500,'volcanic-lava':2000,'terror-rose':250}),
   harpoonLaunchers:Object.freeze([HORIZON_HARPOON_ID]),
-  harpoonAmmo:Object.freeze({'harpoon-mariner':1000}),
+  harpoonAmmo:Object.freeze({[HORIZON_HARPOON_AMMO_ID]:1000}),
 });
 
 const copyNumbers=stock=>Object.fromEntries(Object.entries(stock??{})
@@ -149,6 +149,10 @@ export function verifySilasArsenalAtLeviathan(save={}) {
 
   let ammunition,harpoonAmmo;
   const firstVerification=!campaign.silasArsenalArrivalVerified;
+  if(firstVerification && save.harpoonAmmo?.[HORIZON_HARPOON_AMMO_ID]===undefined && save.harpoonAmmo?.['harpoon-mariner']!==undefined){
+    const remaining=Math.max(0,Math.floor(Number(save.harpoonAmmo['harpoon-mariner'])||0));
+    harpoonAmmo={...(save.harpoonAmmo??{}),[HORIZON_HARPOON_AMMO_ID]:remaining,'harpoon-mariner':0};
+  }
   if(firstVerification){
     for(const [id,amount] of Object.entries(R3_SILAS_REWARD.ammunition)){
       if(save.ammunition?.[id]===undefined || save.ammunition?.[id]===null){
@@ -157,7 +161,7 @@ export function verifySilasArsenalAtLeviathan(save={}) {
       }
     }
     for(const [id,amount] of Object.entries(R3_SILAS_REWARD.harpoonAmmo)){
-      if(save.harpoonAmmo?.[id]===undefined || save.harpoonAmmo?.[id]===null){
+      if((save.harpoonAmmo?.[id]===undefined || save.harpoonAmmo?.[id]===null) && harpoonAmmo?.[id]===undefined){
         harpoonAmmo??={...(save.harpoonAmmo??{})};
         harpoonAmmo[id]=amount;
       }

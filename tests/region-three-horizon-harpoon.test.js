@@ -81,7 +81,7 @@ test('Silas receives entire arsenal once and grants exact Terror da Abobora pack
   assert.deepEqual(patch.equipment.ownedHarpoonIds,[HORIZON_HARPOON_ID]);
   assert.equal(patch.equipment.equippedHarpoonId,HORIZON_HARPOON_ID);
   assert.deepEqual(patch.ammunition,{'aetherion-seeker':2500,'volcanic-lava':2000,'terror-rose':250});
-  assert.deepEqual(patch.harpoonAmmo,{'harpoon-mariner':1000});
+  assert.deepEqual(patch.harpoonAmmo,{'harpoon-horizon-incendiary':1000});
   assert.deepEqual(patch.consumables.quantities,{});
   assert.equal(patch.consumables.shieldActiveUntil,0);
   assert.equal(patch.r3Campaign.silasHoldings.cannonCounts['royal-lion'],5);
@@ -103,7 +103,7 @@ test('Silas receives entire arsenal once and grants exact Terror da Abobora pack
 test('Horizon fires a burning 50x-speed harpoon, deals 400 and reloads in 1.3s',()=>{
   let now=1000;
   let save={equipment:{ownedHarpoonIds:[HORIZON_HARPOON_ID],equippedHarpoonId:HORIZON_HARPOON_ID},
-    harpoonAmmo:{'harpoon-mariner':3,'harpoon-armor-piercing':6},combat:{shipHealth:100}};
+    harpoonAmmo:{'harpoon-horizon-incendiary':3,'harpoon-mariner':3,'harpoon-armor-piercing':6},combat:{shipHealth:100}};
   const monster={id:'long-range-monster',type:'monster',name:'Monstro',health:1000,maxHealth:1000,state:'idle',x:1000,y:0};
   const shots=[];
   const battle=new NavalBattleController({
@@ -116,7 +116,8 @@ test('Horizon fires a burning 50x-speed harpoon, deals 400 and reloads in 1.3s',
   assert.equal(battle.getHarpoonStatus().ready,true);
   assert.equal(battle.fireHarpoon(),true);
   assert.equal(shots.length,1);
-  assert.equal(save.harpoonAmmo['harpoon-mariner'],2);
+  assert.equal(save.harpoonAmmo['harpoon-horizon-incendiary'],2);
+  assert.equal(save.harpoonAmmo['harpoon-mariner'],3);
   assert.ok(Math.abs(shots[0].duration - 1000/47500*1000)<.001);
   assert.equal(shots[0].ammo.id,'naval-harpoon-horizon');
   assert.equal(shots[0].ammo.projectileSpeed,47500);

@@ -84,14 +84,14 @@ test('missing legacy delivery is restored once and cannon loadout assembled at t
   assert.deepEqual(patch.ammunition,{
     'aetherion-seeker':2500,'volcanic-lava':2000,'terror-rose':35,'rusted-iron':11,
   });
-  assert.deepEqual(patch.harpoonAmmo,{'harpoon-mariner':1000});
+  assert.deepEqual(patch.harpoonAmmo,{'harpoon-horizon-incendiary':1000});
   assert.equal(verifySilasArsenalAtLeviathan(applied(broken,patch)),null);
 });
 
 test('spent ammunition and harpoons are never replenished, even on first arrival',()=>{
   const save=huntSave({ammunition:{
     'aetherion-seeker':0,'volcanic-lava':15,'terror-rose':0,
-  },harpoonAmmo:{'harpoon-mariner':0}});
+  },harpoonAmmo:{'harpoon-horizon-incendiary':0}});
   const patch=verifySilasArsenalAtLeviathan(save);
   assert.equal(patch.ammunition,undefined);
   assert.equal(patch.harpoonAmmo,undefined);
@@ -103,7 +103,7 @@ test('repeat approach re-arms equipment without a second consumable delivery',()
   const changed={
     ...checked,
     ammunition:{'aetherion-seeker':undefined},
-    harpoonAmmo:{'harpoon-mariner':undefined},
+    harpoonAmmo:{'harpoon-horizon-incendiary':undefined},
     equipment:{...checked.equipment,loadout:{...checked.equipment.loadout,'galeao-dourado':[]},
       equippedHarpoonId:'naval-harpoon-starter'},
   };

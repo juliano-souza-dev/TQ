@@ -1,5 +1,5 @@
 import { cancelHullRecovery, getMaxHullHealth } from './HullRepair.js';
-import { equippedHarpoon, harpoonDamage, harpoonStock, HARPOON_AMMO_ID, ARMOR_PIERCING_HARPOON_ID, ARMOR_PIERCING_HARPOON_DAMAGE, armorPiercingHarpoonStock } from './HarpoonCatalog.js';
+import { equippedHarpoon, harpoonDamage, harpoonStock, horizonHarpoonStock, HORIZON_HARPOON_AMMO_ID, HARPOON_AMMO_ID, ARMOR_PIERCING_HARPOON_ID, ARMOR_PIERCING_HARPOON_DAMAGE, armorPiercingHarpoonStock } from './HarpoonCatalog.js';
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
 import { leviathanMouthOrigin } from '../monsters/LeviathanMouthMap.js';
@@ -308,7 +308,7 @@ export class NavalBattleController {
     if (monsterTarget && this.getHealth() <= 0) reason = 'sunk';
 
     else if (monsterTarget && distance > harpoon.range) reason = 'range';
-    else if (monsterTarget && (harpoon.flameTip ? harpoonStock(save) : harpoonStock(save) + armorPiercingHarpoonStock(save)) <= 0) reason = 'harpoon-ammo';
+    else if (monsterTarget && (harpoon.flameTip ? horizonHarpoonStock(save) : harpoonStock(save) + armorPiercingHarpoonStock(save)) <= 0) reason = 'harpoon-ammo';
     else if (!monsterTarget && !missionActive) reason = 'mission';
     else if (!monsterTarget && !battery.length) reason = 'no-cannon';
     else if (!target) reason = 'target';
@@ -321,7 +321,7 @@ export class NavalBattleController {
       harpoonName: harpoon.name,
       harpoonRange: harpoon.range,
       harpoonReloadSeconds: harpoon.reloadSeconds,
-      harpoonAmmo: harpoon.flameTip ? harpoonStock(save) : harpoonStock(save) + armorPiercingHarpoonStock(save),
+      harpoonAmmo: harpoon.flameTip ? horizonHarpoonStock(save) : harpoonStock(save) + armorPiercingHarpoonStock(save),
       ready: reason === 'ready',
       reason, distance,
       range: monsterTarget ? harpoon.range : battery.length ? Math.max(...battery.map(({ cannon }) => cannonRange(cannon))) : 0,
@@ -495,20 +495,20 @@ export class NavalBattleController {
     const from={x:ghost.x,y:ghost.y};
     const to={x:leviathan.x,y:leviathan.y};
     const targetId=leviathan.id;
+    const launcher=equippedHarpoon(this.readSave());
+    const incendiary=launcher.flameTip===true;
     const fired=this.renderer.fire({
-      from,to,duration:flightDurationMs(from,to,750),startTime:now,
-      ammo:{id:'emerald-ghost-bolt',name:'Orbe Esmeralda',
-        size:1.5,projectileSpeed:750,
-        fx:{preset:'rusted-iron',projectile:{
-          color:'#52f5b9',coreColor:'#d7fff1',accentColor:'#20ce83',
-          glow:1.9,scale:1.5,auraEnabled:true,auraScale:1.55,
-        }}},
+      from,to,duration:incendiary?Math.max(1,distanceBetween(from,to)/launcher.projectileSpeed*1000):flightDurationMs(from,to,launcher.projectileSpeed),startTime:now,
+      ammo:{id:incendiary?'naval-harpoon-horizon':'naval-harpoon',
+        name:incendiary?'Arpão Incandescente':'Arpão do Marujo',
+        size:1.8,projectileSpeed:launcher.projectileSpeed,
+        fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
       impactKind:'water',
       onImpact:({at})=>{
         const monster=this.getEntities().get(targetId);
         if(!monster || monster.health<=0 || monster.ambushPhase!=='surface'
           ||!shipCollision(at,monster,85))return {kind:'water'};
-        const hit=damageMonster(monster,EMERALD_GHOST_LEVIATHAN_DAMAGE,this.clock());
+        const hit=damageMonster(monster,harpoonDamage(launcher),this.clock());
         if(!hit)return {kind:'water'};
         this.onDamageVisual({target:monster,damage:hit.damage,source:'npc'});
         if(hit.defeated){
@@ -531,7 +531,7 @@ export class NavalBattleController {
     const distance=target?distanceBetween(this.getPlayer(),target):Infinity;
     const now=this.clock();
     return {launcher, target, distance, cooldownMs:Math.max(0,this.nextHarpoonAt-now),
-      ready: (launcher.flameTip ? harpoonStock(this.readSave()) : harpoonStock(this.readSave()) + armorPiercingHarpoonStock(this.readSave()))>0 && target?.type==='monster' && target.health>0
+      ready: (launcher.flameTip ? horizonHarpoonStock(this.readSave()) : harpoonStock(this.readSave()) + armorPiercingHarpoonStock(this.readSave()))>0 && target?.type==='monster' && target.health>0
         && distance<=launcher.range && this.getHealth()>0 && now>=this.nextHarpoonAt};
   }
 
@@ -549,7 +549,7 @@ export class NavalBattleController {
     const save=this.readSave();
     // Horizon incendiary launcher uses common harpoons even if piercing stock exists.
     const piercing=!launcher.flameTip && armorPiercingHarpoonStock(save)>0;
-    const harpoonAmmoId=piercing?ARMOR_PIERCING_HARPOON_ID:HARPOON_AMMO_ID;
+    const harpoonAmmoId=launcher.flameTip?HORIZON_HARPOON_AMMO_ID:piercing?ARMOR_PIERCING_HARPOON_ID:HARPOON_AMMO_ID;
     const aim=interceptPoint(from,target,this.velocities.get(target.id),launcher.projectileSpeed);
     const destination=aimWithAccuracy(aim,from,launcher.accuracy,this.random);
     const targetId=target.id;
@@ -572,7 +572,7 @@ export class NavalBattleController {
     });
     if (!accepted) {this.onFeedback('⚠️ Disparo de arpão indisponível.');return false;}
     playCannonSound('harpoon');
-    this.writePatch({harpoonAmmo:{...(save.harpoonAmmo??{}),[harpoonAmmoId]:(piercing?armorPiercingHarpoonStock(save):harpoonStock(save))-1}});
+    this.writePatch({harpoonAmmo:{...(save.harpoonAmmo??{}),[harpoonAmmoId]:(launcher.flameTip?horizonHarpoonStock(save):piercing?armorPiercingHarpoonStock(save):harpoonStock(save))-1}});
     this.nextHarpoonAt=now+Math.max(100,launcher.reloadSeconds*1000/(flameBoost?5:1));
     this.onFeedback((horizonFlame?'🔥 Arpão incandescente':flameBoost?'🔥 Arpão em chamas':'⚓ Arpão')+' lançado contra '+target.name+'!');
     return true;
