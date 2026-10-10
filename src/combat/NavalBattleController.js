@@ -118,6 +118,10 @@ export class NavalBattleController {
       treasureMapCooldownUntil:Number(c.treasureMapCooldownUntil)||0,
     };
   }
+  isBossTarget(target) {
+    return !!target && target.health > 0 &&
+      (target.archetype === 'terror-do-mar' || target.id === 'r2-morbi');
+  }
   isFlameActive() { return Date.now() < this.getConsumables().activeUntil; }
   isShieldActive() { return Date.now() < this.getConsumables().shieldActiveUntil; }
   isSpeedActive() { return Date.now() < this.getConsumables().speedActiveUntil; }
@@ -137,6 +141,8 @@ export class NavalBattleController {
       'treasure-map':{active:'treasureMapActiveUntil',cooldown:'treasureMapCooldownUntil',duration:900000,reload:1800000,label:'Mapa do Tesouro'},
     }[c.selectedId];
     if(!config)return {ok:false,reason:'Selecione um consumível.'};
+    if(c.selectedId==='flame-5x' && !this.isBossTarget(this.getTarget()))
+      return {ok:false,reason:'5X em Chamas só pode ser ativado contra chefes.'};
     if(c[config.active]>now)return {ok:false,reason:'Consumível já ativo.'};
     if(c[config.cooldown]>now)return {ok:false,reason:'Aguarde '+Math.ceil((c[config.cooldown]-now)/1000)+'s para reutilizar.'};
     const count=Math.max(0,Math.floor(Number(c.quantities[c.selectedId])||0));
@@ -492,7 +498,7 @@ export class NavalBattleController {
     const aim=interceptPoint(from,target,this.velocities.get(target.id),launcher.projectileSpeed);
     const destination=aimWithAccuracy(aim,from,launcher.accuracy,this.random);
     const targetId=target.id;
-    const flameBoost=this.isFlameActive();
+    const flameBoost=this.isFlameActive() && this.isBossTarget(target);
     const accepted=this.renderer.fire({
       from,to:destination,duration:flightDurationMs(from,destination,launcher.projectileSpeed),
       ammo:{id:'naval-harpoon',name:piercing?'Arpão Quebra-Couraça':'Arpão do Marujo',size:1.8,
@@ -622,7 +628,7 @@ export class NavalBattleController {
       const intercepted = interceptPoint(muzzle, target, this.velocities.get(target.id), speed);
       const accuracy = target.archetype === 'fugitive-frigate' && this.getThiefMissionTarget() ? 1 : cannon.accuracy;
       const destination = aimWithAccuracy(intercepted, muzzle, accuracy, this.random);
-      const flameBoost = this.isFlameActive();
+      const flameBoost = this.isFlameActive() && this.isBossTarget(target);
       const goldenMission = this.getRegionId() === 'r2' && save.r2Campaign?.active === 'r2-golden-ii' && target.id === 'r2-morbi';
       const damage = shotDamage(cannon, ammo.id) * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
       const tracking = ammo.trackingDurationMs > 0;
