@@ -15,7 +15,18 @@ export function spriteCannonMuzzle(ship, player, target, headingDegrees, slot, f
   const towardRight = (target.x - player.x) * rightX + (target.y - player.y) * rightY;
   const side = towardRight >= 0 ? 'starboard' : 'port';
   const frame = getShipFrame(headingDegrees, ship);
-  const point = sprite.cannonMuzzles[frame]?.[side]?.[slot];
+  const mappedFrame = sprite.cannonMuzzles[frame];
+  // The atlas stores the visible broadside per frame. Do not fall back to
+  // geometric hardpoints on the opposite side: they can land on the sails.
+  const visibleSide = mappedFrame?.[side] ? side
+    : (mappedFrame?.port ? 'port' : mappedFrame?.starboard ? 'starboard' : null);
+  let point = visibleSide ? mappedFrame[visibleSide]?.[slot] : null;
+  // Axial frames 4 and 12 have no visible broadside. Place the muzzle
+  // low on the hull instead of letting the generic fallback fire from rigging.
+  if (!point && ship.id === 'galeao-dourado' && (frame === 4 || frame === 12)) {
+    const x = side === 'port' ? 145 : 255;
+    point = [x, 305];
+  }
   if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) return null;
   const sourceW = sprite.frameWidth, sourceH = sprite.frameHeight;
   if (!(sourceW > 0 && sourceH > 0)) return null;

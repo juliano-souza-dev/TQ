@@ -694,7 +694,7 @@ async function startWorld() {
     boardFor(readSave(),world.region.id).missions.filter(m=>m.status==='ready').map(m=>m.id)
   );
   if(readyAtLoad)queueMicrotask(()=>routeToMissionsPort({announce:false}));
-  if(world.region.id==='r3' && !readSave().r3Campaign?.claimed?.includes('r3-equip-terror') && !readSave().r3Campaign?.active)
+  if(world.region.id==='r3' && !readSave().r3Campaign?.claimed?.includes('r3-equip-shadow') && !readSave().r3Campaign?.active)
     queueMicrotask(()=>{routeToMissionsPort({announce:false});showOceanReward('📜 Região 3: vá ao Porto das Missões buscar seu primeiro contrato.');});
   function checkMissionCompletion(){
     const missions=boardFor(readSave(),world.region.id).missions;
@@ -1844,18 +1844,18 @@ async function startWorld() {
 
   let autoEquippingR3=false;
   async function autoEquipR3AtShipyard(){
-    if(autoEquippingR3||world.region.id!=='r3'||readSave().r3Campaign?.active!=='r3-equip-terror')return false;
-    const shipId='galeao-halloween-tabuada';
+    if(autoEquippingR3||world.region.id!=='r3'||readSave().r3Campaign?.active!=='r3-equip-shadow')return false;
+    const shipId='fragata-sombra-cacadora';
     const ship=playableShips.find(item=>item.id===shipId);
     const save=readSave(),equipment=save.equipment??{};
-    if(!ship||!equipment.ownedShipIds?.includes(shipId)){
-      showOceanReward('⚠️ O Terror da Tabuada precisa estar disponível no seu estaleiro.');
+    if(!ship||!equipment.ownedShipIds?.includes(shipId)||save.storyFlags?.terrorTabuadaDestroyed&&shipId==='galeao-halloween-tabuada'){
+      showOceanReward('⚠️ A Fragata Caçadora das Sombras precisa estar disponível no seu estaleiro.');
       return false;
     }
     autoEquippingR3=true;
     const previous=activeShip;
     try{
-      const capacity=Math.max(0,Number(ship.cannonSlots)||0)+(save.shipUpgrades?.masterShipwright?5:0);
+      const capacity=Math.max(0,Number(ship.cannonSlots)||0)+(save.shipUpgrades?.masterShipwright?1:0);
       const specialCount=Math.max(0,Math.floor(Number(equipment.cannonCounts?.['aetherion-mk1'])||0));
       const cannons=['aetherion-mk1',...CANNONS.filter(c=>c.id!=='aetherion-mk1').sort((a,b)=>
         (Number(b.damageMultiplier)||0)-(Number(a.damageMultiplier)||0))];
@@ -1893,7 +1893,7 @@ async function startWorld() {
       navalHud?.refresh();
       updateMissionHud();
       void guideMissionTo('missions');
-      showOceanReward('⚓ Terror da Tabuada equipado com 2 Aetherion MK-I e a melhor artilharia disponível! Volte ao Porto das Missões.');
+      showOceanReward('⚓ Fragata Caçadora das Sombras equipada com 2 Aetherion MK-I e a melhor artilharia disponível! Volte ao Porto das Missões.');
       return true;
     }catch(error){
       console.error('Falha na equipagem automática da Região 3',error);
@@ -1916,7 +1916,7 @@ async function startWorld() {
     contactId = contact.id;
     clickNavigation.cancel();
     const autoR3Equip=world.region.id==='r3' && contact.kind==='shipyard'
-      && readSave().r3Campaign?.active==='r3-equip-terror';
+      && readSave().r3Campaign?.active==='r3-equip-shadow';
     const autoTerrorEquip=world.region.id==='r2' && contact.kind==='shipyard'
       && readSave().r2Campaign?.active==='r2-equip-terror';
     if(autoR3Equip){
