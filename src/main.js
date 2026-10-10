@@ -1,4 +1,4 @@
-import { R3_WRECKS } from './missions/RegionThreeCampaign.js';
+import { R3_WRECKS, grantR3HorizonHarpoon } from './missions/RegionThreeCampaign.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
 import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission,advanceR2Story } from './missions/RegionTwoCampaign.js';
@@ -493,6 +493,12 @@ async function startWorld() {
       ownedHarpoonIds: [...new Set([...(initialEquipment.ownedHarpoonIds ?? []), 'naval-harpoon-starter'])],
       equippedHarpoonId: initialEquipment.equippedHarpoonId || 'naval-harpoon-starter',
     } });
+  }
+  // Players who claimed the R3 diaries before this launcher was added must
+  // receive the item once, without losing older launchers or replaying rewards.
+  if(readSave().r3Campaign?.claimed?.includes('r3-dark-waters-warning')){
+    const rewardEquipment=grantR3HorizonHarpoon(readSave());
+    if(rewardEquipment)writePatch({equipment:rewardEquipment});
   }
   // Conceder os 500 arpões apenas uma vez. Estoque zero é válido e não é reposto.
   if (readSave().harpoonAmmo?.['harpoon-mariner'] === undefined) {
