@@ -1,4 +1,14 @@
-// First-voyage onboarding. The arrow points from the player to the mission harbor.
+// Calculate heading from the fixed on-screen hand to the visible destination.
+// The hand artwork faces right at 0deg; positive screen angles turn clockwise.
+export function computeGuidePointerAngle({target,cameraView,zoom=1,viewportRect,pointerRect}) {
+  const screenX=viewportRect.left+viewportRect.width/2+(target.x-cameraView.x)*zoom;
+  const screenY=viewportRect.top+viewportRect.height/2+(target.y-cameraView.y)*zoom;
+  const pointerX=pointerRect.left+pointerRect.width/2;
+  const pointerY=pointerRect.top+pointerRect.height/2;
+  return Math.atan2(screenY-pointerY,screenX-pointerX)*180/Math.PI;
+}
+
+// First-voyage onboarding. The visual guide points at the selected destination.
 export function createFirstVoyageGuide(world, { onAcknowledge = () => {} } = {}) {
   let destination = 'missions';
   const getTarget = () => typeof destination === 'object' ? destination : world.region.islands.find(island => island.kind === destination);
@@ -7,6 +17,8 @@ export function createFirstVoyageGuide(world, { onAcknowledge = () => {} } = {})
   arrow.setAttribute('aria-label', 'Direção do porto das missões');
   arrow.innerHTML = '<span class="voyage-arrow-symbol"><img class="voyage-arrow-image" src="./assets/ui/seta.png" alt="" draggable="false"></span><span class="voyage-arrow-label">Porto das Missões</span>';
   arrow.hidden = true;
+  const pointerIcon=arrow.querySelector('.voyage-arrow-symbol');
+  const pointerLabel=arrow.querySelector('.voyage-arrow-label');
   const modal = document.createElement('section');
   modal.className = 'voyage-welcome';
   modal.setAttribute('role', 'dialog');
@@ -32,12 +44,22 @@ export function createFirstVoyageGuide(world, { onAcknowledge = () => {} } = {})
   function update() {
     const target = getTarget();
     if (arrow.hidden || !target) return;
-    const dx = target.x - world.camera.x;
-    const dy = target.y - world.camera.y;
-    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    // Prefer the live entity position, e.g. Silas Rubro, over its initial spawn.
+    const live=typeof destination==='object' ? world.entities?.get?.(destination.id) : null;
+    const objective=live && Number.isFinite(live.x) && Number.isFinite(live.y) ? live : target;
+    const oceanRect=document.getElementById('ocean')?.getBoundingClientRect();
+    const viewportRect=oceanRect?.width>0 && oceanRect?.height>0
+      ? oceanRect : {left:0,top:0,width:window.innerWidth,height:window.innerHeight};
+    const angle=computeGuidePointerAngle({
+      target:objective,
+      cameraView:world.cameraView??world.camera,
+      zoom:world.camera.zoom,
+      viewportRect,
+      pointerRect:pointerIcon.getBoundingClientRect(),
+    });
     arrow.style.setProperty('--voyage-angle', angle + 'deg');
-    const distance = Math.round(Math.hypot(dx, dy));
-    arrow.querySelector('.voyage-arrow-label').textContent = (typeof destination === 'object' ? destination.name : destination === 'shipyard' ? 'Estaleiro' : 'Porto das Missões') + ' · ' + distance + ' m';
+    const distance=Math.round(Math.hypot(objective.x-world.camera.x,objective.y-world.camera.y));
+    pointerLabel.textContent=(typeof destination==='object' ? destination.name : destination==='shipyard' ? 'Estaleiro' : 'Porto das Missões')+' · '+distance+' m';
   }
   return {
     elements: [arrow, modal],

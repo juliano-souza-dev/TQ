@@ -2752,7 +2752,6 @@ async function startWorld() {
         }
       }
       persistPlayerPosition(stepMs);
-      firstVoyageGuide?.update();
       // Only a truly sunk ship that has NOT started regeneration is immobilized.
       // During recovery (including 0 HP immediately after solving), navigation stays enabled.
       if (sunk && !recovering) {
@@ -2828,6 +2827,7 @@ async function startWorld() {
     render: () => {
       updatePursuitCamera(16);
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
+      firstVoyageGuide?.update();
       renderer.render(world, oceanTimeMs);
       halloweenFogRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
