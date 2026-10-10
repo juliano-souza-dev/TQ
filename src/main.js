@@ -535,11 +535,20 @@ async function startWorld() {
     const combatTarget = navalBattle?.getCameraTarget?.() ?? null;
     // Manual camera input (WASD/drag) has priority whenever the player takes control.
     const activeR2Mission = world.region.id === 'r2' ? readSave().r2Campaign?.active : null;
-    const morbiEncounter = ['r2-golden-i','r2-golden-ii'].includes(activeR2Mission)
-      ? world.entities.get('r2-morbi') : null;
-    const oneVsOneTarget = morbiEncounter?.health > 0
-      ? morbiEncounter
-      : (combatTarget?.type === 'npc' || combatTarget?.type === 'monster') && combatTarget.health > 0
+    const combatCameraStatus = navalBattle?.getStatus?.() ?? null;
+    const combatTargetDistance = combatTarget
+      ? Math.hypot(world.camera.x-combatTarget.x, world.camera.y-combatTarget.y)
+      : Infinity;
+    const combatCameraRange = Math.max(0,Number(combatCameraStatus?.range)||0);
+    const combatTargetInRange = Boolean(
+      combatTarget?.health > 0
+      && combatCameraRange > 0
+      && combatTargetDistance <= combatCameraRange
+    );
+    // Selecting a distant target must not pull the camera into battle framing.
+    // The Shadow Thief pursuit remains the intentional exception handled below.
+    const oneVsOneTarget = combatTargetInRange
+      && (combatTarget?.type === 'npc' || combatTarget?.type === 'monster')
         ? combatTarget : null;
     const cinematicTarget = thief ?? oneVsOneTarget ?? forgottenIsland;
     const finalMission = world.region.id === 'r1'
