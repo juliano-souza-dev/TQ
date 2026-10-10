@@ -12,6 +12,7 @@ import {
 // Distinct cannon sounds, with pooled voices to avoid clipping during volleys.
 const CANNON_AUDIO = Object.freeze({
   special: './assets/sounds/special_cannon.wav',
+  harpoon: './assets/sounds/arpão.wav',
   normal: './assets/sounds/cannon_shot.mp3',
   impact: './assets/sounds/cannon_impact_with_ship.mp3',
   water: './assets/sounds/cannon_ball_in_water.mp3',
@@ -458,6 +459,7 @@ export class NavalBattleController {
         },
       });
       if (fired) {
+        playCannonSound('harpoon');
         assist.nextShotAt = now + 7000;
       }
     }
@@ -500,6 +502,7 @@ export class NavalBattleController {
       onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,(launcher.dotDamage?harpoonDamage(launcher):(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:harpoonDamage(launcher)))*(flameBoost?5:1),launcher),
     });
     if (!accepted) {this.onFeedback('⚠️ Disparo de arpão indisponível.');return false;}
+    playCannonSound('harpoon');
     this.writePatch({harpoonAmmo:{...(save.harpoonAmmo??{}),[harpoonAmmoId]:(piercing?armorPiercingHarpoonStock(save):harpoonStock(save))-1}});
     this.nextHarpoonAt=now+Math.max(100,launcher.reloadSeconds*1000/(flameBoost?5:1));
     this.onFeedback((flameBoost?'🔥 Arpão em chamas':'⚓ Arpão')+' lançado contra '+target.name+'!');
