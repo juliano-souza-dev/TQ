@@ -691,30 +691,61 @@ export class NavalBattleController {
         continue;
       }
       if(npc.id==='r2-morbi' && npc.health>0){
-        const stageTwo=this.readSave().r2Campaign?.active==='r2-golden-ii';
+        const mission=this.readSave().r2Campaign?.active;
+        const stageTwo=mission==='r2-golden-ii';
+        const firstEncounter=mission==='r2-golden-i';
         const cannon=npc.specialCannon??{};
-        const engagementRange=stageTwo
-          ? Math.max(1,Number(cannon.range)||840)
-          : 2400;
-        if(['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active)
-          && distanceBetween(npc,player)<=engagementRange
-          && now>=(this.nextNpcShot.get(npc.id)??-Infinity)){
-          const damage=Math.max(1,Number(cannon.damage)||Number(npc.damage)||1200);
-          const reloadMs=Math.max(1000,Number(cannon.reloadMs)||45000);
-          const muzzle=cannonHardpoint(npc,player,npc.heading,0,1);
-          const aimed={x:player.x,y:player.y};
-          const firstEncounter=this.readSave().r2Campaign?.active==='r2-golden-i';
+        const broadside=npc.broadside??{};
+        const extreme=stageTwo && npc.broadsideActive===true;
+        const specialRange=Math.max(1,Number(cannon.range)||840);
+        const broadsideRange=Math.max(1,Number(broadside.range)||specialRange);
+        const engagementRange=firstEncounter?2400:(extreme?Math.max(specialRange,broadsideRange):specialRange);
+        const distance=distanceBetween(npc,player);
+        if(['r2-golden-i','r2-golden-ii'].includes(mission) && distance<=engagementRange){
           const controller=this;
-          const fired=this.renderer.fire({from:muzzle,to:aimed,
-            duration:flightDurationMs(muzzle,aimed,650),ammo:this.enemyAmmo,
-            ...(firstEncounter?{trackingTarget:{
-              get x(){return controller.getPlayer().x;},
-              get y(){return controller.getPlayer().y;},
-              get health(){return controller.getHealth();}
-            },trackingSpeed:850}:{}),
-            impactKind:'water',startTime:now,
-            onImpact:({at})=>this.resolveNpcImpact(npc.id,at,damage)});
-          if(fired)this.nextNpcShot.set(npc.id,now+reloadMs);
+          const fireShot=({slot,count,damage,speed=650,tracking=false})=>{
+            const muzzle=cannonHardpoint(npc,player,npc.heading,slot,count);
+            const aimed={x:player.x,y:player.y};
+            return this.renderer.fire({
+              from:muzzle,to:aimed,
+              duration:flightDurationMs(muzzle,aimed,speed),ammo:this.enemyAmmo,
+              ...(tracking?{trackingTarget:{
+                get x(){return controller.getPlayer().x;},
+                get y(){return controller.getPlayer().y;},
+                get health(){return controller.getHealth();}
+              },trackingSpeed:850}:{}),
+              impactKind:'water',startTime:now,
+              onImpact:({at})=>this.resolveNpcImpact(npc.id,at,damage)
+            });
+          };
+
+          const specialKey=npc.id+':special';
+          if(now>=(this.nextNpcShot.get(specialKey)??-Infinity) && distance<=specialRange){
+            const specialDamage=Math.max(1,Number(cannon.damage)||Number(npc.damage)||1200);
+            const specialReload=Math.max(1000,Number(cannon.reloadMs)||45000);
+            const specialCount=extreme
+              ? Math.max(2,Number(cannon.countAfterPhase)||2)
+              : Math.max(1,Number(cannon.countBeforePhase)||1);
+            let firedSpecial=0;
+            for(let slot=0;slot<specialCount;slot++){
+              if(fireShot({slot,count:specialCount,damage:specialDamage,tracking:firstEncounter}))firedSpecial++;
+            }
+            if(firedSpecial)this.nextNpcShot.set(specialKey,now+specialReload);
+          }
+
+          if(extreme && distance<=broadsideRange){
+            const broadsideKey=npc.id+':broadside';
+            if(now>=(this.nextNpcShot.get(broadsideKey)??-Infinity)){
+              const regularCount=Math.max(1,Number(broadside.regularCannons)||18);
+              const regularDamage=Math.max(1,Number(broadside.regularDamage)||300);
+              const reloadMs=Math.max(500,Number(broadside.reloadMs)||3000);
+              let firedRegular=0;
+              for(let slot=0;slot<regularCount;slot++){
+                if(fireShot({slot,count:regularCount,damage:regularDamage,speed:520}))firedRegular++;
+              }
+              if(firedRegular)this.nextNpcShot.set(broadsideKey,now+reloadMs);
+            }
+          }
         }
         continue;
       }
