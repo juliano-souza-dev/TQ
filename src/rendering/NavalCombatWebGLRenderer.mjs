@@ -608,6 +608,34 @@ export class NavalCombatWebGLRenderer{
     const drawCombatPoint=(x,y,size,effectType,progress=0,additive=true,style={})=>
       drawPoint(x,y,Math.max(.75,Number(size)||0)*combatVisualScale,effectType,progress,additive,style);
 
+    // The Horizon spear keeps its real (sub-frame) 50x collision timing.
+    // Replay only the incandescent *tip* and a slim motion streak for legibility.
+    for(const trace of this.horizonTraces){
+      const age=now-trace.startTime;
+      if(age<0||age>trace.duration)continue;
+      const tipT=clamp(age/Math.max(70,trace.travelMs),0,1);
+      const fade=1-smoothstep(90,trace.duration,age);
+      const dx=trace.to.x-trace.from.x,dy=trace.to.y-trace.from.y;
+      const length=Math.max(1,Math.hypot(dx,dy));
+      const tailT=Math.max(0,tipT-Math.min(.23,110/length));
+      const count=this.reducedFx?9:19;
+      for(let i=0;i<count;i++){
+        const t=tailT+(tipT-tailT)*i/Math.max(1,count-1);
+        const x=trace.from.x+dx*t,y=trace.from.y+dy*t;
+        const intensity=(i+1)/count;
+        drawCombatPoint(x,y,4.5+4*intensity,0,t,true,{
+          color:'#ff4a0c',coreColor:'#ffda74',glow:.75,
+          opacity:.22*fade*intensity
+        });
+      }
+      const tipX=trace.from.x+dx*tipT,tipY=trace.from.y+dy*tipT;
+      // Compact orange flame surrounds a white-hot arrowhead; not a fireball.
+      drawCombatPoint(tipX,tipY,16,2,tipT,true,
+        {color:'#ff4a0c',coreColor:'#ffe89b',glow:1.4,opacity:.78*fade});
+      drawCombatPoint(tipX,tipY,6.5,0,tipT,true,
+        {color:'#ff8c20',coreColor:'#fff8cd',glow:1.8,opacity:.94*fade});
+    }
+
     // 300ms submerge, 450ms outbound, 220ms tentacle strike,
     // 450ms return on the exact reverse trajectory, 300ms resurfacing.
     // Leviathan flamethrower: tapered jet anchored at the mapped mouth.
