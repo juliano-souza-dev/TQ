@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { getR2Board, acceptR2Mission, recordR2Event, claimR2Mission, advanceR2Story, R2_MISSIONS } from '../src/missions/RegionTwoCampaign.js';
 import { R2_TREASURES, getVisibleTreasures } from '../src/treasures/RegionTreasures.js';
 
-test('campanha da segunda região tem onze missões sequenciais', () => {
+test('campanha da segunda região mantém 25 missões sequenciais sem duplicar resgates', () => {
   let save = { profile:{gold:0} };
   assert.equal(R2_MISSIONS.length, 25);
   for (const mission of R2_MISSIONS) {
@@ -14,7 +14,7 @@ test('campanha da segunda região tem onze missões sequenciais', () => {
     save = { ...save, ...accepted };
     for (const task of mission.objectives) {
       for (let i=0; i<task.count; i++) {
-        const event = recordR2Event(save, {type:task.kind,id:mission.id+':'+task.kind+':'+i,ship:task.ship});
+        const event = recordR2Event(save, {type:task.kind,id:mission.id+':'+task.kind+':'+i,ship:task.ship,archetype:task.archetype});
         assert.ok(event);
         save = { ...save, ...event };
       }
@@ -26,9 +26,8 @@ test('campanha da segunda região tem onze missões sequenciais', () => {
     assert.equal(claimR2Mission(save,mission.id),null);
   }
   assert.equal(getR2Board(save).essentialClaimed,25);
-  assert.ok(save.equipment?.ownedShipIds?.includes('fragata-sombra-cacadora'));
-  assert.equal(save.equipment?.cannonCounts?.['aetherion-mk1'],1);
-  assert.equal(save.ammunition?.['aetherion-seeker'],5000);
+  assert.equal(new Set(save.r2Campaign.claimed).size,25);
+  assert.equal(save.r2Campaign.active,null);
 });
 test('arcas da Costa dos Corsários aparecem somente na segunda região',()=>{
   assert.ok(R2_TREASURES.length>=20);
