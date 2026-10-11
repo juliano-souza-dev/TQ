@@ -9,14 +9,15 @@ export const TERROR_DO_MAR_SHIP = Object.freeze({
   shopEnabled: false,
   rewardEnabled: false,
   maxHealth: 1000000,
-  cannonSlots: 10,
+  cannonSlots: 7,
   cannonLayout: Object.freeze({
-    port: 10,
-    starboard: 10,
+    port: 7,
+    starboard: 7,
     bow: 0,
     stern: 0,
   }),
-  // O sprite mostra seis portinholas por bordo. Os dez slots de equipamento
+  // Sete espaços-base, somados aos espaços extras já conquistados pelo jogador.
+  // O sprite mostra seis portinholas por bordo; os slots de equipamento
   // são distribuídos ao longo dessa bateria para que nenhum slot volte ao
   // hardpoint genérico durante uma salva.
   visualGunports: Object.freeze({ port: 6, starboard: 6 }),

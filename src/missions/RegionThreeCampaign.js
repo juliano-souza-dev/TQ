@@ -207,7 +207,32 @@ export function getR3Board(save={}) {
 export function acceptR3Mission(save,id){
  if(id===R3_CLEANUP_MISSION_ID){const state=save.r3Campaign??{};
   if(!state.claimed?.includes(R3_REBUILD_MISSION_ID)||state.claimed.includes(id)||state.active)return null;
-  return {r3Campaign:{...state,active:id,cleanupSunkIds:[],cleanupReturned:false,emeraldDeparted:true}};
+  const equipment=save.equipment??{};
+  const counts={...(equipment.cannonCounts??{})};
+  counts['pumpkin-terror']=(Number(counts['pumpkin-terror'])||0)+5;
+  counts['aetherion-mk1']=(Number(counts['aetherion-mk1'])||0)+2;
+  const shipId='terror-do-mar';
+  const capacity=7+(save.shipUpgrades?.masterShipwright?5:0);
+  const loadout={...(equipment.loadout??{})};
+  const slots=Array.isArray(loadout[shipId])?[...loadout[shipId]].slice(0,capacity):[];
+  const alreadyEquipped=(id)=>slots.filter(x=>x===id).length;
+  const previousCounts=equipment.cannonCounts??{};
+  for(const [id,grant] of [['aetherion-mk1',2],['pumpkin-terror',5]]){
+    // Only allocate the newly granted stock, keeping the existing loadout.
+    const originalStock=Math.max(0,Number(previousCounts[id])||0);
+    const freeFromGrant=Math.max(0,originalStock+grant-alreadyEquipped(id));
+    for(let n=0;n<Math.min(grant,freeFromGrant);n++){
+      let slot=slots.findIndex(x=>!x);
+      if(slot<0)slot=slots.length<capacity?slots.length:-1;
+      if(slot<0)break;
+      slots[slot]=id;
+    }
+  }
+  loadout[shipId]=slots;
+  return {r3Campaign:{...state,active:id,cleanupSunkIds:[],cleanupReturned:false,emeraldDeparted:true},
+    equipment:{...equipment,cannonCounts:counts,
+      ownedCannonIds:[...new Set([...(equipment.ownedCannonIds??[]),'pumpkin-terror','aetherion-mk1'])],
+      loadout}};
  }
  if(id===R3_REBUILD_MISSION_ID){
   const state=save.r3Campaign??{};
