@@ -180,6 +180,26 @@ function updateBoss(npc, world, deltaMs, random) {
   }
   if (npc.monsterAssisting) return;
   const dt = Math.min(64, Math.max(0, deltaMs)) / 1000;
+  if(npc.varkorBattleUnlocked){
+    const player=world.camera;
+    const dx=player.x-npc.x,dy=player.y-npc.y;
+    const distance=Math.hypot(dx,dy);
+    // Remain at the edge of the longer effective cannon range.
+    const engagementRange=Math.max(1,Number(npc.playerMaxCannonRange)||0,Number(npc.range)||0);
+    const desiredGap=Math.max(100,engagementRange-35);
+    npc.heading=turnToward(npc.heading,bearing(dx,dy),110*dt);
+    npc.state='retaliating';
+    npc.retaliationActive=true;
+    if(distance>desiredGap){
+      const move=Math.min(distance-desiredGap,Math.max(0,Number(npc.speed)||0)*dt);
+      const angle=npc.heading*Math.PI/180;
+      const moved=resolveIslandMovement(world.region,npc.x,npc.y,
+        Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(angle)*move)),
+        Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(angle)*move)),42);
+      npc.x=moved.x;npc.y=moved.y;
+    }
+    return;
+  }
   const player = world.camera;
   const distance = Math.hypot(player.x - npc.x, player.y - npc.y);
   if (distance < 520) {
