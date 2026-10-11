@@ -109,11 +109,11 @@ export function createIslandPanel({ onAcceptFirstMission = () => {}, isFirstMiss
       else card.insertBefore(missionBoard.element, close);
       shipyard.element.hidden = kind !== 'shipyard';
       list.hidden = kind === 'shipyard';
-      acceptMission.hidden = kind !== 'missions' || ['r2','r3'].includes(getRegionId()) || isFirstMissionAccepted();
+      acceptMission.hidden = kind !== 'missions' || ['r2','r3','r4'].includes(getRegionId()) || isFirstMissionAccepted();
       const flow = getMissionFlow();
-      mathBox.hidden = kind !== 'missions' || ['r2','r3'].includes(getRegionId()) || flow.stage !== 'mission';
+      mathBox.hidden = kind !== 'missions' || ['r2','r3','r4'].includes(getRegionId()) || flow.stage !== 'mission';
       if (!mathBox.hidden) prepareChallenge();
-      const freePlay = kind === 'missions' && (['r2','r3'].includes(getRegionId()) || ['free', 'ready2', 'stage2'].includes(flow.stage));
+      const freePlay = kind === 'missions' && (['r2','r3','r4'].includes(getRegionId()) || ['free', 'ready2', 'stage2'].includes(flow.stage));
       if (freePlay) missionBoard.show();
       missionBoard.setHidden(!freePlay);
       list.hidden = kind === 'shipyard' || freePlay;
