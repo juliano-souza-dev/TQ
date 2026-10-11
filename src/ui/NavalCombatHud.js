@@ -1,3 +1,5 @@
+import { AMMUNITION, getAmmunitionAssetUrl } from '../items/EquipmentCatalog.js';
+import { NAVAL_AMMO } from '../combat/NavalBattleRules.js';
 const MESSAGES = Object.freeze({
   mission: 'Aceite uma missão no Porto das Missões para combater.',
   'no-cannon': 'Equipe um canhão no Estaleiro.',
@@ -44,9 +46,26 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   const hullRow = document.createElement('div');
   hullRow.className = 'combat-hull-row';
   hullRow.append(hull);
-  const ammoSelect = document.createElement('select');
-  ammoSelect.className = 'combat-ammo-select';
-  ammoSelect.setAttribute('aria-label', 'Selecionar munição');
+  const ammoWrap = document.createElement('div');
+  ammoWrap.className = 'naval-ammo-wrap';
+  const ammoButton = document.createElement('button');
+  ammoButton.type = 'button';
+  ammoButton.className = 'naval-ammo-button';
+  ammoButton.setAttribute('aria-label', 'Selecionar munição');
+  const ammoFrame = document.createElement('img');
+  ammoFrame.className = 'naval-consumables-frame';
+  ammoFrame.src = new URL('../../assets/ui/hud/consumiveis_slot.png', import.meta.url).href;
+  ammoFrame.alt = '';
+  const ammoIcon = document.createElement('img');
+  ammoIcon.className = 'naval-consumables-icon';
+  ammoIcon.alt = '';
+  const ammoCount = document.createElement('span');
+  ammoCount.className = 'naval-consumables-count';
+  ammoButton.append(ammoFrame, ammoIcon, ammoCount);
+  const ammoPicker = document.createElement('div');
+  ammoPicker.className = 'naval-ammo-picker';
+  ammoPicker.hidden = true;
+  ammoWrap.append(ammoButton, ammoPicker);
   const ammoQuantity = document.createElement('span');
   const cannonQuantity = document.createElement('span');
   cannonQuantity.className = 'combat-cannon-quantity';
@@ -148,7 +167,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   picker.append(noneOption,flameOption,shieldOption,speedOption,mapOption,areaFreezeOption);
   consumablesWrap.append(consumablesButton,picker);
   attackControls.append(fireButton, fireIconButton, consumablesWrap, centerButton, repairButton);
-  element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
+  element.append(hullRow, ammoWrap, ammoQuantity, cannonQuantity, attackControls, feedback);
   let optionFingerprint = '';
   let automaticFeedback = '';
 
@@ -205,20 +224,41 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     centerButton.setAttribute('aria-disabled', String(!cameraDetached));
     centerButton.title = cameraDetached ? 'Centralizar a câmera no navio' : 'Câmera acompanhando o navio';
     const status = controller.getStatus();
-    const choices = status.options.filter(item => item.amount > 0 || item.id === status.ammoId);
-    const fingerprint = choices.map(item => item.id + ':' + (item.amount > 0)).join('|');
+    const choices = [...status.options].filter(item => AMMUNITION.some(ammo => ammo.id === item.id))
+      .sort((a,b) => ((NAVAL_AMMO[b.id]?.damagePerShot || 0) * (NAVAL_AMMO[b.id]?.damageFactor || 0))
+        - ((NAVAL_AMMO[a.id]?.damagePerShot || 0) * (NAVAL_AMMO[a.id]?.damageFactor || 0)));
+    const selectedAmmo = AMMUNITION.find(item => item.id === status.ammoId);
+    if (selectedAmmo) ammoIcon.src = getAmmunitionAssetUrl(selectedAmmo);
+    ammoCount.textContent = String(status.ammo ?? 0);
+    ammoButton.title = selectedAmmo?.name || 'Selecionar munição';
+    ammoButton.disabled = !choices.some(item => item.amount > 0);
+    const fingerprint = choices.map(item => item.id + ':' + item.amount + ':' + status.ammoId).join('|');
     if (fingerprint !== optionFingerprint) {
       optionFingerprint = fingerprint;
-      ammoSelect.replaceChildren(...choices.map(item => {
-        const option = document.createElement('option');
-        option.value = item.id;
-        option.textContent = item.name;
-        option.disabled = item.amount <= 0;
-        return option;
+      ammoPicker.replaceChildren(...choices.map(item => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'naval-ammo-option';
+        button.disabled = item.amount <= 0;
+        button.classList.toggle('is-selected', item.id === status.ammoId);
+        const catalog = AMMUNITION.find(ammo => ammo.id === item.id);
+        const img = document.createElement('img');
+        img.src = getAmmunitionAssetUrl(catalog);
+        img.alt = '';
+        const label = document.createElement('span');
+        label.textContent = item.name;
+        const count = document.createElement('span');
+        count.className = 'naval-ammo-option-count';
+        count.textContent = String(item.amount);
+        button.append(img, label, count);
+        button.addEventListener('click', () => {
+          setFeedback(controller.setAmmo(item.id) ? 'Munição selecionada.' : 'Munição indisponível.');
+          ammoPicker.hidden = true;
+          refresh();
+        });
+        return button;
       }));
     }
-    ammoSelect.value = status.ammoId;
-    ammoSelect.disabled = !choices.some(item => item.amount > 0);
     const monsterSelected=controller.getTarget()?.type==='monster';
     ammoQuantity.textContent = status.harpoonFiring || monsterSelected
       ? '⚓ ' + status.harpoonName + ' equipado · ' + status.harpoonAmmo
@@ -269,7 +309,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     }
   }
 
-  consumablesButton.addEventListener('click', () => { picker.hidden = !picker.hidden; refresh(); });
+  consumablesButton.addEventListener('click', () => { ammoPicker.hidden = true; picker.hidden = !picker.hidden; refresh(); });
   noneOption.addEventListener('click', () => {controller.selectConsumable('none');picker.hidden=true;refresh();});
   function selectAndActivate(id) {
     if (!controller.selectConsumable(id)) return;
@@ -335,12 +375,9 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     if (event?.detail !== 0 && performance.now() - lastRepairTouchAt < 650) return;
     if (!repairButton.disabled && controller.getHealth() < 100) onRepair();
   });
-  ammoSelect.addEventListener('change', () => {
-    if (!controller.setAmmo(ammoSelect.value)) {
-      setFeedback('Munição indisponível.');
-    } else {
-      setFeedback('Munição selecionada.');
-    }
+  ammoButton.addEventListener('click', () => {
+    picker.hidden = true;
+    ammoPicker.hidden = !ammoPicker.hidden;
     refresh();
   });
   refresh();
