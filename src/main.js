@@ -3381,7 +3381,7 @@ async function startWorld() {
       }
       if(world.region.id==='r3'&&r3Purification<0.999)
         halloweenFogRenderer?.render(world.cameraView,world.camera.zoom,oceanTimeMs);
-      cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
+      cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs, world.cameraPerspective);
       if(polarCtx&&polarCanvas){
         const w=canvas.clientWidth,h=canvas.clientHeight;
         if(polarCanvas.width!==w||polarCanvas.height!==h){polarCanvas.width=w;polarCanvas.height=h;}
@@ -3411,11 +3411,11 @@ async function startWorld() {
         }
       }
 
-      islandRenderer.render(world.cameraView, world.camera.zoom);
+      islandRenderer.render(world.cameraView, world.camera.zoom, world.cameraPerspective);
       const hidePursuitTreasures = world.region.id === 'r2'
         && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active);
       const renderedTreasures=hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
-      treasureGlowRenderer?.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs,pendingTreasureId);
+      treasureGlowRenderer?.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs,pendingTreasureId,world.cameraPerspective);
       const flameStep=readSave().r3Campaign?.flameStep??0;
       const flameIndex=flameStep===0?0:flameStep===2?1:flameStep===3?2:flameStep===5?3:-1;
       const visibleFlameWreck=world.region.id==='r3'&&readSave().r3Campaign?.active===R3_FLAME_MISSION_ID&&flameIndex>=0?[R3_FLAME_STOPS[flameIndex]]:[];
@@ -3427,7 +3427,7 @@ async function startWorld() {
       const varkorWreck=world.region.id==='r3'&&varkorState.active===R3_VARKOR_MISSION_ID&&varkorState.varkorDefeated&&!varkorState.varkorWreckClaimed&&varkorState.varkorWreckPosition?[{id:'r3-varkor-wreck',name:'Destroço do Capitão',label:'Destroço do Capitão',...varkorState.varkorWreckPosition}]:[];
       const rebuildState=readSave().r3Campaign??{};
       const rebuildWreck=world.region.id==='r3'&&rebuildState.active===R3_REBUILD_MISSION_ID&&rebuildState.emeraldSpoken&&!rebuildState.emeraldWreckCollected?[{id:'r3-emerald-build-wreck',name:'Destroço',label:'Destroço',x:2350,y:4740},{id:'r3-emerald-build-wreck-2',name:'Destroço',label:'Destroço',x:2210,y:4740},{id:'r3-emerald-build-wreck-3',name:'Destroço',label:'Destroço',x:2490,y:4740}]:[];
-      treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks,...visibleFlameWreck,...varkorWreck,...rebuildWreck],world.cameraView,world.camera.zoom,oceanTimeMs,world.region.id);
+      treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks,...visibleFlameWreck,...varkorWreck,...rebuildWreck],world.cameraView,world.camera.zoom,oceanTimeMs,world.region.id,world.cameraPerspective);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
         selectedNpcId = null;
@@ -3437,15 +3437,16 @@ async function startWorld() {
       leviathanAura.hidden=!monster||monster.health<=0||monster.ambushPhase==='submerged';
       if(!leviathanAura.hidden){
         const z=world.camera.zoom,c=world.cameraView;
-        leviathanAura.style.left=(canvas.clientWidth/2+(monster.x-c.x)*z)+'px';
-        leviathanAura.style.top=(canvas.clientHeight/2+(monster.y-c.y)*z)+'px';
-        leviathanAura.style.setProperty('--leviathan-aura-size',Math.min(470,240*z)+'px');
+        const screen=projectScreenPoint(monster.x,monster.y);
+        leviathanAura.style.left=screen.x+'px';
+        leviathanAura.style.top=screen.y+'px';
+        leviathanAura.style.setProperty('--leviathan-aura-size',Math.min(470,240*z*screen.relativeScale)+'px');
       }
-      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now(), oceanTimeMs, world.camera.y);
-      damageTextRenderer?.render(world.cameraView, world.camera.zoom, performance.now());
+      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now(), oceanTimeMs, world.camera.y, world.cameraPerspective);
+      damageTextRenderer?.render(world.cameraView, world.camera.zoom, performance.now(), world.cameraPerspective);
       spectralShipRenderer?.render(
         world.entities, world.cameraView, world.camera.zoom,
-        performance.now(), spectralShipRenderer.definition,
+        performance.now(), spectralShipRenderer.definition, world.cameraPerspective,
       );
       // Rock the player ship only at the underwater impact, then damp the motion.
       const renderNow = performance.now();
@@ -3460,19 +3461,20 @@ async function startWorld() {
           krakenImpact = { strength, phase: elapsed / 100 };
         }
       }
-      shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom, krakenImpact, world.region.id);
+      shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom, krakenImpact, world.region.id, world.cameraPerspective);
       if (!repairAura.hidden) {
         const rect = canvas.getBoundingClientRect();
-        const px = rect.left + rect.width / 2 + (world.camera.x - world.cameraView.x) * world.camera.zoom;
-        const py = rect.top + rect.height / 2 + (world.camera.y - world.cameraView.y) * world.camera.zoom;
+        const point=projectScreenPoint(world.camera.x,world.camera.y);
+        const px=rect.left+point.x;
+        const py=rect.top+point.y;
         const sprite = shipRenderer.getFrameWorldSize(world.camera.zoom);
-        const auraSize = Math.max(54, Math.min(210, Math.max(sprite.width, sprite.height) * world.camera.zoom * .75));
+        const auraSize = Math.max(54, Math.min(210, Math.max(sprite.width, sprite.height) * world.camera.zoom * point.relativeScale * .75));
         repairAura.style.left = px + 'px';
         repairAura.style.top = py + 'px';
         repairAura.style.width = auraSize + 'px';
         repairAura.style.height = auraSize + 'px';
       }
-      navalBattle.render(performance.now(),world.cameraView,world.camera.zoom,canvas.clientWidth,canvas.clientHeight);
+      navalBattle.render(performance.now(),world.cameraView,world.camera.zoom,canvas.clientWidth,canvas.clientHeight,world.cameraPerspective);
       minimap.render();
       updateThiefGuide();
       updateExitBeacon();
