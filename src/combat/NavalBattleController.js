@@ -746,6 +746,10 @@ export class NavalBattleController {
         impactKind: 'water', startTime: now,
         onImpact: ({ at }) => {
           const result = this.resolvePlayerImpact(target.id, at, damage);
+          if(result?.kind==='ship' && ammo.id==='frozen-explosion' && target.health>0){
+            target.frozenUntil=Math.max(Number(target.frozenUntil)||0,Date.now()+6000);
+            this.onFeedback('❄️ '+target.name+' congelado por 6 segundos!');
+          }
           playCannonSound(result?.kind === 'ship' ? 'impact' : 'water');
           return result;
         },
