@@ -1430,8 +1430,7 @@ async function startWorld() {
   function updateSupplyChestMarker() {
     supplyChestEl.hidden=!isSupplyChestAvailable();
     if(supplyChestEl.hidden)return;
-    const x=canvas.clientWidth/2+(supplyChest.x-world.cameraView.x)*world.camera.zoom;
-    const y=canvas.clientHeight/2+(supplyChest.y-world.cameraView.y)*world.camera.zoom;
+    const {x,y}=projectScreenPoint(supplyChest.x,supplyChest.y);
     supplyChestEl.hidden=x<0||y<0||x>canvas.clientWidth||y>canvas.clientHeight;
     supplyChestEl.style.left=x+'px';supplyChestEl.style.top=y+'px';
   }
@@ -1504,8 +1503,7 @@ async function startWorld() {
     const target = world.region.id === 'r1' && mission && ['active','ready','claimed'].includes(mission.status)
       ? world.region.exitPoint : null;
     if (!target) { exitBeacon.hidden = true; return; }
-    const x = canvas.clientWidth / 2 + (target.x - world.cameraView.x) * world.camera.zoom;
-    const y = canvas.clientHeight / 2 + (target.y - world.cameraView.y) * world.camera.zoom;
+    const {x,y}=projectScreenPoint(target.x,target.y);
     if (x < -100 || x > canvas.clientWidth+100 || y < -100 || y > canvas.clientHeight+100) {
       exitBeacon.hidden = true;
       return;
@@ -1670,9 +1668,9 @@ async function startWorld() {
   }
   function updateDarkPortal(now){
     if(!darkPortalUnlocked()){darkPortal.hidden=true;return;}
-    const x=canvas.clientWidth*.5+(darkWatersExit.x-world.cameraView.x)*world.camera.zoom;
-    const y=canvas.clientHeight*.5+(darkWatersExit.y-world.cameraView.y)*world.camera.zoom;
-    const diameter=Math.max(110,Math.min(420,260*world.camera.zoom));
+    const screen=projectScreenPoint(darkWatersExit.x,darkWatersExit.y);
+    const {x,y}=screen;
+    const diameter=Math.max(110,Math.min(420,260*world.camera.zoom*screen.relativeScale));
     darkPortal.hidden=x< -diameter||y< -diameter||x>canvas.clientWidth+diameter||y>canvas.clientHeight+diameter;
     if(darkPortal.hidden)return;
     darkPortal.style.left=x+'px';darkPortal.style.top=y+'px';
@@ -1708,8 +1706,7 @@ async function startWorld() {
     thiefGuide.setAttribute('aria-label', darkPassageActive ? 'Direção da passagem para as Águas Escuras' : exitActive ? 'Direção da saída para Costa dos Corsários' : 'Direção do alvo da missão');
     const width = canvas.clientWidth, height = canvas.clientHeight;
     if (!width || !height) { thiefGuide.hidden = true; return; }
-    const x = width / 2 + (target.x - world.cameraView.x) * world.camera.zoom;
-    const y = height / 2 + (target.y - world.cameraView.y) * world.camera.zoom;
+    const {x,y}=projectScreenPoint(target.x,target.y);
     const compactMobile=width<700;
     const margin = Math.min(75, Math.max(35, Math.min(width,height)*.12));
     const safeLeft = compactMobile ? Math.max(92,margin) : margin;
