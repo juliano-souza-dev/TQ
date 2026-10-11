@@ -206,6 +206,19 @@ async function startWorld() {
     : storedRegion >= 2 ? (await import('./world/regions/r2.js')).R2
     : (await import('./world/regions/r1.js')).R1;
   if (generation !== worldGeneration) return;
+  // One-time replay of the Varkor battle for saves created before the wreck
+  // position and navigation were reliably persisted. Never reset a claimed mission.
+  if(region.id==='r3'){
+    const snapshot=localSaves.load(currentUser.uid)?.payload??{};
+    const mission=snapshot.r3Campaign??{};
+    if(mission.active===R3_VARKOR_MISSION_ID&&mission.varkorDefeated
+      && !mission.varkorWreckClaimed&&!mission.varkorWreckReplayResetV1){
+      localSaves.save(currentUser.uid,{...snapshot,
+        r3Campaign:{...mission,varkorSummoned:false,varkorDefeated:false,
+          varkorWreckPosition:null,varkorWreckAnswers:0,varkorWreckClaimed:false,
+          varkorReturned:false,varkorWreckReplayResetV1:true}});
+    }
+  }
   const world = createWorldState(region);
   const savedPosition = localSaves.load(currentUser.uid)?.payload?.playerPosition;
   // Migração dos pontos antigos de entrada da R2: próximos demais ao porto.
