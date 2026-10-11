@@ -1308,6 +1308,44 @@ async function startWorld() {
     oceanGrade.setAttribute('aria-hidden','true');
     root.append(oceanGrade);
   }
+  // Optional orbital view: composited world layers share one screen-space transform.
+  // Controls are isolated from WASD, scroll zoom, HUD and combat bindings.
+  // Default is off until all pointer hit-tests have migrated to inverse projection.
+  const orbitView = { yaw: 0, pitch: Math.PI / 2, enabled: false };
+  const orbitLayers = [canvas, islandCanvas, treasureGlowCanvas, treasureCanvas,
+    npcCanvas, shipCanvas, npcFrontCanvas];
+  function applyOrbitView() {
+    const yaw = orbitView.enabled ? orbitView.yaw : 0;
+    const scaleY = orbitView.enabled ? Math.sin(orbitView.pitch) : 1;
+    const c = Math.cos(yaw), sn = Math.sin(yaw);
+    const matrix = 'matrix(' + [c, sn * scaleY, -sn, c * scaleY, 0, 0].join(',') + ')';
+    for (const layer of orbitLayers) {
+      layer.style.transformOrigin = '50% 50%';
+      layer.style.transform = matrix;
+    }
+  }
+  const orbitPanel = document.createElement('div');
+  orbitPanel.setAttribute('aria-label', 'Controles de câmera orbital experimental');
+  orbitPanel.style.cssText = 'position:fixed;right:12px;bottom:84px;z-index:100;display:flex;gap:4px;opacity:.85';
+  const orbitActions = [
+    ['3D', () => { orbitView.enabled = !orbitView.enabled; orbitView.pitch = Math.PI / 4; }],
+    ['↶', () => { orbitView.yaw -= Math.PI / 12; }],
+    ['↷', () => { orbitView.yaw += Math.PI / 12; }],
+    ['↥', () => { orbitView.pitch = Math.min(1.47, orbitView.pitch + .10); }],
+    ['↧', () => { orbitView.pitch = Math.max(.35, orbitView.pitch - .10); }],
+    ['⟲', () => { orbitView.enabled = false; orbitView.yaw = 0; orbitView.pitch = Math.PI / 2; }],
+  ];
+  for (const [label, action] of orbitActions) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.title = 'Câmera orbital: ' + label;
+    button.style.cssText = 'min-width:32px;min-height:32px;border:1px solid #8cb4c8;border-radius:7px;background:#102a40;color:white;cursor:pointer';
+    button.addEventListener('click', event => { event.stopPropagation(); action(); applyOrbitView(); });
+    orbitPanel.append(button);
+  }
+  root.append(orbitPanel);
+  applyOrbitView();
   const shipRenderer = new ShipRenderer(shipCanvas, initialShip);
   const islandRenderer = new IslandRenderer(islandCanvas, world.region.islands ?? []);
   const treasureRenderer = new TreasureRenderer(treasureCanvas);
