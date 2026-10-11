@@ -9,7 +9,7 @@ export const DARK_WATERS_SPECIAL_AMMO_ID = 'terror-rose';
 export const DARK_WATERS_SPECIAL_AMMO_REWARD = 100;
 export const DARK_WATERS_RAID_GOLD_CAP = 25;
 export const DARK_WATERS_RAID_AMMO_CAP = 40;
-export const DARK_WATERS_RAIDER_RESPAWN_MS = 30000;
+export const DARK_WATERS_RAIDER_RESPAWN_MS = 20000;
 
 const MARGIN = 95;
 const normalize = angle => (angle % 360 + 360) % 360;
@@ -150,6 +150,10 @@ function respawnRaider(npc, region) {
   npc.stolenThisPass = false;
   npc.raidCooldownMs = 0;
   npc.respawnRemainingMs = null;
+  npc.retaliationActive=false;
+  if(npc.archetype===DARK_WATERS_RAIDER_ARCHETYPE){
+    npc.aggression='flee';npc.cannonSlots=0;npc.damage=0;npc.range=0;
+  }
   npc.sinkSerial=(npc.sinkSerial??0)+1;
   return true;
 }
@@ -217,7 +221,10 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   const distance = Math.hypot(dx, dy);
 
   let desiredHeading = npc.heading;
-  if (!npc.leviathanHuntLock && !npc.stolenThisPass && distance <= npc.detectionRange) {
+  if(npc.retaliationActive){
+    npc.state='retaliating';
+    desiredHeading=bearing(dx,dy);
+  } else if (!npc.leviathanHuntLock && !npc.stolenThisPass && distance <= npc.detectionRange) {
     npc.state = 'raiding';
     desiredHeading = bearing(dx, dy);
   } else if (npc.stolenThisPass) {
@@ -249,7 +256,7 @@ function updateRaider(npc, world, deltaMs, random, raids) {
     npc.y = moved.y;
   }
 
-  if (!npc.stolenThisPass && npc.raidCooldownMs <= 0
+  if (!npc.retaliationActive && !npc.stolenThisPass && npc.raidCooldownMs <= 0
       && Math.hypot(player.x - npc.x, player.y - npc.y) <= npc.raidRadius) {
     npc.stolenThisPass = true;
     npc.raidCooldownMs = 18000;
@@ -259,7 +266,7 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   const edge = npc.x <= MARGIN + 4 || npc.x >= world.region.width - MARGIN - 4
     || npc.y <= MARGIN + 4 || npc.y >= world.region.height - MARGIN - 4;
   if (edge && npc.stolenThisPass) {
-    respawnRaider(npc, world.region);
+    npc.stolenThisPass=false;
     npc.heading = normalize(npc.heading + 180);
   }
 }
@@ -277,10 +284,10 @@ function updateTerrorGuardian(npc,world,deltaMs){
   const player=world.camera;
   const distance=Math.hypot(player.x-npc.x,player.y-npc.y);
   const protecting=Math.hypot(player.x-anchor.x,player.y-anchor.y)<820;
-  const target=!npc.leviathanHuntLock&&protecting&&distance<640?player:anchor;
-  npc.state=!npc.leviathanHuntLock&&protecting?'guarding':'patrolling';
+  const target=npc.retaliationActive?player:!npc.leviathanHuntLock&&protecting&&distance<640?player:anchor;
+  npc.state=npc.retaliationActive?'retaliating':!npc.leviathanHuntLock&&protecting?'guarding':'patrolling';
   npc.heading=turnToward(npc.heading,bearing(target.x-npc.x,target.y-npc.y),95*dt);
-  if(Math.hypot(target.x-npc.x,target.y-npc.y)<185)return;
+  if(Math.hypot(target.x-npc.x,target.y-npc.y)<(npc.retaliationActive?310:185))return;
   const angle=npc.heading*Math.PI/180;
   const movement=(npc.baseSpeed||0)*dt;
   const moved=resolveIslandMovement(world.region,npc.x,npc.y,

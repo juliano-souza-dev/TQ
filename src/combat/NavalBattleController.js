@@ -807,6 +807,16 @@ export class NavalBattleController {
         x:Number(target.x)||0,y:Number(target.y)||0,
         heading:Number(target.heading)||0,updatedAt:Date.now()}});
     }
+    if(target.health>0 && target.type==='npc' && ['terror-guardian','dark-waters-raider',RED_SAIL_CORSAIR.id].includes(target.archetype)){
+      target.retaliationActive=true;
+      target.state='retaliating';
+      target.aggression='attack';
+      if(target.archetype==='dark-waters-raider'){
+        target.cannonSlots=4;
+        target.damage=9;
+        target.range=520;
+      }
+    }
     const actualDamage=Math.max(0,healthBefore-Math.max(0,Number(target.health)||0));
     if(actualDamage>0)this.onDamageVisual({target,damage:actualDamage,source:'player'});
     const shadowThiefJustWeakened=this.getRegionId()==='r2'

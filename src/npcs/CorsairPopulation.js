@@ -5,7 +5,7 @@ import { createBloodRedMarketMerchant } from './BloodRedCorsairNpc.js';
 import { createDarkWatersFleet, updateDarkWatersFleet } from './DarkWatersFleet.js';
 
 export const CORSAIR_POPULATION = 20;
-export const CORSAIR_RESPAWN_MS = 30000;
+export const CORSAIR_RESPAWN_MS = 20000;
 const MARGIN = 90;
 
 function spawnPosition(region, player, random) {
@@ -66,9 +66,13 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     npc.respawnRemainingMs = null;
     if (npc.monsterAssisting) continue;
 
-    updateCorsair(npc, deltaMs, targets, onFire);
+    if(npc.retaliationActive){
+      const dx=world.camera.x-npc.x,dy=world.camera.y-npc.y;
+      npc.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+      npc.state='retaliating';
+    }else updateCorsair(npc, deltaMs, targets, onFire);
     npc.wanderTimeMs = (npc.wanderTimeMs ?? 0) - deltaMs;
-    if (npc.wanderTimeMs <= 0) {
+    if (npc.wanderTimeMs <= 0 && !npc.retaliationActive) {
       npc.heading = random() * 360;
       npc.wanderTimeMs = 1400 + random() * 3400;
     }
