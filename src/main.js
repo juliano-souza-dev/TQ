@@ -2553,6 +2553,16 @@ async function startWorld() {
         updateCamera(world,canvas.clientWidth,canvas.clientHeight);
         return;
       }
+      if(world.region.id==='r3'&&readSave().r3Campaign?.claimed?.includes(R3_CLEANUP_MISSION_ID)){
+        const exit={x:3930,y:3890};
+        if(Math.hypot(world.camera.x-exit.x,world.camera.y-exit.y)<110){
+          const save=readSave();
+          writePatch({progression:{...save.progression,activeRegion:4,unlockedRegion:Math.max(4,Number(save.progression?.unlockedRegion)||1)},playerPosition:{x:420,y:860}});
+          showOceanReward('❄️ Bem-vindo às Terras Gélidas!');
+          startWorld();
+          return;
+        }
+      }
       if(world.region.id==='r3'){
         const save=readSave();
         const hunting=save.r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
