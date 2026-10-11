@@ -1,0 +1,78 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'br.com.tabuadaquest.game'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'br.com.tabuadaquest.game'
+        minSdk 24
+        targetSdk 35
+        versionCode Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+        versionName '1.0'
+    }
+
+    signingConfigs {
+        release {
+            if (System.getenv('TQ_ANDROID_KEYSTORE_FILE')) {
+                storeFile file(System.getenv('TQ_ANDROID_KEYSTORE_FILE'))
+                storePassword System.getenv('TQ_ANDROID_STORE_PASSWORD')
+                keyAlias System.getenv('TQ_ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('TQ_ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ''
+        }
+        release {
+            minifyEnabled false
+            shrinkResources false
+            if (System.getenv('TQ_ANDROID_KEYSTORE_FILE')) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // Do not re-compress already-compressed sprites/audio unnecessarily.
+    androidResources {
+        noCompress += ['webp', 'png', 'jpg', 'jpeg', 'mp3', 'ogg', 'wav', 'woff2']
+    }
+
+    sourceSets {
+        main {
+            assets.srcDir(layout.buildDirectory.dir('generated/tqGameAssets'))
+        }
+    }
+}
+
+// Package the game itself, not a shortcut to a remote page. The source files
+// remain the single source of truth for Android, Pages and the local server.
+def stageGameAssets = tasks.register('stageGameAssets', Copy) {
+    from(rootProject.projectDir.parentFile) {
+        include 'index.html', 'src/**', 'assets/**'
+        exclude '**/*.psd', '**/*.blend', '**/*.zip', '**/.DS_Store'
+        exclude 'src/config/firebase-config.js' // optional local config is not a portable OAuth login
+    }
+    into(layout.buildDirectory.dir('generated/tqGameAssets/www'))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.configureEach {
+    if (name.startsWith('merge') && name.endsWith('Assets')) {
+        dependsOn(stageGameAssets)
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
