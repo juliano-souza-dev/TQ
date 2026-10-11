@@ -1,4 +1,4 @@
-import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID, R3_REBUILD_MISSION_ID, R3_CLEANUP_MISSION_ID, R3_CLEANUP_RED_IDS } from './missions/RegionThreeCampaign.js';
+import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID, R3_REBUILD_MISSION_ID, R3_CLEANUP_MISSION_ID, R3_CLEANUP_RED_IDS, resetR3RebuildMission } from './missions/RegionThreeCampaign.js';
 import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout, verifySilasArsenalAtLeviathan } from './missions/R3SilasTrade.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
@@ -200,6 +200,22 @@ async function startWorld() {
     }
   }
 
+  // Replay único do Renascimento em saves anteriores à correção dos destroços.
+  {
+    const snapshot = localSaves.load(currentUser.uid)?.payload ?? {};
+    const flag = 'r3RebuildReplayOnceV1';
+    const campaign = snapshot.r3Campaign ?? {};
+    const reachedRebuild = campaign.active === R3_REBUILD_MISSION_ID
+      || campaign.claimed?.includes(R3_REBUILD_MISSION_ID)
+      || campaign.active === R3_CLEANUP_MISSION_ID;
+    if (reachedRebuild && !snapshot.devFlags?.[flag]) {
+      const patch = resetR3RebuildMission(snapshot);
+      if (patch) localSaves.save(currentUser.uid, {
+        ...snapshot, ...patch,
+        devFlags: { ...(snapshot.devFlags ?? {}), [flag]: true },
+      });
+    }
+  }
   const storedRegion = localSaves.load(currentUser.uid)?.payload?.progression?.activeRegion ?? 1;
   const region = storedRegion >= 3
     ? (await import('./world/regions/r3.js')).R3
