@@ -789,7 +789,13 @@ async function startWorld() {
   function checkMissionCompletion(){
     const missions=boardFor(readSave(),world.region.id).missions;
     for(const mission of missions){
-      if(mission.status!=='ready'){
+      // Completion is an objective event, not a port-interaction event.
+      // Keep the claim at the port; show the completion dialog immediately.
+      const objectives=mission.objectives??[];
+      const objectivesComplete=mission.status==='active' && objectives.length>0 &&
+        objectives.every((objective,index)=>
+          Number(mission.progress?.[index]??0)>=Math.max(1,Number(objective.count)||1));
+      if(mission.status!=='ready'&&!objectivesComplete){
         if(mission.status==='active'||mission.status==='available')notifiedMissionIds.delete(mission.id);
         continue;
       }
