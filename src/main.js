@@ -1153,6 +1153,9 @@ async function startWorld() {
         recordMissionEvent({type:'admiral',id:npc.id});
         recordMissionEvent({type:'defeat',id:npc.id+':'+Date.now()});
         showOceanReward('🏴‍☠️ Baltazar Ferrugem derrotado!');
+      } else if(world.region.id==='r4' && (npc.id==='r4-sombra-do-saque'||npc.archetype==='vigia-da-geada')){
+        recordMissionEvent({type:'defeat',id:npc.id,archetype:npc.archetype,
+          defeatId:npc.id+':'+(npc.sinkSerial??0)});
       } else if (world.region.id === 'r1' && save.missions?.corsair === 'active' && npc.archetype === 'red-sail-corsair') {
         writePatch({ missions: { ...save.missions, corsair: 'complete' } });
         updateMissionHud();
@@ -1853,7 +1856,18 @@ async function startWorld() {
     missionBoardOptions: {
       getBoard: () => boardFor(readSave(),world.region.id),
       getPedagogy: () => readSave().pedagogy ?? {},
-      onAccept: id => world.region.id === 'r3'
+      onAccept: id => world.region.id === 'r4'
+        ? (()=>{
+          const patch=campaignFor('r4').accept(readSave(),id);
+          if(!patch)return false;
+          writePatch(patch);
+          clearMissionNavigation();
+          islandPanel.refreshMissionBoard();
+          updateMissionHud();
+          showOceanReward('📜 Missão iniciada: '+boardFor(readSave(),'r4').missions.find(m=>m.id===id)?.name);
+          return true;
+        })()
+        : world.region.id === 'r3'
         ? (()=>{
           const patch=campaignFor('r3').accept(readSave(),id);
           if(!patch)return false;
