@@ -171,56 +171,6 @@ async function startWorld() {
     import('./npcs/NpcSelection.js'),
   ]);
   if (generation !== worldGeneration) return;
-  // TEMPORÁRIO: replay único da missão 16 para validar a nova passagem.
-  // V3 também restaura quando o save já foi trazido de volta para a R1.
-  {
-    const localDev=(globalThis.location?.protocol ?? '')!=='https:';
-    const snapshot=localSaves.load(currentUser.uid)?.payload ?? {};
-    const replayKey='devReplayR1FinaleOnceV4';
-    const campaign=snapshot.campaign??{};
-    const hasReachedFinale=(campaign.claimed??[]).includes('r1-finale')
-      || (campaign.active??[]).includes('r1-finale')
-      || (snapshot.progression?.activeRegion ?? 1)>=2
-      || Boolean(snapshot.r2Campaign);
-    if(localDev && !snapshot.devFlags?.[replayKey] && hasReachedFinale){
-      localSaves.save(currentUser.uid,{
-        ...snapshot,
-        progression:{...(snapshot.progression??{}),
-          activeRegion:1,
-          unlockedRegion:Math.max(2,Number(snapshot.progression?.unlockedRegion)||1)},
-        campaign:{
-          ...campaign,
-          active:[...new Set([...(campaign.active??[]).filter(id=>id!=='r1-finale'),'r1-finale'])],
-          claimed:(campaign.claimed??[]).filter(id=>id!=='r1-finale'),
-          progress:{...(campaign.progress??{}),'r1-finale':[0]},
-          processedEvents:(campaign.processedEvents??[]).filter(id=>!String(id).startsWith('r1-finale:exit:')),
-        },
-        transitionFlags:{...(snapshot.transitionFlags??{}),r1FinalePending:false},
-        playerPosition:{x:3660,y:3660},
-        devFlags:{...(snapshot.devFlags??{}),[replayKey]:true},
-      });
-    }
-  }
-
-  // Reset de campanha: retorna obrigatoriamente ao ponto anterior ao Renascimento.
-  {
-    const snapshot=localSaves.load(currentUser.uid)?.payload??{};
-    const campaign=snapshot.r3Campaign??{};
-    const flag='r3BeforeRebirthHardResetV4';
-    const reachedRebirth=(campaign.claimed??[]).includes(R3_VARKOR_MISSION_ID)
-      || (campaign.claimed??[]).includes(R3_REBUILD_MISSION_ID)
-      || (campaign.claimed??[]).includes(R3_CLEANUP_MISSION_ID)
-      || [R3_REBUILD_MISSION_ID,R3_CLEANUP_MISSION_ID].includes(campaign.active);
-    if(reachedRebirth&&!snapshot.devFlags?.[flag]){
-      localSaves.save(currentUser.uid,{...snapshot,
-        progression:{...(snapshot.progression??{}),activeRegion:3,unlockedRegion:3},
-        r3Campaign:{...campaign,active:null,
-          claimed:(campaign.claimed??[]).filter(id=>id!==R3_REBUILD_MISSION_ID&&id!==R3_CLEANUP_MISSION_ID),
-          emeraldSpoken:false,emeraldWreckCollected:false,emeraldDeparted:false,
-          cleanupSunkIds:[],cleanupReturned:false},
-        devFlags:{...(snapshot.devFlags??{}),[flag]:true}});
-    }
-  }
   const storedRegion = localSaves.load(currentUser.uid)?.payload?.progression?.activeRegion ?? 1;
   const region = storedRegion >= 4
     ? (await import('./world/regions/r4.js')).R4
@@ -229,19 +179,6 @@ async function startWorld() {
     : storedRegion >= 2 ? (await import('./world/regions/r2.js')).R2
     : (await import('./world/regions/r1.js')).R1;
   if (generation !== worldGeneration) return;
-  // One-time replay of the Varkor battle for saves created before the wreck
-  // position and navigation were reliably persisted. Never reset a claimed mission.
-  if(region.id==='r3'){
-    const snapshot=localSaves.load(currentUser.uid)?.payload??{};
-    const mission=snapshot.r3Campaign??{};
-    if(mission.active===R3_VARKOR_MISSION_ID&&mission.varkorDefeated
-      && !mission.varkorWreckClaimed&&!mission.varkorWreckReplayResetV1){
-      localSaves.save(currentUser.uid,{...snapshot,
-        r3Campaign:{...mission,varkorSummoned:false,varkorDefeated:false,
-          varkorWreckPosition:null,varkorWreckAnswers:0,varkorWreckClaimed:false,
-          varkorReturned:false,varkorWreckReplayResetV1:true}});
-    }
-  }
   const world = createWorldState(region);
   const savedPosition = localSaves.load(currentUser.uid)?.payload?.playerPosition;
   // Migração dos pontos antigos de entrada da R2: próximos demais ao porto.
@@ -380,81 +317,36 @@ async function startWorld() {
   }
   const needsR2CampaignMigration=(Number(readSave().r2Campaign?.schemaVersion)||0)<2;
   if(needsR2CampaignMigration){
-  // Recover old Black Market completions that never granted the advertised cannons.
-  // Roll the last two campaign stages back to the purchase; preserve all inventory.
+  // Non-destructive legacy repair: restore missing equipment without undoing missions.
   {
-    const save=readSave(),state=save.r2Campaign??{};
-    const claimed=state.claimed??[],counts=save.equipment?.cannonCounts??{};
+    const save=readSave(),state=save.r2Campaign??{},claimed=state.claimed??[];
     const marketCompleted=claimed.includes('r2-black-market')
       || claimed.includes('r2-golden-ii') || state.active==='r2-golden-ii';
-    const missingPackage=(Number(counts['aetherion-mk1'])||0)<1
-      || (Number(counts['royal-lion'])||0)<8;
-    const postAmbushProgress=save.storyFlags?.pumpkinAmbushResolved===true
+    const postAmbush=save.storyFlags?.pumpkinAmbushResolved===true
       || ['r2-search-clues','r2-do-me-favor','r2-hunt-prep','r2-monster-meat','r2-mystery-light','r2-dark-voyage'].includes(state.active)
       || claimed.some(id=>['r2-search-clues','r2-do-me-favor','r2-hunt-prep','r2-monster-meat','r2-mystery-light','r2-dark-voyage'].includes(id));
-    if(marketCompleted && missingPackage && !postAmbushProgress && !save.rewardMigrations?.blackMarketRollbackV1){
-      const rolledBack=['r2-black-market','r2-golden-ii'];
+    if(marketCompleted && !postAmbush && !save.rewardMigrations?.blackMarketGrantRepairV1){
+      const equipment=save.equipment??{},counts=equipment.cannonCounts??{};
       writePatch({
-        r2Campaign:{...state,active:'r2-black-market',
-          claimed:claimed.filter(id=>!rolledBack.includes(id)),
-          progress:{...(state.progress??{}),'r2-black-market':[0],'r2-golden-ii':[0]},
-          processed:(state.processed??[]).filter(id=>id!=='black-market:market-trade-completed')},
-        rewardMigrations:{...(save.rewardMigrations??{}),blackMarketRollbackV1:true},
+        equipment:{...equipment,cannonCounts:{...counts,
+          'aetherion-mk1':Math.max(1,Number(counts['aetherion-mk1'])||0),
+          'royal-lion':Math.max(8,Number(counts['royal-lion'])||0)},
+          ownedCannonIds:[...new Set([...(equipment.ownedCannonIds??[]),'aetherion-mk1','royal-lion'])]},
+        rewardMigrations:{...(save.rewardMigrations??{}),blackMarketGrantRepairV1:true},
       });
     }
   }
-  // Golden II now unlocks the Terror da Tabuada, followed by a guided
-  // equip mission before the rendezvous at the Forgotten Island.
+  // Preserve old progress while ensuring a previously earned ship remains owned.
   {
     const save=readSave(),state=save.r2Campaign??{},claimed=state.claimed??[];
     const terrorId='galeao-halloween-tabuada';
-    const goldenDone=claimed.includes('r2-golden-ii');
-    const later=['r2-meet-forgotten','r2-why-help','r2-search-clues','r2-do-me-favor',
-      'r2-hunt-prep','r2-monster-meat','r2-mystery-light','r2-dark-voyage'];
-    const skippedEquip=!claimed.includes('r2-equip-terror')
-      && save.storyFlags?.pumpkinAmbushResolved!==true
-      && (state.active==='r2-meet-forgotten'||later.slice(1).includes(state.active)
-        || later.some(id=>claimed.includes(id)));
-    if(goldenDone && !save.equipment?.ownedShipIds?.includes(terrorId)){
+    if(claimed.includes('r2-golden-ii')&&!save.equipment?.ownedShipIds?.includes(terrorId)){
       const equipment=save.equipment??{};
       writePatch({equipment:{...equipment,
         ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),terrorId])]}});
     }
-    if(goldenDone && skippedEquip){
-      const latest=readSave(),campaign=latest.r2Campaign??state;
-      writePatch({r2Campaign:{...campaign,active:'r2-equip-terror',
-        claimed:(campaign.claimed??[]).filter(id=>!later.includes(id)),
-        progress:{...(campaign.progress??{}),'r2-equip-terror':[0]},
-        processed:(campaign.processed??[]).filter(id=>!id.startsWith('equip-ship:terror-'))}});
-    }
   }
 
-  // Retroactively enforce the new rendezvous even for players who already
-  // reached "Em Busca de Pistas" through the older direct ambush flow.
-  {
-    const save=readSave(),state=save.r2Campaign??{},claimed=state.claimed??[];
-    const later=['r2-why-help','r2-search-clues','r2-do-me-favor',
-      'r2-monster-meat','r2-mystery-light','r2-dark-voyage'];
-    const skippedMeeting=!claimed.includes('r2-meet-forgotten')
-      && save.storyFlags?.pumpkinAmbushResolved!==true
-      && (later.includes(state.active)||later.some(id=>claimed.includes(id)));
-    if(skippedMeeting){
-      const equipment=save.equipment??{};
-      const terrorId='galeao-halloween-tabuada';
-      writePatch({
-        r2Campaign:{...state,active:'r2-meet-forgotten',
-          claimed:claimed.filter(id=>!later.includes(id)),
-          progress:{...state.progress,'r2-meet-forgotten':[0]},
-          processed:(state.processed??[]).filter(id=>!id.startsWith('forgotten-meeting:'))},
-        // Players caught by the old ambush must be able to sail to the island
-        // on the required ship, without deleting their current inventory.
-        equipment:{...equipment,equippedShipId:terrorId,
-          ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),terrorId])]},
-        storyFlags:{...save.storyFlags,pumpkinAmbushResolved:false,terrorTabuadaDestroyed:false},
-        combat:{...save.combat,shipHealth:Math.max(100,Number(save.combat?.shipHealth)||0)},
-      });
-    }
-  }
   // Repair saves that were accidentally pushed backwards after the Terror
   // was already destroyed. The ambush flag is authoritative story progress.
   {
@@ -482,18 +374,6 @@ async function startWorld() {
     }
   }
 
-  // Existing campaign saves that skipped the newly inserted hunt supply stop
-  // return to the merchant without replaying completed older contracts.
-  {
-    const save=readSave(),c=save.r2Campaign??{},claimed=c.claimed??[];
-    const later=['r2-monster-meat','r2-mystery-light','r2-dark-voyage'];
-    if(!claimed.includes('r2-hunt-prep') &&
-       (later.includes(c.active)||later.some(id=>claimed.includes(id)))){
-      writePatch({r2Campaign:{...c,active:'r2-hunt-prep',
-        claimed:claimed.filter(id=>!later.includes(id)),
-        progress:{...c.progress,'r2-hunt-prep':[0]}}});
-    }
-  }
     const migrated=readSave(),campaign=migrated.r2Campaign??{};
     writePatch({r2Campaign:{...campaign,schemaVersion:2}});
   }
