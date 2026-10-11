@@ -1030,6 +1030,7 @@ export class NavalBattleController {
         },trackingSpeed:speed}:{}),
         impactKind:'water',startTime:now,
         onImpact:({at})=>{
+          if(this.getRegionId()==='r4' && (npc.id==='r4-sombra-do-saque' || ['r4-ladrao-gelido','vigia-da-geada'].includes(npc.archetype)) && (!npc.retaliationActive || npc.health<=0 || this.getHealth()<=0))return {kind:'water'};
           const result=onImpact?onImpact({at}):this.resolveNpcImpact(npc.id,at,damage*SHIP_CANNON_DAMAGE_MULTIPLIER);
           if(result?.kind==='ship' && (ammo?.id==='frozen-explosion' || ammo?.id==='glacial-seeker')){
             this.playerFrozenUntil=Math.max(this.playerFrozenUntil||0,Date.now()+Math.max(0,Number(npc.freezeDurationMs)||6000));
