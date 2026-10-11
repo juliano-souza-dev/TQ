@@ -10,6 +10,7 @@ import { createMathGate } from './ui/MathGate.js';
 import { getVisibleTreasures, findTreasureNearPoint } from './treasures/RegionTreasures.js';
 import { TreasureRenderer } from './rendering/TreasureRenderer.js';
 import { NavalBattleController } from './combat/NavalBattleController.js';
+import { TERROR_ABYSS_HARPOON_ID, HORIZON_HARPOON_AMMO_ID } from './combat/HarpoonCatalog.js';
 import { effectiveAmmo, armedCannons, cannonRange } from './combat/NavalBattleRules.js';
 import { rollNpcAmmoLoot, grantNpcAmmoLoot } from './combat/NpcAmmoLoot.js';
 import { NavalCombatWebGLRenderer } from './rendering/NavalCombatWebGLRenderer.mjs';
@@ -796,6 +797,24 @@ async function startWorld() {
         'halloween-purple-ball':'Bolas Roxas','purple-pumpkin-orb':'Orbes de Abóbora Roxa',
         'ocean-pearl':'Pérolas Oceânicas','violet-crystal':'Cristais Violetas','terror-rose':'Rosas do Terror'}[id])).join(' · '));
     };
+    if(action.kind==='r3-varkor-wreck'){
+      const state=readSave().r3Campaign??{},point=state.varkorWreckPosition;
+      if(world.region.id!=='r3'||state.active!==R3_VARKOR_MISSION_ID||!state.varkorDefeated||state.varkorWreckClaimed||!point||Math.hypot(world.camera.x-point.x,world.camera.y-point.y)>180)return false;
+      if(!recordMissionEvent({type:'varkor-wreck-math'}))return false;
+      const updated=readSave();
+      if(updated.r3Campaign?.varkorWreckClaimed){
+        const stock={...(updated.ammunition??{})};
+        for(const id of Object.keys(stock))stock[id]=(Number(stock[id])||0)+5000;
+        const equipment=updated.equipment??{};
+        writePatch({ammunition:stock,
+          equipment:{...equipment,ownedHarpoonIds:[...new Set([...(equipment.ownedHarpoonIds??[]),TERROR_ABYSS_HARPOON_ID])]},
+          harpoonAmmo:{...(updated.harpoonAmmo??{}),[HORIZON_HARPOON_AMMO_ID]:(Number(updated.harpoonAmmo?.[HORIZON_HARPOON_AMMO_ID])||0)+2000},
+          shipBlueprints:{...(updated.shipBlueprints??{}),'terror-do-mar':true}});
+        showOceanReward('🏴‍☠️ Destroços recuperados! Projeto do Terror do Mar, 5.000 de cada munição, Arpoeiro Terror do Abismo e 2.000 arpões!');
+      }else showOceanReward('🪵 Destroços do Terror do Mar: '+(updated.r3Campaign?.varkorWreckAnswers??0)+'/4 multiplicações.');
+      updateMissionHud();
+      return 'Multiplicação correta!';
+    }
     if(action.kind==='r3-flame-wreck'){
       const campaign=readSave().r3Campaign??{};
       if(world.region.id!=='r3'||campaign.active!==R3_FLAME_MISSION_ID)return false;
@@ -1167,7 +1186,7 @@ async function startWorld() {
         recordMissionEvent({type:'abyss-red-sunk',archetype:npc.archetype,id:npc.id+':'+(npc.sinkSerial??0)});
         recordMissionEvent({type:'flame-enemy',archetype:npc.archetype,id:npc.id+':'+(npc.sinkSerial??0)});
       } else if (world.region.id === 'r3' && npc.archetype === 'terror-do-mar') {
-        recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
+        recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now(),x:npc.x,y:npc.y});
         showOceanReward('🔥 Terror do Mar afundado! Capitão Varkor Tenebris foi derrotado.');
       } else if (world.region.id === 'r2' && npc.archetype === 'fugitive-frigate'
         && save.r2Campaign?.active === 'r2-destroy-thief') {
@@ -2877,6 +2896,13 @@ async function startWorld() {
           }
         }
       }
+      if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_VARKOR_MISSION_ID&&!mathGate.isOpen&&!islandPanel.isOpen){
+        const state=readSave().r3Campaign??{},point=state.varkorWreckPosition;
+        if(state.varkorDefeated&&!state.varkorWreckClaimed&&point&&Math.hypot(world.camera.x-point.x,world.camera.y-point.y)<125){
+          clickNavigation.cancel();navalBattle.firing=false;
+          mathGate.open({kind:'r3-varkor-wreck',id:'r3-varkor-wreck',title:'🪵 Destroços do Terror do Mar',description:'Acerte quatro multiplicações para resgatar o arsenal de Varkor.'});
+        }
+      }
       if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_FLAME_MISSION_ID&&
         !mathGate.isOpen&&!islandPanel.isOpen){
         const campaign=readSave().r3Campaign,step=campaign.flameStep??0;
@@ -3067,7 +3093,9 @@ async function startWorld() {
         ?R3_WRECKS.filter(w=>!(readSave().r3Campaign?.wreckDiaries??[]).includes(w.id))
         :world.region.id==='r3'&&readSave().r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID
           ?R3_ABYSS_WRECKS.filter(w=>!(readSave().r3Campaign?.abyssFragments??[]).includes(w.id)):[];
-      treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks,...visibleFlameWreck],world.cameraView,world.camera.zoom,oceanTimeMs);
+      const varkorState=readSave().r3Campaign??{};
+      const varkorWreck=world.region.id==='r3'&&varkorState.active===R3_VARKOR_MISSION_ID&&varkorState.varkorDefeated&&!varkorState.varkorWreckClaimed&&varkorState.varkorWreckPosition?[{id:'r3-varkor-wreck',name:'Destroços do Terror do Mar',...varkorState.varkorWreckPosition}]:[];
+      treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks,...visibleFlameWreck,...varkorWreck],world.cameraView,world.camera.zoom,oceanTimeMs);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
         selectedNpcId = null;
