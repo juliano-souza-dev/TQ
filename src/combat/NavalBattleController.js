@@ -45,7 +45,8 @@ function playCannonSound(kind) {
 // The shortest cannon sets the Kraken's retaliation reach (currently 300 units).
 export const KRAKEN_RETALIATION_RANGE = Math.min(...CANNONS.map(cannon => cannonRange(cannon)));
 export const CANNON_SEQUENCE_MS = 160;
-export const PLAYER_CANNON_SEQUENCE_MS = CANNON_SEQUENCE_MS;
+export const PLAYER_CANNON_SEQUENCE_MS = 350;
+export const SHIP_CANNON_DAMAGE_MULTIPLIER = 3;
 
 // The battle controller owns combat state, cooldowns, target selection, ammo
 // debits, moving-target impact checks and NPC retaliation. WebGL owns only FX.
@@ -707,7 +708,7 @@ export class NavalBattleController {
       const destination = aimWithAccuracy(intercepted, muzzle, accuracy, this.random);
       const flameBoost = this.isFlameActive() && this.isBossTarget(target) && (this.getRegionId()!=='r3' || (target.archetype==='terror-do-mar' && !!save.r3Campaign?.varkorFlameUnlocked));
       const goldenMission = this.getRegionId() === 'r2' && save.r2Campaign?.active === 'r2-golden-ii' && target.id === 'r2-morbi';
-      const damage = shotDamage(cannon, ammo.id) * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
+      const damage = shotDamage(cannon, ammo.id) * SHIP_CANNON_DAMAGE_MULTIPLIER * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
       const tracking = ammo.trackingDurationMs > 0;
       const accepted = this.renderer.fire({
         from: muzzle, to: destination,
@@ -728,7 +729,7 @@ export class NavalBattleController {
       this.writePatch({ammunition: {...save.ammunition, ...ammoStockById}});
       this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000 / (flameBoost ? 5 : 1)));
       this.playerSequenceCursor = (batteryIndex + 1) % battery.length;
-      this.nextPlayerSequenceAt = now + (battery.length > 1 ? CANNON_SEQUENCE_MS : 0);
+      this.nextPlayerSequenceAt = now + (battery.length > 1 ? (flameBoost ? CANNON_SEQUENCE_MS : PLAYER_CANNON_SEQUENCE_MS) : 0);
       this.onFeedback('💥 1 bala disparada.');
       return 1;
     }
@@ -944,7 +945,7 @@ export class NavalBattleController {
         },trackingSpeed:speed}:{}),
         impactKind:'water',startTime:now,
         onImpact:({at})=>{
-          const result=onImpact?onImpact({at}):this.resolveNpcImpact(npc.id,at,damage);
+          const result=onImpact?onImpact({at}):this.resolveNpcImpact(npc.id,at,damage*SHIP_CANNON_DAMAGE_MULTIPLIER);
           playCannonSound(result?.kind==='ship'?'impact':'water');
           return result;
         },
@@ -977,7 +978,7 @@ export class NavalBattleController {
               const boss=this.getEntities().get('r2-morbi');
               if(!boss||boss.health<=0||!shipCollision(at,boss,110))return {kind:'water'};
               const before=boss.health;
-              boss.health=Math.max(0,boss.health-250);
+              boss.health=Math.max(0,boss.health-250*SHIP_CANNON_DAMAGE_MULTIPLIER);
               const dealt=Math.max(0,before-boss.health);
               if(dealt>0)this.onDamageVisual({target:boss,damage:dealt,source:'npc'});
               this.writePatch({r2MorbiBoss:{health:boss.health,maxHealth:900000,
