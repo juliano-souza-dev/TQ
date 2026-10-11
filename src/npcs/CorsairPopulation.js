@@ -172,7 +172,15 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     // Pack tactics: three or more within 100m stand and fight.
     // Sinking one member breaks the formation and sends survivors fleeing.
     const thieves=[...world.entities.values()].filter(n=>n.archetype==='r4-ladrao-gelido');
-    const sunk=thieves.some(n=>n.health<=0);
+    // A sinking breaks only the current engagement, not every future battle.
+    const sunk=thieves.some(n=>n.health<=0 && n.retaliationActive);
+    if(sunk){
+      for(const member of thieves){
+        member.retaliationActive=false;
+        member.aggression='flee';
+        if(member.health>0)member.state='escaping';
+      }
+    }
     for(const npc of thieves){
       if(npc.health<=0){
         npc.respawnRemainingMs=(npc.respawnRemainingMs??120000)-deltaMs;
@@ -189,7 +197,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
       const engaged=!!npc.retaliationActive && npc.health>0;
       const stand=engaged&&!sunk&&nearby>2;
       npc.aggression=stand?'attack':'flee';
-      npc.state=engaged?(stand?'retaliating':'escaping'):'patrolling';
+      npc.state=engaged?(stand?'retaliating':'escaping'):(npc.state==='escaping'?'escaping':'patrolling');
       const dt=Math.min(64,Math.max(0,deltaMs))/1000;
       const dx=world.camera.x-npc.x,dy=world.camera.y-npc.y;
       const distance=Math.hypot(dx,dy);
