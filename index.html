@@ -68,7 +68,9 @@
       }
     }, 12000);
     (async () => {
-      const version = String(Date.now());
+      // Stable release identifier allows the browser to reuse cached modules/assets.
+      // Update this value when publishing a new game release.
+      const version = 'tq-20261011-1845';
       window.__TQ_ASSET_VERSION__ = version;
       const modulePaths = ["src/auth/AuthService.js","src/auth/firebase.js","src/config/firebase-config.example.js","src/core/GameLoop.js","src/core/GameState.js","src/main.js","src/rendering/shaders/halloweenFog.js","src/rendering/HalloweenFogRenderer.js","src/events/HalloweenAtmosphere.js","src/npcs/NpcSelection.js","src/ui/MissionBoard.js","src/ui/MathGate.js","src/rendering/TreasureRenderer.js","src/treasures/RegionTreasures.js","src/combat/HullRepair.js","src/gameplay/PedagogicalActions.js","src/missions/RegionOneCampaign.js","src/missions/RegionTwoCampaign.js","src/missions/RegionThreeCampaign.js","src/missions/R3SilasTrade.js","src/education/pedagogy-curriculum.json","src/education/RegionMastery.js","src/ui/NavalCombatHud.js","src/rendering/NavalCombatWebGLRenderer.mjs","src/combat/fx/AmmoFxProfile.mjs","src/combat/NavalCombatRules.mjs","src/combat/NavalBattleRules.js","src/combat/NavalBattleController.js","src/items/EquipmentCatalog.js","src/items/CannonLoadout.js","src/education/LearningProgress.js","src/missions/MissionFlow.js","src/events/HalloweenSeaGlints.js","src/npcs/CorsairPopulation.js","src/npcs/RedSailCorsair.js","src/npcs/RoseGoldCorsair.js","src/persistence/LocalSaveStore.js","src/persistence/SyncPreference.js","src/rendering/IslandRenderer.js","src/rendering/NpcRenderer.js","src/rendering/OceanRenderer.js","src/world/WorldOceanEffect.mjs","src/rendering/PlayerWakeTrail.js","src/rendering/LegacyOceanWebGLRenderer.mjs","src/rendering/ShipRenderer.js","src/ships/ShipRegistry.js","src/ships/RoseGoldShip.js","src/ships/ShipSpriteLoader.js","src/ships/ShipSpeed.js","src/ships/StarterShip.js","src/ui/AnalogJoystick.js","src/ui/FirstVoyageGuide.js","src/ui/GuidedPointer.js","src/ui/IslandPanel.js","src/ui/KeyboardCameraInput.js","src/ui/Minimap.js","src/ui/Portal.js","src/ui/Shipyard.js","src/world/CameraSystem.js","src/world/ClickNavigationInput.js","src/world/IslandCollision.js","src/world/NavigationSystem.js","src/world/WorldState.js","src/world/regions/r1.js"];
       const imports = {};
@@ -84,7 +86,7 @@
       // Rewrite CSS url(...) assets too, so background images cannot stay stale.
       const cssUrl = new URL('./src/ui/app.css', document.baseURI);
       bootLabel.textContent = 'Carregando visual e embarcações...';
-      const response = await fetch(cssUrl.href + '?v=' + version, { cache: 'no-store' });
+      const response = await fetch(cssUrl.href + '?v=' + version, { cache: 'default' });
       if (!response.ok) throw new Error('CSS HTTP ' + response.status);
       const css = (await response.text()).replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/g, (_, quote, raw) => {
         const asset = new URL(raw, cssUrl);
