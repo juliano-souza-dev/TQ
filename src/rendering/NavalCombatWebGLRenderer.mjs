@@ -1,3 +1,4 @@
+import { createViewProjection } from './OrbitalCameraProjection.js';
 import { normalizeAmmoFx, hexToRgb01 } from "../combat/fx/AmmoFxProfile.mjs";
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
 const smoothstep=(edge0,edge1,value)=>{
@@ -434,7 +435,7 @@ export class NavalCombatWebGLRenderer{
     return true;
   }
 
-  render({time=performance.now(),camera={x:0,y:0},zoom=1,width=1,height=1,damagedShips=[],treasures=[]}={}){
+  render({time=performance.now(),camera={x:0,y:0},zoom=1,width=1,height=1,damagedShips=[],treasures=[],perspective=null}={}){
     if(!this.init()||!this.gl)return false;
     this.resize(width,height);
     const gl=this.gl;
@@ -579,11 +580,13 @@ export class NavalCombatWebGLRenderer{
     gl.vertexAttribPointer(this.position,2,gl.FLOAT,false,0,0);
     gl.uniform1f(this.uniforms.pulse,.5+.5*Math.sin(now*.018));
 
+    const projection=createViewProjection(camera,zoom,width,height,1,perspective);
+    let pointDepthScale=1;
     const writeClip=(x,y)=>{
-      const screenX=(x-(Number(camera.x)||0))*(Number(zoom)||1)+width*.5;
-      const screenY=(y-(Number(camera.y)||0))*(Number(zoom)||1)+height*.5;
-      this.pointCpuBuffer[0]=screenX/Math.max(1,width)*2-1;
-      this.pointCpuBuffer[1]=1-screenY/Math.max(1,height)*2;
+      const screen=projection.project({x,y});
+      pointDepthScale=screen?.relativeScale??0;
+      this.pointCpuBuffer[0]=screen ? screen.x/Math.max(1,width)*2-1 : -10;
+      this.pointCpuBuffer[1]=screen ? 1-screen.y/Math.max(1,height)*2 : -10;
     };
 
     const applyStyle=(style={})=>{
@@ -597,7 +600,7 @@ export class NavalCombatWebGLRenderer{
     const drawPoint=(x,y,size,effectType,progress=0,additive=true,style={})=>{
       writeClip(x,y);
       gl.bufferSubData(gl.ARRAY_BUFFER,0,this.pointCpuBuffer);
-      gl.uniform1f(this.uniforms.pointSize,Math.min(this.maxPointSize,Math.max(2,size)*this.pixelRatio));
+      gl.uniform1f(this.uniforms.pointSize,Math.min(this.maxPointSize,Math.max(2,size)*this.pixelRatio*pointDepthScale));
       gl.uniform1f(this.uniforms.effectType,effectType);
       gl.uniform1f(this.uniforms.progress,clamp(progress,0,1));
       gl.uniform1f(this.uniforms.useTexture,0);
