@@ -244,7 +244,7 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   const distance = Math.hypot(dx, dy);
 
   let desiredHeading = npc.heading;
-  if(npc.escapeOnly || (npc.retaliationActive && npc.aggression==='flee')){
+  if(npc.escapeOnly || npc.archetype===DARK_WATERS_RAIDER_ARCHETYPE && (npc.retaliationActive || distance<350) || (npc.retaliationActive && npc.aggression==='flee')){
     // Defensive fire must not turn a fleeing raider toward the player.
     npc.state='escaping';
     desiredHeading=bearing(-dx,-dy);
@@ -310,16 +310,29 @@ function updateTerrorGuardian(npc,world,deltaMs){
   const dt=Math.min(64,Math.max(0,deltaMs))/1000;
   const player=world.camera;
   const distance=Math.hypot(player.x-npc.x,player.y-npc.y);
+  const squad=[...world.entities.values()].filter(n=>n.archetype==='terror-guardian'&&n.health>0);
+  const alerted=squad.some(n=>n.retaliationActive);
+  if(alerted){npc.retaliationActive=true;npc.aggression='attack';}
   const protecting=Math.hypot(player.x-anchor.x,player.y-anchor.y)<820;
-  const target=npc.retaliationActive?player:!npc.leviathanHuntLock&&protecting&&distance<640?player:anchor;
-  npc.state=npc.retaliationActive?'retaliating':!npc.leviathanHuntLock&&protecting?'guarding':'patrolling';
-  npc.heading=turnToward(npc.heading,bearing(target.x-npc.x,target.y-npc.y),95*dt);
-  const gap=Math.hypot(target.x-npc.x,target.y-npc.y);
-  if(gap<=(npc.retaliationActive?100:185))return;
+  const engaged=alerted||protecting;
+  const target=engaged?player:anchor;
+  npc.state=engaged?'retaliating':'patrolling';
+  const dx=target.x-npc.x,dy=target.y-npc.y;
+  const gap=Math.hypot(dx,dy);
+  // Long-range broadside engagement. Never chase into the player's hull.
+  const preferredGap=engaged?Math.max(360,Math.min(460,(Number(npc.range)||520)-60)):185;
+  const tooClose=engaged&&gap<preferredGap-25;
+  const desired=tooClose?bearing(-dx,-dy):bearing(dx,dy);
+  npc.heading=turnToward(npc.heading,desired,180*dt);
+  const step=engaged
+    ? tooClose?Math.min(preferredGap-gap,(npc.baseSpeed||0)*dt)
+      : Math.min(Math.max(0,gap-preferredGap),(npc.baseSpeed||0)*dt)
+    : Math.min(Math.max(0,gap-preferredGap),(npc.baseSpeed||0)*dt);
+  if(step<=0)return;
   const angle=npc.heading*Math.PI/180;
-  const movement=npc.retaliationActive?Math.min((npc.baseSpeed||0)*dt,Math.max(0,gap-100)):(npc.baseSpeed||0)*dt;
   const moved=resolveIslandMovement(world.region,npc.x,npc.y,
-    npc.x+Math.sin(angle)*movement,npc.y-Math.cos(angle)*movement,34);
+    Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(angle)*step)),
+    Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(angle)*step)),34);
   npc.x=moved.x;npc.y=moved.y;
 }
 
