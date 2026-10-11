@@ -21,9 +21,9 @@ const muzzles = Object.freeze({
   15:{port:battery([75,285],[325,230])},
 });
 export const FROZEN_LANDS_GALLEON_SHIP = Object.freeze({
-  id:'galeao-terras-gelidas',
-  name:'Galeão das Terras Gélidas',
-  description:'Galeão de guerra glacial com velas azuis e ornamentação de gelo.',
+  id:'corsario-geada-negra',
+  name:'Corsário da Geada Negra',
+  description:'Corsário veloz da frota independente Saqueadores da Geada Negra.',
   status:'npc-active',
   cannonSlots:9,
   cannonLayout:Object.freeze({port:9,starboard:9,bow:0,stern:0}),
