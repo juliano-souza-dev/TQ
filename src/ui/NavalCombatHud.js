@@ -139,11 +139,13 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   const shieldItem=createConsumableOption({name:'Escudo',emoji:'🛡️'});
   const speedItem=createConsumableOption({name:'Veloz+',emoji:'💨'});
   const mapItem=createConsumableOption({name:'Mapa do Tesouro',emoji:'🗺️'});
+  const areaFreezeItem=createConsumableOption({name:'Congelamento em Área',emoji:'❄️'});
   const flameOption=flameItem.button;
   const shieldOption=shieldItem.button;
   const speedOption=speedItem.button;
   const mapOption=mapItem.button;
-  picker.append(noneOption,flameOption,shieldOption,speedOption,mapOption);
+  const areaFreezeOption=areaFreezeItem.button;
+  picker.append(noneOption,flameOption,shieldOption,speedOption,mapOption,areaFreezeOption);
   consumablesWrap.append(consumablesButton,picker);
   attackControls.append(fireButton, fireIconButton, consumablesWrap, centerButton, repairButton);
   element.append(hullRow, ammoSelect, ammoQuantity, cannonQuantity, attackControls, feedback);
@@ -163,15 +165,18 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     const shieldQty=Math.max(0,Math.floor(Number(consumable.quantities.shield)||0));
     const speedQty=Math.max(0,Math.floor(Number(consumable.quantities['speed-plus'])||0));
     const mapQty=Math.max(0,Math.floor(Number(consumable.quantities['treasure-map'])||0));
+    const areaFreezeQty=Math.max(0,Math.floor(Number(consumable.quantities['area-freeze'])||0));
     const speedSelected=consumable.selectedId==='speed-plus';
     const mapSelected=consumable.selectedId==='treasure-map';
-    const qty=shieldSelected?shieldQty:speedSelected?speedQty:mapSelected?mapQty:flameQty;
-    selectedIcon.hidden=noneSelected||shieldSelected||speedSelected||mapSelected;
-    countLabel.textContent=noneSelected?'🔒':shieldSelected?'🛡️ '+qty:speedSelected?'💨 '+qty:mapSelected?'🗺️ '+qty:String(qty);
+    const areaFreezeSelected=consumable.selectedId==='area-freeze';
+    const qty=shieldSelected?shieldQty:speedSelected?speedQty:mapSelected?mapQty:areaFreezeSelected?areaFreezeQty:flameQty;
+    selectedIcon.hidden=noneSelected||shieldSelected||speedSelected||mapSelected||areaFreezeSelected;
+    countLabel.textContent=noneSelected?'🔒':shieldSelected?'🛡️ '+qty:speedSelected?'💨 '+qty:mapSelected?'🗺️ '+qty:areaFreezeSelected?'❄️ '+qty:String(qty);
     flameOption.hidden=flameQty<=0;
     shieldOption.hidden=shieldQty<=0;
     speedOption.hidden=speedQty<=0;
     mapOption.hidden=mapQty<=0;
+    areaFreezeOption.hidden=areaFreezeQty<=0;
     const now=Date.now();
     const flameRemaining=Math.max(0,Math.ceil((consumable.cooldownUntil-now)/1000));
     const shieldRemaining=Math.max(0,Math.ceil((consumable.shieldCooldownUntil-now)/1000));
@@ -183,6 +188,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
       [shieldItem,shieldQty,shieldRemaining,consumable.shieldActiveUntil,shieldSelected],
       [speedItem,speedQty,speedRemaining,consumable.speedActiveUntil,speedSelected],
       [mapItem,mapQty,mapRemaining,consumable.treasureMapActiveUntil,mapSelected],
+      [areaFreezeItem,areaFreezeQty,0,consumable.areaFreezeArmed?Infinity:0,areaFreezeSelected],
     ]) {
       item.quantity.textContent=String(quantity);
       item.spinner.hidden=left<=0;
@@ -276,6 +282,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   shieldOption.addEventListener('click',()=>selectAndActivate('shield'));
   speedOption.addEventListener('click',()=>selectAndActivate('speed-plus'));
   mapOption.addEventListener('click',()=>selectAndActivate('treasure-map'));
+  areaFreezeOption.addEventListener('click',()=>selectAndActivate('area-freeze'));
   // Em telas touch, o evento click de um segundo dedo pode ser suprimido
   // pelo navegador enquanto o primeiro dedo mantém o joystick pressionado.
   // Capturamos cada toque diretamente no botão, sem capturar o ponteiro do
