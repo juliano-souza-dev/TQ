@@ -1166,6 +1166,7 @@ export class NavalBattleController {
           reloadMs:5000,damage:playerSeekerDamage*2,speed:700,
           ammo:seeker,tracking:true,
         });
+        continue;
       }
       if(this.getRegionId()==='r4' && npc.specialCannonCount===1){
         fireSequenceShot({npc,target:player,count:1,
