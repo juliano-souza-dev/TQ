@@ -16,7 +16,7 @@ export function createMissionBoard({getBoard=()=>null,onAccept=()=>false,onClaim
  ].filter(Boolean).join(' · ')||'Desbloqueio de região';
  function refresh(){
   const board=getBoard();if(!board)return;
-  title.textContent=board.activeRegion===3?'📜 Missões das Águas Escuras':board.activeRegion===2?'📜 Missões da Costa dos Corsários':'📜 Missões da Enseada';
+  title.textContent=board.activeRegion===4?'📜 Missões das Terras Gélidas':board.activeRegion===3?'📜 Missões das Águas Escuras':board.activeRegion===2?'📜 Missões da Costa dos Corsários':'📜 Missões da Enseada';
   summary.textContent=board.essentialClaimed+'/'+board.missions.filter(m=>!m.optional).length+' missões concluídas';
   slot.replaceChildren();
   if(board.activeRegion===1 && board.unlockedRegion>=2){
