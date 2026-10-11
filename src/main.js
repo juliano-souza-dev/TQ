@@ -3316,7 +3316,7 @@ async function startWorld() {
       const varkorWreck=world.region.id==='r3'&&varkorState.active===R3_VARKOR_MISSION_ID&&varkorState.varkorDefeated&&!varkorState.varkorWreckClaimed&&varkorState.varkorWreckPosition?[{id:'r3-varkor-wreck',name:'Destroço do Capitão',label:'Destroço do Capitão',...varkorState.varkorWreckPosition}]:[];
       const rebuildState=readSave().r3Campaign??{};
       const rebuildWreck=world.region.id==='r3'&&rebuildState.active===R3_REBUILD_MISSION_ID&&rebuildState.emeraldSpoken&&!rebuildState.emeraldWreckCollected?[{id:'r3-emerald-build-wreck',name:'Destroço',label:'Destroço',x:2350,y:4740},{id:'r3-emerald-build-wreck-2',name:'Destroço',label:'Destroço',x:2210,y:4740},{id:'r3-emerald-build-wreck-3',name:'Destroço',label:'Destroço',x:2490,y:4740}]:[];
-      treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks,...visibleFlameWreck,...varkorWreck,...rebuildWreck],world.cameraView,world.camera.zoom,oceanTimeMs);
+      treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks,...visibleFlameWreck,...varkorWreck,...rebuildWreck],world.cameraView,world.camera.zoom,oceanTimeMs,world.region.id);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
         selectedNpcId = null;
