@@ -1,3 +1,4 @@
+import {createFirstVoyageGuide} from './ui/FirstVoyageGuide.js';
 import {drawFrozenShip,drawFreezeBurst} from './rendering/FreezeEffects.js';
 const R4_ICE_WRECKS=Object.freeze([{id:'r4-ice-wreck-1',x:1200,y:2400},{id:'r4-ice-wreck-2',x:1830,y:2450},{id:'r4-ice-wreck-3',x:2870,y:3100},{id:'r4-ice-wreck-4',x:3500,y:2600},{id:'r4-ice-wreck-5',x:1800,y:3650}]);
 import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID, R3_REBUILD_MISSION_ID, R3_CLEANUP_MISSION_ID, R3_CLEANUP_RED_IDS } from './missions/RegionThreeCampaign.js';
@@ -1857,16 +1858,33 @@ async function startWorld() {
       firstVoyageGuide=null;
     }
   }
-  let guideCreationPromise=null;
-  async function guideMissionTo(destination){
+  function guideMissionTo(destination){
+    if(generation!==worldGeneration)return;
     if(!firstVoyageGuide){
-      guideCreationPromise??=import('./ui/FirstVoyageGuide.js').then(({createFirstVoyageGuide})=>{
-        if(generation!==worldGeneration)return;
-        if(!firstVoyageGuide){firstVoyageGuide=createFirstVoyageGuide(world);root.append(...firstVoyageGuide.elements);}
-      }).finally(()=>{guideCreationPromise=null;});
-      await guideCreationPromise;
+      firstVoyageGuide=createFirstVoyageGuide(world);
+      root.append(...firstVoyageGuide.elements);
     }
-    if(generation===worldGeneration)firstVoyageGuide?.guideTo(destination);
+    firstVoyageGuide.guideTo(destination);
+  }
+  function restoreR4Guide(){
+    if(world.region.id!=='r4')return;
+    const save=readSave(),state=save.r4Campaign??{};
+    let target=null;
+    if(state.active==='r4-building-strength')
+      target=state.packagePurchased?'missions':world.entities.get('r4-mercador-red')??{x:2050,y:2700,name:'Mercador Red'};
+    else if(state.active==='r4-equip-ice-terror'){
+      const equipped=Math.max(0,...Object.values(save.equipment?.loadout??{}).map(slots=>(slots??[]).filter(id=>id==='ice-terror').length));
+      target=equipped>=12?'missions':'shipyard';
+    }else if(state.active==='r4-ice-wreck-investigation'){
+      const collected=save.r4CollectedWrecks??[];
+      const next=R4_ICE_WRECKS.find(w=>!collected.includes(w.id));
+      target=next?{...next,name:'Destroço Gélido'}:'missions';
+    }else if(state.active==='r4-frost-watch'){
+      target=[...world.entities.values()].find(n=>n.archetype==='vigia-da-geada'&&n.health>0)??'missions';
+    }else if(state.active==='r4-shadow-trail'){
+      target=world.entities.get('r4-sombra-do-saque')??'missions';
+    }else if(boardFor(save,'r4').missions.some(m=>m.status==='available'||m.status==='ready'))target='missions';
+    if(target)guideMissionTo(target);
   }
 
   function resolveAlreadyEquippedShipMission({announce=true}={}){
@@ -3260,6 +3278,7 @@ async function startWorld() {
     render: () => {
       updatePursuitCamera(16);
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
+      restoreR4Guide();
       firstVoyageGuide?.update();
       if(originalR3Ocean){
         const progress=readSave().r3Campaign??{};
