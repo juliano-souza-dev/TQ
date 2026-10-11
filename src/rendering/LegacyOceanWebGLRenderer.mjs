@@ -113,6 +113,16 @@ void main(){
   color=(color-0.5)*uContrast+0.5;
   color*=uTint;
 
+  // Subtle directional lighting across existing wave crests: no extra textures
+  // or render passes, preserving the 2.5D camera and mobile performance.
+  float slopeX=cos(base.y*freqA+base.x*(freqA*0.22)+uTime*(0.45+uSpeed*0.006));
+  float slopeY=sin(base.x*freqB-base.y*(freqB*0.46)+uTime*(0.34+uSpeed*0.004));
+  vec3 waveNormal=normalize(vec3(-slopeX*0.20,-slopeY*0.16,1.0));
+  float sunLight=max(dot(waveNormal,normalize(vec3(-0.45,-0.35,0.82))),0.0);
+  float lighting=0.91+0.13*sunLight;
+  float glint=pow(max(sunLight,0.0),12.0)*crest*0.055;
+  color=color*lighting+vec3(0.68,0.85,0.92)*glint;
+
   if(uCorruptionEnabled>0.5){
     float n=corruptionNoiseAt(world);
     float m0=corruptionZoneMask(world,uCorruptionZone0,n);
