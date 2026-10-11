@@ -74,6 +74,23 @@ export function createCorsairPopulation(world, random = Math.random) {
       });
     }
     createFrozenLandsFugitive(world);
+    // Nine independent raiders join the R3 fugitive. Never linked to the R4 boss.
+    for (let i = 0; i < 9; i++) {
+      const id = 'r4-ladrao-gelido-' + String(i + 1).padStart(2, '0');
+      if (world.entities.has(id)) continue;
+      const point = spawnPosition(world.region, world.camera, random);
+      world.entities.set(id, {
+        id, type:'npc', archetype:'r4-ladrao-gelido', fleetId:'r4-frota-ladrao-gelido',
+        name:'Ladrão das Terras Gélidas', shipId:FROZEN_LANDS_GALLEON_SHIP.id,
+        x:point.x, y:point.y, heading:random()*360,
+        health:24000, maxHealth:24000, speed:290,
+        state:'patrolling', aggression:'flee', retaliationActive:false,
+        cannonSlots:9, damage:5, range:840, cannonReloadMs:10000,
+        specialCannonAmmoId:'frozen-explosion', homing:true,
+        freezeOnHit:true, freezeDurationMs:5000,
+        wanderTimeMs:1200, respawnRemainingMs:null,
+      });
+    }
     return world.entities.size;
   }
 
@@ -129,6 +146,44 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
       const moved=resolveIslandMovement(world.region,npc.x,npc.y,
         Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(rad)*move)),
         Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(rad)*move)),38);
+      npc.x=moved.x;npc.y=moved.y;
+    }
+    // Pack tactics: three or more within 100m stand and fight.
+    // Sinking one member breaks the formation and sends survivors fleeing.
+    const thieves=[...world.entities.values()].filter(n=>n.archetype==='r4-ladrao-gelido');
+    const sunk=thieves.some(n=>n.health<=0);
+    for(const npc of thieves){
+      if(npc.health<=0){
+        npc.respawnRemainingMs=(npc.respawnRemainingMs??120000)-deltaMs;
+        if(npc.respawnRemainingMs<=0){
+          const p=spawnPosition(world.region,world.camera,random);
+          Object.assign(npc,{x:p.x,y:p.y,health:npc.maxHealth,state:'patrolling',
+            retaliationActive:false,aggression:'flee',respawnRemainingMs:null,lootGranted:false});
+        }
+        continue;
+      }
+      if(Date.now()<(npc.frozenUntil||0)){npc.state='frozen';continue;}
+      const nearby=thieves.filter(other=>other.health>0 &&
+        Math.hypot(other.x-npc.x,other.y-npc.y)<=100).length;
+      const engaged=!!npc.retaliationActive;
+      const stand=engaged&&!sunk&&nearby>2;
+      npc.aggression=stand?'attack':'flee';
+      npc.state=engaged?(stand?'retaliating':'escaping'):'patrolling';
+      const dt=Math.min(64,Math.max(0,deltaMs))/1000;
+      const dx=world.camera.x-npc.x,dy=world.camera.y-npc.y;
+      const distance=Math.hypot(dx,dy);
+      npc.wanderTimeMs=(npc.wanderTimeMs??0)-deltaMs;
+      if(engaged){
+        const angle=(Math.atan2(stand?dx:-dx,stand?-dy:dy)*180/Math.PI+360)%360;
+        npc.heading=angle;
+      }else if(npc.wanderTimeMs<=0){
+        npc.heading=random()*360;npc.wanderTimeMs=1200+random()*2500;
+      }
+      const movement=engaged?(stand?Math.min(npc.speed*dt,Math.max(0,distance-220)):npc.speed*dt):npc.speed*dt*.45;
+      const rad=npc.heading*Math.PI/180;
+      const moved=resolveIslandMovement(world.region,npc.x,npc.y,
+        Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(rad)*movement)),
+        Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(rad)*movement)),38);
       npc.x=moved.x;npc.y=moved.y;
     }
     const raids=updateFrozenLandsFugitive(world,deltaMs,random);
