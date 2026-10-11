@@ -9,10 +9,10 @@ export const TERROR_DO_MAR_SHIP = Object.freeze({
   shopEnabled: false,
   rewardEnabled: false,
   maxHealth: 1000000,
-  cannonSlots: 7,
+  cannonSlots: 12,
   cannonLayout: Object.freeze({
-    port: 7,
-    starboard: 7,
+    port: 12,
+    starboard: 12,
     bow: 0,
     stern: 0,
   }),
