@@ -1,6 +1,6 @@
 export function uniqueMissionIds(ids, missions = []) {
-  const valid = new Set(missions.map(m => m.id));
-  return [...new Set(Array.isArray(ids) ? ids : [])].filter(id => valid.has(id));
+  // Keep historical claimed IDs across catalog changes; filtering destroys mission history.
+  return [...new Set(Array.isArray(ids) ? ids.filter(id=>typeof id==='string'&&id.trim()) : [])];
 }
 
 export function canonicalSingleMissionState(input = {}, missions = []) {
