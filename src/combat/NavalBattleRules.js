@@ -55,7 +55,14 @@ export function effectiveAmmo(ammoId, events = EVENTS) {
     trackingDurationMs: rules.trackingDurationMs ?? 0,
     damageFactor: rules.damageFactor,
     // The original game's ammunition FX presets and texture pipeline.
-    fx: ammoId === 'aetherion-seeker' ? {
+    fx: ammoId === 'frozen-explosion' ? {
+      preset:'violet-crystal',
+      muzzle:{color:'#4be9ff',coreColor:'#ffffff',accentColor:'#a9ffff',size:55,sparks:22},
+      projectile:{texture:getAmmunitionAssetUrl(item),color:'#36cfff',coreColor:'#ffffff',accentColor:'#a9ffff',glow:1.5,auraScale:2.2,sparkle:1.1},
+      trail:{color:'#58dfff',secondaryColor:'#e5ffff',width:14,length:20,opacity:.88,sparkle:.9},
+      impactShip:{color:'#36bfff',coreColor:'#ffffff',accentColor:'#b4ffff',size:148,sparks:34,ringCount:3,shock:1.2},
+      impactWater:{color:'#6eeaff',coreColor:'#ffffff',accentColor:'#b4ffff',size:135,ringCount:3,magic:1.1},
+    } : ammoId === 'aetherion-seeker' ? {
       preset:'piercing',
       muzzle:{color:'#ff284c',coreColor:'#72eeff',accentColor:'#ff465e',size:34,starburst:1.35,sparks:30,intensity:1.6},
       projectile:{texture:getAmmunitionAssetUrl(item),scale:.68,auraScale:1.65,orbitRadius:.5,color:'#138dff',coreColor:'#ffffff',accentColor:'#ff234b',glow:2.2,
