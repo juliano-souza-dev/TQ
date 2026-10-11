@@ -5,6 +5,7 @@ function getVisualScale(definition) {
   if (definition.id === 'galeao-rosas-de-ouro') return 0.82;
   if (definition.id === 'galeao-halloween-tabuada') return 0.9;
   if (definition.id === 'fragata-sombra-cacadora') return 0.7;
+  if (definition.id === 'terror-do-mar') return 1.1;
   return 1;
 }
 
