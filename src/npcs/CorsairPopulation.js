@@ -61,7 +61,7 @@ export function createCorsairPopulation(world, random = Math.random) {
 
   if (world.region.id === 'r4') {
     // Vigias da Geada: neutral until hit, then the same shipId fleet responds.
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 4; i++) {
       const id = 'r4-vigias-da-geada-' + String(i+1).padStart(2,'0');
       const point = spawnPosition(world.region, world.camera, random);
       world.entities.set(id, {
@@ -101,7 +101,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     const alerted = fleet.some(n=>n.health>0 && (n.retaliationActive || n.aggression==='attack'));
     for (const npc of fleet) {
       if (npc.health<=0) {
-        npc.respawnRemainingMs=(npc.respawnRemainingMs??CORSAIR_RESPAWN_MS)-deltaMs;
+        npc.respawnRemainingMs=(npc.respawnRemainingMs??10000)-deltaMs;
         if(npc.respawnRemainingMs<=0){
           const point=spawnPosition(world.region,world.camera,random);
           Object.assign(npc,{x:point.x,y:point.y,health:npc.maxHealth,
