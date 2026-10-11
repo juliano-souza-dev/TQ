@@ -3,7 +3,7 @@ import { createRedSailCorsair, updateCorsair, RED_SAIL_CORSAIR } from './RedSail
 import { createRoseGoldCorsair as createTerrorDaTabuada, ROSE_GOLD_CORSAIR as TERROR_DA_TABUADA } from './RoseGoldCorsair.js';
 import { resolveIslandMovement, collidesWithIsland } from '../world/IslandCollision.js';
 import { createBloodRedMarketMerchant } from './BloodRedCorsairNpc.js';
-import { createDarkWatersFleet, updateDarkWatersFleet } from './DarkWatersFleet.js';
+import { createDarkWatersFleet, updateDarkWatersFleet, createFrozenLandsFugitive, updateFrozenLandsFugitive } from './DarkWatersFleet.js';
 
 
 // Separate overlapping NPC hulls after navigation, without moving them through islands.
@@ -73,6 +73,7 @@ export function createCorsairPopulation(world, random = Math.random) {
         retaliationActive:false,respawnRemainingMs:null,wanderTimeMs:1800,
       });
     }
+    createFrozenLandsFugitive(world);
     return world.entities.size;
   }
 
@@ -129,8 +130,9 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
         Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(rad)*move)),38);
       npc.x=moved.x;npc.y=moved.y;
     }
+    const raids=updateFrozenLandsFugitive(world,deltaMs,random);
     resolveNpcCollisions(world);
-    return [];
+    return raids;
   }
   const targets = new Map([['player', world.camera]]);
   for (const npc of world.entities.values()) {
