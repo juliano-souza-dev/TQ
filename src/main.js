@@ -2310,6 +2310,10 @@ async function startWorld() {
     } else {
       islandPanel.open(contact.kind);
     }
+    if(world.region.id==='r4' && contact.kind==='missions' && readSave().r4Campaign?.active){
+      if(recordMissionEvent({type:'return-port',id:'r4-mission-return'}))showOceanReward('⚓ Objetivos entregues ao Porto das Missões. Resgate sua recompensa.');
+      islandPanel.refreshMissionBoard();
+    }
     if(world.region.id==='r3'&&contact.kind==='missions'&&readSave().r3Campaign?.active===R3_CLEANUP_MISSION_ID){
       if(recordMissionEvent({type:'return-port',id:'r3-cleanup-return'}))showOceanReward('✅ Águas limpas! Resgate o acesso às Terras Gélidas.');
       islandPanel.refreshMissionBoard();
