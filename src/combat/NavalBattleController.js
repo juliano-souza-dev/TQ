@@ -1231,7 +1231,7 @@ export class NavalBattleController {
     return { kind: 'ship' };
   }
 
-  render(now, camera, zoom, width, height) {
+  render(now, camera, zoom, width, height, perspective = null) {
     const damagedShips=[];
     if(this.getRegionId()==='r2' && this.readSave().r2Campaign?.active==='r2-destroy-thief'){
       const thief=[...this.getEntities().values()].find(entity=>
@@ -1250,7 +1250,7 @@ export class NavalBattleController {
         });
       }
     }
-    return this.renderer.render({ time: now, camera, zoom, width, height, damagedShips });
+    return this.renderer.render({ time: now, camera, zoom, width, height, damagedShips, perspective });
   }
 
   dispose() {
