@@ -71,7 +71,7 @@ export function createCorsairPopulation(world, random = Math.random) {
         x:point.x,y:point.y,heading:random()*360,
         health:18000,maxHealth:18000,state:'patrolling',aggression:'neutral',
         damage:12,range:840,cannonSlots:9,specialCannonCount:1,specialCannonAmmoId:'frozen-explosion',speed:187.5,
-        retaliationActive:false,respawnRemainingMs:null,wanderTimeMs:1800,
+        retaliationActive:false,respawnRemainingMs:null,wanderTimeMs:1800,sinkSerial:0,
       });
     }
     createFrozenLandsFugitive(world);
@@ -146,7 +146,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
           const point=spawnPosition(world.region,world.camera,random);
           Object.assign(npc,{x:point.x,y:point.y,health:npc.maxHealth,
             aggression:'neutral',retaliationActive:false,state:'patrolling',
-            respawnRemainingMs:null,lootGranted:false});
+            respawnRemainingMs:null,lootGranted:false,sinkSerial:(npc.sinkSerial??0)+1});
         }
         continue;
       }
