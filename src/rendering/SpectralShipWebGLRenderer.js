@@ -1,3 +1,4 @@
+import { createViewProjection } from './OrbitalCameraProjection.js';
 const VERTEX=`#version 300 es
 precision highp float;
 in vec2 aPosition;
@@ -76,7 +77,7 @@ export class SpectralShipWebGLRenderer{
       this.ready=true;return true;
     }catch(error){console.warn('[TabuadaQuest] Efeito Fantasma Esmeralda indisponível:',error);this.ready=false;return false;}
   }
-  render(entities,camera,zoom,timeMs,definition){
+  render(entities,camera,zoom,timeMs,definition,orbit=null){
     if(!this.ready||!definition?.spectralEffect?.enabled)return false;
     const gl=this.gl,bounds=this.canvas.getBoundingClientRect();
     if(!bounds.width||!bounds.height)return false;
@@ -93,10 +94,13 @@ export class SpectralShipWebGLRenderer{
     gl.uniform1f(this.u.uWispIntensity,fx.wispIntensity);
     gl.uniform1f(this.u.uDistortion,fx.distortion);
     let drawn=0;
+    const projection=createViewProjection(camera,zoom,w,h,dpr,orbit);
     for(const npc of entities.values()){
       if(npc.shipId!==definition.id||npc.health<=0)continue;
-      const cx=w/2+(npc.x-camera.x)*zoom*dpr,cy=h/2+(npc.y-camera.y)*zoom*dpr;
-      const base=Math.min(w*.32,h*.32,185*dpr)*zoom;
+      const screen=projection.project(npc);
+      if(!screen)continue;
+      const cx=screen.x,cy=screen.y;
+      const base=Math.min(w*.32,h*.32,185*dpr)*zoom*screen.relativeScale;
       const size=base*Math.max(1,Number(fx.glowRadius)||1);
       if(cx<-size||cx>w+size||cy<-size||cy>h+size)continue;
       gl.uniform2f(this.u.uCenter,cx,cy);gl.uniform2f(this.u.uSize,size,size);
