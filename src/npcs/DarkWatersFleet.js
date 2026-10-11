@@ -215,7 +215,7 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   const distance = Math.hypot(dx, dy);
 
   let desiredHeading = npc.heading;
-  if (!npc.stolenThisPass && distance <= npc.detectionRange) {
+  if (!npc.leviathanHuntLock && !npc.stolenThisPass && distance <= npc.detectionRange) {
     npc.state = 'raiding';
     desiredHeading = bearing(dx, dy);
   } else if (npc.stolenThisPass) {
@@ -247,7 +247,7 @@ function updateRaider(npc, world, deltaMs, random, raids) {
     npc.y = moved.y;
   }
 
-  if (!npc.stolenThisPass && npc.raidCooldownMs <= 0
+  if (!npc.leviathanHuntLock && !npc.stolenThisPass && npc.raidCooldownMs <= 0
       && Math.hypot(player.x - npc.x, player.y - npc.y) <= npc.raidRadius) {
     npc.stolenThisPass = true;
     npc.raidCooldownMs = 18000;
@@ -271,8 +271,8 @@ function updateTerrorGuardian(npc,world,deltaMs){
   const player=world.camera;
   const distance=Math.hypot(player.x-npc.x,player.y-npc.y);
   const protecting=Math.hypot(player.x-anchor.x,player.y-anchor.y)<820;
-  const target=protecting&&distance<640?player:anchor;
-  npc.state=protecting?'guarding':'patrolling';
+  const target=!npc.leviathanHuntLock&&protecting&&distance<640?player:anchor;
+  npc.state=!npc.leviathanHuntLock&&protecting?'guarding':'patrolling';
   npc.heading=turnToward(npc.heading,bearing(target.x-npc.x,target.y-npc.y),95*dt);
   if(Math.hypot(target.x-npc.x,target.y-npc.y)<185)return;
   const angle=npc.heading*Math.PI/180;
@@ -357,7 +357,13 @@ function updateMerchant(npc,world,deltaMs){
 export function updateDarkWatersFleet(world, deltaMs, random = Math.random) {
   if (world.region.id !== 'r3') return [];
   const raids = [];
+  const hunting=world.entities.get('r3-fantasma-esmeralda')?.leviathanHuntActive===true;
   for (const npc of world.entities.values()) {
+    // All other ships patrol normally, without pursuing the player, for this hunt.
+    if(npc.archetype===DARK_WATERS_RAIDER_ARCHETYPE || npc.archetype==='terror-guardian'){
+      npc.leviathanHuntLock=hunting;
+      if(hunting && npc.stolenThisPass){npc.stolenThisPass=false;npc.passTimeMs=0;}
+    }
     if(npc.archetype==='blood-red-market-merchant')updateMerchant(npc,world,deltaMs);
     else if (npc.archetype === TERROR_DO_MAR_NPC.id) updateBoss(npc, world, deltaMs, random);
     else if(npc.archetype==='terror-guardian')updateTerrorGuardian(npc,world,deltaMs);
