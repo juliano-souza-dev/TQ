@@ -188,10 +188,24 @@ async function startWorld() {
   // A single physical camera defines the water shader, sprites, HUD targets,
   // naval combat effects and reverse pointer raycasts. XY gameplay is unchanged.
   world.cameraPerspective = { enabled: true, yaw: 0, pitch: Math.PI / 4 };
-  const projectScreenPoint = (x,y) => createViewProjection(
-    world.cameraView,world.camera.zoom,canvas.clientWidth,canvas.clientHeight,1,
-    world.cameraPerspective
-  ).project({x,y}) ?? {x:-100000,y:-100000,relativeScale:1};
+  const projectScreenPoint = (x,y) => {
+    const width=canvas.clientWidth,height=canvas.clientHeight;
+    const screen=createViewProjection(
+      world.cameraView,world.camera.zoom,width,height,1,world.cameraPerspective
+    ).project({x,y});
+    if(screen)return screen;
+    // A destination behind the camera must still point in the correct
+    // compass direction on the mission guide, not default to top-left.
+    const yaw=world.cameraPerspective.enabled ? world.cameraPerspective.yaw : 0;
+    const dx=x-world.cameraView.x,dy=y-world.cameraView.y;
+    const right=dx*Math.cos(yaw)+dy*Math.sin(yaw);
+    const down=-dx*Math.sin(yaw)+dy*Math.cos(yaw);
+    const length=Math.max(1,Math.hypot(right,down)),span=Math.max(width,height)*10;
+    return {
+      x:width/2+right/length*span,y:height/2+down/length*span,
+      relativeScale:.06,offscreen:true,
+    };
+  };
   const orbitToolbar=document.createElement('div');
   orbitToolbar.setAttribute('role','toolbar');
   orbitToolbar.setAttribute('aria-label','Câmera 3D');
