@@ -233,9 +233,10 @@ export function acceptR3Mission(save,id){
   const loadout={...(equipment.loadout??{})};
   // A missão exige uma bateria pronta para combate, mesmo se os slots antigos estiverem cheios.
   const previous=Array.isArray(loadout[shipId])?loadout[shipId]:[];
-  loadout[shipId]=['aetherion-mk1','aetherion-mk1',
-    'pumpkin-terror','pumpkin-terror','pumpkin-terror','pumpkin-terror','pumpkin-terror',
-    ...previous.slice(7,capacity)];
+  loadout[shipId]=[...previous.filter(Boolean).slice(0,7),
+    ...Array(Math.max(0,7-previous.filter(Boolean).slice(0,7).length)).fill('aetherion-mk1'),
+    ...Array(5).fill('pumpkin-terror')].slice(0,capacity);
+  for(const id of new Set(loadout[shipId])) counts[id]=Math.max(Number(counts[id])||0,loadout[shipId].filter(x=>x===id).length);
   const ammo=save.ammunition??{};
   return {ammunition:{...ammo,'aetherion-seeker':(Number(ammo['aetherion-seeker'])||0)+10000,
       'rusted-iron':(Number(ammo['rusted-iron'])||0)+2000},
