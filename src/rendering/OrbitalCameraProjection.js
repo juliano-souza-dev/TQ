@@ -188,7 +188,7 @@ export function createViewProjection(camera, zoom, width, height, dpr = 1, orbit
     enabled: true,
     project(point) {
       const projected = model.project(point);
-      return projected ? { ...projected, relativeScale: projected.scale / (z * ratio) } : null;
+      return projected ? { ...projected, relativeScale: Math.max(.06, Math.min(3.5, projected.scale / (z * ratio))) } : null;
     },
   };
 }
