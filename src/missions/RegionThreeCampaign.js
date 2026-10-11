@@ -6,6 +6,13 @@ export const R3_GOLDEN_SHIP_ID = 'galeao-dourado';
 export const R3_LEVIATHAN_MISSION_ID = 'r3-leviathan-hunt';
 export const R3_LEVIATHAN_ENTITY_ID = 'r3-leviathan';
 export const R3_ABYSS_SECRET_MISSION_ID='r3-abyss-secret';
+export const R3_FLAME_MISSION_ID='r3-abyss-flame';
+export const R3_FLAME_STOPS=Object.freeze([
+  Object.freeze({id:'r3-flame-wreck-1',x:850,y:2480,name:'Destroços Perdidos',questions:2}),
+  Object.freeze({id:'r3-flame-wreck-2',x:1820,y:3020,name:'Fragmentos da Chama I',questions:1}),
+  Object.freeze({id:'r3-flame-wreck-3',x:2740,y:2850,name:'Fragmentos da Chama II',questions:1}),
+  Object.freeze({id:'r3-flame-wreck-4',x:1850,y:4360,name:'A Chama Desperta',questions:3}),
+]);
 export const R3_ABYSS_WRECKS=Object.freeze([
  Object.freeze({id:'r3-abyss-wreck-1',x:1260,y:2910,name:'Destroços da Maré Perdida'}),
  Object.freeze({id:'r3-abyss-wreck-2',x:3040,y:2400,name:'Destroços do Farol Abissal'}),
@@ -48,6 +55,14 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
  {kind:'abyss-wrecks',count:3,label:'Recuperar três fragmentos dos destroços'},
  {kind:'return-port',count:1,label:'Entregar o mapa no Porto das Missões'}],
  reward:{gold:15000,ammo:{'aetherion-seeker':250},story:'Mapa do Coração do Abismo'},
+}),Object.freeze({
+ id:R3_FLAME_MISSION_ID,name:'A Chama do Abismo',
+ description:'Siga os pontos do mapa em ordem, recupere quatro destroços resolvendo sete multiplicações, derrote dois corsários Red durante a expedição e retorne ao Porto das Missões.',
+ objectives:[{kind:'flame-wrecks',count:4,label:'Explorar quatro pontos de destroços em ordem'},
+ {kind:'flame-math',count:7,label:'Resolver sete multiplicações'},
+ {kind:'flame-enemies',count:2,label:'Derrotar dois corsários Red'},
+ {kind:'return-port',count:1,label:'Retornar ao Porto das Missões'}],
+ reward:{consumables:{'flame-5x':1}},
 })]);
 
 export function expectedR3GoldenLoadout(save, capacity) {
@@ -91,6 +106,7 @@ export function getR3Board(save={}) {
   const thirdDone=claimed.includes(R3_SILAS_MISSION_ID);
   const fourthDone=claimed.includes(R3_LEVIATHAN_MISSION_ID);
   const fifthDone=claimed.includes(R3_ABYSS_SECRET_MISSION_ID);
+  const sixthDone=claimed.includes(R3_FLAME_MISSION_ID);
   const wreckCount=Math.min(3,(save.r3Campaign?.wreckDiaries??[]).length);
   const delivered=Boolean(save.r3Campaign?.wreckDelivered);
   const first=R3_MISSIONS[0];
@@ -131,14 +147,23 @@ export function getR3Board(save={}) {
   const fifthReady=fifthActive&&redCount===5&&fragmentCount===3&&!!save.r3Campaign?.abyssReturned;
   const fifthStatus=fifthDone?'claimed':!fourthDone?'locked':fifthReady?'ready':fifthActive?'active':'available';
   const fifthItem={...fifth,status:fifthStatus,progress:[redCount,fragmentCount,save.r3Campaign?.abyssReturned||fifthDone?1:0],claimed:fifthDone,active:['active','ready'].includes(fifthStatus),ready:fifthStatus==='ready'};
-  const current=firstDone?(secondDone?(thirdDone?(fourthDone?fifthItem:fourthItem):thirdItem):secondItem):firstItem;
-  return {missions:[firstItem,secondItem,thirdItem,fourthItem,fifthItem],
+  const sixth=R3_MISSIONS[5];
+  const flame=save.r3Campaign??{};
+  const flameReady=flame.active===R3_FLAME_MISSION_ID&&flame.flameStep===6&&flame.flameReturned;
+  const sixthStatus=sixthDone?'claimed':!fifthDone?'locked':flameReady?'ready':flame.active===R3_FLAME_MISSION_ID?'active':'available';
+  const sixthItem={...sixth,status:sixthStatus,progress:[Math.min(4,flame.flameWrecks??0),Math.min(7,flame.flameMath??0),Math.min(2,flame.flameKills??0),flame.flameReturned?1:0],claimed:sixthDone,active:['active','ready'].includes(sixthStatus),ready:sixthStatus==='ready'};
+  const current=fifthDone?sixthItem:firstDone?(secondDone?(thirdDone?(fourthDone?fifthItem:fourthItem):thirdItem):secondItem):firstItem;
+  return {missions:[firstItem,secondItem,thirdItem,fourthItem,fifthItem,sixthItem],
     essentialClaimed:claimed.filter(id=>R3_MISSIONS.some(m=>m.id===id)).length,
     unlockedRegion:3,activeRegion:3,
     active:current.active?[current]:[],claimable:current.ready?[current]:[],
     available:current.status==='available'?[current]:[]};
 }
 export function acceptR3Mission(save,id){
+ if(id===R3_FLAME_MISSION_ID){
+  if(!save.r3Campaign?.claimed?.includes(R3_ABYSS_SECRET_MISSION_ID)||save.r3Campaign.claimed.includes(id)||save.r3Campaign.active)return null;
+  return {r3Campaign:{...save.r3Campaign,active:id,flameStep:0,flameWrecks:0,flameMath:0,flameKills:0,flameKillIds:[],flameReturned:false}};
+ }
  if(id===R3_ABYSS_SECRET_MISSION_ID){
   if(!save.r3Campaign?.claimed?.includes(R3_LEVIATHAN_MISSION_ID)||save.r3Campaign.claimed.includes(id)||save.r3Campaign.active===id)return null;
   return {r3Campaign:{...save.r3Campaign,active:id,abyssRedSinks:0,abyssRedSinkIds:[],abyssFragments:[],abyssReturned:false}};
@@ -159,6 +184,24 @@ export function acceptR3Mission(save,id){
   return {r3Campaign:{...(save.r3Campaign??{}),active:id,wreckDiaries:[],wreckDelivered:false}};
 }
 export function recordR3Event(save,event){
+ if(save.r3Campaign?.active===R3_FLAME_MISSION_ID){
+  const state=save.r3Campaign,step=state.flameStep??0;
+  if(event.type==='flame-math'&&step<6&&step%3!==1){
+   const index=step===0?0:step===2?1:step===3?2:3;
+   const wreck=R3_FLAME_STOPS[index];
+   if(event.id!==wreck.id)return null;
+   const count=(state.flameMathAtStop??0)+1;
+   const done=count>=wreck.questions;
+   return {r3Campaign:{...state,flameMath:(state.flameMath??0)+1,flameMathAtStop:done?0:count,
+     flameWrecks:(state.flameWrecks??0)+(done?1:0),flameStep:done?step+1:step}};
+  }
+  if(event.type==='flame-enemy'&&(step===1||step===4)&&event.archetype==='terror-guardian'&&event.id&&!(state.flameKillIds??[]).includes(event.id))
+   return {r3Campaign:{...state,flameKills:(state.flameKills??0)+1,flameKillIds:[...(state.flameKillIds??[]),event.id],flameStep:step+1}};
+  if(event.type==='return-port'&&step===6&&!state.flameReturned)
+   return {r3Campaign:{...state,flameReturned:true}};
+  return null;
+ }
+
  if(save.r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID){
   const state=save.r3Campaign;
   if(event.type==='abyss-red-sunk'&&event.archetype==='terror-guardian'&&event.id&&(Number(state.abyssRedSinks)||0)<5){
@@ -193,6 +236,13 @@ export function recordR3Event(save,event){
   return null;
 }
 export function claimR3Mission(save,id){
+ if(id===R3_FLAME_MISSION_ID){
+  const state=save.r3Campaign??{};
+  if(state.active!==id||state.flameStep!==6||!state.flameReturned||state.claimed?.includes(id))return null;
+  const reward=awardR3PreVarkorFlame(save);
+  return {mission:R3_MISSIONS[5],patch:{...reward,r3Campaign:{...reward.r3Campaign,active:null,claimed:[...new Set([...(state.claimed??[]),id])]}}};
+ }
+
  if(id===R3_ABYSS_SECRET_MISSION_ID){
   const state=save.r3Campaign??{};
   if(state.active!==id||!state.claimed?.includes(R3_LEVIATHAN_MISSION_ID)||(Number(state.abyssRedSinks)||0)<5||(state.abyssFragments??[]).length!==3||!state.abyssReturned||state.claimed.includes(id))return null;
