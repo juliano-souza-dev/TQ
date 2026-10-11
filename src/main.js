@@ -2771,6 +2771,22 @@ async function startWorld() {
           readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
           && !readSave().r3Campaign?.leviathanDefeated;
       }
+      // Varkor enters only after the Chama do Abismo has been claimed.
+      // Clear ordinary R3 ships, but preserve the shadow thief and Emerald ally.
+      if(world.region.id==='r3' && readSave().r3Campaign?.claimed?.includes(R3_FLAME_MISSION_ID)){
+        const boss=world.entities.get(world.region.terrorBoss?.id);
+        if(boss && boss.health>0){
+          boss.varkorBattleUnlocked=true;
+          boss.phasedOut=false;
+          for(const [id,npc] of world.entities){
+            if(id===boss.id || id==='r3-fantasma-esmeralda' ||
+              npc.archetype==='dark-waters-raider' || npc.type!=='npc')continue;
+            world.entities.delete(id);
+          }
+          const ghost=world.entities.get('r3-fantasma-esmeralda');
+          if(ghost)ghost.varkorAllyActive=true;
+        }
+      }
       const darkWaterRaids = updateCorsairPopulation(world, stepMs);
       for (const raider of darkWaterRaids ?? []) {
         const save=readSave();
