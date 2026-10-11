@@ -31,7 +31,7 @@ export const FROZEN_LANDS_GALLEON_SHIP = Object.freeze({
   speed:Object.freeze({min:250,initial:250,max:310}),
   playable:false,npcEnabled:true,shopEnabled:false,rewardEnabled:false,
   sprite:Object.freeze({
-    path:'../../assets/ships/terras_gelidas_1600x1600_400x400.webp',
+    path:'../../assets/ships/corsario_geada_negra.webp',
     frameWidth:400,frameHeight:400,columns:4,rows:4,frameCount:16,
     angleStepDegrees:22.5,headingZero:'north',clockwise:true,
     framesByHeading:Object.freeze([4,5,6,7,8,9,10,11,12,13,14,15,0,1,2,3]),
