@@ -23,7 +23,7 @@ export const TERROR_DO_MAR_SHIP = Object.freeze({
   visualGunports: Object.freeze({ port: 6, starboard: 6 }),
   damage: 12,
   range: 520,
-  speed: Object.freeze({ min: 45, initial: 70, max: 95 }),
+  speed: Object.freeze({ min: 270, initial: 270, max: 350 }),
   acceleration: 120,
   ai: Object.freeze({
     behavior: 'patrol',
