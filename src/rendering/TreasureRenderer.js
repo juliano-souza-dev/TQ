@@ -1,4 +1,5 @@
 const TREASURE_WRECK_ASSET = new URL('../../assets/treasures/destrocos-piratas-tesouro.webp', import.meta.url).href;
+const FROZEN_WRECK_ASSET = new URL('../../assets/treasures/destrocos_terras_gelidas.webp', import.meta.url).href;
 
 export class TreasureRenderer {
   constructor(canvas) {
@@ -7,9 +8,12 @@ export class TreasureRenderer {
     this.image = new Image();
     this.image.decoding = 'async';
     this.image.src = TREASURE_WRECK_ASSET;
+    this.frozenImage = new Image();
+    this.frozenImage.decoding = 'async';
+    this.frozenImage.src = FROZEN_WRECK_ASSET;
   }
 
-  render(treasures, camera, zoom, timeMs) {
+  render(treasures, camera, zoom, timeMs, regionId = null) {
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const width = Math.max(1, Math.round(bounds.width * dpr));
@@ -21,7 +25,8 @@ export class TreasureRenderer {
 
     const ctx = this.ctx;
     ctx.clearRect(0, 0, width, height);
-    const loaded = this.image.complete && this.image.naturalWidth > 0;
+    const image = regionId === 'r4' ? this.frozenImage : this.image;
+    const loaded = image.complete && image.naturalWidth > 0;
 
     for (const wreck of treasures) {
       const x = width / 2 + (wreck.x - camera.x) * zoom * dpr;
@@ -40,10 +45,10 @@ export class TreasureRenderer {
       ctx.rotate(sway);
 
       if (loaded) {
-        const aspect = this.image.naturalWidth / this.image.naturalHeight || 1;
+        const aspect = image.naturalWidth / image.naturalHeight || 1;
         const drawH = size;
         const drawW = drawH * aspect;
-        ctx.drawImage(this.image, -drawW / 2, -drawH * .56, drawW, drawH);
+        ctx.drawImage(image, -drawW / 2, -drawH * .56, drawW, drawH);
       }
 
       ctx.restore();
