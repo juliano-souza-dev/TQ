@@ -1,3 +1,4 @@
+import { TERROR_ABYSS_HARPOON_ID, HORIZON_HARPOON_AMMO_ID } from '../combat/HarpoonCatalog.js';
 import { CANNONS, EVENTS, isItemVisible } from '../items/EquipmentCatalog.js';
 import { R3_SILAS_MISSION_ID, R3_SILAS_REWARD } from './R3SilasTrade.js';
 
@@ -70,6 +71,7 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
  description:'A Chama do Abismo rompeu o selo do oceano. A frota foge, mas o Ladrão Sombra continua à espreita. O Fantasma Esmeralda regressa para enfrentar o Capitão Varkor Tenebris. Navegue até o Terror do Mar, sobreviva ao confronto e retorne ao Porto das Missões para contar a vitória.',
  objectives:[{kind:'varkor-summon',count:1,label:'Convocar o Terror do Mar'},
  {kind:'varkor-defeat',count:1,label:'Derrotar o Terror do Mar'},
+ {kind:'varkor-wreck',count:4,label:'Resolver quatro multiplicações nos destroços do Terror do Mar'},
  {kind:'return-port',count:1,label:'Retornar ao Porto das Missões'}],
  reward:{gold:25000},
 })]);
@@ -165,9 +167,9 @@ export function getR3Board(save={}) {
   const seventh=R3_MISSIONS[6];
   const varkor=save.r3Campaign??{};
   const seventhActive=varkor.active===R3_VARKOR_MISSION_ID;
-  const seventhReady=seventhActive&&varkor.varkorSummoned&&varkor.varkorDefeated&&varkor.varkorReturned;
+  const seventhReady=seventhActive&&varkor.varkorSummoned&&varkor.varkorDefeated&&varkor.varkorWreckClaimed&&varkor.varkorReturned;
   const seventhStatus=seventhDone?'claimed':!sixthDone?'locked':seventhReady?'ready':seventhActive?'active':'available';
-  const seventhItem={...seventh,status:seventhStatus,progress:[varkor.varkorSummoned||seventhDone?1:0,varkor.varkorDefeated||seventhDone?1:0,varkor.varkorReturned||seventhDone?1:0],claimed:seventhDone,active:['active','ready'].includes(seventhStatus),ready:seventhStatus==='ready'};
+  const seventhItem={...seventh,status:seventhStatus,progress:[varkor.varkorSummoned||seventhDone?1:0,varkor.varkorDefeated||seventhDone?1:0,Math.min(4,varkor.varkorWreckAnswers??0),varkor.varkorReturned||seventhDone?1:0],claimed:seventhDone,active:['active','ready'].includes(seventhStatus),ready:seventhStatus==='ready'};
   const current=sixthDone?seventhItem:fifthDone?sixthItem:firstDone?(secondDone?(thirdDone?(fourthDone?fifthItem:fourthItem):thirdItem):secondItem):firstItem;
   return {missions:[firstItem,secondItem,thirdItem,fourthItem,fifthItem,sixthItem,seventhItem],
     essentialClaimed:claimed.filter(id=>R3_MISSIONS.some(m=>m.id===id)).length,
@@ -179,7 +181,7 @@ export function acceptR3Mission(save,id){
  if(id===R3_VARKOR_MISSION_ID){
   const state=save.r3Campaign??{};
   if(!state.claimed?.includes(R3_FLAME_MISSION_ID)||state.claimed.includes(id)||state.active)return null;
-  return {r3Campaign:{...state,active:id,varkorSummoned:false,varkorDefeated:false,varkorReturned:false}};
+  return {r3Campaign:{...state,active:id,varkorSummoned:false,varkorDefeated:false,varkorWreckAnswers:0,varkorWreckClaimed:false,varkorWreckPosition:null,varkorReturned:false}};
  }
  if(id===R3_FLAME_MISSION_ID){
   if(!save.r3Campaign?.claimed?.includes(R3_ABYSS_SECRET_MISSION_ID)||save.r3Campaign.claimed.includes(id)||save.r3Campaign.active)return null;
@@ -208,8 +210,12 @@ export function recordR3Event(save,event){
  if(save.r3Campaign?.active===R3_VARKOR_MISSION_ID){
   const state=save.r3Campaign;
   if(event.type==='varkor-summon'&&!state.varkorSummoned)return {r3Campaign:{...state,varkorSummoned:true}};
-  if(event.type==='defeat'&&event.archetype==='terror-do-mar'&&state.varkorSummoned&&!state.varkorDefeated)return {r3Campaign:{...state,varkorDefeated:true}};
-  if(event.type==='return-port'&&state.varkorDefeated&&!state.varkorReturned)return {r3Campaign:{...state,varkorReturned:true}};
+  if(event.type==='defeat'&&event.archetype==='terror-do-mar'&&state.varkorSummoned&&!state.varkorDefeated)return {r3Campaign:{...state,varkorDefeated:true,varkorWreckPosition:{x:Number(event.x)||0,y:Number(event.y)||0}}};
+  if(event.type==='varkor-wreck-math'&&state.varkorDefeated&&!state.varkorWreckClaimed){
+    const count=Math.min(4,(state.varkorWreckAnswers??0)+1);
+    return {r3Campaign:{...state,varkorWreckAnswers:count,varkorWreckClaimed:count===4}};
+  }
+  if(event.type==='return-port'&&state.varkorWreckClaimed&&!state.varkorReturned)return {r3Campaign:{...state,varkorReturned:true}};
   return null;
  }
  if(save.r3Campaign?.active===R3_FLAME_MISSION_ID){
@@ -266,7 +272,7 @@ export function recordR3Event(save,event){
 export function claimR3Mission(save,id){
  if(id===R3_VARKOR_MISSION_ID){
   const state=save.r3Campaign??{};
-  if(state.active!==id||!state.varkorSummoned||!state.varkorDefeated||!state.varkorReturned||state.claimed?.includes(id))return null;
+  if(state.active!==id||!state.varkorSummoned||!state.varkorDefeated||!state.varkorWreckClaimed||!state.varkorReturned||state.claimed?.includes(id))return null;
   return {mission:R3_MISSIONS[6],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...(state.claimed??[]),id])]},profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+25000}}};
  }
  if(id===R3_FLAME_MISSION_ID){
