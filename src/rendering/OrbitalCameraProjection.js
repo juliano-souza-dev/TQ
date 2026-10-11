@@ -99,55 +99,50 @@ export function unorbitScreenTransform(point, viewport, orbit = ORBIT_DEFAULTS) 
  * Camera position and target are expressed in existing world units.
  * This is a pinhole camera, not a post-processing CSS distortion.
  */
+export const PERSPECTIVE_FOV = Math.PI / 3;
+
+// World X is screen right and world Y is screen down at yaw zero.
+// Target is the projected viewport center, not the camera's physical position.
 export function createPerspectiveCamera({
   target = { x: 0, y: 0 },
   yaw = 0,
   pitch = Math.PI / 4,
   distance = 1200,
-  fov = Math.PI / 3,
+  fov = PERSPECTIVE_FOV,
   viewport = { width: 1280, height: 720 },
 } = {}) {
-  const p = clampOrbitPitch(pitch);
+  const p = Math.max(0.60, Math.min(1.47, Number(pitch) || Math.PI / 4));
   const d = Math.max(1, Number(distance) || 1200);
-  const focal = Math.max(1, viewport.height) / (2 * Math.tan(Math.max(0.2, Math.min(2.5, fov)) / 2));
-  const sy = Math.sin(p), cy = Math.cos(p), ca = Math.cos(yaw), sa = Math.sin(yaw);
-  const eye = {
-    x: target.x - sa * d * cy,
-    y: target.y - ca * d * cy,
-    z: d * sy,
-  };
-  const forward = { x: sa * cy, y: ca * cy, z: -sy };
-  const right = { x: ca, y: -sa, z: 0 };
-  const up = {
-    x: sa * sy,
-    y: ca * sy,
-    z: cy,
-  };
+  const focal = Math.max(1, viewport.height) /
+    (2 * Math.tan(Math.max(0.2, Math.min(2.5, fov)) / 2));
+  const sp = Math.sin(p), cp = Math.cos(p), sy = Math.sin(yaw), cy = Math.cos(yaw);
+  const eye = { x: target.x - sy * d * cp, y: target.y + cy * d * cp, z: d * sp };
+  const forward = { x: sy * cp, y: -cy * cp, z: -sp };
+  const right = { x: cy, y: sy, z: 0 };
+  const up = { x: sy * sp, y: -cy * sp, z: cp };
   const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
   function project(point) {
     const relative = {
       x: point.x - eye.x,
       y: point.y - eye.y,
-      z: (point.z || 0) - eye.z,
+      z: (Number(point.z) || 0) - eye.z,
     };
     const depth = dot(relative, forward);
     if (depth <= 0.01) return null;
-    return {
-      x: viewport.width / 2 + focal * dot(relative, right) / depth,
-      y: viewport.height / 2 - focal * dot(relative, up) / depth,
-      depth,
-      scale: focal / depth,
-    };
+    const x = viewport.width / 2 + focal * dot(relative, right) / depth;
+    const y = viewport.height / 2 - focal * dot(relative, up) / depth;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    return { x, y, depth, scale: focal / depth };
   }
   function unprojectGround(screen) {
+    const u = (screen.x - viewport.width / 2) / focal;
+    const v = (viewport.height / 2 - screen.y) / focal;
     const ray = {
-      x: forward.x + (screen.x - viewport.width / 2) / focal * right.x -
-        (screen.y - viewport.height / 2) / focal * up.x,
-      y: forward.y + (screen.x - viewport.width / 2) / focal * right.y -
-        (screen.y - viewport.height / 2) / focal * up.y,
-      z: forward.z - (screen.y - viewport.height / 2) / focal * up.z,
+      x: forward.x + u * right.x + v * up.x,
+      y: forward.y + u * right.y + v * up.y,
+      z: forward.z + u * right.z + v * up.z,
     };
-    if (ray.z >= -1e-6) return null; // Above horizon: no ground intersection.
+    if (ray.z >= -0.000001) return null;
     const t = -eye.z / ray.z;
     return { x: eye.x + ray.x * t, y: eye.y + ray.y * t };
   }
@@ -155,10 +150,49 @@ export function createPerspectiveCamera({
 }
 
 /**
- * Stable sprite-frame selection for a world-facing ship viewed from an
- * arbitrary orbital yaw. Heading degrees are clockwise from world north.
- * This deliberately changes presentation, never navigation or hitboxes.
+ * One projection contract shared by DOM hit-tests, Canvas sprites and WebGL.
+ * viewport dimensions are drawing-buffer pixels and zoom is game zoom.
+ * No physics, collisions, combat or mission coordinates are modified.
  */
+export function createViewProjection(camera, zoom, width, height, dpr = 1, orbit = null) {
+  const z = Math.max(0.01, Number(zoom) || 1);
+  const ratio = Math.max(0.1, Number(dpr) || 1);
+  const target = { x: Number(camera?.x) || 0, y: Number(camera?.y) || 0 };
+  const viewport = { width: Math.max(1, width), height: Math.max(1, height) };
+  if (!orbit?.enabled) {
+    return {
+      enabled: false,
+      project(point) {
+        return {
+          x: viewport.width / 2 + (point.x - target.x) * z * ratio,
+          y: viewport.height / 2 + (point.y - target.y) * z * ratio,
+          depth: 1, scale: z * ratio, relativeScale: 1,
+        };
+      },
+      unprojectGround(point) {
+        return {
+          x: target.x + (point.x - viewport.width / 2) / (z * ratio),
+          y: target.y + (point.y - viewport.height / 2) / (z * ratio),
+        };
+      },
+    };
+  }
+  const focal = viewport.height / (2 * Math.tan(PERSPECTIVE_FOV / 2));
+  const model = createPerspectiveCamera({
+    target, yaw: Number(orbit.yaw) || 0,
+    pitch: orbit.pitch, distance: focal / (z * ratio),
+    fov: PERSPECTIVE_FOV, viewport,
+  });
+  return {
+    ...model,
+    enabled: true,
+    project(point) {
+      const projected = model.project(point);
+      return projected ? { ...projected, relativeScale: projected.scale / (z * ratio) } : null;
+    },
+  };
+}
+
 export function cameraRelativeHeading(headingDegrees, cameraYawRadians) {
   const heading = Number(headingDegrees) || 0;
   const yawDegrees = (Number(cameraYawRadians) || 0) * 180 / Math.PI;
