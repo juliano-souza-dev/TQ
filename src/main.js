@@ -1960,6 +1960,10 @@ async function startWorld() {
         const result = campaignFor(world.region.id).claim(readSave(), id);
         if (!result) return false;
         writePatch(result.patch);
+        if(id===R3_REBUILD_MISSION_ID){
+          showOceanReward('🌅 O domínio do Terror terminou! A névoa desaparece e as Águas Escuras tornam-se claras. As águas desconhecidas aguardam além da passagem.');
+          void guideMissionTo({x:world.region.width-230,y:world.region.height-250});
+        }
         clearMissionNavigation();
         if(result.mission.reward?.shipUpgrade){
           const upgraded=readSave();
@@ -3124,8 +3128,20 @@ async function startWorld() {
       updatePursuitCamera(16);
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       firstVoyageGuide?.update();
+      if(world.region.id==='r3'){
+        const freed=readSave().r3Campaign?.claimed?.includes(R3_REBUILD_MISSION_ID);
+        if(freed&&!world.r3TerrorCleared){
+          world.region={...world.region,ocean:{...world.region.ocean,
+            brightness:115,saturation:110,contrast:93,tintR:99,tintG:123,tintB:133,
+            speed:35,swell:32,foamMix:32,sparkleIntensity:28,
+            corruption:{...world.region.ocean.corruption,active:false,zones:[]}}};
+          world.r3TerrorCleared=true;
+        }
+      }
       renderer.render(world, oceanTimeMs);
-      halloweenFogRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
+      const r3Liberated=world.region.id==='r3'&&readSave().r3Campaign?.claimed?.includes(R3_REBUILD_MISSION_ID);
+      if(halloweenFogCanvas)halloweenFogCanvas.hidden=Boolean(r3Liberated);
+      if(!r3Liberated)halloweenFogRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
       const hidePursuitTreasures = world.region.id === 'r2'
