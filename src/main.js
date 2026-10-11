@@ -1745,7 +1745,11 @@ async function startWorld() {
         const step=campaign.flameStep??0;
         missionHud.textContent='🔥 A Chama do Abismo · Destroços '+(campaign.flameWrecks??0)+'/4 · Contas '+(campaign.flameMath??0)+'/7 · Red '+(campaign.flameKills??0)+'/2';
         if(step===6)void guideMissionTo('missions');
-        else if(step===0||step===2||step===3||step===5){
+        else if(step===1||step===4){
+          const targets=[...world.entities.values()].filter(n=>n.archetype==='terror-guardian'&&n.health>0);
+          targets.sort((a,b)=>Math.hypot(a.x-world.camera.x,a.y-world.camera.y)-Math.hypot(b.x-world.camera.x,b.y-world.camera.y));
+          if(targets[0])void guideMissionTo(targets[0]);
+        }else{
           const index=step===0?0:step===2?1:step===3?2:3;
           void guideMissionTo(R3_FLAME_STOPS[index]);
         }
