@@ -1,3 +1,4 @@
+import { createViewProjection, cameraRelativeHeading } from './OrbitalCameraProjection.js';
 import { getShipFrame, getShipSpriteUrl, STARTER_SHIP } from '../ships/ShipRegistry.js';
 
 function getVisualScale(definition) {
@@ -49,7 +50,7 @@ export class ShipRenderer {
     const factor = targetSize / Math.max(frameWidth, frameHeight) / (Math.max(.001, zoom) * dpr);
     return { width: frameWidth * factor, height: frameHeight * factor };
   }
-  render(headingDegrees, shipPosition, cameraView, zoom = 1, impact = null, regionId = 'r1') {
+  render(headingDegrees, shipPosition, cameraView, zoom = 1, impact = null, regionId = 'r1', orbit = null) {
     const ctx = this.ctx;
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -59,17 +60,20 @@ export class ShipRenderer {
       this.canvas.width = w; this.canvas.height = h;
     }
     ctx.clearRect(0, 0, w, h);
-    const frame = getShipFrame(headingDegrees, this.definition);
+    const projection = createViewProjection(cameraView, zoom, w, h, dpr, orbit);
+    const screen = projection.project(shipPosition);
+    if (!screen) return;
+    const frame = getShipFrame(orbit?.enabled ? cameraRelativeHeading(headingDegrees, orbit.yaw) : headingDegrees, this.definition);
     const { columns, rows } = this.definition.sprite;
     // Use actual image dimensions: exported sheets are not necessarily 1600x1600.
     const frameWidth = this.image.naturalWidth / columns;
     const frameHeight = this.image.naturalHeight / rows;
-    const targetSize = playerShipPixelSize(w, h, dpr, zoom, this.definition);
+    const targetSize = playerShipPixelSize(w, h, dpr, zoom, this.definition) * screen.relativeScale;
     const scale = targetSize / Math.max(frameWidth, frameHeight);
     const drawW = frameWidth * scale;
     const drawH = frameHeight * scale;
-    const centerX = w / 2 + (shipPosition.x - cameraView.x) * zoom * dpr;
-    const centerY = h / 2 + (shipPosition.y - cameraView.y) * zoom * dpr;
+    const centerX = screen.x;
+    const centerY = screen.y;
     // Temporary roll/pitch from a Kraken hit; sprite heading and cannon pivots stay unchanged.
     const strength = Math.max(0, Math.min(1, Number(impact?.strength) || 0));
     const phase = Number(impact?.phase) || 0;
