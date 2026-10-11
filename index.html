@@ -5,12 +5,62 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#081a33">
   <title>Tabuada Quest</title>
+  <style>
+    #tq-boot{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 75%,#103d52 0%,#081e32 52%,#050f20 100%);color:#f3e4be;font-family:system-ui,-apple-system,sans-serif;transition:opacity .4s ease;pointer-events:auto}
+    #tq-boot.tq-ready{opacity:0;pointer-events:none}
+    .tq-boot-panel{text-align:center;padding:28px;max-width:340px;width:85%}
+    .tq-boot-ship{font-size:58px;display:block;filter:drop-shadow(0 8px 10px #0008);animation:tq-float 2.2s ease-in-out infinite}
+    .tq-boot-title{font-size:clamp(21px,5vw,30px);font-weight:850;letter-spacing:.09em;margin:20px 0 6px}
+    .tq-boot-label{font-size:14px;color:#b2d5d9;margin:10px 0 18px}
+    .tq-boot-track{height:7px;border-radius:30px;overflow:hidden;background:#29455a;border:1px solid #58788b}
+    .tq-boot-bar{width:35%;height:100%;background:linear-gradient(90deg,#d1a94f,#f6da93,#d1a94f);border-radius:30px;animation:tq-loading 1.75s ease-in-out infinite}
+    .tq-boot-help{font-size:13px;line-height:1.5;color:#f4d6a1;margin-top:18px}
+    .tq-boot-help[hidden]{display:none}
+    @keyframes tq-float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-9px) rotate(3deg)}}
+    @keyframes tq-loading{0%{transform:translateX(-105%)}100%{transform:translateX(390%)}}
+    @media(prefers-reduced-motion:reduce){.tq-boot-ship,.tq-boot-bar{animation:none}.tq-boot-bar{width:70%}}
+  </style>
 </head>
 <body>
   <main id="app" aria-label="Tabuada Quest"></main>
+  <div id="tq-boot" role="status" aria-live="polite" aria-label="Carregando Tabuada Quest">
+    <div class="tq-boot-panel">
+      <span class="tq-boot-ship" aria-hidden="true">🏴‍☠️</span>
+      <div class="tq-boot-title">TABUADA QUEST</div>
+      <p id="tq-boot-label" class="tq-boot-label">Preparando sua aventura pirata...</p>
+      <div class="tq-boot-track"><div class="tq-boot-bar"></div></div>
+      <p id="tq-boot-help" class="tq-boot-help" hidden></p>
+    </div>
+  </div>
   <script>
     // Single volatile cache version for every JS module, stylesheet and asset.
     // Do not use this timestamp for player saves or gameplay persistence.
+    const boot = document.getElementById('tq-boot');
+    const bootLabel = document.getElementById('tq-boot-label');
+    const bootHelp = document.getElementById('tq-boot-help');
+    const app = document.getElementById('app');
+    let bootFinished = false;
+    const dismissBoot = () => {
+      if (bootFinished) return;
+      bootFinished = true;
+      observer.disconnect();
+      boot.classList.add('tq-ready');
+      boot.addEventListener('transitionend', () => boot.remove(), {once:true});
+      setTimeout(() => boot.remove(), 800);
+    };
+    const checkBoot = () => {
+      if (app.querySelector('#ocean') && app.querySelector('.combat-hud')) dismissBoot();
+      else if (app.querySelector('.portal-card, .portal-stage')) dismissBoot();
+    };
+    const observer = new MutationObserver(checkBoot);
+    observer.observe(app, {childList:true,subtree:true});
+    setTimeout(() => {
+      if (!bootFinished) {
+        bootLabel.textContent = 'O mar está demorando a carregar...';
+        bootHelp.hidden = false;
+        bootHelp.textContent = 'Ainda estamos preparando o jogo. Se demorar demais, atualize a página.';
+      }
+    }, 12000);
     (async () => {
       const version = String(Date.now());
       window.__TQ_ASSET_VERSION__ = version;
@@ -27,6 +77,7 @@
 
       // Rewrite CSS url(...) assets too, so background images cannot stay stale.
       const cssUrl = new URL('./src/ui/app.css', document.baseURI);
+      bootLabel.textContent = 'Carregando visual e embarcações...';
       const response = await fetch(cssUrl.href + '?v=' + version, { cache: 'no-store' });
       if (!response.ok) throw new Error('CSS HTTP ' + response.status);
       const css = (await response.text()).replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/g, (_, quote, raw) => {
@@ -38,6 +89,7 @@
       style.textContent = css;
       document.head.append(style);
       const mainUrl = new URL('./src/main.js', document.baseURI).href;
+      bootLabel.textContent = 'Iniciando o oceano...';
       try {
         await import(imports[mainUrl]);
       } catch (firstError) {
@@ -48,7 +100,10 @@
       }
     })().catch(error => {
       console.error('Falha ao carregar Tabuada Quest', error);
-      document.getElementById('app').textContent = 'Falha ao carregar o jogo: ' + (error?.message || String(error)) + '. Atualize a página.';
+      observer.disconnect();
+      bootLabel.textContent = 'Não foi possível iniciar o jogo';
+      bootHelp.hidden = false;
+      bootHelp.textContent = (error?.message || String(error)) + '. Atualize a página para tentar novamente.';
     });
   </script>
 </body>
