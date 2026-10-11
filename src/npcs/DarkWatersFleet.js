@@ -41,7 +41,7 @@ function createRaider(config, region) {
     health: config.maxHealth,
     maxHealth: config.maxHealth,
     state: 'raiding',
-    aggression: config.role==='terror-guardian' ? 'attack' : 'flee',
+    aggression: config.role==='terror-guardian' ? 'neutral' : 'flee',
     damage: config.role==='terror-guardian' ? 12 : 0,
     range: config.role==='terror-guardian' ? 520 : 0,
     cannonSlots: config.role==='terror-guardian' ? 4 : 0,
@@ -151,6 +151,7 @@ function respawnRaider(npc, region) {
   npc.raidCooldownMs = npc.storyRegion==='r4' ? Math.max(0,(Number(npc.nextRaidAt)||0)-Date.now()) : 0;
   npc.respawnRemainingMs = null;
   npc.retaliationActive=false;
+  if(npc.archetype==='terror-guardian')npc.aggression='neutral';
   npc.lootGranted=false;
   if(npc.archetype===DARK_WATERS_RAIDER_ARCHETYPE){
     npc.aggression='flee';npc.cannonSlots=0;npc.damage=0;npc.range=0;
@@ -348,10 +349,16 @@ function updateTerrorGuardian(npc,world,deltaMs,playerAlive=true){
   const player=world.camera;
   const distance=Math.hypot(player.x-npc.x,player.y-npc.y);
   const squad=[...world.entities.values()].filter(n=>n.archetype==='terror-guardian'&&n.health>0);
-  const alerted=squad.some(n=>n.retaliationActive);
-  if(alerted){npc.retaliationActive=true;npc.aggression='attack';}
-  const protecting=Math.hypot(player.x-anchor.x,player.y-anchor.y)<820;
-  const engaged=alerted||protecting;
+  const engaged=npc.retaliationActive===true && npc.fleeUntil!==Infinity;
+  if(!engaged && npc.fleeUntil && Date.now()<npc.fleeUntil){
+    npc.state='escaping';npc.aggression='flee';
+    const dt=Math.min(64,Math.max(0,deltaMs))/1000;
+    npc.heading=turnToward(npc.heading,bearing(npc.x-player.x,npc.y-player.y),120*dt);
+    const angle=npc.heading*Math.PI/180;
+    const moved=resolveIslandMovement(world.region,npc.x,npc.y,Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(angle)*npc.baseSpeed*dt)),Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(angle)*npc.baseSpeed*dt)),34);
+    npc.x=moved.x;npc.y=moved.y;return;
+  }
+  if(!engaged)npc.aggression='neutral';
   const target=engaged?player:anchor;
   npc.state=engaged?'retaliating':'patrolling';
   const dx=target.x-npc.x,dy=target.y-npc.y;
