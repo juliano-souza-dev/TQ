@@ -210,6 +210,7 @@ export class NpcRenderer {
       const ship = npc.shipId === GREEN_GHOST_FUGITIVE_SHIP.id ? GREEN_GHOST_FUGITIVE_SHIP
         : npc.shipId === BLACK_MARKET_SHIP.id ? BLACK_MARKET_SHIP
         : npc.shipId === GOLDEN_GALLEON_SHIP.id ? GOLDEN_GALLEON_SHIP
+        : npc.shipId === NORTHERN_THIEF_SHIP.id ? NORTHERN_THIEF_SHIP
         : npc.shipId === FROST_THIEF_SHIP.id ? FROST_THIEF_SHIP
         : npc.shipId === FROZEN_LANDS_GALLEON_SHIP.id ? FROZEN_LANDS_GALLEON_SHIP
         : npc.shipId === PUMPKIN_FLEET_GALLEON_SHIP.id ? PUMPKIN_FLEET_GALLEON_SHIP
