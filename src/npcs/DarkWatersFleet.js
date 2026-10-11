@@ -9,7 +9,7 @@ export const DARK_WATERS_SPECIAL_AMMO_ID = 'terror-rose';
 export const DARK_WATERS_SPECIAL_AMMO_REWARD = 100;
 export const DARK_WATERS_RAID_GOLD_CAP = 25;
 export const DARK_WATERS_RAID_AMMO_CAP = 40;
-export const DARK_WATERS_RAIDER_RESPAWN_MS = 20000;
+export const DARK_WATERS_RAIDER_RESPAWN_MS = 120000;
 
 const MARGIN = 95;
 const normalize = angle => (angle % 360 + 360) % 360;
@@ -227,7 +227,7 @@ function updateBoss(npc, world, deltaMs, random) {
   npc.y = moved.y;
 }
 
-function updateRaider(npc, world, deltaMs, random, raids) {
+function updateRaider(npc, world, deltaMs, random, raids, playerAlive=true) {
   if(npc.escapingToR4)return;
   if(Date.now()<(npc.frozenUntil||0)){npc.state='frozen';return;}
   if (npc.health <= 0) {
@@ -236,6 +236,11 @@ function updateRaider(npc, world, deltaMs, random, raids) {
     return;
   }
 
+  if(!playerAlive && world.region.id==='r3'){
+    npc.retaliationActive=false;npc.aggression='flee';npc.state='patrolling';
+    patrolRaider(npc,world,deltaMs,random);
+    return;
+  }
   const dt = Math.min(64, Math.max(0, deltaMs)) / 1000;
   npc.raidCooldownMs = npc.storyRegion==='r4'
     ? Math.max(0,(Number(npc.nextRaidAt)||0)-Date.now())
@@ -315,11 +320,21 @@ function updateRaider(npc, world, deltaMs, random, raids) {
 }
 
 
-function updateTerrorGuardian(npc,world,deltaMs){
+function updateTerrorGuardian(npc,world,deltaMs,playerAlive=true){
   if(npc.health<=0){
     npc.respawnRemainingMs=(npc.respawnRemainingMs??DARK_WATERS_RAIDER_RESPAWN_MS)-Math.max(0,deltaMs);
     if(npc.respawnRemainingMs<=0)respawnRaider(npc,world.region);
     return;
+  }
+  if(!playerAlive){
+    npc.retaliationActive=false;npc.aggression='neutral';npc.state='patrolling';
+    const dt=Math.min(64,Math.max(0,deltaMs))/1000;
+    npc.patrolTimeMs=(npc.patrolTimeMs??0)-deltaMs;
+    if(npc.patrolTimeMs<=0){npc.patrolHeading=normalize(npc.heading+80+Math.random()*170);npc.patrolTimeMs=2500+Math.random()*3000;}
+    npc.heading=turnToward(npc.heading,npc.patrolHeading,60*dt);
+    const angle=npc.heading*Math.PI/180;
+    const moved=resolveIslandMovement(world.region,npc.x,npc.y,Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(angle)*npc.baseSpeed*dt)),Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(angle)*npc.baseSpeed*dt)),34);
+    npc.x=moved.x;npc.y=moved.y;return;
   }
   const boss=world.entities.get(world.region.terrorBoss?.id);
   const anchor=boss?.anchor??{x:3220,y:3450};
@@ -438,7 +453,7 @@ function updateMerchant(npc,world,deltaMs){
     npc.x+dx*movement,npc.y+dy*movement,55);
   npc.x=moved.x;npc.y=moved.y;npc.speed=18;
 }
-export function updateDarkWatersFleet(world, deltaMs, random = Math.random) {
+export function updateDarkWatersFleet(world, deltaMs, random = Math.random, playerAlive=true) {
   if (world.region.id !== 'r3') return [];
   const raids = [];
   const hunting=world.entities.get('r3-fantasma-esmeralda')?.leviathanHuntActive===true;
@@ -449,9 +464,9 @@ export function updateDarkWatersFleet(world, deltaMs, random = Math.random) {
     }
     if(npc.archetype==='blood-red-market-merchant')updateMerchant(npc,world,deltaMs);
     else if (npc.archetype === TERROR_DO_MAR_NPC.id) updateBoss(npc, world, deltaMs, random);
-    else if(npc.archetype==='terror-guardian')updateTerrorGuardian(npc,world,deltaMs);
+    else if(npc.archetype==='terror-guardian')updateTerrorGuardian(npc,world,deltaMs,playerAlive);
     else if (npc.archetype === DARK_WATERS_RAIDER_ARCHETYPE) {
-      updateRaider(npc, world, deltaMs, random, raids);
+      updateRaider(npc, world, deltaMs, random, raids, playerAlive);
     } else if (npc.archetype === 'emerald-ghost') {
       updateEmeraldGhost(npc, world, deltaMs, random);
     }
