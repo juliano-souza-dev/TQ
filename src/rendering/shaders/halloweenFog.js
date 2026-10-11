@@ -15,6 +15,7 @@ precision highp float;
 uniform vec2 uResolution;
 uniform vec2 uViewport;
 uniform vec2 uCamera;
+uniform vec4 uPerspective;
 uniform float uZoom;
 uniform float uTime;
 uniform float uIntensity;
@@ -48,6 +49,19 @@ void main() {
   vec2 uv = gl_FragCoord.xy / max(uResolution, vec2(1.0));
   vec2 viewPosition = (uv - 0.5) * uViewport / max(uZoom, 0.01);
   vec2 world = uCamera + vec2(viewPosition.x, -viewPosition.y);
+  if (uPerspective.w > 0.5) {
+    float yaw = uPerspective.x, pitch = clamp(uPerspective.y, 0.60, 1.47);
+    float d = max(1.0, uPerspective.z);
+    float cp = cos(pitch), sp = sin(pitch), cy = cos(yaw), sy = sin(yaw);
+    vec3 forward = vec3(sy * cp, -cy * cp, -sp);
+    vec3 right = vec3(cy, sy, 0.0);
+    vec3 up = vec3(sy * sp, -cy * sp, cp);
+    vec3 eye = vec3(uCamera + vec2(-sy,cy) * d * cp, d * sp);
+    float focal = uViewport.y / (2.0 * tan(0.5235987756));
+    vec2 screen = vec2(uv.x - 0.5, 0.5 - uv.y) * uViewport;
+    vec3 ray = forward + right * (screen.x / focal) + up * (-screen.y / focal);
+    world = eye.xy + ray.xy * (-eye.z / min(ray.z, -0.00001));
+  }
 
   // Very slow drift; irregular low-frequency fog banks with curled thin edges.
   vec2 wind = vec2(uTime * 0.017, -uTime * 0.009);
