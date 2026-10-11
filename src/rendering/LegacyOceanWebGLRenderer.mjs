@@ -16,6 +16,7 @@ precision highp float;
 uniform sampler2D uTexture;
 uniform vec2 uResolution;
 uniform vec2 uCamera;
+uniform vec4 uPerspective;
 uniform vec2 uDirection;
 uniform float uZoom;
 uniform float uTime;
@@ -69,6 +70,21 @@ float corruptionNoiseAt(vec2 world){
 void main(){
   vec2 centered=vec2(vUv.x-0.5,0.5-vUv.y);
   vec2 world=uCamera+centered*(uResolution/max(uZoom,0.001));
+  if(uPerspective.w>0.5){
+    float yaw=uPerspective.x;
+    float pitch=clamp(uPerspective.y,0.35,1.47);
+    float d=max(1.0,uPerspective.z);
+    float cp=cos(pitch),sp=sin(pitch),cy=cos(yaw),sy=sin(yaw);
+    vec3 forward=vec3(sy*cp,cy*cp,-sp);
+    vec3 right=vec3(cy,-sy,0.0);
+    vec3 up=vec3(sy*sp,cy*sp,cp);
+    vec3 eye=vec3(uCamera-vec2(sy,cy)*d*cp,d*sp);
+    float focal=uResolution.y/(2.0*tan(0.5235987756));
+    vec2 screen=vec2(centered.x,-centered.y)*uResolution;
+    vec3 ray=forward+right*(screen.x/focal)+up*(-screen.y/focal);
+    float t=-eye.z/min(ray.z,-0.00001);
+    world=eye.xy+ray.xy*t;
+  }
   float tile=max(uTileSize,64.0);
   vec2 base=world/tile;
 
@@ -328,7 +344,7 @@ export class OceanWebGLRenderer{
       gl.vertexAttribPointer(position,2,gl.FLOAT,false,0,0);
 
       for(const name of [
-        "uTexture","uResolution","uCamera","uDirection","uZoom","uTime",
+        "uTexture","uResolution","uCamera","uPerspective","uDirection","uZoom","uTime",
         "uTileSize","uSpeed","uSwell","uBrightness","uSaturation","uContrast","uTint",
         "uDistortion","uWaveFrequencyA","uWaveFrequencyB","uWaveMix",
         "uFoamMix","uSparkleIntensity","uSparkleSharpness",
@@ -464,6 +480,8 @@ export class OceanWebGLRenderer{
 
     gl.uniform2f(this.uniforms.uResolution,resolutionX,resolutionY);
     gl.uniform2f(this.uniforms.uCamera,Number(camera.x)||0,Number(camera.y)||0);
+    const perspective=this.perspective;
+    gl.uniform4f(this.uniforms.uPerspective,Number(perspective?.yaw)||0,Number(perspective?.pitch)||0.7853981634,Number(perspective?.distance)||1200,perspective?.enabled?1:0);
     gl.uniform2f(this.uniforms.uDirection,dirX,dirY);
     gl.uniform1f(this.uniforms.uZoom,Math.max(0.1,Number(zoom)||1));
     gl.uniform1f(this.uniforms.uTime,Math.max(0,Number(time)||0)/1000);
