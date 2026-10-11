@@ -1111,21 +1111,6 @@ async function startWorld() {
     },
     onVictory: npc => {
       const save = readSave();
-      // One randomized ammunition reward per sinking, across every region.
-      if(npc.type==='npc'&&npc.health<=0&&!npc.lootGranted){
-        npc.lootGranted=true;
-        const pool=['rusted-iron','violet-crystal','ocean-pearl','volcanic-lava','purple-pumpkin-orb','halloween-purple-ball','terror-rose','aetherion-seeker'];
-        const ammoId=pool[Math.floor(Math.random()*pool.length)];
-        const amount=25+Math.floor(Math.random()*76);
-        const gold=world.region.id==='r3'&&npc.archetype==='terror-guardian'?5000:0;
-        const fixed=world.region.id==='r3'&&npc.archetype==='terror-guardian'?100:0;
-        const current=readSave();
-        const ammo={...(current.ammunition??{})};
-        ammo[ammoId]=(Number(ammo[ammoId])||0)+amount;
-        if(fixed)ammo['terror-rose']=(Number(ammo['terror-rose'])||0)+fixed;
-        writePatch({ammunition:ammo,...(gold?{profile:{...(current.profile??{}),gold:(Number(current.profile?.gold)||0)+gold}}:{})});
-        showOceanReward('🎁 '+npc.name+': +'+amount+' '+ammoId+(fixed?' · +100 Rosas do Terror · +5.000 ouro':'')+'.');
-      }
       if (npc.type === 'monster') {
         const gold = monsterGoldReward();
         writePatch({ profile: { ...save.profile, gold: (Number(save.profile?.gold) || 0) + gold } });
@@ -1183,13 +1168,20 @@ async function startWorld() {
           id: npc.id + ':' + Date.now() + ':' + performance.now(),
         });
       }
-      // Independent random loot in every region; preserve mission-specific rewards.
-      if(npc.type==='npc' && npc.merchantKind!=='black-market'){
+      // One random ammunition drop per sinking; keep Red's fixed prize as well.
+      if(npc.type==='npc' && npc.health<=0 && npc.merchantKind!=='black-market' && !npc.lootGranted){
+        npc.lootGranted=true;
         const loot=rollNpcAmmoLoot();
         const patch=grantNpcAmmoLoot(readSave(),loot);
         if(patch){
           writePatch(patch);
           showOceanReward('🎁 Saque do navio: +'+loot.amount+' '+loot.name+'.');
+        }
+        if(world.region.id==='r3' && npc.archetype==='terror-guardian'){
+          const current=readSave();
+          writePatch({profile:{...(current.profile??{}),gold:(Number(current.profile?.gold)||0)+5000},
+            ammunition:{...(current.ammunition??{}),'terror-rose':(Number(current.ammunition?.['terror-rose'])||0)+100}});
+          showOceanReward('🏴‍☠️ Red afundado: +5.000 ouro e +100 Rosas do Terror.');
         }
       }
     },

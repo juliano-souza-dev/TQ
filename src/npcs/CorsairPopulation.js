@@ -58,6 +58,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
         Object.assign(npc, respawn(npc.id, position.x, position.y, random() * 360), {
           wanderTimeMs: 800 + random() * 2400,
           respawnRemainingMs: null,
+          lootGranted:false,
         });
       }
       continue;
