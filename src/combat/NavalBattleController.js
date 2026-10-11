@@ -794,6 +794,8 @@ export class NavalBattleController {
 
   resolvePlayerImpact(targetId, at, damage) {
     const target = this.getEntities().get(targetId);
+    // An already sunk target cannot produce another victory, loot roll or mission event.
+    if(!target || Number(target.health)<=0)return {kind:'water'};
     const lockedThief = this.getThiefMissionTarget();
     if (lockedThief && target?.id !== lockedThief.id) return { kind: 'water' };
     if(target?.id==='r2-morbi' && this.readSave().r2Campaign?.active!=='r2-golden-ii')return {kind:'water'};
