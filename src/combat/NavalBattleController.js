@@ -1032,7 +1032,7 @@ export class NavalBattleController {
         onImpact:({at})=>{
           const result=onImpact?onImpact({at}):this.resolveNpcImpact(npc.id,at,damage*SHIP_CANNON_DAMAGE_MULTIPLIER);
           if(result?.kind==='ship' && (ammo?.id==='frozen-explosion' || ammo?.id==='glacial-seeker')){
-            this.playerFrozenUntil=Math.max(this.playerFrozenUntil||0,Date.now()+6000);
+            this.playerFrozenUntil=Math.max(this.playerFrozenUntil||0,Date.now()+Math.max(0,Number(npc.freezeDurationMs)||6000));
             this.onFeedback('❄️ Seu navio foi congelado por '+((npc.freezeDurationMs||6000)/1000)+' segundos!');
           }
           playCannonSound(result?.kind==='ship'?'impact':'water');
@@ -1135,7 +1135,7 @@ export class NavalBattleController {
       }
 
       if(this.getRegionId()==='r4' && npc.id==='r4-sombra-do-saque' && npc.health>0){
-        if(distanceBetween(npc,player)<=1250)fireSequenceShot({npc,target:player,count:1,
+        if(npc.retaliationActive && distanceBetween(npc,player)<=1250)fireSequenceShot({npc,target:player,count:1,
           sequenceKey:npc.id+':glacial-sequence',reloadKey:npc.id+':glacial-reload',
           reloadMs:5000,damage:Math.max(1,Number(npc.damage)||20),speed:700,
           ammo:effectiveAmmo('glacial-seeker'),tracking:true});
