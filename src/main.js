@@ -1,4 +1,4 @@
-import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS } from './missions/RegionThreeCampaign.js';
+import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS } from './missions/RegionThreeCampaign.js';
 import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout, verifySilasArsenalAtLeviathan } from './missions/R3SilasTrade.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
@@ -796,6 +796,18 @@ async function startWorld() {
         'halloween-purple-ball':'Bolas Roxas','purple-pumpkin-orb':'Orbes de Abóbora Roxa',
         'ocean-pearl':'Pérolas Oceânicas','violet-crystal':'Cristais Violetas','terror-rose':'Rosas do Terror'}[id])).join(' · '));
     };
+    if(action.kind==='r3-flame-wreck'){
+      const campaign=readSave().r3Campaign??{};
+      if(world.region.id!=='r3'||campaign.active!==R3_FLAME_MISSION_ID)return false;
+      const step=campaign.flameStep??0;
+      const index=step===0?0:step===2?1:step===3?2:step===5?3:-1;
+      const wreck=R3_FLAME_STOPS[index];
+      if(!wreck||wreck.id!==action.id||Math.hypot(world.camera.x-wreck.x,world.camera.y-wreck.y)>180)return false;
+      if(!recordMissionEvent({type:'flame-math',id:wreck.id}))return false;
+      showOceanReward('🔥 Pista recuperada: '+wreck.name);
+      updateMissionHud();
+      return 'Multiplicação correta! Continue a expedição.';
+    }
     if(action.kind==='r3-abyss-fragment'){
       if(world.region.id!=='r3'||readSave().r3Campaign?.active!==R3_ABYSS_SECRET_MISSION_ID)return false;
       const wreck=R3_ABYSS_WRECKS.find(w=>w.id===action.id);
@@ -1147,6 +1159,7 @@ async function startWorld() {
         recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
       }else if(world.region.id==='r3'&&npc.archetype==='terror-guardian'){
         recordMissionEvent({type:'abyss-red-sunk',archetype:npc.archetype,id:npc.id+':'+(npc.sinkSerial??0)});
+        recordMissionEvent({type:'flame-enemy',archetype:npc.archetype,id:npc.id+':'+(npc.sinkSerial??0)});
       } else if (world.region.id === 'r3' && npc.archetype === 'terror-do-mar') {
         recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
         showOceanReward('🔥 Terror do Mar afundado! Capitão Varkor Tenebris foi derrotado.');
@@ -1728,8 +1741,19 @@ async function startWorld() {
           const next=R3_ABYSS_WRECKS.find(w=>!fragments.includes(w.id));
           if(next)void guideMissionTo(next);
         }
+      }else if(campaign.active===R3_FLAME_MISSION_ID){
+        const step=campaign.flameStep??0;
+        missionHud.textContent='🔥 A Chama do Abismo · Destroços '+(campaign.flameWrecks??0)+'/4 · Contas '+(campaign.flameMath??0)+'/7 · Red '+(campaign.flameKills??0)+'/2';
+        if(step===6)void guideMissionTo('missions');
+        else if(step===0||step===2||step===3||step===5){
+          const index=step===0?0:step===2?1:step===3?2:3;
+          void guideMissionTo(R3_FLAME_STOPS[index]);
+        }
       }else if(!campaign.claimed?.includes(R3_ABYSS_SECRET_MISSION_ID)){
         missionHud.textContent='📜 Porto das Missões · O Segredo do Coração do Abismo';
+        void guideMissionTo('missions');
+      }else if(!campaign.claimed?.includes(R3_FLAME_MISSION_ID)){
+        missionHud.textContent='📜 Porto das Missões · A Chama do Abismo';
         void guideMissionTo('missions');
       }else{
         missionHud.textContent='📜 A queda do Leviathan revelou uma pista sobre o Coração do Abismo · A saga continua';
@@ -1828,7 +1852,9 @@ async function startWorld() {
           clearMissionNavigation();
           islandPanel.refreshMissionBoard();
           updateMissionHud();
-          showOceanReward(id===R3_ABYSS_SECRET_MISSION_ID
+          showOceanReward(id===R3_FLAME_MISSION_ID
+            ? '🔥 Siga os destroços em ordem, resolva sete contas e derrote dois corsários Red.'
+            : id===R3_ABYSS_SECRET_MISSION_ID
             ? '⚔️ Afunde cinco Red e investigue três destroços, em qualquer ordem.'
             : id===R3_LEVIATHAN_MISSION_ID
             ? '🐙 Caça ao Leviathan iniciada! Siga a mão caveirinha até a criatura.'
@@ -2134,6 +2160,10 @@ async function startWorld() {
       });
     } else {
       islandPanel.open(contact.kind);
+    }
+    if(world.region.id==='r3'&&contact.kind==='missions'&&readSave().r3Campaign?.active===R3_FLAME_MISSION_ID){
+      if(recordMissionEvent({type:'return-port'}))showOceanReward('🔥 Expedição concluída! Resgate a Chama 5×.');
+      islandPanel.refreshMissionBoard();
     }
     if(world.region.id==='r3'&&contact.kind==='missions'&&readSave().r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID){
       if(recordMissionEvent({type:'return-port',id:'r3-abyss-return'}))showOceanReward('🗺️ Mapa reconstruído! Resgate a recompensa da missão.');
@@ -2799,6 +2829,16 @@ async function startWorld() {
           }
         }
       }
+      if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_FLAME_MISSION_ID&&
+        !mathGate.isOpen&&!islandPanel.isOpen){
+        const campaign=readSave().r3Campaign,step=campaign.flameStep??0;
+        const index=step===0?0:step===2?1:step===3?2:step===5?3:-1;
+        const wreck=R3_FLAME_STOPS[index];
+        if(wreck&&Math.hypot(world.camera.x-wreck.x,world.camera.y-wreck.y)<125){
+          clickNavigation.cancel();navalBattle.firing=false;
+          mathGate.open({kind:'r3-flame-wreck',id:wreck.id,title:'🔥 '+wreck.name,description:'Resolva a multiplicação para recuperar a pista.'});
+        }
+      }
       if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID&&
         !mathGate.isOpen&&!islandPanel.isOpen){
         const missing=R3_ABYSS_WRECKS.find(w=>!(readSave().r3Campaign?.abyssFragments??[]).includes(w.id)&&Math.hypot(world.camera.x-w.x,world.camera.y-w.y)<125);
@@ -2972,11 +3012,14 @@ async function startWorld() {
         && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active);
       const renderedTreasures=hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
       treasureGlowRenderer?.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs,pendingTreasureId);
+      const flameStep=readSave().r3Campaign?.flameStep??0;
+      const flameIndex=flameStep===0?0:flameStep===2?1:flameStep===3?2:flameStep===5?3:-1;
+      const visibleFlameWreck=world.region.id==='r3'&&readSave().r3Campaign?.active===R3_FLAME_MISSION_ID&&flameIndex>=0?[R3_FLAME_STOPS[flameIndex]]:[];
       const visibleMissionWrecks=world.region.id==='r3' && readSave().r3Campaign?.active==='r3-dark-waters-warning'
         ?R3_WRECKS.filter(w=>!(readSave().r3Campaign?.wreckDiaries??[]).includes(w.id))
         :world.region.id==='r3'&&readSave().r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID
           ?R3_ABYSS_WRECKS.filter(w=>!(readSave().r3Campaign?.abyssFragments??[]).includes(w.id)):[];
-      treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks],world.cameraView,world.camera.zoom,oceanTimeMs);
+      treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks,...visibleFlameWreck],world.cameraView,world.camera.zoom,oceanTimeMs);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
         selectedNpcId = null;
