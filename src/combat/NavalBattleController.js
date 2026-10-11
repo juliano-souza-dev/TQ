@@ -873,6 +873,24 @@ export class NavalBattleController {
         target.range=520;
       }
     }
+    if(this.getRegionId()==='r4' && target.archetype==='r4-ladrao-gelido'){
+      const fleet=[...this.getEntities().values()].filter(n=>n.archetype==='r4-ladrao-gelido');
+      if(target.health<=0){
+        // Sinking a raider ends this engagement for all surviving members.
+        for(const member of fleet){
+          member.retaliationActive=false;
+          member.aggression='flee';
+          if(member.health>0)member.state='escaping';
+        }
+      }else{
+        // Only direct player aggression activates retaliation. Nearby allies join.
+        for(const member of fleet){
+          if(member.health<=0 || Math.hypot(member.x-target.x,member.y-target.y)>100)continue;
+          member.retaliationActive=true;
+          member.state='retaliating';
+        }
+      }
+    }
     const actualDamage=Math.max(0,healthBefore-Math.max(0,Number(target.health)||0));
     if(actualDamage>0)this.onDamageVisual({target,damage:actualDamage,source:'player'});
     const shadowThiefJustWeakened=this.getRegionId()==='r2'
