@@ -125,8 +125,10 @@ export class NpcRenderer {
       this.frontCtx.clearRect(0,0,w,h);
     }
     const projection=createViewProjection(camera,zoom,w,h,dpr,orbit);
-    const playerScreenY=Number.isFinite(playerY)
-      ? projection.project({x:camera.x,y:playerY})?.y : null;
+    const playerX=typeof playerY==='object' ? Number(playerY?.x) : camera.x;
+    const playerWorldY=typeof playerY==='object' ? Number(playerY?.y) : playerY;
+    const playerScreenY=Number.isFinite(playerWorldY)
+      ? projection.project({x:playerX,y:playerWorldY})?.y : null;
     const baseCtx=this.ctx;
     let ctx=baseCtx;ctx.clearRect(0, 0, w, h);
     this.updateFoam(entities,now);
@@ -138,8 +140,8 @@ export class NpcRenderer {
     for (const npc of ordered) {
       const screen=projection.project(npc);
       if(!screen)continue;
-      ctx=(this.frontCtx&&Number.isFinite(playerY)
-        &&(orbit?.enabled?screen.y>(playerScreenY??h/2):npc.y>playerY))
+      ctx=(this.frontCtx&&Number.isFinite(playerWorldY)
+        &&(orbit?.enabled?screen.y>(playerScreenY??h/2):npc.y>playerWorldY))
         ?this.frontCtx:baseCtx;
       if ((npc.type !== 'npc' && npc.type !== 'monster') || npc.health <= 0 || npc.phasedOut) continue;
       if (npc.type === 'monster') {
