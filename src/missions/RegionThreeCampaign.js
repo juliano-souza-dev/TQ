@@ -47,7 +47,7 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
  objectives:[{kind:'abyss-red-sinks',count:5,label:'Afundar cinco corsários Red'},
  {kind:'abyss-wrecks',count:3,label:'Recuperar três fragmentos dos destroços'},
  {kind:'return-port',count:1,label:'Entregar o mapa no Porto das Missões'}],
- reward:{gold:100000,rubies:500,story:'Mapa do Coração do Abismo'},
+ reward:{gold:100000,story:'Mapa do Coração do Abismo'},
 })]);
 
 export function expectedR3GoldenLoadout(save, capacity) {
@@ -196,7 +196,7 @@ export function claimR3Mission(save,id){
  if(id===R3_ABYSS_SECRET_MISSION_ID){
   const state=save.r3Campaign??{};
   if(state.active!==id||!state.claimed?.includes(R3_LEVIATHAN_MISSION_ID)||(Number(state.abyssRedSinks)||0)<5||(state.abyssFragments??[]).length!==3||!state.abyssReturned||state.claimed.includes(id))return null;
-  return {mission:R3_MISSIONS[4],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...state.claimed,id])],abyssHeartMap:true},profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+100000,rubies:(Number(save.profile?.rubies)||0)+500}}};
+  return {mission:R3_MISSIONS[4],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...state.claimed,id])],abyssHeartMap:true},profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+100000}}};
  }
   if(id===R3_LEVIATHAN_MISSION_ID){
     if(save.r3Campaign?.active!==id

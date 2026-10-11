@@ -11,6 +11,7 @@ import { getVisibleTreasures, findTreasureNearPoint } from './treasures/RegionTr
 import { TreasureRenderer } from './rendering/TreasureRenderer.js';
 import { NavalBattleController } from './combat/NavalBattleController.js';
 import { effectiveAmmo } from './combat/NavalBattleRules.js';
+import { rollNpcAmmoLoot, grantNpcAmmoLoot } from './combat/NpcAmmoLoot.js';
 import { NavalCombatWebGLRenderer } from './rendering/NavalCombatWebGLRenderer.mjs';
 import { createNavalCombatHud } from './ui/NavalCombatHud.js';
 import { SEA_GLINTS, collectSeaGlint } from './events/HalloweenSeaGlints.js';
@@ -1165,6 +1166,15 @@ async function startWorld() {
           type: 'defeat', archetype: npc.archetype,
           id: npc.id + ':' + Date.now() + ':' + performance.now(),
         });
+      }
+      // Independent random loot in every region; preserve mission-specific rewards.
+      if(npc.type==='npc' && npc.merchantKind!=='black-market'){
+        const loot=rollNpcAmmoLoot();
+        const patch=grantNpcAmmoLoot(readSave(),loot);
+        if(patch){
+          writePatch(patch);
+          showOceanReward('🎁 Saque do navio: +'+loot.amount+' '+loot.name+'.');
+        }
       }
     },
   });

@@ -24,7 +24,7 @@ test('Five unique Red sink events and three unique wrecks progress independently
  assert.ok(ev({type:'return-port'}));
  assert.equal(getR3Board(save).missions[4].status,'ready');
  const claim=claimR3Mission(save,R3_ABYSS_SECRET_MISSION_ID);
- assert.equal(claim.patch.profile.gold,100010);assert.equal(claim.patch.profile.rubies,505);
+ assert.equal(claim.patch.profile.gold,100010);assert.equal(claim.patch.profile.rubies,5);
  assert.equal(claim.patch.r3Campaign.abyssHeartMap,true);
  assert.equal(claimR3Mission({...save,...claim.patch},R3_ABYSS_SECRET_MISSION_ID),null);
 });
