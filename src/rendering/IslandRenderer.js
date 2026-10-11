@@ -1,3 +1,4 @@
+import { createViewProjection } from './OrbitalCameraProjection.js';
 // Shared island renderer. Island definitions belong to the region, not this renderer.
 export class IslandRenderer {
   constructor(canvas, islands = []) {
@@ -44,7 +45,7 @@ export class IslandRenderer {
       }
     }));
   }
-  render(cameraView, zoom = 1) {
+  render(cameraView, zoom = 1, orbit = null) {
     const rect = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.max(1, Math.round(rect.width * dpr));
@@ -53,14 +54,16 @@ export class IslandRenderer {
       this.canvas.width = w; this.canvas.height = h;
     }
     this.ctx.clearRect(0, 0, w, h);
+    const projection = createViewProjection(cameraView, zoom, w, h, dpr, orbit);
     for (const island of this.islands) {
       const image = this.images.get(island.id);
       if (!image) continue;
-      const size = island.size * zoom * dpr;
-      // Preserve the original image proportions; collision footprint is independent.
+      const screen = projection.project(island);
+      if (!screen) continue;
+      const size = island.size * zoom * dpr * screen.relativeScale;
       const height = size * image.naturalHeight / image.naturalWidth;
-      const x = w / 2 + (island.x - cameraView.x) * zoom * dpr;
-      const y = h / 2 + (island.y - cameraView.y) * zoom * dpr;
+      const { x, y } = screen;
+      if (x < -size || x > w + size || y < -height || y > h + height) continue;
       this.ctx.drawImage(image, x - size / 2, y - height / 2, size, height);
     }
   }
