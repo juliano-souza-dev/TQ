@@ -244,8 +244,17 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   const distance = Math.hypot(dx, dy);
 
   let desiredHeading = npc.heading;
-  if(npc.escapeOnly || npc.archetype===DARK_WATERS_RAIDER_ARCHETYPE && (npc.retaliationActive || distance<350) || (npc.retaliationActive && npc.aggression==='flee')){
-    // Defensive fire must not turn a fleeing raider toward the player.
+  // R4 fugitive: approach to steal within 20m, then flee for a full minute.
+  // A player attack interrupts the raid and triggers defensive escape fire.
+  if(npc.storyRegion==='r4'){
+    if(npc.retaliationActive || npc.raidCooldownMs>0 || npc.stolenThisPass){
+      npc.state='escaping';
+      desiredHeading=bearing(-dx,-dy);
+    }else{
+      npc.state='raiding';
+      desiredHeading=bearing(dx,dy);
+    }
+  } else if(npc.escapeOnly || npc.archetype===DARK_WATERS_RAIDER_ARCHETYPE && (npc.retaliationActive || distance<350) || (npc.retaliationActive && npc.aggression==='flee')){
     npc.state='escaping';
     desiredHeading=bearing(-dx,-dy);
   } else if(npc.retaliationActive){
@@ -270,7 +279,9 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   npc.heading = turnToward(npc.heading, desiredHeading, 320 * dt);
   const speed = npc.baseSpeed * (npc.state === 'escaping' ? 1.15 : 1);
   const radians = npc.heading * Math.PI / 180;
-  const movement = npc.retaliationActive && npc.aggression!=='flee' ? Math.min(speed*dt,Math.max(0,distance-100)) : speed*dt;
+  const movement = npc.storyRegion==='r4' && npc.state==='raiding'
+    ? Math.min(speed*dt,Math.max(0,distance-12))
+    : npc.retaliationActive && npc.aggression!=='flee' ? Math.min(speed*dt,Math.max(0,distance-100)) : speed*dt;
   const nx = Math.max(MARGIN, Math.min(world.region.width - MARGIN, npc.x + Math.sin(radians) * movement));
   const ny = Math.max(MARGIN, Math.min(world.region.height - MARGIN, npc.y - Math.cos(radians) * movement));
   const moved = resolveIslandMovement(world.region, npc.x, npc.y, nx, ny, 32);
@@ -286,13 +297,15 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   if (!npc.retaliationActive && !npc.stolenThisPass && npc.raidCooldownMs <= 0
       && Math.hypot(player.x - npc.x, player.y - npc.y) <= npc.raidRadius) {
     npc.stolenThisPass = true;
-    npc.raidCooldownMs = 18000;
+    npc.raidCooldownMs = npc.storyRegion==='r4' ? 60000 : 18000;
     raids.push(npc);
   }
 
+  if(npc.storyRegion==='r4' && npc.raidCooldownMs<=0 && !npc.retaliationActive)npc.stolenThisPass=false;
+
   const edge = npc.x <= MARGIN + 4 || npc.x >= world.region.width - MARGIN - 4
     || npc.y <= MARGIN + 4 || npc.y >= world.region.height - MARGIN - 4;
-  if (edge && npc.stolenThisPass) {
+  if (edge && npc.stolenThisPass && npc.storyRegion!=='r4') {
     npc.stolenThisPass=false;
     npc.heading = normalize(npc.heading + 180);
   }
@@ -456,7 +469,10 @@ export function createFrozenLandsFugitive(world) {
   npc.storyRegion='r4';
   npc.escapeOnly=true;
   npc.aggression='flee';
-  npc.retaliationActive=true;
+  npc.retaliationActive=false;
+  npc.raidRadius=20;
+  npc.raidCooldownMs=0;
+  npc.stolenThisPass=false;
   npc.range=1250;
   npc.damage=20;
   npc.cannonSlots=0;
