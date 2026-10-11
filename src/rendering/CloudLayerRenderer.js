@@ -1,3 +1,4 @@
+import { createViewProjection } from './OrbitalCameraProjection.js';
 // Nuvens próprias da Costa dos Corsários: camada leve sobre a água, sem neblina.
 export class CloudLayerRenderer {
   constructor(canvas) {
@@ -10,7 +11,7 @@ export class CloudLayerRenderer {
       phase:i*.73,
     }));
   }
-  render(camera,zoom,timeMs) {
+  render(camera,zoom,timeMs,orbit=null) {
     if(!camera||!this.ctx)return;
     const bounds=this.canvas.getBoundingClientRect();
     if(!bounds.width||!bounds.height)return;
@@ -25,11 +26,17 @@ export class CloudLayerRenderer {
     const t=timeMs/1000;
     // Nuvens em camada atmosférica: parallax discreto, independente do arrasto do mar.
     const parallax=0.07;
+    const projection=createViewProjection(camera,zoom,width,height,scale,orbit);
     for(const cloud of this.clouds) {
       // Oscilação limitada: nunca atravessa o mapa inteiro com o passar do tempo.
-      const x=width/2+(cloud.x-camera.x*parallax+Math.sin(t*.09+cloud.phase)*65)*zoom*scale;
-      const y=height/2+(cloud.y-camera.y*parallax+Math.cos(t*.045+cloud.phase)*15)*zoom*scale;
-      const r=cloud.radius*zoom*scale;
+      const screen=projection.project({
+        x:cloud.x+camera.x*(1-parallax)+Math.sin(t*.09+cloud.phase)*65,
+        y:cloud.y+camera.y*(1-parallax)+Math.cos(t*.045+cloud.phase)*15,
+        z:orbit?.enabled?80:0,
+      });
+      if(!screen)continue;
+      const {x,y}=screen;
+      const r=cloud.radius*zoom*scale*screen.relativeScale;
       if(x+r*1.6<0||x-r*1.6>width||y+r<0||y-r>height)continue;
       ctx.save();
       ctx.translate(x,y);
