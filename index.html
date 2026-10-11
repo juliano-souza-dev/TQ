@@ -40,7 +40,7 @@
       await import(imports[new URL('./src/main.js', document.baseURI).href]);
     })().catch(error => {
       console.error('Falha ao carregar Tabuada Quest', error);
-      document.getElementById('app').textContent = 'Falha ao carregar o jogo. Atualize a página.';
+      document.getElementById('app').textContent = 'Falha ao carregar o jogo: ' + (error?.message || String(error)) + '. Atualize a página.';
     });
   </script>
 </body>
