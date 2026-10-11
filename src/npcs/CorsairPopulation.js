@@ -113,8 +113,9 @@ export function createCorsairPopulation(world, random = Math.random) {
 export function updateCorsairPopulation(world, deltaMs, random = Math.random, onFire = () => {}) {
   if (world.region.id === 'r3') {
     const raids = updateDarkWatersFleet(world, deltaMs, random);
-    // R3 only: keep navigable NPC hulls at least 100 world units from the player.
-    // Respect islands and map limits rather than teleporting through obstacles.
+    // R3: maintain a 100-unit hull clearance from the actual player ship.
+    // Check the final positions after NPC-to-NPC collision resolution.
+    resolveNpcCollisions(world);
     const player=world.camera;
     for(const npc of world.entities.values()){
       if(npc.type!=='npc'||npc.health<=0||npc.phasedOut)continue;
@@ -122,14 +123,15 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
       const gap=Math.hypot(dx,dy);
       if(gap>=100)continue;
       const angle=gap>0.001?Math.atan2(dy,dx):((npc.heading??0)-90)*Math.PI/180;
-      const targetX=Math.max(MARGIN,Math.min(world.region.width-MARGIN,player.x+Math.cos(angle)*100));
-      const targetY=Math.max(MARGIN,Math.min(world.region.height-MARGIN,player.y+Math.sin(angle)*100));
+      const ux=Math.cos(angle),uy=Math.sin(angle);
+      // Project to the safe circle; use collision-aware movement, no island clipping.
+      const targetX=Math.max(MARGIN,Math.min(world.region.width-MARGIN,player.x+ux*100));
+      const targetY=Math.max(MARGIN,Math.min(world.region.height-MARGIN,player.y+uy*100));
       const moved=resolveIslandMovement(world.region,npc.x,npc.y,targetX,targetY,38);
       if(Math.hypot(moved.x-player.x,moved.y-player.y)>gap){
         npc.x=moved.x;npc.y=moved.y;
       }
     }
-    resolveNpcCollisions(world);
     return raids;
   }
 
