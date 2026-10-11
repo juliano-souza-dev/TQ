@@ -47,7 +47,7 @@ export function createMonsterPopulation(world, random = Math.random, save = {}) 
     const id = region.id + '-kraken-' + String(i + 1).padStart(2, '0');
     world.entities.set(id, {
       id, name: 'Kraken das Profundezas', type: 'monster', archetype: 'sea-monster-kraken',
-      x, y, heading: 0, health: 1650, maxHealth: 1650,
+      x, y, heading: 0, health: 150, maxHealth: 150,
       state: 'idle', respawnRemainingMs: null, animationTimeMs: random() * 2000,
     });
   }
