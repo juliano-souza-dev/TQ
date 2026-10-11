@@ -51,25 +51,12 @@
       boot.addEventListener('transitionend', () => boot.remove(), {once:true});
       setTimeout(() => boot.remove(), 800);
     };
-    let readyCheckPending = false;
+    // The world signals readiness only after the first actual ocean render.
+    window.addEventListener('tq:world-first-frame', () => {
+      requestAnimationFrame(() => requestAnimationFrame(dismissBoot));
+    });
     const checkBoot = () => {
-      if (bootFinished || readyCheckPending) return;
-      const portal = app.querySelector('.portal-card, .portal-stage');
-      if (portal) { dismissBoot(); return; }
-      const ocean = app.querySelector('canvas#ocean');
-      if (!ocean || !app.querySelector('.combat-hud')) return;
-      readyCheckPending = true;
-      // A mounted HUD is not proof that the ocean has rendered. Wait for
-      // canvas dimensions and multiple frames before revealing the game.
-      const verify = () => {
-        readyCheckPending = false;
-        if (bootFinished || !ocean.isConnected) return;
-        if (ocean.width < 2 || ocean.height < 2 || !app.querySelector('.combat-hud')) return;
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          if (!bootFinished && ocean.isConnected && ocean.width > 1 && ocean.height > 1) dismissBoot();
-        }));
-      };
-      setTimeout(verify, 450);
+      if (app.querySelector('.portal-card, .portal-stage')) dismissBoot();
     };
     const observer = new MutationObserver(checkBoot);
     observer.observe(app, {childList:true,subtree:true});
