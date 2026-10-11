@@ -39,7 +39,7 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
 }),Object.freeze({
   id:R3_SILAS_MISSION_ID,
   name:'O Pacto de Silas Rubro',
-  description:'Navegue até Silas Rubro, o Mercador do Breu. Resolva a multiplicação e confirme a troca: entregue todo seu estoque de canhões, munições, arpões, lançadores e consumíveis em troca de um arsenal especial. Ouro, rubis, navios e outros itens não fazem parte da negociação.',
+  description:'Navegue até Silas Rubro, o Mercador do Breu. Resolva a multiplicação e confirme a troca: entregue todo seu estoque de canhões, munições, arpões, lançadores e consumíveis em troca de um arsenal especial. Ouro, navios e outros itens não fazem parte da negociação.',
   objectives:[{kind:'silas-trade',count:1,label:'Encontrar Silas Rubro e confirmar a troca de todo o arsenal'}],
   reward:{cannons:R3_SILAS_REWARD.cannons,ammo:R3_SILAS_REWARD.ammunition,
     harpoonAmmo:R3_SILAS_REWARD.harpoonAmmo,harpoonLaunchers:R3_SILAS_REWARD.harpoonLaunchers},
