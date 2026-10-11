@@ -78,7 +78,10 @@ export function createCorsairPopulation(world, random = Math.random) {
     for (let i = 0; i < 9; i++) {
       const id = 'r4-ladrao-gelido-' + String(i + 1).padStart(2, '0');
       if (world.entities.has(id)) continue;
-      const point = spawnPosition(world.region, world.camera, random);
+      const leader = [...world.entities.values()].find(n=>n.archetype==='r4-ladrao-gelido');
+      const candidate = leader ? {x:leader.x+((i%3)-1)*36,y:leader.y+(Math.floor(i/3)-1)*36} : null;
+      const point = candidate && !collidesWithIsland(world.region,candidate.x,candidate.y,38)
+        ? candidate : spawnPosition(world.region, world.camera, random);
       world.entities.set(id, {
         id, type:'npc', archetype:'r4-ladrao-gelido', fleetId:'r4-frota-ladrao-gelido',
         name:'Ladrão das Terras Gélidas', shipId:FROZEN_LANDS_GALLEON_SHIP.id,
