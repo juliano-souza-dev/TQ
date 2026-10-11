@@ -204,7 +204,7 @@ async function startWorld() {
   {
     const snapshot=localSaves.load(currentUser.uid)?.payload??{};
     const campaign=snapshot.r3Campaign??{};
-    const flag='r3BeforeRebirthHardResetV3';
+    const flag='r3BeforeRebirthHardResetV4';
     const reachedRebirth=(campaign.claimed??[]).includes(R3_VARKOR_MISSION_ID)
       || (campaign.claimed??[]).includes(R3_REBUILD_MISSION_ID)
       || (campaign.claimed??[]).includes(R3_CLEANUP_MISSION_ID)
@@ -2530,6 +2530,14 @@ async function startWorld() {
     writePatch({ playerPosition: { x: world.camera.x, y: world.camera.y } });
   }
   let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
+  const originalR3Ocean=world.region.id==='r3'?{...world.region.ocean}:null;
+  let r3Purification=0;
+  if(originalR3Ocean){
+    const progress=readSave().r3Campaign??{};
+    r3Purification=(progress.claimed??[]).includes(R3_CLEANUP_MISSION_ID)?1:
+      progress.active===R3_CLEANUP_MISSION_ID
+        ? Math.min(1,0.2+0.8*(progress.cleanupSunkIds??[]).length/3):0;
+  }
   let oceanTimeMs = 0;
   let blackMarketMerchantOrbitAngle = 0;
   let leviathanArrivalArsenalChecked = false;
@@ -3203,20 +3211,29 @@ async function startWorld() {
       updatePursuitCamera(16);
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       firstVoyageGuide?.update();
-      if(world.region.id==='r3'){
-        const freed=readSave().r3Campaign?.claimed?.includes(R3_REBUILD_MISSION_ID);
-        if(freed&&!world.r3TerrorCleared){
-          world.region={...world.region,ocean:{...world.region.ocean,
-            brightness:115,saturation:110,contrast:93,tintR:99,tintG:123,tintB:133,
-            speed:35,swell:32,foamMix:32,sparkleIntensity:28,
-            corruption:{...world.region.ocean.corruption,active:false,zones:[]}}};
-          world.r3TerrorCleared=true;
-        }
+      if(originalR3Ocean){
+        const progress=readSave().r3Campaign??{};
+        const kills=(progress.cleanupSunkIds??[]).length;
+        const target=(progress.claimed??[]).includes(R3_CLEANUP_MISSION_ID)?1:
+          progress.active===R3_CLEANUP_MISSION_ID?Math.min(1,0.2+0.8*kills/3):0;
+        r3Purification+=Math.sign(target-r3Purification)*Math.min(Math.abs(target-r3Purification),1/360);
+        const blend=(key,to)=>Math.round((Number(originalR3Ocean[key])||0)*(1-r3Purification)+to*r3Purification);
+        world.region={...world.region,ocean:{...originalR3Ocean,
+          brightness:blend('brightness',115),saturation:blend('saturation',110),
+          contrast:blend('contrast',93),tintR:blend('tintR',99),
+          tintG:blend('tintG',123),tintB:blend('tintB',133),
+          speed:blend('speed',35),swell:blend('swell',32),
+          foamMix:blend('foamMix',32),sparkleIntensity:blend('sparkleIntensity',28),
+          corruption:{...originalR3Ocean.corruption,active:r3Purification<0.999,
+            zones:r3Purification>=0.999?[]:originalR3Ocean.corruption?.zones??[]}}};
       }
       renderer.render(world, oceanTimeMs);
-      const r3Liberated=world.region.id==='r3'&&readSave().r3Campaign?.claimed?.includes(R3_REBUILD_MISSION_ID);
-      if(halloweenFogCanvas)halloweenFogCanvas.hidden=Boolean(r3Liberated);
-      if(!r3Liberated)halloweenFogRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
+      if(halloweenFogCanvas){
+        halloweenFogCanvas.hidden=world.region.id!=='r3'||r3Purification>=0.999;
+        halloweenFogCanvas.style.opacity=String(Math.max(0,1-r3Purification));
+      }
+      if(world.region.id==='r3'&&r3Purification<0.999)
+        halloweenFogRenderer?.render(world.cameraView,world.camera.zoom,oceanTimeMs);
       cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
       islandRenderer.render(world.cameraView, world.camera.zoom);
       const hidePursuitTreasures = world.region.id === 'r2'
