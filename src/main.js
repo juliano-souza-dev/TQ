@@ -789,10 +789,10 @@ async function startWorld() {
   function disperseR4Raiders(){
     if(world.region.id!=='r4')return;
     for(const npc of world.entities.values()){
-      if(npc.archetype!=='r4-ladrao-gelido'&&npc.id!=='r4-sombra-do-saque')continue;
+      if(!['r4-ladrao-gelido','vigia-da-geada'].includes(npc.archetype)&&npc.id!=='r4-sombra-do-saque')continue;
       npc.retaliationActive=false;
-      npc.aggression='flee';
-      npc.state='escaping';
+      npc.aggression=npc.archetype==='vigia-da-geada'?'neutral':'flee';
+      npc.state=npc.archetype==='vigia-da-geada'?'patrolling':'escaping';
       npc.wanderTimeMs=0;
     }
   }
