@@ -222,7 +222,11 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   const distance = Math.hypot(dx, dy);
 
   let desiredHeading = npc.heading;
-  if(npc.retaliationActive){
+  if(npc.retaliationActive && npc.aggression==='flee'){
+    // Defensive fire must not turn a fleeing raider toward the player.
+    npc.state='escaping';
+    desiredHeading=bearing(-dx,-dy);
+  } else if(npc.retaliationActive){
     npc.state='retaliating';
     desiredHeading=bearing(dx,dy);
   } else if (!npc.leviathanHuntLock && !npc.stolenThisPass && distance <= npc.detectionRange) {
@@ -244,7 +248,7 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   npc.heading = turnToward(npc.heading, desiredHeading, 320 * dt);
   const speed = npc.baseSpeed * (npc.state === 'escaping' ? 1.15 : 1);
   const radians = npc.heading * Math.PI / 180;
-  const movement = npc.retaliationActive ? Math.min(speed*dt,Math.max(0,distance-100)) : speed*dt;
+  const movement = npc.retaliationActive && npc.aggression!=='flee' ? Math.min(speed*dt,Math.max(0,distance-100)) : speed*dt;
   const nx = Math.max(MARGIN, Math.min(world.region.width - MARGIN, npc.x + Math.sin(radians) * movement));
   const ny = Math.max(MARGIN, Math.min(world.region.height - MARGIN, npc.y - Math.cos(radians) * movement));
   const moved = resolveIslandMovement(world.region, npc.x, npc.y, nx, ny, 32);
