@@ -31,10 +31,17 @@ export const FROZEN_LANDS_GALLEON_SHIP = Object.freeze({
   speed:Object.freeze({min:250,initial:250,max:310}),
   playable:false,npcEnabled:true,shopEnabled:false,rewardEnabled:false,
   sprite:Object.freeze({
-    path:'../../assets/ships/corsario_geada_negra.webp',
+    path:'../../assets/ships/terras_gelidas_1600x1600_400x400.webp',
     frameWidth:400,frameHeight:400,columns:4,rows:4,frameCount:16,
     angleStepDegrees:22.5,headingZero:'north',clockwise:true,
     framesByHeading:Object.freeze([4,5,6,7,8,9,10,11,12,13,14,15,0,1,2,3]),
     cannonMuzzles:muzzles,
   }),
+});
+
+// Independent R4 raider visual: preserve its original Geada Negra atlas.
+export const FROST_THIEF_SHIP=Object.freeze({
+  ...FROZEN_LANDS_GALLEON_SHIP,id:'ladrao-da-geada',name:'Ladrão da Geada',
+  cannonSlots:4,cannonLayout:Object.freeze({port:4,starboard:4,bow:0,stern:0}),
+  sprite:Object.freeze({...FROZEN_LANDS_GALLEON_SHIP.sprite,path:'../../assets/ships/corsario_geada_negra.webp'}),
 });
