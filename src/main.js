@@ -163,7 +163,7 @@ async function startWorld() {
   canvas.setAttribute('aria-label', 'Oceano da Região 1');
   root.replaceChildren(canvas);
   beginOceanAmbience();
-  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact, collidesWithIsland, resolveIslandMovement }, { getShipSpeed }, { STARTER_SHIP }, { NpcRenderer }, { createCorsairPopulation, updateCorsairPopulation }, { findNpcAtPoint }] = await Promise.all([
+  const [{ createWorldState }, { OceanRenderer }, { createAnalogJoystick }, { ShipRenderer }, { IslandRenderer }, { advanceNavigation, advanceTowardDestination }, { createClickNavigation }, { createKeyboardCameraInput }, { updateCamera }, { createMinimap }, { createIslandPanel }, { getIslandContact, collidesWithIsland, resolveIslandMovement }, { getShipSpeed }, { STARTER_SHIP }, { NpcRenderer }, { createCorsairPopulation, updateCorsairPopulation }, { findNpcAtPoint, findNpcAtProjectedScreen }] = await Promise.all([
     import('./world/WorldState.js'), import('./rendering/OceanRenderer.js'),
     import('./ui/AnalogJoystick.js'), import('./rendering/ShipRenderer.js'),
     import('./rendering/IslandRenderer.js'),
@@ -1323,8 +1323,11 @@ async function startWorld() {
     });
   };
 
-  clickNavigation = createClickNavigation(canvas, world, point => {
-    const npc = findNpcAtPoint(world.entities, point.x, point.y);
+  clickNavigation = createClickNavigation(canvas, world, (point,pointer) => {
+    const npc = findNpcAtProjectedScreen(
+      world.entities,pointer?.screen,world.cameraView,world.camera.zoom,
+      pointer?.viewport,world.cameraPerspective
+    ) ?? findNpcAtPoint(world.entities, point.x, point.y);
     if (npc) {
       if(world.region.id==='r3' && readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
         && npc.id!==R3_LEVIATHAN_ENTITY_ID)return true;
