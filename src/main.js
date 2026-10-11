@@ -2576,6 +2576,16 @@ async function startWorld() {
             showOceanReward('🐙 Leviathan avistado! O Fantasma Esmeralda vem ajudar: 250 de dano a cada 2 segundos!');
         }
       }
+      if(world.region.id==='r4'&&readSave().r4Campaign?.active==='r4-building-strength'&&!readSave().r4Campaign?.packagePurchased){
+        const red=world.entities.get('r4-mercador-red');
+        if(red){
+          const distance=Math.hypot(world.camera.x-red.x,world.camera.y-red.y);
+          if(distance>red.interactionRadius+55)marketDismissedNearby=false;
+          if(distance<=red.interactionRadius&&!marketDismissedNearby&&!mathGate.isOpen&&marketOverlay.hidden&&!islandPanel.isOpen){
+            clickNavigation.cancel();navalBattle.firing=false;showR4RedTrade();
+          }
+        }
+      }
       if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_SILAS_MISSION_ID
         &&!readSave().r3Campaign?.silasTradeCompleted){
         const silas=world.entities.get('r3-mercador-do-breu');
