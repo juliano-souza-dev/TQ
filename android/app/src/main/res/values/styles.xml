@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TabuadaQuest" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">#081A33</item>
+        <item name="android:colorAccent">#D8B96E</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>
