@@ -3183,7 +3183,7 @@ async function startWorld() {
         updateCamera(world, canvas.clientWidth, canvas.clientHeight);
         return;
       }
-      const input = joystick.getVector();
+      const input = Date.now()<(navalBattle?.playerFrozenUntil||0) ? {x:0,y:0} : joystick.getVector();
       if (Math.hypot(input.x, input.y) > 0.12) {
         clickNavigation.cancel();
         heading = (Math.atan2(input.x, -input.y) * 180 / Math.PI + 360) % 360;
@@ -3194,7 +3194,7 @@ async function startWorld() {
         checkDockContact(fromX, fromY, input.x, input.y, stepMs);
       } else {
         const destination = clickNavigation.getDestination();
-        if (destination) {
+        if (destination && Date.now()>=(navalBattle?.playerFrozenUntil||0)) {
           const fromX = world.camera.x, fromY = world.camera.y;
           const dx = destination.x - fromX, dy = destination.y - fromY;
           const distance = Math.hypot(dx, dy);
