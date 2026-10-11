@@ -1098,10 +1098,21 @@ export class NavalBattleController {
       const npcRange = npc.retaliationActive ? Math.max(520,Number(npc.range)||0) : Math.max(1, Number(npc.range) || 340);
       if (distanceBetween(npc, player) > npcRange) continue;
 
+      if(this.getRegionId()==='r4' && npc.archetype==='vigia-da-geada'){
+        const seeker=effectiveAmmo('aetherion-seeker');
+        const specialCannon=CANNONS.find(c=>c.id==='aetherion-mk1');
+        const playerSeekerDamage=specialCannon?shotDamage(specialCannon,'aetherion-seeker'):10;
+        if(seeker)fireSequenceShot({
+          npc,target:player,count:1,
+          sequenceKey:npc.id+':seeker-sequence',reloadKey:npc.id+':seeker-reload',
+          reloadMs:5000,damage:playerSeekerDamage*2,speed:700,
+          ammo:seeker,tracking:true,
+        });
+      }
       if(this.getRegionId()==='r4' && npc.specialCannonCount===1){
         fireSequenceShot({npc,target:player,count:1,
           sequenceKey:npc.id+':ice-sequence',reloadKey:npc.id+':ice-reload',
-          reloadMs:6000,damage:Math.max(1,Number(npc.damage)||5),speed:440,
+          reloadMs:30000,damage:Math.max(1,Number(npc.damage)||5),speed:440,
           ammo:effectiveAmmo('frozen-explosion'),
         });
       }
