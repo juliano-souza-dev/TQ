@@ -70,9 +70,10 @@ float corruptionNoiseAt(vec2 world){
 void main(){
   vec2 centered=vec2(vUv.x-0.5,0.5-vUv.y);
   vec2 world=uCamera+centered*(uResolution/max(uZoom,0.001));
+  float perspectiveDistance=0.0;
   if(uPerspective.w>0.5){
     float yaw=uPerspective.x;
-    float pitch=clamp(uPerspective.y,0.60,1.47);
+    float pitch=clamp(uPerspective.y,0.35,1.47);
     float d=max(1.0,uPerspective.z);
     float cp=cos(pitch),sp=sin(pitch),cy=cos(yaw),sy=sin(yaw);
     vec3 forward=vec3(sy*cp,-cy*cp,-sp);
@@ -82,8 +83,17 @@ void main(){
     float focal=uResolution.y/(2.0*tan(0.5235987756));
     vec2 screen=centered*uResolution;
     vec3 ray=forward+right*(screen.x/focal)+up*(-screen.y/focal);
-    // Pitch and field of view keep the screen below the sea horizon.
-    float t=-eye.z/min(ray.z,-0.00001);
+    if(ray.z>=-0.00001){
+      // A real horizon: rays looking above the water sample the sky, not
+      // arbitrarily distant ocean UVs.
+      float altitude=clamp((ray.z+0.02)*1.7,0.0,1.0);
+      vec3 haze=vec3(0.32,0.56,0.68)*uTint;
+      vec3 zenith=vec3(0.095,0.21,0.36)*uTint;
+      outColor=vec4(mix(haze,zenith,smoothstep(0.0,1.0,altitude)),1.0);
+      return;
+    }
+    float t=-eye.z/ray.z;
+    perspectiveDistance=t;
     world=eye.xy+ray.xy*t;
   }
   float tile=max(uTileSize,64.0);
@@ -165,6 +175,10 @@ void main(){
     color=mix(color,poisoned,corruption*0.82);
   }
 
+  if(uPerspective.w>0.5){
+    float distant=smoothstep(1800.0,11000.0,perspectiveDistance);
+    color=mix(color,vec3(0.32,0.56,0.68)*uTint,distant*0.52);
+  }
   outColor=vec4(clamp(color,0.0,1.0),1.0);
 }
 `;
