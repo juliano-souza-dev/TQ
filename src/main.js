@@ -200,27 +200,20 @@ async function startWorld() {
     }
   }
 
-  // Corrige saves que já iniciaram a limpeza sem receber a bateria e as munições.
+  // Reset unico antes do Renascimento, sem tocar nas missoes anteriores.
   {
     const snapshot=localSaves.load(currentUser.uid)?.payload??{};
-    const flag='r3CleanupArsenalFixV1';
-    if(snapshot.r3Campaign?.active===R3_CLEANUP_MISSION_ID&&!snapshot.devFlags?.[flag]){
-      const equipment=snapshot.equipment??{};
-      const counts={...(equipment.cannonCounts??{})};
-      counts['aetherion-mk1']=Math.max(2,Number(counts['aetherion-mk1'])||0);
-      counts['pumpkin-terror']=Math.max(5,Number(counts['pumpkin-terror'])||0);
-      const loadout={...(equipment.loadout??{})};
-      const capacity=7+(snapshot.shipUpgrades?.masterShipwright?5:0);
-      const old=Array.isArray(loadout['terror-do-mar'])?loadout['terror-do-mar']:[];
-      loadout['terror-do-mar']=['aetherion-mk1','aetherion-mk1',
-        'pumpkin-terror','pumpkin-terror','pumpkin-terror','pumpkin-terror','pumpkin-terror',
-        ...old.slice(7,capacity)];
-      const ammo=snapshot.ammunition??{};
+    const campaign=snapshot.r3Campaign??{};
+    const flag='r3BeforeRebirthResetV2';
+    if(campaign.claimed?.includes(R3_VARKOR_MISSION_ID)
+      && !campaign.claimed?.includes(R3_CLEANUP_MISSION_ID)
+      && (Number(snapshot.progression?.unlockedRegion)||1)<4
+      && !snapshot.devFlags?.[flag]){
       localSaves.save(currentUser.uid,{...snapshot,
-        equipment:{...equipment,cannonCounts:counts,loadout,
-          ownedCannonIds:[...new Set([...(equipment.ownedCannonIds??[]),'aetherion-mk1','pumpkin-terror'])]},
-        ammunition:{...ammo,'aetherion-seeker':(Number(ammo['aetherion-seeker'])||0)+10000,
-          'rusted-iron':(Number(ammo['rusted-iron'])||0)+2000},
+        r3Campaign:{...campaign,active:null,
+          claimed:(campaign.claimed??[]).filter(id=>id!==R3_REBUILD_MISSION_ID&&id!==R3_CLEANUP_MISSION_ID),
+          emeraldSpoken:false,emeraldWreckCollected:false,emeraldDeparted:false,
+          cleanupSunkIds:[],cleanupReturned:false},
         devFlags:{...(snapshot.devFlags??{}),[flag]:true}});
     }
   }
