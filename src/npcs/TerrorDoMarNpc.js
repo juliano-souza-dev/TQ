@@ -38,6 +38,6 @@ export function createTerrorDoMar({
     range: TERROR_DO_MAR_NPC.range,
     cannonSlots: TERROR_DO_MAR_NPC.cannonSlots,
     state: 'retaliating',
-    speed: TERROR_DO_MAR_SHIP.speed.initial,
+    speed: 70, // Velocidade do chefe NPC, independente do navio do jogador.
   };
 }
