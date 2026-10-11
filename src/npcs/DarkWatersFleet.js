@@ -148,7 +148,7 @@ function respawnRaider(npc, region) {
   npc.state = 'raiding';
   npc.speed = npc.baseSpeed;
   npc.stolenThisPass = false;
-  npc.raidCooldownMs = 0;
+  npc.raidCooldownMs = npc.storyRegion==='r4' ? Math.max(0,(Number(npc.nextRaidAt)||0)-Date.now()) : 0;
   npc.respawnRemainingMs = null;
   npc.retaliationActive=false;
   npc.lootGranted=false;
@@ -237,7 +237,9 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   }
 
   const dt = Math.min(64, Math.max(0, deltaMs)) / 1000;
-  npc.raidCooldownMs = Math.max(0, (npc.raidCooldownMs ?? 0) - deltaMs);
+  npc.raidCooldownMs = npc.storyRegion==='r4'
+    ? Math.max(0,(Number(npc.nextRaidAt)||0)-Date.now())
+    : Math.max(0,(npc.raidCooldownMs ?? 0) - deltaMs);
   const player = world.camera;
   const dx = player.x - npc.x;
   const dy = player.y - npc.y;
@@ -298,6 +300,7 @@ function updateRaider(npc, world, deltaMs, random, raids) {
       && Math.hypot(player.x - npc.x, player.y - npc.y) <= npc.raidRadius) {
     npc.stolenThisPass = true;
     npc.raidCooldownMs = npc.storyRegion==='r4' ? 60000 : 18000;
+    if(npc.storyRegion==='r4')npc.nextRaidAt=Date.now()+60000;
     raids.push(npc);
   }
 
