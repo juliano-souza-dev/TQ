@@ -3005,7 +3005,7 @@ async function startWorld() {
           fugitive.nextRaidAt=Math.max(Number(fugitive.nextRaidAt)||0,savedExpiry);
         }
       }
-      const darkWaterRaids = updateCorsairPopulation(world, stepMs);
+      const darkWaterRaids = updateCorsairPopulation(world, stepMs, Math.random, () => {}, (navalBattle?.getHealth?.()??1)>0);
       for (const raider of darkWaterRaids ?? []) {
         if(world.region.id==='r4' && raider.id==='r4-sombra-do-saque'){
           writePatch({r4RaidCooldownUntil:Number(raider.nextRaidAt)||Date.now()+60000});
