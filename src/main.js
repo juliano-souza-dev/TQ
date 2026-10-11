@@ -3181,7 +3181,7 @@ async function startWorld() {
       const varkorState=readSave().r3Campaign??{};
       const varkorWreck=world.region.id==='r3'&&varkorState.active===R3_VARKOR_MISSION_ID&&varkorState.varkorDefeated&&!varkorState.varkorWreckClaimed&&varkorState.varkorWreckPosition?[{id:'r3-varkor-wreck',name:'Destroços do Terror do Mar',...varkorState.varkorWreckPosition}]:[];
       const rebuildState=readSave().r3Campaign??{};
-      const rebuildWreck=world.region.id==='r3'&&rebuildState.active===R3_REBUILD_MISSION_ID&&rebuildState.emeraldSpoken&&!rebuildState.emeraldWreckCollected?[{id:'r3-emerald-build-wreck',name:'Destroços para o Terror do Mar',x:2500,y:4200}]:[];
+      const rebuildWreck=world.region.id==='r3'&&rebuildState.active===R3_REBUILD_MISSION_ID&&rebuildState.emeraldSpoken&&!rebuildState.emeraldWreckCollected?[{id:'r3-emerald-build-wreck',name:'Destroços para o Terror do Mar',x:2500,y:4200},{id:'r3-emerald-build-wreck-2',name:'Madeiras do Terror do Mar',x:2450,y:4090},{id:'r3-emerald-build-wreck-3',name:'Restos do casco',x:2440,y:4320}]:[];
       treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks,...visibleFlameWreck,...varkorWreck,...rebuildWreck],world.cameraView,world.camera.zoom,oceanTimeMs);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
