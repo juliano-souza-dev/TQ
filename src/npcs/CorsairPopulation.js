@@ -61,6 +61,7 @@ export function createCorsairPopulation(world, random = Math.random) {
   }
 
   if (world.region.id === 'r4') {
+    if(!world.entities.has('r4-mercador-red'))world.entities.set('r4-mercador-red',createBloodRedMarketMerchant({id:'r4-mercador-red',name:'Mercador Red',x:2050,y:2700,heading:90}));
     // Vigias da Geada: neutral until hit, then the same shipId fleet responds.
     for (let i = 0; i < 4; i++) {
       const id = 'r4-vigias-da-geada-' + String(i+1).padStart(2,'0');
