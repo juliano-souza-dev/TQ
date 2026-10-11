@@ -54,11 +54,14 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
     const draw=(min,max)=>min+Math.floor(Math.random()*(max-min+1));
     const bonus={
       'halloween-purple-ball':draw(1,150),
-      'purple-pumpkin-orb':draw(100,350),
       'ocean-pearl':draw(159,199),
       'violet-crystal':10,
-      'terror-rose':draw(1,20),
     };
+    // Orbes de Abóbora e Rosas do Terror são exclusivas dos destroços da R3.
+    if(action.regionId==='r3'){
+      bonus['purple-pumpkin-orb']=draw(100,350);
+      bonus['terror-rose']=draw(1,20);
+    }
     patch.ammunition={...patch.ammunition};
     for(const [id,amount] of Object.entries(bonus))
       patch.ammunition[id]=(Number(patch.ammunition[id])||0)+amount;
