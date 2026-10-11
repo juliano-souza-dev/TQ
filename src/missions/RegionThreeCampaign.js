@@ -231,21 +231,11 @@ export function acceptR3Mission(save,id){
   const shipId='terror-do-mar';
   const capacity=7+(save.shipUpgrades?.masterShipwright?5:0);
   const loadout={...(equipment.loadout??{})};
-  const slots=Array.isArray(loadout[shipId])?[...loadout[shipId]].slice(0,capacity):[];
-  const alreadyEquipped=(id)=>slots.filter(x=>x===id).length;
-  const previousCounts=equipment.cannonCounts??{};
-  for(const [id,grant] of [['aetherion-mk1',2],['pumpkin-terror',5]]){
-    // Only allocate the newly granted stock, keeping the existing loadout.
-    const originalStock=Math.max(0,Number(previousCounts[id])||0);
-    const freeFromGrant=Math.max(0,originalStock+grant-alreadyEquipped(id));
-    for(let n=0;n<Math.min(grant,freeFromGrant);n++){
-      let slot=slots.findIndex(x=>!x);
-      if(slot<0)slot=slots.length<capacity?slots.length:-1;
-      if(slot<0)break;
-      slots[slot]=id;
-    }
-  }
-  loadout[shipId]=slots;
+  // A missão exige uma bateria pronta para combate, mesmo se os slots antigos estiverem cheios.
+  const previous=Array.isArray(loadout[shipId])?loadout[shipId]:[];
+  loadout[shipId]=['aetherion-mk1','aetherion-mk1',
+    'pumpkin-terror','pumpkin-terror','pumpkin-terror','pumpkin-terror','pumpkin-terror',
+    ...previous.slice(7,capacity)];
   const ammo=save.ammunition??{};
   return {ammunition:{...ammo,'aetherion-seeker':(Number(ammo['aetherion-seeker'])||0)+10000,
       'rusted-iron':(Number(ammo['rusted-iron'])||0)+2000},
