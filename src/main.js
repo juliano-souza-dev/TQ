@@ -3480,15 +3480,17 @@ async function startWorld() {
       const gw=Math.max(1,Math.round(gr.width*gd)),gh=Math.max(1,Math.round(gr.height*gd));
       if(glintCanvas.width!==gw||glintCanvas.height!==gh){glintCanvas.width=gw;glintCanvas.height=gh;}
       glintCtx.clearRect(0,0,gw,gh);
+      const glintProjection=createViewProjection(world.cameraView,world.camera.zoom,gw,gh,gd,world.cameraPerspective);
       if(world.region.id==='r4'){
         const collected=readSave().r4CollectedWrecks??[];
         for(const wreck of R4_ICE_WRECKS){
           if(collected.includes(wreck.id))continue;
-          const x=gw/2+(wreck.x-world.cameraView.x)*world.camera.zoom*gd;
-          const y=gh/2+(wreck.y-world.cameraView.y)*world.camera.zoom*gd;
+          const screen=glintProjection.project(wreck);
+          if(!screen)continue;
+          const {x,y}=screen;
           if(x<0||x>gw||y<0||y>gh)continue;
           if(frozenWreckImage.complete&&frozenWreckImage.naturalWidth>0){
-            const size=Math.max(28,Math.min(100,72*world.camera.zoom))*gd;
+            const size=Math.max(28,Math.min(100,72*world.camera.zoom))*gd*screen.relativeScale;
             glintCtx.save();
             glintCtx.shadowColor='#55eaff';glintCtx.shadowBlur=12*gd;
             glintCtx.drawImage(frozenWreckImage,x-size/2,y-size/2,size,size);
@@ -3502,30 +3504,31 @@ async function startWorld() {
       const iceScale=world.camera.zoom*gd;
       const frozenPlayerUntil=navalBattle?.playerFrozenUntil||0;
       if(Date.now()<frozenPlayerUntil){
-        const px=gw/2+(world.camera.x-world.cameraView.x)*iceScale;
-        const py=gh/2+(world.camera.y-world.cameraView.y)*iceScale;
-        drawFrozenShip(glintCtx,px,py,Math.max(38,125*iceScale),fxNow,frozenPlayerUntil);
+        const point=glintProjection.project(world.camera);
+        if(point)drawFrozenShip(glintCtx,point.x,point.y,Math.max(38,125*iceScale*point.relativeScale),fxNow,frozenPlayerUntil);
       }
       for(const npc of world.entities.values()){
         if(npc.type!=='npc'||npc.health<=0||Date.now()>=(npc.frozenUntil||0))continue;
-        const px=gw/2+(npc.x-world.cameraView.x)*iceScale;
-        const py=gh/2+(npc.y-world.cameraView.y)*iceScale;
+        const point=glintProjection.project(npc);
+        if(!point)continue;
+        const px=point.x,py=point.y;
         if(px< -140||px>gw+140||py< -140||py>gh+140)continue;
-        drawFrozenShip(glintCtx,px,py,Math.max(38,125*iceScale),fxNow,npc.frozenUntil);
+        drawFrozenShip(glintCtx,px,py,Math.max(38,125*iceScale*point.relativeScale),fxNow,npc.frozenUntil);
       }
       if(navalBattle?.freezeBursts){
         navalBattle.freezeBursts=navalBattle.freezeBursts.filter(b=>fxNow-b.startTime<1250);
         for(const burst of navalBattle.freezeBursts){
-          drawFreezeBurst(glintCtx,gw/2+(burst.x-world.cameraView.x)*iceScale,
-            gh/2+(burst.y-world.cameraView.y)*iceScale,burst.radius,fxNow,burst.startTime,iceScale);
+          const point=glintProjection.project(burst);
+          if(point)drawFreezeBurst(glintCtx,point.x,point.y,burst.radius,fxNow,burst.startTime,iceScale*point.relativeScale);
         }
       }
       if(EVENTS.halloween && world.region.id!=='r4'){
         const collected=readSave().collectedGlints??[];
         for(const g of SEA_GLINTS){
           if(collected.includes(g.id))continue;
-          const x=gw/2+(g.x-world.cameraView.x)*world.camera.zoom*gd;
-          const y=gh/2+(g.y-world.cameraView.y)*world.camera.zoom*gd;
+          const screen=glintProjection.project(g);
+          if(!screen)continue;
+          const {x,y}=screen;
           if(x<0||x>gw||y<0||y>gh)continue;
           const pulse=1+0.24*Math.sin(glintElapsed/260+g.x);
           glintCtx.save();glintCtx.translate(x,y);glintCtx.scale(pulse,pulse);
