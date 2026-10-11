@@ -12,7 +12,7 @@ Aplicativo Android nativo que empacota o próprio jogo web 2.5D/3D do repositór
 
 O aplicativo abre diretamente o **modo local** do TQ. Os arquivos do jogo e seus assets vão no APK e não dependem de carregar o GitHub Pages ou o servidor do PC.
 
-**Importante:** o APK de teste (`app-debug.apk`) é assinado automaticamente pela máquina do GitHub Actions. Cada execução pode ter uma assinatura diferente. Para instalar uma versão nova sem desinstalar a anterior e **sem perder o progresso local**, distribua sempre um APK *release* assinado com **a mesma chave privada**. Não desinstale o aplicativo que guarda seu progresso.
+**Importante:** o APK de teste (`app-debug.apk`) é assinado automaticamente pela máquina do GitHub Actions. O workflow tenta reutilizar a assinatura de teste via cache, mas esse cache pode expirar ou ser removido. Para instalar uma versão nova sem desinstalar a anterior e **sem perder o progresso local** de maneira confiável, distribua sempre um APK *release* assinado com **a mesma chave privada**. Não desinstale o aplicativo que guarda seu progresso.
 
 ## Como fica no celular
 
