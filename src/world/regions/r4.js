@@ -3,9 +3,9 @@ import { R2 } from './r2.js';
 // Terras Gélidas has its own shipyard appearance without changing other regions.
 const frozenShipyardAsset = new URL('../../../assets/regions/islands/ilha_estaleiro_gelada_transparente.png', import.meta.url).href;
 const frozenMissionAsset = new URL('../../../assets/regions/islands/Porto Ártico Congelado Fantástico.png', import.meta.url).href;
-// Asset must be copied into the repository at this exact path. Keep the
-// existing R2 island as a graceful fallback while the binary upload is pending.
-const winterForgottenAsset = new URL('../../../assets/regions/islands/Ilha Invernal de Gelo e Neve.png', import.meta.url).href;
+// High-quality transparent WebP converted from "Ilha Invernal de Gelo e Neve.png".
+// Only R4 replaces the original Forgotten Island illustration.
+const winterForgottenAsset = new URL('../../../assets/regions/islands/ilha_invernal_gelo_neve.webp', import.meta.url).href;
 const oldForgottenAsset = R2.islands.find(island=>island.id==='r2-scenery-north').asset;
 export const R4 = Object.freeze({
   ...R2,
