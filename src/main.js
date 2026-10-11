@@ -3489,7 +3489,11 @@ function showLogin(error = '') {
 }
 
 renderLoading(root);
-if (localStorage.getItem(LOCAL_SESSION_KEY) === GUEST_UID) {
+// APK uses a stable, local HTTPS asset origin. Start the bundled game in
+// local mode directly: Firebase popup OAuth is not valid in Android WebView,
+// and optional firebase-config.js is deliberately not shipped in the APK.
+const bundledAndroidApp = window.location.hostname === 'appassets.androidplatform.net';
+if (bundledAndroidApp || localStorage.getItem(LOCAL_SESSION_KEY) === GUEST_UID) {
   enterLocalMode();
 } else try {
   // Optional local Firebase config is intentionally not committed.
