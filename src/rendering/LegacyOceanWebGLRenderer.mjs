@@ -80,7 +80,7 @@ void main(){
     vec3 up=vec3(sy*sp,-cy*sp,cp);
     vec3 eye=vec3(uCamera+vec2(-sy,cy)*d*cp,d*sp);
     float focal=uResolution.y/(2.0*tan(0.5235987756));
-    vec2 screen=vec2(centered.x,-centered.y)*uResolution;
+    vec2 screen=centered*uResolution;
     vec3 ray=forward+right*(screen.x/focal)+up*(-screen.y/focal);
     // Pitch and field of view keep the screen below the sea horizon.
     float t=-eye.z/min(ray.z,-0.00001);
