@@ -88,9 +88,9 @@ test('chegar ao Estaleiro equipa automaticamente o Terror da Tabuada durante a m
 
 test('save pós-emboscada não volta para o Galeão Dourado nem Mercado Negro', async () => {
   const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../src/main.js', import.meta.url), 'utf8'));
-  assert.match(source, /postAmbushProgress=save\.storyFlags\?\.pumpkinAmbushResolved===true/);
-  assert.match(source, /save\.storyFlags\?\.pumpkinAmbushResolved!==true/);
   assert.match(source, /postAmbushCampaignRepairV1/);
+  assert.doesNotMatch(source, /claimed:claimed\.filter\(id=>!rolledBack\.includes\(id\)\)/);
+  assert.doesNotMatch(source, /blackMarketRollbackV1/);
   assert.match(source, /active:'r2-search-clues'/);
   assert.match(source, /'r2-why-help'/);
 });
