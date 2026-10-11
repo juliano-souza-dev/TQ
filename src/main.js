@@ -1,4 +1,4 @@
-import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID } from './missions/RegionThreeCampaign.js';
+import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS } from './missions/RegionThreeCampaign.js';
 import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout, verifySilasArsenalAtLeviathan } from './missions/R3SilasTrade.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
@@ -784,6 +784,14 @@ async function startWorld() {
         ||Math.hypot(world.camera.x-silas.x,world.camera.y-silas.y)>silas.interactionRadius)return false;
       return 'Multiplicação correta! Confira a proposta de Silas e confirme se deseja realizar a troca.';
     }
+    if(action.kind==='r3-abyss-fragment'){
+      if(world.region.id!=='r3'||readSave().r3Campaign?.active!==R3_ABYSS_SECRET_MISSION_ID)return false;
+      const wreck=R3_ABYSS_WRECKS.find(w=>w.id===action.id);
+      if(!wreck||Math.hypot(world.camera.x-wreck.x,world.camera.y-wreck.y)>180)return false;
+      if(!recordMissionEvent({type:'abyss-fragment',id:wreck.id}))return false;
+      showOceanReward('🪵 Fragmento recuperado: '+wreck.name);
+      return 'Fragmento recuperado! Continue sua missão.';
+    }
     if(action.kind==='r3-wreck-diary'){
       if(world.region.id!=='r3'||readSave().r3Campaign?.active!=='r3-dark-waters-warning')return false;
       const wreck=R3_WRECKS.find(w=>w.id===action.id);
@@ -1127,6 +1135,9 @@ async function startWorld() {
           [ammoId]:(Number(save.ammunition?.[ammoId])||0)+amount}});
         recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
         showOceanReward('🏴‍☠️ '+npc.name+' afundado! +'+amount+' Rosas do Terror.');
+      } else if(world.region.id==='r3'&&npc.archetype==='terror-guardian'){
+        recordMissionEvent({type:'abyss-red-sunk',archetype:npc.archetype,id:npc.id+':'+(npc.sinkSerial??0)});
+        showOceanReward('🏴‍☠️ '+npc.name+' afundado!');
       } else if (world.region.id === 'r3' && npc.archetype === 'terror-do-mar') {
         recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
         showOceanReward('🔥 Terror do Mar afundado! Capitão Varkor Tenebris foi derrotado.');
@@ -1694,6 +1705,17 @@ async function startWorld() {
       }else if(!campaign.claimed?.includes(R3_LEVIATHAN_MISSION_ID)){
         missionHud.textContent='📜 Porto das Missões · Caça ao Leviathan';
         void guideMissionTo('missions');
+      }else if(campaign.active===R3_ABYSS_SECRET_MISSION_ID){
+        const red=Math.min(5,Number(campaign.abyssRedSinks)||0),fragments=campaign.abyssFragments??[];
+        missionHud.textContent='⚔️ Red '+red+'/5 · 🪵 Destroços '+fragments.length+'/3';
+        if(red>=5&&fragments.length===3)void guideMissionTo('missions');
+        else {
+          const next=R3_ABYSS_WRECKS.find(w=>!fragments.includes(w.id));
+          if(next)void guideMissionTo(next);
+        }
+      }else if(!campaign.claimed?.includes(R3_ABYSS_SECRET_MISSION_ID)){
+        missionHud.textContent='📜 Porto das Missões · O Segredo do Coração do Abismo';
+        void guideMissionTo('missions');
       }else{
         missionHud.textContent='📜 A queda do Leviathan revelou uma pista sobre o Coração do Abismo · A saga continua';
         firstVoyageGuide?.finish();
@@ -1791,7 +1813,9 @@ async function startWorld() {
           clearMissionNavigation();
           islandPanel.refreshMissionBoard();
           updateMissionHud();
-          showOceanReward(id===R3_LEVIATHAN_MISSION_ID
+          showOceanReward(id===R3_ABYSS_SECRET_MISSION_ID
+            ? '⚔️ Afunde cinco Red e investigue três destroços, em qualquer ordem.'
+            : id===R3_LEVIATHAN_MISSION_ID
             ? '🐙 Caça ao Leviathan iniciada! Siga a mão caveirinha até a criatura.'
             : id===R3_SILAS_MISSION_ID
               ? '☠️ Siga o guia até Silas Rubro para negociar o arsenal.'
@@ -2095,6 +2119,10 @@ async function startWorld() {
       });
     } else {
       islandPanel.open(contact.kind);
+    }
+    if(world.region.id==='r3'&&contact.kind==='missions'&&readSave().r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID){
+      if(recordMissionEvent({type:'return-port',id:'r3-abyss-return'}))showOceanReward('🗺️ Mapa reconstruído! Resgate a recompensa da missão.');
+      islandPanel.refreshMissionBoard();
     }
     if(world.region.id==='r3' && contact.kind==='missions'
       && readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
@@ -2756,6 +2784,12 @@ async function startWorld() {
           }
         }
       }
+      if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID&&
+        !mathGate.isOpen&&!islandPanel.isOpen){
+        const missing=R3_ABYSS_WRECKS.find(w=>!(readSave().r3Campaign?.abyssFragments??[]).includes(w.id)&&Math.hypot(world.camera.x-w.x,world.camera.y-w.y)<125);
+        if(missing){clickNavigation.cancel();navalBattle.firing=false;
+          mathGate.open({kind:'r3-abyss-fragment',id:missing.id,title:'🪵 '+missing.name,description:'Resolva a multiplicação para recuperar o fragmento do mapa.'});}
+      }
       if(world.region.id==='r3'&&readSave().r3Campaign?.active==='r3-dark-waters-warning'&&
          !mathGate.isOpen&&!islandPanel.isOpen){
         const missing=R3_WRECKS.find(w=>!(readSave().r3Campaign?.wreckDiaries??[]).includes(w.id));
@@ -2924,7 +2958,9 @@ async function startWorld() {
       const renderedTreasures=hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
       treasureGlowRenderer?.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs,pendingTreasureId);
       const visibleMissionWrecks=world.region.id==='r3' && readSave().r3Campaign?.active==='r3-dark-waters-warning'
-        ?R3_WRECKS.filter(w=>!(readSave().r3Campaign?.wreckDiaries??[]).includes(w.id)):[];
+        ?R3_WRECKS.filter(w=>!(readSave().r3Campaign?.wreckDiaries??[]).includes(w.id))
+        :world.region.id==='r3'&&readSave().r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID
+          ?R3_ABYSS_WRECKS.filter(w=>!(readSave().r3Campaign?.abyssFragments??[]).includes(w.id)):[];
       treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks],world.cameraView,world.camera.zoom,oceanTimeMs);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {

@@ -5,6 +5,12 @@ export const R3_FIRST_MISSION_ID = 'r3-equip-golden';
 export const R3_GOLDEN_SHIP_ID = 'galeao-dourado';
 export const R3_LEVIATHAN_MISSION_ID = 'r3-leviathan-hunt';
 export const R3_LEVIATHAN_ENTITY_ID = 'r3-leviathan';
+export const R3_ABYSS_SECRET_MISSION_ID='r3-abyss-secret';
+export const R3_ABYSS_WRECKS=Object.freeze([
+ Object.freeze({id:'r3-abyss-wreck-1',x:1260,y:2910,name:'Destroços da Maré Perdida'}),
+ Object.freeze({id:'r3-abyss-wreck-2',x:3040,y:2400,name:'Destroços do Farol Abissal'}),
+ Object.freeze({id:'r3-abyss-wreck-3',x:2860,y:4160,name:'Destroços da Rosa Negra'}),
+]);
 export const R3_MISSIONS = Object.freeze([Object.freeze({
   id: R3_FIRST_MISSION_ID,
   name: 'Preparar o Galeão Dourado',
@@ -35,6 +41,13 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
     {kind:'return-port',count:1,label:'Voltar ao Porto das Missões após a caçada'},
   ],
   reward:{story:'Uma pista sobre o Coração do Abismo'},
+}),Object.freeze({
+ id:R3_ABYSS_SECRET_MISSION_ID,name:'O Segredo do Coração do Abismo',
+ description:'Afunde cinco corsários Red e recupere três fragmentos dos destroços. Os objetivos são simultâneos; depois entregue o mapa no Porto das Missões.',
+ objectives:[{kind:'abyss-red-sinks',count:5,label:'Afundar cinco corsários Red'},
+ {kind:'abyss-wrecks',count:3,label:'Recuperar três fragmentos dos destroços'},
+ {kind:'return-port',count:1,label:'Entregar o mapa no Porto das Missões'}],
+ reward:{gold:100000,rubies:500,story:'Mapa do Coração do Abismo'},
 })]);
 
 export function expectedR3GoldenLoadout(save, capacity) {
@@ -77,6 +90,7 @@ export function getR3Board(save={}) {
   const secondDone=claimed.includes('r3-dark-waters-warning');
   const thirdDone=claimed.includes(R3_SILAS_MISSION_ID);
   const fourthDone=claimed.includes(R3_LEVIATHAN_MISSION_ID);
+  const fifthDone=claimed.includes(R3_ABYSS_SECRET_MISSION_ID);
   const wreckCount=Math.min(3,(save.r3Campaign?.wreckDiaries??[]).length);
   const delivered=Boolean(save.r3Campaign?.wreckDelivered);
   const first=R3_MISSIONS[0];
@@ -110,14 +124,25 @@ export function getR3Board(save={}) {
       save.r3Campaign?.leviathanDefeated||fourthDone?1:0,
       save.r3Campaign?.leviathanReturned||fourthDone?1:0,
     ],claimed:fourthDone,active:['active','ready'].includes(fourthStatus),ready:fourthStatus==='ready'};
-  const current=firstDone?(secondDone?(thirdDone?fourthItem:thirdItem):secondItem):firstItem;
-  return {missions:[firstItem,secondItem,thirdItem,fourthItem],
+  const fifth=R3_MISSIONS[4];
+  const fifthActive=save.r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID;
+  const redCount=Math.min(5,Math.max(0,Number(save.r3Campaign?.abyssRedSinks)||0));
+  const fragmentCount=Math.min(3,(save.r3Campaign?.abyssFragments??[]).length);
+  const fifthReady=fifthActive&&redCount===5&&fragmentCount===3&&!!save.r3Campaign?.abyssReturned;
+  const fifthStatus=fifthDone?'claimed':!fourthDone?'locked':fifthReady?'ready':fifthActive?'active':'available';
+  const fifthItem={...fifth,status:fifthStatus,progress:[redCount,fragmentCount,save.r3Campaign?.abyssReturned||fifthDone?1:0],claimed:fifthDone,active:['active','ready'].includes(fifthStatus),ready:fifthStatus==='ready'};
+  const current=firstDone?(secondDone?(thirdDone?(fourthDone?fifthItem:fourthItem):thirdItem):secondItem):firstItem;
+  return {missions:[firstItem,secondItem,thirdItem,fourthItem,fifthItem],
     essentialClaimed:claimed.filter(id=>R3_MISSIONS.some(m=>m.id===id)).length,
     unlockedRegion:3,activeRegion:3,
     active:current.active?[current]:[],claimable:current.ready?[current]:[],
     available:current.status==='available'?[current]:[]};
 }
 export function acceptR3Mission(save,id){
+ if(id===R3_ABYSS_SECRET_MISSION_ID){
+  if(!save.r3Campaign?.claimed?.includes(R3_LEVIATHAN_MISSION_ID)||save.r3Campaign.claimed.includes(id)||save.r3Campaign.active===id)return null;
+  return {r3Campaign:{...save.r3Campaign,active:id,abyssRedSinks:0,abyssRedSinkIds:[],abyssFragments:[],abyssReturned:false}};
+ }
   if(id===R3_LEVIATHAN_MISSION_ID){
     if(!save.r3Campaign?.claimed?.includes(R3_SILAS_MISSION_ID)
       ||save.r3Campaign?.claimed?.includes(id)||save.r3Campaign?.active===id)return null;
@@ -134,6 +159,18 @@ export function acceptR3Mission(save,id){
   return {r3Campaign:{...(save.r3Campaign??{}),active:id,wreckDiaries:[],wreckDelivered:false}};
 }
 export function recordR3Event(save,event){
+ if(save.r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID){
+  const state=save.r3Campaign;
+  if(event.type==='abyss-red-sunk'&&event.archetype==='terror-guardian'&&event.id&&(Number(state.abyssRedSinks)||0)<5){
+   if((state.abyssRedSinkIds??[]).includes(event.id))return null;
+   return {r3Campaign:{...state,abyssRedSinks:(Number(state.abyssRedSinks)||0)+1,abyssRedSinkIds:[...(state.abyssRedSinkIds??[]),event.id]}};
+  }
+  if(event.type==='abyss-fragment'&&R3_ABYSS_WRECKS.some(w=>w.id===event.id)&&!(state.abyssFragments??[]).includes(event.id))
+   return {r3Campaign:{...state,abyssFragments:[...(state.abyssFragments??[]),event.id]}};
+  if(event.type==='return-port'&&(Number(state.abyssRedSinks)||0)>=5&&(state.abyssFragments??[]).length===3&&!state.abyssReturned)
+   return {r3Campaign:{...state,abyssReturned:true}};
+  return null;
+ }
   if(save.r3Campaign?.active===R3_LEVIATHAN_MISSION_ID){
     const state=save.r3Campaign;
     if(event.type==='leviathan-found'&&event.id===R3_LEVIATHAN_ENTITY_ID&&!state.leviathanFound)
@@ -156,6 +193,11 @@ export function recordR3Event(save,event){
   return null;
 }
 export function claimR3Mission(save,id){
+ if(id===R3_ABYSS_SECRET_MISSION_ID){
+  const state=save.r3Campaign??{};
+  if(state.active!==id||!state.claimed?.includes(R3_LEVIATHAN_MISSION_ID)||(Number(state.abyssRedSinks)||0)<5||(state.abyssFragments??[]).length!==3||!state.abyssReturned||state.claimed.includes(id))return null;
+  return {mission:R3_MISSIONS[4],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...state.claimed,id])],abyssHeartMap:true},profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+100000,rubies:(Number(save.profile?.rubies)||0)+500}}};
+ }
   if(id===R3_LEVIATHAN_MISSION_ID){
     if(save.r3Campaign?.active!==id
       ||!save.r3Campaign?.claimed?.includes(R3_SILAS_MISSION_ID)

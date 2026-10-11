@@ -55,6 +55,7 @@ function createRaider(config, region) {
     raidCooldownMs: 0,
     stolenThisPass: false,
     respawnRemainingMs: null,
+    sinkSerial:0,
     home: Object.freeze({ x: point.x, y: point.y, heading: normalize(config.heading ?? 90) }),
   };
 }
@@ -149,6 +150,7 @@ function respawnRaider(npc, region) {
   npc.stolenThisPass = false;
   npc.raidCooldownMs = 0;
   npc.respawnRemainingMs = null;
+  npc.sinkSerial=(npc.sinkSerial??0)+1;
   return true;
 }
 
@@ -264,7 +266,11 @@ function updateRaider(npc, world, deltaMs, random, raids) {
 
 
 function updateTerrorGuardian(npc,world,deltaMs){
-  if(npc.health<=0)return;
+  if(npc.health<=0){
+    npc.respawnRemainingMs=(npc.respawnRemainingMs??DARK_WATERS_RAIDER_RESPAWN_MS)-Math.max(0,deltaMs);
+    if(npc.respawnRemainingMs<=0)respawnRaider(npc,world.region);
+    return;
+  }
   const boss=world.entities.get(world.region.terrorBoss?.id);
   const anchor=boss?.anchor??{x:3220,y:3450};
   const dt=Math.min(64,Math.max(0,deltaMs))/1000;
