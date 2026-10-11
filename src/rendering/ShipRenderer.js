@@ -49,7 +49,7 @@ export class ShipRenderer {
     const factor = targetSize / Math.max(frameWidth, frameHeight) / (Math.max(.001, zoom) * dpr);
     return { width: frameWidth * factor, height: frameHeight * factor };
   }
-  render(headingDegrees, shipPosition, cameraView, zoom = 1, impact = null) {
+  render(headingDegrees, shipPosition, cameraView, zoom = 1, impact = null, regionId = 'r1') {
     const ctx = this.ctx;
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -126,6 +126,20 @@ export class ShipRenderer {
     ctx.shadowOffsetY = 5 * dpr;
     ctx.drawImage(this.image, (frame % columns) * frameWidth, Math.floor(frame / columns) * frameHeight,
       frameWidth, frameHeight, -drawW / 2, -drawH / 2, drawW, drawH);
+    ctx.restore();
+    // Region-specific ambient light is drawn only over visible ship pixels.
+    // Source-atop keeps the ocean and the transparent sprite margins untouched.
+    const ambient = regionId === 'r4'
+      ? 'rgba(150, 210, 255, 0.13)'
+      : regionId === 'r3'
+        ? 'rgba(75, 204, 173, 0.085)'
+        : regionId === 'r2'
+          ? 'rgba(128, 103, 176, 0.12)'
+          : 'rgba(255, 218, 160, 0.055)';
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = ambient;
+    ctx.fillRect(-drawW / 2, -drawH / 2, drawW, drawH);
     ctx.restore();
     ctx.restore();
   }
