@@ -69,7 +69,7 @@ export function createCorsairPopulation(world, random = Math.random) {
         shipId:FROZEN_LANDS_GALLEON_SHIP.id, fleetId:FROZEN_LANDS_GALLEON_SHIP.id,
         x:point.x,y:point.y,heading:random()*360,
         health:18000,maxHealth:18000,state:'patrolling',aggression:'neutral',
-        damage:12,range:520,cannonSlots:9,specialCannonCount:1,specialCannonAmmoId:'frozen-explosion',speed:187.5,
+        damage:12,range:840,cannonSlots:9,specialCannonCount:1,specialCannonAmmoId:'frozen-explosion',speed:187.5,
         retaliationActive:false,respawnRemainingMs:null,wanderTimeMs:1800,
       });
     }
