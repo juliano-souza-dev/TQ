@@ -93,3 +93,63 @@ export function unorbitScreenTransform(point, viewport, orbit = ORBIT_DEFAULTS) 
     y: viewport.height / 2 - dx * s + dy * c,
   };
 }
+
+/**
+ * Perspective projection onto the horizontal game world (z = 0).
+ * Camera position and target are expressed in existing world units.
+ * This is a pinhole camera, not a post-processing CSS distortion.
+ */
+export function createPerspectiveCamera({
+  target = { x: 0, y: 0 },
+  yaw = 0,
+  pitch = Math.PI / 4,
+  distance = 1200,
+  fov = Math.PI / 3,
+  viewport = { width: 1280, height: 720 },
+} = {}) {
+  const p = clampOrbitPitch(pitch);
+  const d = Math.max(1, Number(distance) || 1200);
+  const focal = Math.max(1, viewport.height) / (2 * Math.tan(Math.max(0.2, Math.min(2.5, fov)) / 2));
+  const sy = Math.sin(p), cy = Math.cos(p), ca = Math.cos(yaw), sa = Math.sin(yaw);
+  const eye = {
+    x: target.x - sa * d * cy,
+    y: target.y - ca * d * cy,
+    z: d * sy,
+  };
+  const forward = { x: sa * cy, y: ca * cy, z: -sy };
+  const right = { x: ca, y: -sa, z: 0 };
+  const up = {
+    x: sa * sy,
+    y: ca * sy,
+    z: cy,
+  };
+  const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+  function project(point) {
+    const relative = {
+      x: point.x - eye.x,
+      y: point.y - eye.y,
+      z: (point.z || 0) - eye.z,
+    };
+    const depth = dot(relative, forward);
+    if (depth <= 0.01) return null;
+    return {
+      x: viewport.width / 2 + focal * dot(relative, right) / depth,
+      y: viewport.height / 2 - focal * dot(relative, up) / depth,
+      depth,
+      scale: focal / depth,
+    };
+  }
+  function unprojectGround(screen) {
+    const ray = {
+      x: forward.x + (screen.x - viewport.width / 2) / focal * right.x -
+        (screen.y - viewport.height / 2) / focal * up.x,
+      y: forward.y + (screen.x - viewport.width / 2) / focal * right.y -
+        (screen.y - viewport.height / 2) / focal * up.y,
+      z: forward.z - (screen.y - viewport.height / 2) / focal * up.z,
+    };
+    if (ray.z >= -1e-6) return null; // Above horizon: no ground intersection.
+    const t = -eye.z / ray.z;
+    return { x: eye.x + ray.x * t, y: eye.y + ray.y * t };
+  }
+  return { eye, target, forward, right, up, focal, project, unprojectGround };
+}
