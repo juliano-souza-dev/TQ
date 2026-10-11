@@ -1,3 +1,4 @@
+import { createViewProjection } from './OrbitalCameraProjection.js';
 const TREASURE_WRECK_ASSET = new URL('../../assets/treasures/destrocos-piratas-tesouro.webp', import.meta.url).href;
 const FROZEN_WRECK_ASSET = new URL('../../assets/treasures/destrocos_terras_gelidas.webp', import.meta.url).href;
 
@@ -13,7 +14,7 @@ export class TreasureRenderer {
     this.frozenImage.src = FROZEN_WRECK_ASSET;
   }
 
-  render(treasures, camera, zoom, timeMs, regionId = null) {
+  render(treasures, camera, zoom, timeMs, regionId = null, orbit = null) {
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const width = Math.max(1, Math.round(bounds.width * dpr));
@@ -27,17 +28,19 @@ export class TreasureRenderer {
     ctx.clearRect(0, 0, width, height);
     const image = regionId === 'r4' ? this.frozenImage : this.image;
     const loaded = image.complete && image.naturalWidth > 0;
+    const projection = createViewProjection(camera, zoom, width, height, dpr, orbit);
 
     for (const wreck of treasures) {
-      const x = width / 2 + (wreck.x - camera.x) * zoom * dpr;
-      const y = height / 2 + (wreck.y - camera.y) * zoom * dpr;
+      const screen = projection.project(wreck);
+      if (!screen) continue;
+      const {x,y}=screen;
 
       const visualZoom = Math.max(.46, Math.min(1.15, Number(zoom) || 1));
       const baseSize = 76;
-      const size = baseSize * visualZoom * dpr;
+      const size = baseSize * visualZoom * dpr * screen.relativeScale;
       if (x < -size || x > width + size || y < -size || y > height + size) continue;
 
-      const bob = Math.sin(timeMs / 700 + wreck.x * .01 + wreck.y * .01) * 1.8 * visualZoom * dpr;
+      const bob = Math.sin(timeMs / 700 + wreck.x * .01 + wreck.y * .01) * 1.8 * visualZoom * dpr * screen.relativeScale;
       const sway = Math.sin(timeMs / 1250 + wreck.y * .008) * .018;
 
       ctx.save();
