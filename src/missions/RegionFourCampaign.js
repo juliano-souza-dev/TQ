@@ -1,5 +1,5 @@
 export const R4_MISSIONS=Object.freeze([
- {id:'r4-ice-wreck-investigation',name:'Investigando os Destroços',description:'Investigue os destroços das Terras Gélidas e retorne ao Porto das Missões. Mais detalhes da história serão adicionados.',objectives:[{kind:'wreck',count:5,label:'Investigar os 5 destroços gélidos'},{kind:'return-port',count:1,label:'Retornar ao porto'}],reward:{consumables:{'area-freeze':1}}},
+ {id:'r4-ice-wreck-investigation',name:'Coletando Destroços',description:'Investigue os destroços das Terras Gélidas e retorne ao Porto das Missões. Mais detalhes da história serão adicionados.',objectives:[{kind:'wreck',count:5,label:'Investigar os 5 destroços gélidos'},{kind:'return-port',count:1,label:'Retornar ao porto'}],reward:{consumables:{'area-freeze':5}}},
  {id:'r4-frost-watch',name:'Patrulha da Geada',description:'Afunde dois Vigias da Geada e retorne ao porto.',objectives:[{kind:'defeat',count:2,label:'Afundar dois Vigias da Geada'},{kind:'return-port',count:1,label:'Retornar ao porto'}],reward:{ammo:{'frozen-explosion':300}}},
  {id:'r4-shadow-trail',name:'O Rastro do Sombra',description:'Derrote o Sombra do Saque e retorne ao porto.',objectives:[{kind:'defeat',count:1,label:'Derrotar Sombra do Saque'},{kind:'return-port',count:1,label:'Retornar ao porto'}],reward:{ammo:{'frozen-explosion':500}}}
 ]);
