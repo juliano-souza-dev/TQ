@@ -1111,6 +1111,21 @@ async function startWorld() {
     },
     onVictory: npc => {
       const save = readSave();
+      // One randomized ammunition reward per sinking, across every region.
+      if(npc.type==='npc'&&npc.health<=0&&!npc.lootGranted){
+        npc.lootGranted=true;
+        const pool=['rusted-iron','violet-crystal','ocean-pearl','volcanic-lava','purple-pumpkin-orb','halloween-purple-ball','terror-rose','aetherion-seeker'];
+        const ammoId=pool[Math.floor(Math.random()*pool.length)];
+        const amount=25+Math.floor(Math.random()*76);
+        const gold=world.region.id==='r3'&&npc.archetype==='terror-guardian'?5000:0;
+        const fixed=world.region.id==='r3'&&npc.archetype==='terror-guardian'?100:0;
+        const current=readSave();
+        const ammo={...(current.ammunition??{})};
+        ammo[ammoId]=(Number(ammo[ammoId])||0)+amount;
+        if(fixed)ammo['terror-rose']=(Number(ammo['terror-rose'])||0)+fixed;
+        writePatch({ammunition:ammo,...(gold?{profile:{...(current.profile??{}),gold:(Number(current.profile?.gold)||0)+gold}}:{})});
+        showOceanReward('🎁 '+npc.name+': +'+amount+' '+ammoId+(fixed?' · +100 Rosas do Terror · +5.000 ouro':'')+'.');
+      }
       if (npc.type === 'monster') {
         const gold = monsterGoldReward();
         writePatch({ profile: { ...save.profile, gold: (Number(save.profile?.gold) || 0) + gold } });
@@ -1133,8 +1148,9 @@ async function startWorld() {
       if (world.region.id === 'r3' && npc.archetype === 'dark-waters-raider') {
         const ammoId=npc.rewardAmmoId || 'terror-rose';
         const amount=Math.max(1,Math.floor(Number(npc.rewardAmmoAmount)||100));
-        writePatch({ammunition:{...(save.ammunition??{}),
-          [ammoId]:(Number(save.ammunition?.[ammoId])||0)+amount}});
+        const nowSave=readSave();
+        writePatch({ammunition:{...(nowSave.ammunition??{}),
+          [ammoId]:(Number(nowSave.ammunition?.[ammoId])||0)+amount}});
         recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
         showOceanReward('🏴‍☠️ '+npc.name+' afundado! +'+amount+' Rosas do Terror.');
       } else if(world.region.id==='r3'&&npc.archetype==='terror-guardian'){

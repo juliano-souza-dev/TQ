@@ -151,6 +151,7 @@ function respawnRaider(npc, region) {
   npc.raidCooldownMs = 0;
   npc.respawnRemainingMs = null;
   npc.retaliationActive=false;
+  npc.lootGranted=false;
   if(npc.archetype===DARK_WATERS_RAIDER_ARCHETYPE){
     npc.aggression='flee';npc.cannonSlots=0;npc.damage=0;npc.range=0;
   }

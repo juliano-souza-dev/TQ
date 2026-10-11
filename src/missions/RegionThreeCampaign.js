@@ -40,14 +40,14 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
     {kind:'leviathan-defeated',count:1,label:'Derrotar o Leviathan'},
     {kind:'return-port',count:1,label:'Voltar ao Porto das Missões após a caçada'},
   ],
-  reward:{story:'Uma pista sobre o Coração do Abismo'},
+  reward:{gold:250000,harpoonAmmo:{'harpoon-horizon-incendiary':2000},ammo:{'aetherion-seeker':2000},story:'Uma pista sobre o Coração do Abismo'},
 }),Object.freeze({
  id:R3_ABYSS_SECRET_MISSION_ID,name:'O Segredo do Coração do Abismo',
  description:'Afunde cinco corsários Red e recupere três fragmentos dos destroços. Os objetivos são simultâneos; depois entregue o mapa no Porto das Missões.',
  objectives:[{kind:'abyss-red-sinks',count:5,label:'Afundar cinco corsários Red'},
  {kind:'abyss-wrecks',count:3,label:'Recuperar três fragmentos dos destroços'},
  {kind:'return-port',count:1,label:'Entregar o mapa no Porto das Missões'}],
- reward:{gold:100000,story:'Mapa do Coração do Abismo'},
+ reward:{gold:150000,ammo:{'aetherion-seeker':2500},story:'Mapa do Coração do Abismo'},
 })]);
 
 export function expectedR3GoldenLoadout(save, capacity) {
@@ -196,7 +196,7 @@ export function claimR3Mission(save,id){
  if(id===R3_ABYSS_SECRET_MISSION_ID){
   const state=save.r3Campaign??{};
   if(state.active!==id||!state.claimed?.includes(R3_LEVIATHAN_MISSION_ID)||(Number(state.abyssRedSinks)||0)<5||(state.abyssFragments??[]).length!==3||!state.abyssReturned||state.claimed.includes(id))return null;
-  return {mission:R3_MISSIONS[4],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...state.claimed,id])],abyssHeartMap:true},profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+100000}}};
+  return {mission:R3_MISSIONS[4],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...state.claimed,id])],abyssHeartMap:true},profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+150000},ammunition:{...(save.ammunition??{}),'aetherion-seeker':(Number(save.ammunition?.['aetherion-seeker'])||0)+2500}}};
  }
   if(id===R3_LEVIATHAN_MISSION_ID){
     if(save.r3Campaign?.active!==id
@@ -205,7 +205,10 @@ export function claimR3Mission(save,id){
       ||!save.r3Campaign?.leviathanReturned
       ||save.r3Campaign?.claimed?.includes(id))return null;
     return {mission:R3_MISSIONS[3],patch:{r3Campaign:{...save.r3Campaign,
-      active:null,claimed:[...new Set([...(save.r3Campaign.claimed??[]),id])]}}};
+      active:null,claimed:[...new Set([...(save.r3Campaign.claimed??[]),id])]},
+      profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+250000},
+      ammunition:{...(save.ammunition??{}),'aetherion-seeker':(Number(save.ammunition?.['aetherion-seeker'])||0)+2000},
+      harpoonAmmo:{...(save.harpoonAmmo??{}),'harpoon-horizon-incendiary':(Number(save.harpoonAmmo?.['harpoon-horizon-incendiary'])||0)+2000}}};
   }
   if(id===R3_FIRST_MISSION_ID){
     if(!r3GoldenReady(save)||save.r3Campaign?.claimed?.includes(id))return null;
