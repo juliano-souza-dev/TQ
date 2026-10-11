@@ -238,7 +238,13 @@ function updateRaider(npc, world, deltaMs, random, raids, playerAlive=true) {
 
   if(!playerAlive && world.region.id==='r3'){
     npc.retaliationActive=false;npc.aggression='flee';npc.state='patrolling';
-    patrolRaider(npc,world,deltaMs,random);
+    const dt=Math.min(64,Math.max(0,deltaMs))/1000;
+    npc.patrolTimeMs=(npc.patrolTimeMs??0)-deltaMs;
+    if(npc.patrolTimeMs<=0){npc.patrolHeading=normalize(npc.heading+75+random()*200);npc.patrolTimeMs=2400+random()*3200;}
+    npc.heading=turnToward(npc.heading,npc.patrolHeading,65*dt);
+    const angle=npc.heading*Math.PI/180;
+    const moved=resolveIslandMovement(world.region,npc.x,npc.y,Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(angle)*npc.baseSpeed*dt)),Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(angle)*npc.baseSpeed*dt)),42);
+    npc.x=moved.x;npc.y=moved.y;
     return;
   }
   const dt = Math.min(64, Math.max(0, deltaMs)) / 1000;
