@@ -786,6 +786,16 @@ async function startWorld() {
       showOceanReward('⚓ Prepare seu Galeão Dourado no Estaleiro.');
     }
   });
+  function disperseR4Raiders(){
+    if(world.region.id!=='r4')return;
+    for(const npc of world.entities.values()){
+      if(npc.archetype!=='r4-ladrao-gelido'&&npc.id!=='r4-sombra-do-saque')continue;
+      npc.retaliationActive=false;
+      npc.aggression='flee';
+      npc.state='escaping';
+      npc.wanderTimeMs=0;
+    }
+  }
   function checkMissionCompletion(){
     const missions=boardFor(readSave(),world.region.id).missions;
     for(const mission of missions){
@@ -801,6 +811,7 @@ async function startWorld() {
       }
       if(notifiedMissionIds.has(mission.id))continue;
       notifiedMissionIds.add(mission.id);
+      disperseR4Raiders();
       showOceanReward('🏆 Missão concluída: '+mission.name);
       announceMissionCompletion(mission.name);
       routeToMissionsPort({announce:false});
@@ -1195,6 +1206,7 @@ async function startWorld() {
     onFeedback: message => navalHud?.setFeedback(message),
     onDamageVisual: event => damageTextRenderer?.add(event),
     onPlayerSunk: npcId => {
+      disperseR4Raiders();
       if(npcId!=='r2-morbi'||readSave().r2Campaign?.active!=='r2-golden-i')return;
       const defeatedMorbi=world.entities.get('r2-morbi');
       if(defeatedMorbi){
