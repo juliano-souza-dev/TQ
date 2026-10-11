@@ -50,7 +50,7 @@ void main() {
   vec2 viewPosition = (uv - 0.5) * uViewport / max(uZoom, 0.01);
   vec2 world = uCamera + vec2(viewPosition.x, -viewPosition.y);
   if (uPerspective.w > 0.5) {
-    float yaw = uPerspective.x, pitch = clamp(uPerspective.y, 0.60, 1.47);
+    float yaw = uPerspective.x, pitch = clamp(uPerspective.y, 0.35, 1.47);
     float d = max(1.0, uPerspective.z);
     float cp = cos(pitch), sp = sin(pitch), cy = cos(yaw), sy = sin(yaw);
     vec3 forward = vec3(sy * cp, -cy * cp, -sp);
@@ -60,7 +60,11 @@ void main() {
     float focal = uViewport.y / (2.0 * tan(0.5235987756));
     vec2 screen = vec2(uv.x - 0.5, 0.5 - uv.y) * uViewport;
     vec3 ray = forward + right * (screen.x / focal) + up * (-screen.y / focal);
-    world = eye.xy + ray.xy * (-eye.z / min(ray.z, -0.00001));
+    if (ray.z >= -0.00001) {
+      fragColor = vec4(0.0);
+      return;
+    }
+    world = eye.xy + ray.xy * (-eye.z / ray.z);
   }
 
   // Very slow drift; irregular low-frequency fog banks with curled thin edges.
