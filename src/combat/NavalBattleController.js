@@ -131,7 +131,7 @@ export class NavalBattleController {
   isSpeedActive() { return Date.now() < this.getConsumables().speedActiveUntil; }
   isTreasureMapActive() { return Date.now() < this.getConsumables().treasureMapActiveUntil; }
   selectConsumable(id) {
-    if (!['none','flame-5x','shield','speed-plus','treasure-map'].includes(id)) return false;
+    if (!['none','flame-5x','shield','speed-plus','treasure-map','area-freeze'].includes(id)) return false;
     const save=this.readSave();
     this.writePatch({consumables:{...(save.consumables??{}),selectedId:id}});
     return true;
@@ -144,6 +144,13 @@ export class NavalBattleController {
       'speed-plus':{active:'speedActiveUntil',cooldown:'speedCooldownUntil',duration:120000,reload:300000,label:'Veloz+'},
       'treasure-map':{active:'treasureMapActiveUntil',cooldown:'treasureMapCooldownUntil',duration:900000,reload:1800000,label:'Mapa do Tesouro'},
     }[c.selectedId];
+    if(c.selectedId==='area-freeze'){
+      const count=Math.max(0,Math.floor(Number(c.quantities?.['area-freeze'])||0));
+      if(!count)return {ok:false,reason:'Você não possui Congelamento em Área.'};
+      if(c.areaFreezeArmed)return {ok:false,reason:'Congelamento em Área já preparado.'};
+      this.writePatch({consumables:{...c,quantities:{...c.quantities,'area-freeze':count-1},areaFreezeArmed:true}});
+      return {ok:true,reason:'❄️ Próximo disparo: congelamento em área de 50 metros por 5 segundos.'};
+    }
     if(!config)return {ok:false,reason:'Selecione um consumível.'};
     if(c.selectedId==='flame-5x' && this.getRegionId()==='r3' &&
        !save.r3Campaign?.varkorFlameUnlocked)
@@ -738,7 +745,8 @@ export class NavalBattleController {
       const flameBoost = this.isFlameActive() && this.isBossTarget(target) && (this.getRegionId()!=='r3' || (target.archetype==='terror-do-mar' && !!save.r3Campaign?.varkorFlameUnlocked));
       const goldenMission = this.getRegionId() === 'r2' && save.r2Campaign?.active === 'r2-golden-ii' && target.id === 'r2-morbi';
       const varkorBonus = target.archetype==='terror-do-mar' && target.varkorBattleUnlocked ? 7 * 1.25 : 1;
-      const damage = shotDamage(cannon, ammo.id) * SHIP_CANNON_DAMAGE_MULTIPLIER * (this.getRegionId()==='r4' && ammo.id==='volcanic-lava' && target.type==='npc' ? 3 : 1) * varkorBonus * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
+      const areaFreezeArmed=!!save.consumables?.areaFreezeArmed;
+      const damage = (areaFreezeArmed?0:shotDamage(cannon, ammo.id)) * SHIP_CANNON_DAMAGE_MULTIPLIER * (this.getRegionId()==='r4' && ammo.id==='volcanic-lava' && target.type==='npc' ? 3 : 1) * varkorBonus * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
       const tracking = ammo.trackingDurationMs > 0;
       const accepted = this.renderer.fire({
         from: muzzle, to: destination,
@@ -746,6 +754,16 @@ export class NavalBattleController {
         ammo, flameBoost, ...(tracking ? { trackingTarget: target, trackingSpeed: speed } : {}),
         impactKind: 'water', startTime: now,
         onImpact: ({ at }) => {
+          if(areaFreezeArmed){
+            let affected=0;
+            for(const npc of this.getEntities().values()){
+              if(npc.type!=='npc'||npc.health<=0||Math.hypot(npc.x-at.x,npc.y-at.y)>50)continue;
+              npc.frozenUntil=Math.max(npc.frozenUntil||0,Date.now()+5000);
+              affected++;
+            }
+            this.onFeedback('❄️ Explosão gélida em área! '+affected+' NPC(s) congelado(s) por 5 segundos.');
+            return {kind:'water'};
+          }
           const result = this.resolvePlayerImpact(target.id, at, damage);
           if(result?.kind==='ship' && ammo.id==='frozen-explosion' && target.health>0){
             target.frozenUntil=Math.max(Number(target.frozenUntil)||0,Date.now()+6000);
@@ -759,6 +777,7 @@ export class NavalBattleController {
       playCannonSound(cannon.id === 'aetherion-mk1' ? 'special' : 'normal');
 
       this.markCombatActivity(now);
+      if(areaFreezeArmed)this.writePatch({consumables:{...(this.readSave().consumables??{}),areaFreezeArmed:false}});
       ammoStockById[ammoId] = remaining - 1;
       this.writePatch({ammunition: {...save.ammunition, ...ammoStockById}});
       this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000 / (flameBoost ? 5 : 1)));
@@ -976,7 +995,8 @@ export class NavalBattleController {
 
       const cursor=((this.npcSequenceCursor.get(sequenceKey)??0)%total+total)%total;
       const muzzle=cannonHardpoint(npc,target,npc.heading,cursor,total);
-      const aim=tracking?{x:target.x,y:target.y}:aimWithAccuracy(target,muzzle,.66,this.random);
+      const predicted=interceptPoint(muzzle,target,this.velocities.get('player')??this.velocities.get(target.id),speed);
+      const aim=tracking?{x:target.x,y:target.y}:aimWithAccuracy(predicted,muzzle,.92,this.random);
       const controller=this;
       const fired=this.renderer.fire({
         from:muzzle,to:aim,
