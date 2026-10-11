@@ -111,9 +111,9 @@ export function createCorsairPopulation(world, random = Math.random) {
   return world.entities.size;
 }
 
-export function updateCorsairPopulation(world, deltaMs, random = Math.random, onFire = () => {}) {
+export function updateCorsairPopulation(world, deltaMs, random = Math.random, onFire = () => {}, playerAlive=true) {
   if (world.region.id === 'r3') {
-    const raids = updateDarkWatersFleet(world, deltaMs, random);
+    const raids = updateDarkWatersFleet(world, deltaMs, random, playerAlive);
     // R3: maintain a 100-unit hull clearance from the actual player ship.
     // Check the final positions after NPC-to-NPC collision resolution.
     resolveNpcCollisions(world);
