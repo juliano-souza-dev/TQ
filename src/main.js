@@ -2394,6 +2394,21 @@ async function startWorld() {
     } else if (flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
   }
   updateMissionHud();
+  // Restore the R4 guided pointer on every world load, including active missions.
+  // The earlier startup condition only covered players without an active contract.
+  if(world.region.id==='r4'){
+    const current=readSave().r4Campaign??{};
+    if(current.active==='r4-building-strength')
+      void guideMissionTo(current.packagePurchased?'missions':world.entities.get('r4-mercador-red')??{x:2050,y:2700,name:'Mercador Red'});
+    else if(current.active==='r4-equip-ice-terror')
+      void guideMissionTo('shipyard');
+    else if(current.active==='r4-ice-wreck-investigation'){
+      const collected=readSave().r4CollectedWrecks??[];
+      const next=R4_ICE_WRECKS.find(w=>!collected.includes(w.id));
+      void guideMissionTo(next?{...next,name:'Destroço Gélido'}:'missions');
+    }else if(!current.active&&boardFor(readSave(),'r4').missions.some(m=>m.status==='available'||m.status==='ready'))
+      void guideMissionTo('missions');
+  }
   // The ambush must be transactional: inventory loss and campaign progress are
   // persisted together, so refreshing cannot repeat the destruction.
   let pumpkinAmbushElapsed=0;
