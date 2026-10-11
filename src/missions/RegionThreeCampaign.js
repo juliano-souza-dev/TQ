@@ -10,6 +10,8 @@ export const R3_ABYSS_SECRET_MISSION_ID='r3-abyss-secret';
 export const R3_FLAME_MISSION_ID='r3-abyss-flame';
 export const R3_VARKOR_MISSION_ID='r3-terror-awakening';
 export const R3_REBUILD_MISSION_ID='r3-rebuild-terror';
+export const R3_CLEANUP_MISSION_ID='r3-clean-waters';
+export const R3_CLEANUP_RED_IDS=Object.freeze(['r3-dente-do-pavor','r3-red-marea','r3-red-coral']);
 export const R3_FLAME_STOPS=Object.freeze([
   Object.freeze({id:'r3-flame-wreck-1',x:850,y:2480,name:'Destroços Perdidos',questions:2}),
   Object.freeze({id:'r3-flame-wreck-2',x:1820,y:3020,name:'Fragmentos da Chama I',questions:1}),
@@ -81,7 +83,12 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
  objectives:[{kind:'emerald-talk',count:1,label:'Encontrar o Fantasma Esmeralda perto da Ilha Esquecida'},
  {kind:'emerald-wreck',count:1,label:'Recolher os destroços para a construção'},
  {kind:'terror-equip',count:1,label:'Construir e equipar o Terror do Mar no Estaleiro'}],
- reward:{unlockRegion:4},
+ reward:{story:'O Terror do Mar foi reconstruído'},
+}),Object.freeze({
+ id:R3_CLEANUP_MISSION_ID,name:'Os Últimos Resíduos',
+ description:'As águas foram limpas, mas três navios Red ainda rondam a região. Afunde os remanescentes; o Fantasma Esmeralda já partiu e a Sombra do Saque foge para Terras Gélidas. Retorne ao Porto das Missões antes da travessia.',
+ objectives:[{kind:'cleanup-red',count:3,label:'Afundar os três Red remanescentes'},{kind:'return-port',count:1,label:'Retornar ao Porto das Missões'}],
+ reward:{gold:15000,unlockRegion:4},
 })]);
 
 export function expectedR3GoldenLoadout(save, capacity) {
@@ -128,6 +135,7 @@ export function getR3Board(save={}) {
   const sixthDone=claimed.includes(R3_FLAME_MISSION_ID);
   const seventhDone=claimed.includes(R3_VARKOR_MISSION_ID);
   const eighthDone=claimed.includes(R3_REBUILD_MISSION_ID);
+  const ninthDone=claimed.includes(R3_CLEANUP_MISSION_ID);
   const wreckCount=Math.min(3,(save.r3Campaign?.wreckDiaries??[]).length);
   const delivered=Boolean(save.r3Campaign?.wreckDelivered);
   const first=R3_MISSIONS[0];
@@ -184,14 +192,23 @@ export function getR3Board(save={}) {
   const eighthReady=eighthActive&&rebuild.emeraldWreckCollected&&save.equipment?.equippedShipId==='terror-do-mar';
   const eighthStatus=eighthDone?'claimed':!seventhDone?'locked':eighthReady?'ready':eighthActive?'active':'available';
   const eighthItem={...eighth,status:eighthStatus,progress:[rebuild.emeraldSpoken||eighthDone?1:0,rebuild.emeraldWreckCollected||eighthDone?1:0,save.equipment?.equippedShipId==='terror-do-mar'||eighthDone?1:0],claimed:eighthDone,active:['active','ready'].includes(eighthStatus),ready:eighthStatus==='ready'};
-  const current=seventhDone?eighthItem:sixthDone?seventhItem:fifthDone?sixthItem:firstDone?(secondDone?(thirdDone?(fourthDone?fifthItem:fourthItem):thirdItem):secondItem):firstItem;
-  return {missions:[firstItem,secondItem,thirdItem,fourthItem,fifthItem,sixthItem,seventhItem,eighthItem],
+  const cleanup=save.r3Campaign??{},kills=R3_CLEANUP_RED_IDS.filter(id=>(cleanup.cleanupSunkIds??[]).includes(id)).length;
+  const ninthActive=cleanup.active===R3_CLEANUP_MISSION_ID;
+  const ninthReady=ninthActive&&kills===3&&!!cleanup.cleanupReturned;
+  const ninthStatus=ninthDone?'claimed':!eighthDone?'locked':ninthReady?'ready':ninthActive?'active':'available';
+  const ninthItem={...R3_MISSIONS[8],status:ninthStatus,progress:[kills,cleanup.cleanupReturned||ninthDone?1:0],claimed:ninthDone,active:['active','ready'].includes(ninthStatus),ready:ninthStatus==='ready'};
+  const current=eighthDone?ninthItem:seventhDone?eighthItem:sixthDone?seventhItem:fifthDone?sixthItem:firstDone?(secondDone?(thirdDone?(fourthDone?fifthItem:fourthItem):thirdItem):secondItem):firstItem;
+  return {missions:[firstItem,secondItem,thirdItem,fourthItem,fifthItem,sixthItem,seventhItem,eighthItem,ninthItem],
     essentialClaimed:claimed.filter(id=>R3_MISSIONS.some(m=>m.id===id)).length,
     unlockedRegion:Math.max(3,Number(save.progression?.unlockedRegion)||3),activeRegion:3,
     active:current.active?[current]:[],claimable:current.ready?[current]:[],
     available:current.status==='available'?[current]:[]};
 }
 export function acceptR3Mission(save,id){
+ if(id===R3_CLEANUP_MISSION_ID){const state=save.r3Campaign??{};
+  if(!state.claimed?.includes(R3_REBUILD_MISSION_ID)||state.claimed.includes(id)||state.active)return null;
+  return {r3Campaign:{...state,active:id,cleanupSunkIds:[],cleanupReturned:false,emeraldDeparted:true}};
+ }
  if(id===R3_REBUILD_MISSION_ID){
   const state=save.r3Campaign??{};
   if(!state.claimed?.includes(R3_VARKOR_MISSION_ID)||state.claimed.includes(id)||state.active)return null;
@@ -226,6 +243,11 @@ export function acceptR3Mission(save,id){
   return {r3Campaign:{...(save.r3Campaign??{}),active:id,wreckDiaries:[],wreckDelivered:false}};
 }
 export function recordR3Event(save,event){
+ if(save.r3Campaign?.active===R3_CLEANUP_MISSION_ID){const state=save.r3Campaign;
+  if(event.type==='cleanup-red-sunk'&&R3_CLEANUP_RED_IDS.includes(event.id)&&!(state.cleanupSunkIds??[]).includes(event.id))return {r3Campaign:{...state,cleanupSunkIds:[...(state.cleanupSunkIds??[]),event.id]}};
+  if(event.type==='return-port'&&R3_CLEANUP_RED_IDS.every(id=>(state.cleanupSunkIds??[]).includes(id))&&!state.cleanupReturned)return {r3Campaign:{...state,cleanupReturned:true}};
+  return null;
+ }
  if(save.r3Campaign?.active===R3_REBUILD_MISSION_ID){
   const state=save.r3Campaign;
   if(event.type==='emerald-talk'&&!state.emeraldSpoken)return {r3Campaign:{...state,emeraldSpoken:true}};
@@ -295,10 +317,14 @@ export function recordR3Event(save,event){
   return null;
 }
 export function claimR3Mission(save,id){
+ if(id===R3_CLEANUP_MISSION_ID){const state=save.r3Campaign??{};
+  if(state.active!==id||state.claimed?.includes(id)||!state.cleanupReturned||!R3_CLEANUP_RED_IDS.every(id=>(state.cleanupSunkIds??[]).includes(id)))return null;
+  return {mission:R3_MISSIONS[8],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...(state.claimed??[]),id])]},profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+15000},progression:{...(save.progression??{}),unlockedRegion:Math.max(4,Number(save.progression?.unlockedRegion)||1)}}};
+ }
  if(id===R3_REBUILD_MISSION_ID){
   const state=save.r3Campaign??{};
   if(state.active!==id||!state.emeraldWreckCollected||save.equipment?.equippedShipId!=='terror-do-mar'||state.claimed?.includes(id))return null;
-  return {mission:R3_MISSIONS[7],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...(state.claimed??[]),id])]},progression:{...(save.progression??{}),unlockedRegion:Math.max(4,Number(save.progression?.unlockedRegion)||1)}}};
+  return {mission:R3_MISSIONS[7],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...(state.claimed??[]),id])]}}};
  }
  if(id===R3_VARKOR_MISSION_ID){
   const state=save.r3Campaign??{};

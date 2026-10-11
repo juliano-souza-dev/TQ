@@ -228,6 +228,7 @@ function updateBoss(npc, world, deltaMs, random) {
 }
 
 function updateRaider(npc, world, deltaMs, random, raids) {
+  if(npc.escapingToR4)return;
   if (npc.health <= 0) {
     npc.respawnRemainingMs = (npc.respawnRemainingMs ?? DARK_WATERS_RAIDER_RESPAWN_MS) - Math.max(0, deltaMs);
     if (npc.respawnRemainingMs <= 0) respawnRaider(npc, world.region);

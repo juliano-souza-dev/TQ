@@ -1,4 +1,4 @@
-import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID, R3_REBUILD_MISSION_ID } from './missions/RegionThreeCampaign.js';
+import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID, R3_REBUILD_MISSION_ID, R3_CLEANUP_MISSION_ID, R3_CLEANUP_RED_IDS } from './missions/RegionThreeCampaign.js';
 import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout, verifySilasArsenalAtLeviathan } from './missions/R3SilasTrade.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
@@ -1209,6 +1209,7 @@ async function startWorld() {
       if(world.region.id==='r3'&&npc.archetype==='dark-waters-raider'){
         recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
       }else if(world.region.id==='r3'&&npc.archetype==='terror-guardian'){
+        recordMissionEvent({type:'cleanup-red-sunk',id:npc.id});
         recordMissionEvent({type:'abyss-red-sunk',archetype:npc.archetype,id:npc.id+':'+(npc.sinkSerial??0)});
         recordMissionEvent({type:'flame-enemy',archetype:npc.archetype,id:npc.id+':'+(npc.sinkSerial??0)});
       } else if (world.region.id === 'r3' && npc.archetype === 'terror-do-mar') {
@@ -1832,8 +1833,16 @@ async function startWorld() {
        }else if(!campaign.claimed?.includes(R3_REBUILD_MISSION_ID)){
         missionHud.textContent='📜 Porto das Missões · O Renascimento do Terror do Mar';
         void guideMissionTo('missions');
+      }else if(campaign.active===R3_CLEANUP_MISSION_ID){
+        const left=R3_CLEANUP_RED_IDS.filter(id=>!(campaign.cleanupSunkIds??[]).includes(id));
+        missionHud.textContent='⚔️ Os Últimos Resíduos · '+(3-left.length)+'/3 Red afundados';
+        if(!left.length)void guideMissionTo('missions');
+        else {const target=left.map(id=>world.entities.get(id)).find(n=>n?.health>0);if(target)void guideMissionTo(target);}
+      }else if(!campaign.claimed?.includes(R3_CLEANUP_MISSION_ID)){
+        missionHud.textContent='📜 Porto das Missões · Os Últimos Resíduos';
+        void guideMissionTo('missions');
       }else{
-        missionHud.textContent='🏆 Terror do Mar reconstruído · Próxima região liberada';
+        missionHud.textContent='🏆 Águas limpas · Próximo destino: Terras Gélidas';
         firstVoyageGuide?.finish();
       }
       return;
@@ -1984,9 +1993,9 @@ async function startWorld() {
           // Story transition must remain readable, not disappear as a short action toast.
           // This is the SAME R3 sea after the corruption has been lifted, not a teleport.
           missionCompleteTitle.textContent='🌅 As Águas Escuras foram libertadas!';
-          missionCompleteText.textContent='Com Varkor derrotado e o Terror do Mar reconstruído, a maldição que escurecia este oceano se desfez. A névoa se dissipou e a água recuperou sua cor natural. Você continua na mesma região, não foi teletransportado. A próxima aventura espera na passagem para as Águas Desconhecidas, ao extremo sudeste do mapa.';
+          missionCompleteText.textContent='As águas voltaram à cor natural, mas ainda restam navios Red hostis. Volte ao Porto das Missões para iniciar a limpeza antes da travessia até Terras Gélidas.';
           missionCompleteOverlay.hidden=false;
-          void guideMissionTo({x:world.region.width-230,y:world.region.height-250});
+          void guideMissionTo('missions');
         }
         if(result.mission.reward?.shipUpgrade){
           const upgraded=readSave();
@@ -2257,6 +2266,10 @@ async function startWorld() {
       });
     } else {
       islandPanel.open(contact.kind);
+    }
+    if(world.region.id==='r3'&&contact.kind==='missions'&&readSave().r3Campaign?.active===R3_CLEANUP_MISSION_ID){
+      if(recordMissionEvent({type:'return-port',id:'r3-cleanup-return'}))showOceanReward('✅ Águas limpas! Resgate o acesso às Terras Gélidas.');
+      islandPanel.refreshMissionBoard();
     }
     if(world.region.id==='r3'&&contact.kind==='missions'&&readSave().r3Campaign?.active===R3_VARKOR_MISSION_ID){
       if(recordMissionEvent({type:'return-port'}))showOceanReward('🏆 O Terror do Mar caiu! A lenda de Varkor termina aqui. Resgate sua recompensa.');
@@ -2892,6 +2905,22 @@ async function startWorld() {
           }
           const ghost=world.entities.get('r3-fantasma-esmeralda');
           if(ghost)ghost.varkorAllyActive=true;
+        }
+      }
+      if(world.region.id==='r3'){
+        const state=readSave().r3Campaign??{};
+        const cleaning=state.active===R3_CLEANUP_MISSION_ID||state.claimed?.includes(R3_CLEANUP_MISSION_ID);
+        if(cleaning){
+          world.entities.delete('r3-fantasma-esmeralda');
+          for(const id of state.cleanupSunkIds??[])world.entities.delete(id);
+          const thief=world.entities.get('r3-sombra-do-saque');
+          if(thief){
+            const goal={x:world.region.width-95,y:world.region.height-95};
+            const dx=goal.x-thief.x,dy=goal.y-thief.y,dist=Math.hypot(dx,dy);
+            if(dist<125)world.entities.delete(thief.id);
+            else{const step=Math.min(dist,Math.max(0,stepMs)*.44);thief.x+=dx/dist*step;thief.y+=dy/dist*step;thief.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;}
+            thief.escapingToR4=true;
+          }
         }
       }
       const darkWaterRaids = updateCorsairPopulation(world, stepMs);
