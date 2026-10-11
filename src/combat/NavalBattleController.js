@@ -150,7 +150,7 @@ export class NavalBattleController {
       if(!count)return {ok:false,reason:'Você não possui Congelamento em Área.'};
       if(c.areaFreezeArmed)return {ok:false,reason:'Congelamento em Área já preparado.'};
       this.writePatch({consumables:{...c,quantities:{...c.quantities,'area-freeze':count-1},areaFreezeArmed:true}});
-      return {ok:true,reason:'❄️ Próximo disparo: congelamento em área de 50 metros por 5 segundos.'};
+      return {ok:true,reason:'❄️ Próximo disparo: congelamento em área de 250 metros por 5 segundos.'};
     }
     if(!config)return {ok:false,reason:'Selecione um consumível.'};
     if(c.selectedId==='flame-5x' && this.getRegionId()==='r3' &&
@@ -756,11 +756,11 @@ export class NavalBattleController {
         impactKind: 'water', startTime: now,
         onImpact: ({ at }) => {
           if(areaFreezeArmed){
-            this.freezeBursts.push({x:at.x,y:at.y,startTime:performance.now(),radius:50});
+            this.freezeBursts.push({x:at.x,y:at.y,startTime:performance.now(),radius:250});
             this.freezeBursts=this.freezeBursts.slice(-8);
             let affected=0;
             for(const npc of this.getEntities().values()){
-              if(npc.type!=='npc'||npc.health<=0||Math.hypot(npc.x-at.x,npc.y-at.y)>50)continue;
+              if(npc.type!=='npc'||npc.health<=0||Math.hypot(npc.x-at.x,npc.y-at.y)>250)continue;
               npc.frozenUntil=Math.max(npc.frozenUntil||0,Date.now()+5000);
               affected++;
             }
