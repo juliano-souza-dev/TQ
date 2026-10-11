@@ -1,4 +1,5 @@
 import {createFirstVoyageGuide} from './ui/FirstVoyageGuide.js';
+import { createViewProjection } from './rendering/OrbitalCameraProjection.js';
 import {drawFrozenShip,drawFreezeBurst} from './rendering/FreezeEffects.js';
 const R4_ICE_WRECKS=Object.freeze([{id:'r4-ice-wreck-1',x:1200,y:2400},{id:'r4-ice-wreck-2',x:1830,y:2450},{id:'r4-ice-wreck-3',x:2870,y:3100},{id:'r4-ice-wreck-4',x:3500,y:2600},{id:'r4-ice-wreck-5',x:1800,y:3650}]);
 import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID, R3_REBUILD_MISSION_ID, R3_CLEANUP_MISSION_ID, R3_CLEANUP_RED_IDS } from './missions/RegionThreeCampaign.js';
@@ -82,6 +83,7 @@ let islandPanelElement = null;
 let clickNavigation = null;
 let keyboardCamera = null;
 let fireKeyCleanup = null;
+let cameraOrbitCleanup = null;
 let firstVoyageGuide = null;
 let worldGeneration = 0;
 const GUEST_UID = 'local-guest';
@@ -93,6 +95,8 @@ function stopWorld() {
   worldGeneration++;
   fireKeyCleanup?.();
   fireKeyCleanup = null;
+  cameraOrbitCleanup?.();
+  cameraOrbitCleanup = null;
   if (loop) loop.stop();
   loop = null;
   if (oceanRenderer) oceanRenderer.dispose();
@@ -181,6 +185,67 @@ async function startWorld() {
     : (await import('./world/regions/r1.js')).R1;
   if (generation !== worldGeneration) return;
   const world = createWorldState(region);
+  // A single physical camera defines the water shader, sprites, HUD targets,
+  // naval combat effects and reverse pointer raycasts. XY gameplay is unchanged.
+  world.cameraPerspective = { enabled: true, yaw: 0, pitch: Math.PI / 4 };
+  const projectScreenPoint = (x,y) => createViewProjection(
+    world.cameraView,world.camera.zoom,canvas.clientWidth,canvas.clientHeight,1,
+    world.cameraPerspective
+  ).project({x,y}) ?? {x:-100000,y:-100000,relativeScale:1};
+  const orbitToolbar=document.createElement('div');
+  orbitToolbar.setAttribute('role','toolbar');
+  orbitToolbar.setAttribute('aria-label','Câmera 3D');
+  orbitToolbar.style.cssText=[
+    'position:fixed','left:50%','bottom:12px','transform:translateX(-50%)',
+    'display:flex','align-items:center','gap:5px','padding:5px',
+    'background:rgba(7,25,40,.85)','border:1px solid rgba(165,205,227,.65)',
+    'border-radius:12px','z-index:150','pointer-events:auto',
+    'box-shadow:0 4px 15px rgba(0,0,0,.35)',
+  ].join(';');
+  const orbitButtons=[];
+  const refreshOrbitButtons=()=>{
+    orbitButtons[0].textContent=world.cameraPerspective.enabled?'3D ✓':'2D';
+    orbitButtons.forEach((button,index)=>{
+      button.hidden=index>0&&!world.cameraPerspective.enabled;
+    });
+  };
+  const orbitCommands=[
+    ['Alternar visão 3D / 2D (V)',()=>{world.cameraPerspective.enabled=!world.cameraPerspective.enabled;}],
+    ['Girar 15° para a esquerda (Q)',()=>{world.cameraPerspective.yaw-=Math.PI/12;}],
+    ['Girar 15° para a direita (E)',()=>{world.cameraPerspective.yaw+=Math.PI/12;}],
+    ['Elevar a câmera (PageUp)',()=>{world.cameraPerspective.pitch=Math.min(1.47,world.cameraPerspective.pitch+.10);}],
+    ['Baixar a câmera (PageDown)',()=>{world.cameraPerspective.pitch=Math.max(.60,world.cameraPerspective.pitch-.10);}],
+    ['Redefinir vista 3D (Home)',()=>{world.cameraPerspective.yaw=0;world.cameraPerspective.pitch=Math.PI/4;}],
+  ];
+  const orbitLabels=['3D ✓','↶','↷','↥','↧','⟲'];
+  orbitCommands.forEach(([title,action],index)=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.title=title;
+    button.setAttribute('aria-label',title);
+    button.textContent=orbitLabels[index];
+    button.style.cssText='min-width:33px;height:33px;padding:0 7px;border:1px solid #638ca4;border-radius:7px;background:#16354b;color:#e6f8ff;font:600 12px system-ui;cursor:pointer;touch-action:manipulation';
+    button.addEventListener('pointerdown',event=>event.stopPropagation());
+    button.addEventListener('click',event=>{event.stopPropagation();action();refreshOrbitButtons();});
+    orbitToolbar.append(button);
+    orbitButtons.push(button);
+  });
+  const onOrbitKey=event=>{
+    if(event.repeat||event.ctrlKey||event.altKey||event.metaKey
+      ||event.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+    const command={
+      KeyV:0,KeyQ:1,KeyE:2,PageUp:3,PageDown:4,Home:5,
+    }[event.code];
+    if(command===undefined||(command!==0&&!world.cameraPerspective.enabled))return;
+    event.preventDefault();
+    orbitCommands[command][1]();
+    refreshOrbitButtons();
+  };
+  document.addEventListener('keydown',onOrbitKey,true);
+  cameraOrbitCleanup=()=>{document.removeEventListener('keydown',onOrbitKey,true);orbitToolbar.remove();};
+  root.append(orbitToolbar);
+  refreshOrbitButtons();
+
   const savedPosition = localSaves.load(currentUser.uid)?.payload?.playerPosition;
   // Migração dos pontos antigos de entrada da R2: próximos demais ao porto.
   // Não alterar posições conquistadas pelo jogador dentro da região.
