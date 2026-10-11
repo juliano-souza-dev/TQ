@@ -10,7 +10,7 @@ import { createMathGate } from './ui/MathGate.js';
 import { getVisibleTreasures, findTreasureNearPoint } from './treasures/RegionTreasures.js';
 import { TreasureRenderer } from './rendering/TreasureRenderer.js';
 import { NavalBattleController } from './combat/NavalBattleController.js';
-import { effectiveAmmo } from './combat/NavalBattleRules.js';
+import { effectiveAmmo, armedCannons, cannonRange } from './combat/NavalBattleRules.js';
 import { rollNpcAmmoLoot, grantNpcAmmoLoot } from './combat/NpcAmmoLoot.js';
 import { NavalCombatWebGLRenderer } from './rendering/NavalCombatWebGLRenderer.mjs';
 import { createNavalCombatHud } from './ui/NavalCombatHud.js';
@@ -2797,6 +2797,8 @@ async function startWorld() {
             showOceanReward('🌊 O oceano estremece! Varkor Tenebris, o Terror do Mar, desperta. A frota foge; o Fantasma Esmeralda retorna!');
           }
           boss.varkorBattleUnlocked=true;
+          const battery=armedCannons(readSave(),navalBattle.shipId);
+          boss.playerMaxCannonRange=battery.length?Math.max(...battery.map(({cannon})=>cannonRange(cannon))):0;
           boss.phasedOut=false;
           for(const [id,npc] of world.entities){
             if(id===boss.id || id==='r3-fantasma-esmeralda' ||
