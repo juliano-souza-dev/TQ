@@ -226,7 +226,7 @@ async function startWorld() {
   const { createFugitiveFrigatePopulation, updateFugitiveFrigatePopulation, updateNegotiationFrigate, NEGOTIATION_APPROACH_RADIUS } =
     await import('./npcs/FugitiveFrigateNpc.js');
   const { createMonsterPopulation, updateMonsterPopulation, monsterGoldReward } = await import('./monsters/MonsterPopulation.js');
-  createMonsterPopulation(world);
+  createMonsterPopulation(world, Math.random, localSaves.load(currentUser.uid)?.payload??{});
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
   let selectedNpcId = null;
   let heading = 0;
@@ -1118,6 +1118,7 @@ async function startWorld() {
           // A kill already proves the player discovered the actual monster.
           recordMissionEvent({type:'leviathan-found',id:npc.id});
           recordMissionEvent({type:'leviathan-defeated',id:npc.id});
+          world.entities.delete(npc.id);
           showOceanReward('🐙 Leviathan derrotado! Retorne ao Porto das Missões. +'+gold+' ouro.');
         }else{
           recordMissionEvent({

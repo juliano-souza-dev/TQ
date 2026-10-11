@@ -32,7 +32,7 @@ test('Leviathan is a real Region 3 monster with 250,000 HP and retains dive mech
   leviathan.health=0;
   updateMonsterPopulation(world,1);
   updateMonsterPopulation(world,60000);
-  assert.equal(leviathan.health,250000);
+  assert.equal(world.entities.has(R3_LEVIATHAN_ENTITY_ID),false);
 });
 
 test('Leviathan Hunt unlocks only after Silas has been claimed and stays sequential',()=>{
@@ -143,4 +143,17 @@ test('gameplay wires mission acceptance, live guided target, victory and port re
   assert.match(source,/R3_LEVIATHAN_MISSION_ID/);
   assert.match(source,/guideMissionTo\(leviathan\)/);
   assert.match(source,/recordMissionEvent\(\{type:'return-port',id:'r3-leviathan-return'\}\)/);
+});
+
+test('Defeated Leviathan never respawns and stays absent on reload',()=>{
+ const world=createWorldState(R3);
+ assert.equal(createMonsterPopulation(world,Math.random,{r3Campaign:{leviathanDefeated:true}}),0);
+ assert.equal(world.entities.has(R3_LEVIATHAN_ENTITY_ID),false);
+ const claimed=createWorldState(R3);
+ assert.equal(createMonsterPopulation(claimed,Math.random,{r3Campaign:{claimed:[R3_LEVIATHAN_MISSION_ID]}}),0);
+ const active=createWorldState(R3);
+ createMonsterPopulation(active);
+ active.entities.get(R3_LEVIATHAN_ENTITY_ID).health=0;
+ updateMonsterPopulation(active,61000);
+ assert.equal(active.entities.has(R3_LEVIATHAN_ENTITY_ID),false);
 });
