@@ -1960,11 +1960,11 @@ async function startWorld() {
         const result = campaignFor(world.region.id).claim(readSave(), id);
         if (!result) return false;
         writePatch(result.patch);
+        clearMissionNavigation();
         if(id===R3_REBUILD_MISSION_ID){
-          showOceanReward('🌅 O domínio do Terror terminou! A névoa desaparece e as Águas Escuras tornam-se claras. As águas desconhecidas aguardam além da passagem.');
+          showOceanReward('🌅 O domínio do Terror terminou! A névoa desaparece e as Águas Escuras tornam-se claras. Siga para a saída rumo às Águas Desconhecidas.');
           void guideMissionTo({x:world.region.width-230,y:world.region.height-250});
         }
-        clearMissionNavigation();
         if(result.mission.reward?.shipUpgrade){
           const upgraded=readSave();
           writePatch({shipUpgrades:{...(upgraded.shipUpgrades??{}),masterShipwright:true},
