@@ -270,7 +270,8 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     cannonQuantity.textContent = Number.isFinite(equipped) && Number.isFinite(inRange)
       ? '💣 Canhões: ' + equipped + ' equipados · ' + inRange + ' no alcance'
       : '💣 Contagem de canhões indisponível. Atualize o jogo.';
-    const recovering = Boolean(controller.readSave?.().combat?.repairingUntil);
+    const repairingUntil = Number(controller.readSave?.().combat?.repairingUntil) || 0;
+    const recovering = repairingUntil > Date.now();
     hull.textContent = '❤️ Casco: ' + Math.round(status.health) + '/' + controller.getMaxHealth() + (recovering ? ' · curando' : '');
     const repairAvailable = status.health < controller.getMaxHealth() && !recovering;
     repairButton.disabled = !repairAvailable;
@@ -373,7 +374,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   });
   repairButton.addEventListener('click', event => {
     if (event?.detail !== 0 && performance.now() - lastRepairTouchAt < 650) return;
-    if (!repairButton.disabled && controller.getHealth() < 100) onRepair();
+    if (!repairButton.disabled && controller.getHealth() < controller.getMaxHealth()) onRepair();
   });
   ammoButton.addEventListener('click', () => {
     picker.hidden = true;
