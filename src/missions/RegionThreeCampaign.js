@@ -204,23 +204,6 @@ export function getR3Board(save={}) {
     active:current.active?[current]:[],claimable:current.ready?[current]:[],
     available:current.status==='available'?[current]:[]};
 }
-// Reinicia somente o Renascimento, preservando conquistas anteriores e sem liberar o mapa 4.
-export function resetR3RebuildMission(save = {}) {
-  const state = save.r3Campaign ?? {};
-  if (!state.claimed?.includes(R3_VARKOR_MISSION_ID) ||
-      (Number(save.progression?.unlockedRegion) || 1) >= 4) return null;
-  return { r3Campaign: {
-    ...state,
-    active: null,
-    claimed: (state.claimed ?? []).filter(id => id !== R3_REBUILD_MISSION_ID && id !== R3_CLEANUP_MISSION_ID),
-    emeraldSpoken: false,
-    emeraldWreckCollected: false,
-    emeraldDeparted: false,
-    cleanupSunkIds: [],
-    cleanupReturned: false,
-  }};
-}
-
 export function acceptR3Mission(save,id){
  if(id===R3_CLEANUP_MISSION_ID){const state=save.r3Campaign??{};
   if(!state.claimed?.includes(R3_REBUILD_MISSION_ID)||state.claimed.includes(id)||state.active)return null;
@@ -370,7 +353,7 @@ export function claimR3Mission(save,id){
  if(id===R3_FLAME_MISSION_ID){
   const state=save.r3Campaign??{};
   if(state.active!==id||state.flameStep!==6||!state.flameReturned||state.claimed?.includes(id))return null;
-  const reward=awardR3PreVarkorFlame(save);
+  const reward=awardR3PreVarkorFlame(save)??{r3Campaign:{...state}};
   return {mission:R3_MISSIONS[5],patch:{...reward,r3Campaign:{...reward.r3Campaign,active:null,claimed:[...new Set([...(state.claimed??[]),id])]}}};
  }
 
