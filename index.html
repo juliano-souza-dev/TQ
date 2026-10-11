@@ -82,6 +82,13 @@
       importMap.textContent = JSON.stringify({ imports });
       document.head.append(importMap);
 
+      // Start downloading the module graph while CSS is fetched and processed.
+      // The import map above must exist before modulepreload is registered.
+      const mainUrl = new URL('./src/main.js', document.baseURI).href;
+      const modulePreload = document.createElement('link');
+      modulePreload.rel = 'modulepreload';
+      modulePreload.href = imports[mainUrl];
+      document.head.append(modulePreload);
       // Rewrite CSS url(...) assets too, so background images cannot stay stale.
       const cssUrl = new URL('./src/ui/app.css', document.baseURI);
       bootLabel.textContent = 'Carregando visual e embarcações...';
@@ -95,7 +102,6 @@
       const style = document.createElement('style');
       style.textContent = css;
       document.head.append(style);
-      const mainUrl = new URL('./src/main.js', document.baseURI).href;
       bootLabel.textContent = 'Iniciando o oceano...';
       // Do not retry the entry module under a different URL: a missing dependency
       // or a syntax error would be reported as a misleading main.js fetch failure.
