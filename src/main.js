@@ -882,6 +882,7 @@ async function startWorld() {
       ||save.r3Campaign?.active!==R3_SILAS_MISSION_ID
       ||save.r3Campaign?.silasTradeCompleted
       ||Math.hypot(world.camera.x-silas.x,world.camera.y-silas.y)>silas.interactionRadius)return;
+    marketTrade.textContent='Confirmar troca';
     marketHeading.textContent='☠️ O Pacto de Silas Rubro';
     marketDetails.textContent='VOCÊ RECEBE: 2 Canhões Aetherion MK-I, 18 Terror da Abóbora, Arpoeiro Olho do Horizonte, 1.000 arpões, 2.000 Orbes Vulcânicos, 250 Rosas do Terror e 2.500 Orbes Autoguiados especiais.';
     marketPrice.textContent='SILAS RECEBE DEFINITIVAMENTE: todo o estoque atual de canhões (inclusive os equipados), munições, arpões, lançadores de arpão e consumíveis. Ouro, rubis, navios e outros pertences não entram nesta troca.';
@@ -889,6 +890,7 @@ async function startWorld() {
     marketOverlay.hidden=false;
   }
   function showBlackMarket(){
+    marketTrade.textContent='Confirmar troca';
     if(!['r2-black-market','r2-hunt-prep'].some(id=>boardFor(readSave(),'r2').missions.find(m=>m.id===id)?.status==='active'))return;
     const save=readSave();
     const gold=Math.max(0,Math.floor(Number(save.profile?.gold)||0));
