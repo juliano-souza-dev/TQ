@@ -1263,9 +1263,9 @@ async function startWorld() {
       }
       if(npc.type==='npc'&&npc.health<=0&&npc.merchantKind!=='black-market'&&!npc.lootGranted){
         npc.lootGranted=true;
-        const loot=rollNpcAmmoLoot();
+        const loot=rollNpcAmmoLoot(world.region.id);
         const patch=grantNpcAmmoLoot(readSave(),loot);
-        if(patch){writePatch(patch);showOceanReward('🎁 '+npc.name+': +1 munição de ferro enferrujado · +150 ouro.');}
+        if(patch){writePatch(patch);showOceanReward('🎁 '+npc.name+': +'+loot.amount+' '+loot.name+' · +'+loot.gold+' ouro.');}
       }
     },
   });
