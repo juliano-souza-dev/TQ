@@ -153,3 +153,28 @@ export function createPerspectiveCamera({
   }
   return { eye, target, forward, right, up, focal, project, unprojectGround };
 }
+
+/**
+ * Stable sprite-frame selection for a world-facing ship viewed from an
+ * arbitrary orbital yaw. Heading degrees are clockwise from world north.
+ * This deliberately changes presentation, never navigation or hitboxes.
+ */
+export function cameraRelativeHeading(headingDegrees, cameraYawRadians) {
+  const heading = Number(headingDegrees) || 0;
+  const yawDegrees = (Number(cameraYawRadians) || 0) * 180 / Math.PI;
+  return ((heading - yawDegrees) % 360 + 360) % 360;
+}
+
+/**
+ * Returns a perspective sprite footprint. Anchoring at the projected water
+ * contact point keeps vessels attached to the ocean while camera height moves.
+ */
+export function projectGroundSprite(camera3d, position, worldWidth, worldHeight) {
+  const anchor = camera3d.project({ x: position.x, y: position.y, z: position.z || 0 });
+  if (!anchor) return null;
+  return {
+    ...anchor,
+    width: Math.max(0, worldWidth) * anchor.scale,
+    height: Math.max(0, worldHeight) * anchor.scale,
+  };
+}
