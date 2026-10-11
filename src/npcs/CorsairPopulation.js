@@ -101,7 +101,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     const alerted = fleet.some(n=>n.health>0 && (n.retaliationActive || n.aggression==='attack'));
     for (const npc of fleet) {
       if (npc.health<=0) {
-        npc.respawnRemainingMs=(npc.respawnRemainingMs??10000)-deltaMs;
+        npc.respawnRemainingMs=(npc.respawnRemainingMs??120000)-deltaMs;
         if(npc.respawnRemainingMs<=0){
           const point=spawnPosition(world.region,world.camera,random);
           Object.assign(npc,{x:point.x,y:point.y,health:npc.maxHealth,
