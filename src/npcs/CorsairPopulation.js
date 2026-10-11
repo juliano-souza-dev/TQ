@@ -1,3 +1,4 @@
+import { FROZEN_LANDS_GALLEON_SHIP } from '../ships/FrozenLandsGalleonShip.js';
 import { createRedSailCorsair, updateCorsair, RED_SAIL_CORSAIR } from './RedSailCorsair.js';
 import { createRoseGoldCorsair as createTerrorDaTabuada, ROSE_GOLD_CORSAIR as TERROR_DA_TABUADA } from './RoseGoldCorsair.js';
 import { resolveIslandMovement, collidesWithIsland } from '../world/IslandCollision.js';
@@ -58,6 +59,23 @@ export function createCorsairPopulation(world, random = Math.random) {
     return world.entities.size;
   }
 
+  if (world.region.id === 'r4') {
+    // Vigias da Geada: neutral until hit, then the same shipId fleet responds.
+    for (let i = 0; i < 12; i++) {
+      const id = 'r4-vigias-da-geada-' + String(i+1).padStart(2,'0');
+      const point = spawnPosition(world.region, world.camera, random);
+      world.entities.set(id, {
+        id, type:'npc', archetype:'vigia-da-geada', name:'Vigia da Geada',
+        shipId:FROZEN_LANDS_GALLEON_SHIP.id, fleetId:FROZEN_LANDS_GALLEON_SHIP.id,
+        x:point.x,y:point.y,heading:random()*360,
+        health:18000,maxHealth:18000,state:'patrolling',aggression:'neutral',
+        damage:12,range:520,cannonSlots:9,speed:250,
+        retaliationActive:false,respawnRemainingMs:null,wanderTimeMs:1800,
+      });
+    }
+    return world.entities.size;
+  }
+
   for (let i = 0; i < CORSAIR_POPULATION; i++) {
     const id = 'corsair-r1-' + String(i + 1).padStart(2, '0');
     const position = spawnPosition(world.region, world.camera, random);
@@ -78,6 +96,42 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     return raids;
   }
 
+  if (world.region.id === 'r4') {
+    const fleet = [...world.entities.values()].filter(n=>n.archetype==='vigia-da-geada');
+    const alerted = fleet.some(n=>n.health>0 && (n.retaliationActive || n.aggression==='attack'));
+    for (const npc of fleet) {
+      if (npc.health<=0) {
+        npc.respawnRemainingMs=(npc.respawnRemainingMs??CORSAIR_RESPAWN_MS)-deltaMs;
+        if(npc.respawnRemainingMs<=0){
+          const point=spawnPosition(world.region,world.camera,random);
+          Object.assign(npc,{x:point.x,y:point.y,health:npc.maxHealth,
+            aggression:'neutral',retaliationActive:false,state:'patrolling',
+            respawnRemainingMs:null,lootGranted:false});
+        }
+        continue;
+      }
+      // Alert propagates only among ships of this exact shipId.
+      if(alerted && Math.hypot(npc.x-world.camera.x,npc.y-world.camera.y)<850){
+        npc.retaliationActive=true;npc.aggression='attack';npc.state='retaliating';
+      }
+      const dt=Math.min(64,Math.max(0,deltaMs))/1000;
+      npc.wanderTimeMs-=deltaMs;
+      if(npc.retaliationActive){
+        npc.heading=(Math.atan2(world.camera.x-npc.x,-(world.camera.y-npc.y))*180/Math.PI+360)%360;
+      }else if(npc.wanderTimeMs<=0){
+        npc.heading=random()*360;npc.wanderTimeMs=1600+random()*3200;
+      }
+      const distance=Math.hypot(world.camera.x-npc.x,world.camera.y-npc.y);
+      const move=npc.retaliationActive?Math.min(npc.speed*dt,Math.max(0,distance-220)):npc.speed*dt*.45;
+      const rad=npc.heading*Math.PI/180;
+      const moved=resolveIslandMovement(world.region,npc.x,npc.y,
+        Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(rad)*move)),
+        Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(rad)*move)),38);
+      npc.x=moved.x;npc.y=moved.y;
+    }
+    resolveNpcCollisions(world);
+    return [];
+  }
   const targets = new Map([['player', world.camera]]);
   for (const npc of world.entities.values()) {
     if (npc.archetype !== RED_SAIL_CORSAIR.id && npc.archetype !== TERROR_DA_TABUADA.id) continue;
