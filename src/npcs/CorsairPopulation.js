@@ -115,6 +115,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
       if(alerted && Math.hypot(npc.x-world.camera.x,npc.y-world.camera.y)<850){
         npc.retaliationActive=true;npc.aggression='attack';npc.state='retaliating';
       }
+      if(Date.now()<(npc.frozenUntil||0)){npc.state='frozen';continue;}
       const dt=Math.min(64,Math.max(0,deltaMs))/1000;
       npc.wanderTimeMs-=deltaMs;
       if(npc.retaliationActive){
