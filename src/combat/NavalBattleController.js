@@ -769,7 +769,7 @@ export class NavalBattleController {
           }
           const result = this.resolvePlayerImpact(target.id, at, damage);
           if(result?.kind==='ship' && ammo.id==='frozen-explosion' && target.health>0){
-            target.frozenUntil=Math.max(Number(target.frozenUntil)||0,Date.now()+6000);
+            target.frozenUntil=Math.max(Number(target.frozenUntil)||0,Date.now()+(npc.freezeDurationMs||6000));
             this.onFeedback('❄️ '+target.name+' congelado por 6 segundos!');
           }
           playCannonSound(result?.kind === 'ship' ? 'impact' : 'water');
@@ -863,7 +863,7 @@ export class NavalBattleController {
         x:Number(target.x)||0,y:Number(target.y)||0,
         heading:Number(target.heading)||0,updatedAt:Date.now()}});
     }
-    if(target.health>0 && target.type==='npc' && ['terror-guardian','dark-waters-raider','vigia-da-geada',RED_SAIL_CORSAIR.id].includes(target.archetype)){
+    if(target.health>0 && target.type==='npc' && ['terror-guardian','dark-waters-raider','vigia-da-geada','r4-ladrao-gelido',RED_SAIL_CORSAIR.id].includes(target.archetype)){
       target.retaliationActive=true;
       target.state='retaliating';
       target.aggression='attack';
@@ -1015,7 +1015,7 @@ export class NavalBattleController {
           const result=onImpact?onImpact({at}):this.resolveNpcImpact(npc.id,at,damage*SHIP_CANNON_DAMAGE_MULTIPLIER);
           if(result?.kind==='ship' && (ammo?.id==='frozen-explosion' || ammo?.id==='glacial-seeker')){
             this.playerFrozenUntil=Math.max(this.playerFrozenUntil||0,Date.now()+6000);
-            this.onFeedback('❄️ Seu navio foi congelado por 6 segundos!');
+            this.onFeedback('❄️ Seu navio foi congelado por '+((npc.freezeDurationMs||6000)/1000)+' segundos!');
           }
           playCannonSound(result?.kind==='ship'?'impact':'water');
           return result;
@@ -1121,6 +1121,15 @@ export class NavalBattleController {
           sequenceKey:npc.id+':glacial-sequence',reloadKey:npc.id+':glacial-reload',
           reloadMs:5000,damage:Math.max(1,Number(npc.damage)||20),speed:700,
           ammo:effectiveAmmo('glacial-seeker'),tracking:true});
+        continue;
+      }
+      if(this.getRegionId()==='r4' && npc.archetype==='r4-ladrao-gelido' && npc.health>0){
+        if(npc.retaliationActive && distanceBetween(npc,player)<=npc.range){
+          fireSequenceShot({npc,target:player,count:1,
+            sequenceKey:npc.id+':freeze-sequence',reloadKey:npc.id+':freeze-reload',
+            reloadMs:10000,damage:5/SHIP_CANNON_DAMAGE_MULTIPLIER,speed:700,
+            ammo:effectiveAmmo('frozen-explosion'),tracking:true});
+        }
         continue;
       }
       if (npc.type !== 'npc' || npc.health <= 0 ||
