@@ -2212,10 +2212,18 @@ async function startWorld() {
     const autoTerrorEquip=world.region.id==='r2' && contact.kind==='shipyard'
       && readSave().r2Campaign?.active==='r2-equip-terror';
     if(world.region.id==='r3' && contact.kind==='shipyard'){
-      if(autoR3Equip)void autoEquipR3AtShipyard().then(equipped=>{
+      const rebuild=readSave().r3Campaign??{};
+      if(rebuild.active===R3_REBUILD_MISSION_ID&&rebuild.emeraldWreckCollected){
+        const save=readSave(),equipment=save.equipment??{};
+        if(!equipment.ownedShipIds?.includes('terror-do-mar')){
+          writePatch({equipment:{...equipment,ownedShipIds:[...new Set([...(equipment.ownedShipIds??[]),'terror-do-mar'])]}});
+          showOceanReward('⚓ O Fantasma Esmeralda concluiu a construção! Terror do Mar adicionado à sua frota. Equipe-o para continuar.');
+        }
+        islandPanel.open('shipyard');
+      }else if(autoR3Equip)void autoEquipR3AtShipyard().then(equipped=>{
         if(!equipped)void guideMissionTo('shipyard');
       });
-      else showOceanReward('🔒 Estaleiro indisponível até nova missão.');
+      else showOceanReward('🔒 O Estaleiro será liberado na missão de reconstrução do Terror do Mar.');
     } else if(autoTerrorEquip) {
       void autoEquipTerrorAtShipyard().then(equipped=>{
         if(!equipped) islandPanel.open('shipyard');
