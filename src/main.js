@@ -3260,12 +3260,27 @@ async function startWorld() {
         if(polarCanvas.width!==w||polarCanvas.height!==h){polarCanvas.width=w;polarCanvas.height=h;}
         polarCtx.clearRect(0,0,w,h);
         polarCtx.fillStyle='rgba(211,233,244,0.27)';polarCtx.fillRect(0,0,w,h);
-        const t=oceanTimeMs*.001;
-        for(let i=0;i<230;i++){
-          const x=((i*83.7+t*(13+i%7*4))%(w+40))-20;
-          const y=((i*137.3+t*(35+i%9*8))%(h+40))-20;
-          polarCtx.beginPath();polarCtx.arc(x,y,1+(i%4)*.7,0,Math.PI*2);
-          polarCtx.fillStyle='rgba(255,255,255,'+(0.45+(i%5)*.1)+')';polarCtx.fill();
+        // Snow exists in world coordinates, not on the camera lens.
+        // Moving the ship changes which flakes are visible, while each
+        // flake keeps falling independently through the frozen landscape.
+        const t=oceanTimeMs*.001,z=Math.max(.01,world.camera.zoom);
+        const cell=95,view=world.cameraView;
+        const left=view.x-w/(2*z)-cell,right=view.x+w/(2*z)+cell;
+        const top=view.y-h/(2*z)-cell,bottom=view.y+h/(2*z)+cell;
+        const firstX=Math.floor(left/cell),lastX=Math.ceil(right/cell);
+        const firstY=Math.floor(top/cell),lastY=Math.ceil(bottom/cell);
+        for(let gy=firstY;gy<=lastY;gy++){
+          for(let gx=firstX;gx<=lastX;gx++){
+            const seed=Math.abs(Math.sin(gx*127.1+gy*311.7)*43758.5453)%1;
+            const drift=(t*(8+seed*14))%cell;
+            const fall=(t*(25+seed*40))%cell;
+            const wx=gx*cell+seed*cell+drift;
+            const wy=gy*cell+((seed*.73+.17)%1)*cell+fall;
+            const x=w*.5+(wx-view.x)*z,y=h*.5+(wy-view.y)*z;
+            if(x< -8||x>w+8||y< -8||y>h+8)continue;
+            polarCtx.beginPath();polarCtx.arc(x,y,(1+seed*2.3)*Math.min(1.5,Math.max(.7,z)),0,Math.PI*2);
+            polarCtx.fillStyle='rgba(255,255,255,'+(0.5+seed*.45)+')';polarCtx.fill();
+          }
         }
       }
 
