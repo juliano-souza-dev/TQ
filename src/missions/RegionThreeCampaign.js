@@ -205,6 +205,8 @@ export function getR3Board(save={}) {
     available:current.status==='available'?[current]:[]};
 }
 export function acceptR3Mission(save,id){
+ // Never overwrite an active contract: doing so silently discards its progress.
+ if(save.r3Campaign?.active)return null;
  if(id===R3_CLEANUP_MISSION_ID){const state=save.r3Campaign??{};
   if(!state.claimed?.includes(R3_REBUILD_MISSION_ID)||state.claimed.includes(id)||state.active)return null;
   const equipment=save.equipment??{};
