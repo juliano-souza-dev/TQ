@@ -7,6 +7,7 @@ import { navalShotDamage } from './NavalCombatRules.mjs';
 // modify inventory item ownership or asset metadata.
 export const NAVAL_AMMO = Object.freeze({
   'aetherion-seeker': { damageFactor: 1, damagePerShot: 10, speed: 700, preset: 'piercing', trackingDurationMs: 9000 },
+  'glacial-seeker': {damageFactor:1,damagePerShot:10,speed:700,preset:'piercing',trackingDurationMs:9000,freezeDurationMs:6000},
   'frozen-explosion': { damageFactor: 1, damagePerShot: 10, speed: 440, preset: 'violet-crystal', freezeDurationMs: 6000 },
   'rusted-iron': { damageFactor: 1, damagePerShot: 10, speed: 420, preset: 'rusted-iron' },
   'violet-crystal': { damageFactor: 1.5, damagePerShot: 10, speed: 460, preset: 'violet-crystal' },
@@ -55,7 +56,7 @@ export function effectiveAmmo(ammoId, events = EVENTS) {
     trackingDurationMs: rules.trackingDurationMs ?? 0,
     damageFactor: rules.damageFactor,
     // The original game's ammunition FX presets and texture pipeline.
-    fx: ammoId === 'frozen-explosion' ? {
+    fx: (ammoId === 'frozen-explosion' || ammoId === 'glacial-seeker') ? {
       preset:'violet-crystal',
       muzzle:{color:'#4be9ff',coreColor:'#ffffff',accentColor:'#a9ffff',size:55,sparks:22},
       projectile:{texture:getAmmunitionAssetUrl(item),color:'#36cfff',coreColor:'#ffffff',accentColor:'#a9ffff',glow:1.5,auraScale:2.2,sparkle:1.1},
