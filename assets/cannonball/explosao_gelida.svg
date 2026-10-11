@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+<defs><radialGradient id="ice" cx="35%" cy="28%" r="72%"><stop stop-color="#fff" offset="0"/><stop stop-color="#b9ffff" offset=".24"/><stop stop-color="#45cbff" offset=".55"/><stop stop-color="#1267b4" offset=".82"/><stop stop-color="#073d82" offset="1"/></radialGradient><filter id="glow" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="9"/></filter></defs>
+<circle cx="128" cy="128" r="104" fill="#5befff" opacity=".55" filter="url(#glow)"/>
+<g fill="#b5faff" opacity=".8"><path d="M128 4l16 43-16 19-16-19zM128 252l-16-43 16-19 16 19zM4 128l43-16 19 16-19 16zM252 128l-43 16-19-16 19-16zM40 40l43 20 0 23-23 0zM216 216l-43-20 0-23 23 0zM216 40l-20 43-23 0 0-23zM40 216l20-43 23 0 0 23z"/></g>
+<circle cx="128" cy="128" r="82" fill="url(#ice)" stroke="#d8ffff" stroke-width="5"/>
+<path d="M128 55v146M55 128h146M76 76l104 104M180 76L76 180" stroke="#ecffff" stroke-width="8" opacity=".83"/>
+<path d="M128 60l-16 27 16-8 16 8zM128 196l-16-27 16 8 16-8zM60 128l27-16-8 16 8 16zM196 128l-27-16 8 16-8 16z" fill="#fff"/>
+<circle cx="128" cy="128" r="21" fill="#fff" opacity=".9"/>
+</svg>
