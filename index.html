@@ -109,13 +109,13 @@
       document.head.append(style);
       const mainUrl = new URL('./src/main.js', document.baseURI).href;
       bootLabel.textContent = 'Iniciando o oceano...';
+      // Do not retry the entry module under a different URL: a missing dependency
+      // or a syntax error would be reported as a misleading main.js fetch failure.
       try {
         await import(imports[mainUrl]);
-      } catch (firstError) {
-        // A newly published Pages version can briefly fail a cache-busted module request.
-        // Retry the canonical URL after removing the import map version for this entry.
-        console.warn('Falha no primeiro carregamento do jogo; tentando novamente.', firstError);
-        await import(mainUrl + '?retry=' + Date.now());
+      } catch (error) {
+        console.error('Falha na importação inicial do TQ (verifique também as requisições de módulos no Network):', error);
+        throw new Error('Falha ao carregar os módulos do jogo. Verifique se o servidor LAN está servindo os arquivos atualizados. Detalhe: ' + (error?.message || String(error)));
       }
     })().catch(error => {
       console.error('Falha ao carregar Tabuada Quest', error);
