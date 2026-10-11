@@ -1815,7 +1815,7 @@ async function startWorld() {
         const ghost=world.entities.get('r3-fantasma-esmeralda');
         missionHud.textContent=!campaign.emeraldSpoken?'💚 Encontre o Fantasma Esmeralda e resolva a multiplicação':!campaign.emeraldWreckCollected?'🪵 Recolha os destroços perto da Ilha Esquecida':'⚓ Vá ao Estaleiro e equipe o Terror do Mar';
         if(!campaign.emeraldSpoken)void guideMissionTo(ghost??{x:2710,y:3280});
-        else if(!campaign.emeraldWreckCollected)void guideMissionTo({x:2470,y:4110});
+        else if(!campaign.emeraldWreckCollected)void guideMissionTo({x:2500,y:4200});
         else void guideMissionTo('shipyard');
       }else if(campaign.active===R3_VARKOR_MISSION_ID){
         missionHud.textContent=campaign.varkorWreckClaimed?'🏆 Destroços recuperados · Retorne ao Porto das Missões':campaign.varkorDefeated?'🪵 Recolha os destroços de Varkor · Multiplicações '+(campaign.varkorWreckAnswers??0)+'/4':'🌊 O Despertar do Terror do Mar · Derrote Varkor Tenebris';
@@ -2963,7 +2963,7 @@ async function startWorld() {
         if(!state.emeraldSpoken&&ghost&&Math.hypot(world.camera.x-ghost.x,world.camera.y-ghost.y)<125){
           clickNavigation.cancel();navalBattle.firing=false;
           mathGate.open({kind:'r3-emerald-rebuild',id:'r3-fantasma-esmeralda',title:'💚 O segredo do Fantasma Esmeralda',description:'Resolva a multiplicação para descobrir como reconstruir o Terror do Mar.'});
-        }else if(state.emeraldSpoken&&!state.emeraldWreckCollected&&Math.hypot(world.camera.x-2470,world.camera.y-4110)<125){
+        }else if(state.emeraldSpoken&&!state.emeraldWreckCollected&&Math.hypot(world.camera.x-2500,world.camera.y-4200)<125){
           recordMissionEvent({type:'emerald-wreck'});
           showOceanReward('🪵 Destroços recolhidos! O Fantasma Esmeralda pode reconstruir o navio. Siga para o Estaleiro.');
           void guideMissionTo('shipyard');
@@ -3181,7 +3181,7 @@ async function startWorld() {
       const varkorState=readSave().r3Campaign??{};
       const varkorWreck=world.region.id==='r3'&&varkorState.active===R3_VARKOR_MISSION_ID&&varkorState.varkorDefeated&&!varkorState.varkorWreckClaimed&&varkorState.varkorWreckPosition?[{id:'r3-varkor-wreck',name:'Destroços do Terror do Mar',...varkorState.varkorWreckPosition}]:[];
       const rebuildState=readSave().r3Campaign??{};
-      const rebuildWreck=world.region.id==='r3'&&rebuildState.active===R3_REBUILD_MISSION_ID&&rebuildState.emeraldSpoken&&!rebuildState.emeraldWreckCollected?[{id:'r3-emerald-build-wreck',name:'Destroços para o Terror do Mar',x:2470,y:4110}]:[];
+      const rebuildWreck=world.region.id==='r3'&&rebuildState.active===R3_REBUILD_MISSION_ID&&rebuildState.emeraldSpoken&&!rebuildState.emeraldWreckCollected?[{id:'r3-emerald-build-wreck',name:'Destroços para o Terror do Mar',x:2500,y:4200}]:[];
       treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks,...visibleFlameWreck,...varkorWreck,...rebuildWreck],world.cameraView,world.camera.zoom,oceanTimeMs);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
