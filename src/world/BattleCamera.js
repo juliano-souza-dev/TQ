@@ -26,7 +26,7 @@ export function computeOneVsOneFraming({
   const minZoom=minZoomOverride!=null && Number.isFinite(Number(minZoomOverride))
     ? clamp(Number(minZoomOverride),.08,closeZoom)
     : defaultMinZoom;
-  const distanceBlend=clamp((distance-460)/1050,0,1);
+  const distanceBlend=clamp((distance-650)/950,0,1);
   const distanceZoom=closeZoom+(minZoom-closeZoom)*distanceBlend;
 
   // Start from the duel midpoint, then cap how far the camera may leave the
@@ -58,8 +58,8 @@ export function computeOneVsOneFraming({
   // Close encounters should not be filmed from far above the ocean.
   // When the vessels are already nearby, favor readable ship scale over
   // fitting the entire target inside the conservative HUD-safe rectangle.
-  const closeCombatWeight=clamp((460-distance)/220,0,1);
-  const minimumCloseZoom=closeZoom*(mobile?.84:.9);
+  const closeCombatWeight=clamp((800-distance)/430,0,1);
+  const minimumCloseZoom=closeZoom*(mobile?.94:.95);
   const fittedZoom=Math.min(distanceZoom,fitTargetZoom);
   const zoom=clamp(Math.max(fittedZoom,minimumCloseZoom*closeCombatWeight),minZoom,closeZoom);
 
