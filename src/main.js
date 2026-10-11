@@ -1981,7 +1981,11 @@ async function startWorld() {
         writePatch(result.patch);
         clearMissionNavigation();
         if(id===R3_REBUILD_MISSION_ID){
-          showOceanReward('🌅 O domínio do Terror terminou! A névoa desaparece e as Águas Escuras tornam-se claras. Siga para a saída rumo às Águas Desconhecidas.');
+          // Story transition must remain readable, not disappear as a short action toast.
+          // This is the SAME R3 sea after the corruption has been lifted, not a teleport.
+          missionCompleteTitle.textContent='🌅 As Águas Escuras foram libertadas!';
+          missionCompleteText.textContent='Com Varkor derrotado e o Terror do Mar reconstruído, a maldição que escurecia este oceano se desfez. A névoa se dissipou e a água recuperou sua cor natural. Você continua na mesma região, não foi teletransportado. A próxima aventura espera na passagem para as Águas Desconhecidas, ao extremo sudeste do mapa.';
+          missionCompleteOverlay.hidden=false;
           void guideMissionTo({x:world.region.width-230,y:world.region.height-250});
         }
         if(result.mission.reward?.shipUpgrade){
