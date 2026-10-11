@@ -492,6 +492,33 @@ export class NavalBattleController {
 
   // The Fantasma Esmeralda is a scripted ally, not a summoned NPC helper:
   // its independent 2s cadence works even when the player is not firing.
+  fireEmeraldGhostVarkor(now){
+    if(this.getRegionId()!=='r3'||!this.readSave().r3Campaign?.claimed?.includes('r3-abyss-flame'))return false;
+    const entities=this.getEntities();
+    const ghost=entities.get('r3-fantasma-esmeralda');
+    const boss=[...entities.values()].find(n=>n.archetype==='terror-do-mar'&&n.varkorBattleUnlocked&&n.health>0);
+    if(!ghost?.varkorAllyActive||ghost.health<=0||!boss||distanceBetween(ghost,boss)>760)return false;
+    const key=ghost.id+':varkor-ally';
+    if(now<(this.nextNpcShot.get(key)??-Infinity))return false;
+    const from={x:ghost.x,y:ghost.y},to={x:boss.x,y:boss.y};
+    const fired=this.renderer.fire({
+      from,to,duration:flightDurationMs(from,to,650),startTime:now,
+      ammo:effectiveAmmo('rusted-iron'),impactKind:'water',
+      onImpact:({at})=>{
+        const target=this.getEntities().get(boss.id);
+        if(!target||target.health<=0||!shipCollision(at,target,90))return {kind:'water'};
+        const damage=Math.min(250,target.health);
+        target.health=Math.max(0,target.health-damage);
+        this.onDamageVisual({target,damage,source:'npc'});
+        if(target.health<=0){target.state='sunk';this.onVictory(target);}
+        return {kind:'ship'};
+      },
+    });
+    if(!fired)return false;
+    this.nextNpcShot.set(key,now+2000);
+    return true;
+  }
+
   fireEmeraldGhostLeviathan(now){
     if(this.getRegionId()!=='r3')return false;
     const campaign=this.readSave().r3Campaign;
@@ -665,6 +692,7 @@ export class NavalBattleController {
     }
     this.fireAssistHarpoon(now);
     this.fireEmeraldGhostLeviathan(now);
+    this.fireEmeraldGhostVarkor(now);
     this.fireNpcVolleys(now);
     this.fireKrakenStrikes(now);
   }
