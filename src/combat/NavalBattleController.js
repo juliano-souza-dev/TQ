@@ -75,6 +75,7 @@ export class NavalBattleController {
     this.usedAssistNpcs = new Map();
     this.assistMonsterAlive = new Set();
     this.nextBySlot = new Map();
+    this.nextFrostBurstBySlot = new Map();
     this.nextPlayerSequenceAt = -Infinity;
     this.playerSequenceCursor = 0;
     this.nextNpcShot = new Map();
@@ -747,7 +748,7 @@ export class NavalBattleController {
       const goldenMission = this.getRegionId() === 'r2' && save.r2Campaign?.active === 'r2-golden-ii' && target.id === 'r2-morbi';
       const varkorBonus = target.archetype==='terror-do-mar' && target.varkorBattleUnlocked ? 7 * 1.25 : 1;
       const areaFreezeArmed=!!save.consumables?.areaFreezeArmed;
-      const damage = (areaFreezeArmed?0:shotDamage(cannon, ammo.id)) * SHIP_CANNON_DAMAGE_MULTIPLIER * (this.getRegionId()==='r4' && ammo.id==='volcanic-lava' && target.type==='npc' ? 3 : 1) * varkorBonus * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
+      const damage = (areaFreezeArmed?0:(cannon.baseDamage??shotDamage(cannon, ammo.id)/1)) * (cannon.baseDamage?1:SHIP_CANNON_DAMAGE_MULTIPLIER) * (this.getRegionId()==='r4' && ammo.id==='volcanic-lava' && target.type==='npc' ? 3 : 1) * varkorBonus * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
       const tracking = ammo.trackingDurationMs > 0;
       const accepted = this.renderer.fire({
         from: muzzle, to: destination,
@@ -766,6 +767,18 @@ export class NavalBattleController {
             }
             this.onFeedback('❄️ Explosão gélida em área! '+affected+' NPC(s) congelado(s) por 5 segundos.');
             return {kind:'water'};
+          }
+          if(cannon.id==='ice-terror' && this.clock() >= (this.nextFrostBurstBySlot.get(slot)??0)){
+            this.nextFrostBurstBySlot.set(slot,this.clock()+cannon.frostCooldownMs);
+            this.freezeBursts.push({x:at.x,y:at.y,startTime:performance.now(),radius:cannon.frostBurstRadius});
+            this.freezeBursts=this.freezeBursts.slice(-8);
+            const freezeUntil=Date.now()+cannon.frostDurationMs;
+            for(const nearby of this.getEntities().values()){
+              if(nearby.type!=='npc'||nearby.health<=0||this.isProtectedInformant(nearby))continue;
+              if(Math.hypot(nearby.x-at.x,nearby.y-at.y)<=cannon.frostBurstRadius)
+                nearby.frozenUntil=Math.max(Number(nearby.frozenUntil)||0,freezeUntil);
+            }
+            this.onFeedback('❄️ Coração do Inverno: congelamento em área por 4 segundos!');
           }
           const result = this.resolvePlayerImpact(target.id, at, damage);
           if(result?.kind==='ship' && ammo.id==='frozen-explosion' && target.health>0){
