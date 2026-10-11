@@ -1857,14 +1857,16 @@ async function startWorld() {
       firstVoyageGuide=null;
     }
   }
+  let guideCreationPromise=null;
   async function guideMissionTo(destination){
     if(!firstVoyageGuide){
-      const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
-      if(generation!==worldGeneration)return;
-      firstVoyageGuide=createFirstVoyageGuide(world);
-      root.append(...firstVoyageGuide.elements);
+      guideCreationPromise??=import('./ui/FirstVoyageGuide.js').then(({createFirstVoyageGuide})=>{
+        if(generation!==worldGeneration)return;
+        if(!firstVoyageGuide){firstVoyageGuide=createFirstVoyageGuide(world);root.append(...firstVoyageGuide.elements);}
+      }).finally(()=>{guideCreationPromise=null;});
+      await guideCreationPromise;
     }
-    firstVoyageGuide.guideTo(destination);
+    if(generation===worldGeneration)firstVoyageGuide?.guideTo(destination);
   }
 
   function resolveAlreadyEquippedShipMission({announce=true}={}){
