@@ -78,3 +78,41 @@ test('orbital screen click selects the same world position as the projected NPC'
   nav.dispose();
   assert.equal(listeners.size,0);
 });
+
+test('sky-side rays do not select the ocean behind the horizon', () => {
+  const camera=createViewProjection(target,1,1280,720,1,{enabled:true,yaw:0,pitch:.35});
+  assert.equal(camera.unprojectGround({x:640,y:0}),null);
+  assert.ok(camera.unprojectGround({x:640,y:650}));
+});
+
+test('WebGL sea-plane ray equation matches Canvas and UI inverse projection', () => {
+  for(const yaw of [0,.7,2.4,4.8]){
+    for(const pitch of [.35,.6,.9,1.3]){
+      const zoom=.83, width=1280,height=720;
+      const view=createViewProjection(target,zoom,width,height,1,{enabled:true,yaw,pitch});
+      const focal=height/(2*Math.tan(Math.PI/6));
+      const distance=focal/zoom;
+      const cp=Math.cos(pitch),sp=Math.sin(pitch);
+      const cy=Math.cos(yaw),sy=Math.sin(yaw);
+      const forward={x:sy*cp,y:-cy*cp,z:-sp};
+      const right={x:cy,y:sy,z:0};
+      const up={x:sy*sp,y:-cy*sp,z:cp};
+      const eye={x:target.x-sy*distance*cp,y:target.y+cy*distance*cp,z:distance*sp};
+      for(const screen of [{x:100,y:240},{x:640,y:360},{x:1200,y:690}]){
+        const sx=(screen.x-width/2)/focal,syy=(height/2-screen.y)/focal;
+        const ray={
+          x:forward.x+right.x*sx+up.x*syy,
+          y:forward.y+right.y*sx+up.y*syy,
+          z:forward.z+right.z*sx+up.z*syy,
+        };
+        const webgl=ray.z>=-1e-6 ? null : {
+          x:eye.x+ray.x*(-eye.z/ray.z),
+          y:eye.y+ray.y*(-eye.z/ray.z),
+        };
+        const js=view.unprojectGround(screen);
+        assert.equal(Boolean(js),Boolean(webgl));
+        if(js)assert.ok(Math.hypot(js.x-webgl.x,js.y-webgl.y)<1e-7);
+      }
+    }
+  }
+});
