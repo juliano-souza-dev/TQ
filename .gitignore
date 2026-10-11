@@ -6,3 +6,12 @@ dist/
 src/config/firebase-config.js
 .DS_Store
 TQ-Servidor-QR.png
+
+# Android / Gradle local build outputs
+android/.gradle/
+android/.idea/
+android/local.properties
+android/**/build/
+android/**/.cxx/
+*.jks
+*.keystore
