@@ -3381,7 +3381,7 @@ async function startWorld() {
         halloweenFogCanvas.style.opacity=String(Math.max(0,1-r3Purification));
       }
       if(world.region.id==='r3'&&r3Purification<0.999)
-        halloweenFogRenderer?.render(world.cameraView,world.camera.zoom,oceanTimeMs);
+        halloweenFogRenderer?.render(world.cameraView,world.camera.zoom,oceanTimeMs,world.cameraPerspective);
       cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs, world.cameraPerspective);
       if(polarCtx&&polarCanvas){
         const w=canvas.clientWidth,h=canvas.clientHeight;
