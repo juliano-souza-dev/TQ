@@ -32,7 +32,6 @@ import { createSyncPreferenceStore, SYNC_MODE } from './persistence/SyncPreferen
 import { createLocalSaveStore } from './persistence/LocalSaveStore.js';
 import { formatMissionHudObjectives } from './ui/MissionHud.js';
 import {createGuidedPointerImage,angleToGuidedTarget} from './ui/GuidedPointer.js';
-import { computeOneVsOneFraming } from './world/BattleCamera.js';
 import { DamageTextRenderer } from './rendering/DamageTextRenderer.js';
 import { TreasureGlowWebGLRenderer } from './rendering/TreasureGlowWebGLRenderer.js';
 
@@ -518,10 +517,7 @@ async function startWorld() {
   const initialShip = playableShips.find(ship => ship.id === savedEquipment.equippedShipId &&
     (ship.id === STARTER_SHIP.id || savedEquipment.ownedShipIds?.includes(ship.id))) ?? STARTER_SHIP;
   let activeShip = initialShip;
-  // Wide cinematic pursuit framing, local to R2 mission 11.
-  const normalCameraZoom = world.camera.zoom;
-  let pursuitCameraZoom = normalCameraZoom;
-  let automaticBattleCameraActive = false;
+  // Mantém a população das perseguições sem ativar câmera cinematográfica.
   const pursuitHiddenEntities = new Map();
   function updatePursuitPopulation() {
     const mission=world.region.id==='r2' ? readSave().r2Campaign?.active : null;
@@ -560,119 +556,10 @@ async function startWorld() {
     }
   }
 
-  function updatePursuitCamera(stepMs = 16) {
-    const hunting = world.region.id === 'r2' && readSave().r2Campaign?.active === 'r2-destroy-thief';
-    const thief = hunting ? [...world.entities.values()].find(n => n.archetype === 'fugitive-frigate' && n.health > 0) : null;
-    // A Ilha Esquecida uses the same cinematic tracking camera as the thief hunt.
-    const exploringIsland = world.region.id === 'r2'
-      && readSave().r2Campaign?.active === 'r2-island';
-    const forgottenIsland = exploringIsland
-      ? world.region.islands.find(island => island.id === 'r2-scenery-north') : null;
-    const selectedCombatTarget = navalBattle?.getCameraTarget?.() ?? null;
-    // Hostile Leviathan can initiate combat without the player selecting it.
-    // Dynamic framing must not depend on the player's shorter harpoon range.
-    const leviathan=world.region.id==='r3'?world.entities.get('r3-leviathan'):null;
-    // Keep the camera engaged through diving and resurfacing; the threat is
-    // already active before the flame reaches the ship. Do not require a
-    // selected target or a player weapon with enough range.
-    const hostileLeviathan=leviathan?.health>0
-      && leviathan.state==='retaliating'
-      && Math.hypot(world.camera.x-leviathan.x,world.camera.y-leviathan.y)<=1100
-      ? leviathan : null;
-    const combatTarget=hostileLeviathan??selectedCombatTarget;
-    // Manual camera input (WASD/drag) has priority whenever the player takes control.
-    const activeR2Mission = world.region.id === 'r2' ? readSave().r2Campaign?.active : null;
-    const combatCameraStatus = navalBattle?.getStatus?.() ?? null;
-    const combatTargetDistance = combatTarget
-      ? Math.hypot(world.camera.x-combatTarget.x, world.camera.y-combatTarget.y)
-      : Infinity;
-    const combatCameraRange = combatTarget?.archetype==='sea-monster-leviathan'
-      ? 1100 : Math.max(0,Number(combatCameraStatus?.range)||0);
-    const combatTargetInRange = Boolean(
-      combatTarget?.health > 0
-      && combatCameraRange > 0
-      && (combatTargetDistance <= combatCameraRange
-        || (navalBattle?.firing && combatTargetDistance<=1100))
-    );
-    // Selecting a distant target must not pull the camera into battle framing.
-    // The Shadow Thief pursuit remains the intentional exception handled below.
-    const oneVsOneTarget = combatTargetInRange
-      && (combatTarget?.type === 'npc' || combatTarget?.type === 'monster')
-        ? combatTarget : null;
-    const cinematicTarget = thief ?? oneVsOneTarget ?? forgottenIsland;
-    // On the transition into combat, restore the ship-focused dynamic camera.
-    // An actively held WASD key keeps absolute priority; after the transition
-    // deliberate manual panning remains detached until the player recenters.
-    const activeBattleCamera=Boolean(oneVsOneTarget || thief);
-    if(activeBattleCamera&&!automaticBattleCameraActive&&!r1ExitCinematic){
-      const pan=keyboardCamera?.getVector?.()??{x:0,y:0};
-      if(!pan.x&&!pan.y)world.manualCamera=null;
-    }
-    automaticBattleCameraActive=activeBattleCamera;
-    const finalMission = world.region.id === 'r1'
-      && readSave().campaign?.active?.includes('r1-finale')
-      && !(readSave().campaign?.progress?.['r1-finale']?.[0] >= 1);
-    const viewportW = canvas.clientWidth || 900;
-    const viewportH = canvas.clientHeight || 600;
-    const mobile = viewportW < 700;
-    const separation = thief ? Math.hypot(world.camera.x-thief.x, world.camera.y-thief.y)
-      : oneVsOneTarget ? Math.hypot(world.camera.x-oneVsOneTarget.x, world.camera.y-oneVsOneTarget.y) : 0;
-    const oneVsOneFraming = oneVsOneTarget ? computeOneVsOneFraming({
-      player:world.camera,target:oneVsOneTarget,
-      viewportWidth:viewportW,viewportHeight:viewportH,normalZoom:normalCameraZoom,
-    }) : null;
-    const thiefFraming = thief ? computeOneVsOneFraming({
-      player:world.camera,target:thief,
-      viewportWidth:viewportW,viewportHeight:viewportH,normalZoom:normalCameraZoom,
-      minZoomOverride:.12,
-    }) : null;
-    // The shortest equipped cannon range determines when close-combat framing begins.
-    // The Shadow Chaser normally carries one Aetherion MK-I (840 world units).
-    const equipment = hunting ? readSave().equipment ?? {} : null;
-    const slots = equipment?.loadout?.[equipment.equippedShipId] ?? [];
-    const ranges = slots.map(id=>CANNONS.find(c=>c.id===id)?.range)
-      .filter(range=>Number.isFinite(range) && range>0);
-    const effectiveRange = ranges.length ? Math.min(...ranges)
-      : (CANNONS.find(c=>c.id==='aetherion-mk1')?.range ?? 840);
-    const closeBattle = Boolean(thief && separation <= effectiveRange);
-    // Fit both vessels with room for sprites and HUD. Portrait screens reserve
-    // a wider margin, since overlays consume more of the playing area.
-    const horizontalCoverage = mobile ? .61 : .76;
-    const verticalCoverage = mobile ? .52 : .68;
-    const fitZoom = thief ? Math.min(
-      viewportW*horizontalCoverage / Math.max(320,Math.abs(thief.x-world.camera.x)+290),
-      viewportH*verticalCoverage / Math.max(320,Math.abs(thief.y-world.camera.y)+290)
-    ) : normalCameraZoom;
-    const battleZoom = Math.min(normalCameraZoom,fitZoom);
-    // Within cannon range the cap remains the ordinary camera zoom;
-    // fitting both ships still takes priority if the screen is narrow.
-    const targetZoom = thiefFraming ? thiefFraming.zoom
-      : oneVsOneFraming ? oneVsOneFraming.zoom
-      : cinematicTarget ? Math.max(.27, Math.min(.43,
-          Math.min(viewportW, viewportH) /
-          Math.max(1300, Math.hypot(world.camera.x-cinematicTarget.x, world.camera.y-cinematicTarget.y)*2.4))) * 1.05 * 1.06
-      : finalMission ? Math.max(.27, Math.min(.43,
-          Math.min(viewportW, viewportH) / 1300)) * 1.05 * 1.06
-      : normalCameraZoom;
-    const smoothing = 1-Math.exp(-Math.max(0,stepMs)/450);
-    pursuitCameraZoom += (targetZoom-pursuitCameraZoom)*smoothing;
-    world.camera.zoom = pursuitCameraZoom;
-    // Follow the midpoint in a long pursuit, with smooth camera travel.
-    // In close combat return near the player to keep the standard framing.
-    const offsetTarget = thiefFraming && !world.manualCamera
-      ? thiefFraming.offset
-      : oneVsOneFraming && !world.manualCamera
-        ? oneVsOneFraming.offset
-      : cinematicTarget && !world.manualCamera
-        ? {x:(cinematicTarget.x-world.camera.x)*.14,y:(cinematicTarget.y-world.camera.y)*.14}
-        : {x:0,y:-65};
-    const previousOffset = world.cameraOffset ?? {x:0,y:-65};
-    world.cameraOffset = {
-      x:previousOffset.x+(offsetTarget.x-previousOffset.x)*smoothing,
-      y:previousOffset.y+(offsetTarget.y-previousOffset.y)*smoothing,
-    };
-  }
-
+  // O enquadramento é estático: seguir o navio, ou manter o pan manual.
+  // Não ajustar zoom, deslocamento ou manualCamera em resposta a combate,
+  // perseguições, missões ou seleção de alvos.
+  
   const { spriteCannonMuzzle } = await import('./ships/CannonMuzzleMap.js');
   // Reward notifications belong to the ocean viewport, not the combat menu.
   const rewardToastLayer=document.createElement('div');
@@ -3368,7 +3255,6 @@ async function startWorld() {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
     },
     render: () => {
-      updatePursuitCamera(16);
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       restoreR4Guide();
       firstVoyageGuide?.update();
