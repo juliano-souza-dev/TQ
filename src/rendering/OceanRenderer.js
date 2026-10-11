@@ -53,6 +53,14 @@ export class OceanRenderer {
       this.cachedOceanSource = oceanSource;
       this.cachedOceanConfig = normalizeOceanConfig(oceanSource);
     }
+    const orbit = world.cameraPerspective;
+    const zoom = Math.max(0.01, Number(world.camera.zoom) || 1);
+    this.legacy.perspective = orbit?.enabled ? {
+      enabled: true,
+      yaw: orbit.yaw,
+      pitch: orbit.pitch,
+      distance: bounds.height / (2 * Math.tan(Math.PI / 6)) / zoom,
+    } : null;
     return this.legacy.render({
       time: timeMs,
       camera: world.cameraView ?? world.camera,
