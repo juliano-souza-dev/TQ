@@ -1,3 +1,4 @@
+import { createViewProjection } from './OrbitalCameraProjection.js';
 const VERTEX=`#version 300 es
 precision highp float;
 in vec2 aPosition;
@@ -76,7 +77,7 @@ export class TreasureGlowWebGLRenderer{
       this.ready=false;return false;
     }
   }
-  render(treasures,camera,zoom,timeMs,selectedId=null){
+  render(treasures,camera,zoom,timeMs,selectedId=null,orbit=null){
     if(!this.ready)return false;
     const bounds=this.canvas.getBoundingClientRect();
     if(!bounds.width||!bounds.height)return false;
@@ -89,10 +90,12 @@ export class TreasureGlowWebGLRenderer{
     gl.uniform2f(this.u.uResolution,w,h);gl.uniform1f(this.u.uTime,(Number(timeMs)||0)/1000);
     let drawn=0;
     const visualZoom=Math.max(.46,Math.min(1.15,Number(zoom)||1));
+    const projection=createViewProjection(camera,zoom,w,h,dpr,orbit);
     for(const wreck of treasures){
-      const cx=w/2+(wreck.x-camera.x)*zoom*dpr;
-      const cy=h/2+(wreck.y-camera.y)*zoom*dpr;
-      const size=112*visualZoom*dpr;
+      const screen=projection.project(wreck);
+      if(!screen)continue;
+      const cx=screen.x,cy=screen.y;
+      const size=112*visualZoom*dpr*screen.relativeScale;
       if(cx<-size||cx>w+size||cy<-size||cy>h+size)continue;
       gl.uniform2f(this.u.uCenter,cx,cy);
       gl.uniform1f(this.u.uSize,size);
