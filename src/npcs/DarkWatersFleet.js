@@ -8,7 +8,7 @@ export const DARK_WATERS_RAIDER_ARCHETYPE = 'dark-waters-raider';
 export const DARK_WATERS_SPECIAL_AMMO_ID = 'terror-rose';
 export const DARK_WATERS_SPECIAL_AMMO_REWARD = 100;
 export const DARK_WATERS_RAID_GOLD_CAP = 25;
-export const DARK_WATERS_RAID_AMMO_CAP = 20;
+export const DARK_WATERS_RAID_AMMO_CAP = 40;
 export const DARK_WATERS_RAIDER_RESPAWN_MS = 30000;
 
 const MARGIN = 95;
@@ -247,7 +247,7 @@ function updateRaider(npc, world, deltaMs, random, raids) {
     npc.y = moved.y;
   }
 
-  if (!npc.leviathanHuntLock && !npc.stolenThisPass && npc.raidCooldownMs <= 0
+  if (!npc.stolenThisPass && npc.raidCooldownMs <= 0
       && Math.hypot(player.x - npc.x, player.y - npc.y) <= npc.raidRadius) {
     npc.stolenThisPass = true;
     npc.raidCooldownMs = 18000;
@@ -362,7 +362,6 @@ export function updateDarkWatersFleet(world, deltaMs, random = Math.random) {
     // All other ships patrol normally, without pursuing the player, for this hunt.
     if(npc.archetype===DARK_WATERS_RAIDER_ARCHETYPE || npc.archetype==='terror-guardian'){
       npc.leviathanHuntLock=hunting;
-      if(hunting && npc.stolenThisPass){npc.stolenThisPass=false;npc.passTimeMs=0;}
     }
     if(npc.archetype==='blood-red-market-merchant')updateMerchant(npc,world,deltaMs);
     else if (npc.archetype === TERROR_DO_MAR_NPC.id) updateBoss(npc, world, deltaMs, random);

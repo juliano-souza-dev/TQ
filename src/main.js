@@ -2695,7 +2695,7 @@ async function startWorld() {
         const storedIron=save.ammunition?.['rusted-iron'];
         const iron=storedIron===undefined ? 20 : Math.max(0,Math.floor(Number(storedIron)||0));
         const stolenGold=Math.min(25,Math.max(0,Math.ceil(gold*.08)));
-        const stolenIron=Math.min(20,Math.max(0,Math.floor(iron*.20)));
+        const stolenIron=Math.min(40,Math.max(0,Math.floor(iron*.40)));
         if(stolenGold||stolenIron){
           writePatch({
             profile:{...(save.profile??{}),gold:Math.max(0,gold-stolenGold)},
