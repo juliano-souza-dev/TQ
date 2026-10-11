@@ -81,7 +81,9 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     const speed = npc.archetype === TERROR_DA_TABUADA.id
       ? TERROR_DA_TABUADA.speed.initial
       : RED_SAIL_CORSAIR.speed.initial;
-    const distance = speed * deltaMs / 1000;
+    const distance = npc.retaliationActive
+      ? Math.min(speed*deltaMs/1000,Math.max(0,Math.hypot(world.camera.x-npc.x,world.camera.y-npc.y)-100))
+      : speed * deltaMs / 1000;
     const nextX = Math.max(MARGIN, Math.min(world.region.width - MARGIN, npc.x + Math.sin(radians) * distance));
     const nextY = Math.max(MARGIN, Math.min(world.region.height - MARGIN, npc.y - Math.cos(radians) * distance));
     const moved = resolveIslandMovement(world.region, npc.x, npc.y, nextX, nextY, 32);

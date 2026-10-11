@@ -243,7 +243,7 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   npc.heading = turnToward(npc.heading, desiredHeading, 320 * dt);
   const speed = npc.baseSpeed * (npc.state === 'escaping' ? 1.15 : 1);
   const radians = npc.heading * Math.PI / 180;
-  const movement = speed * dt;
+  const movement = npc.retaliationActive ? Math.min(speed*dt,Math.max(0,distance-100)) : speed*dt;
   const nx = Math.max(MARGIN, Math.min(world.region.width - MARGIN, npc.x + Math.sin(radians) * movement));
   const ny = Math.max(MARGIN, Math.min(world.region.height - MARGIN, npc.y - Math.cos(radians) * movement));
   const moved = resolveIslandMovement(world.region, npc.x, npc.y, nx, ny, 32);
@@ -287,9 +287,10 @@ function updateTerrorGuardian(npc,world,deltaMs){
   const target=npc.retaliationActive?player:!npc.leviathanHuntLock&&protecting&&distance<640?player:anchor;
   npc.state=npc.retaliationActive?'retaliating':!npc.leviathanHuntLock&&protecting?'guarding':'patrolling';
   npc.heading=turnToward(npc.heading,bearing(target.x-npc.x,target.y-npc.y),95*dt);
-  if(Math.hypot(target.x-npc.x,target.y-npc.y)<(npc.retaliationActive?310:185))return;
+  const gap=Math.hypot(target.x-npc.x,target.y-npc.y);
+  if(gap<=(npc.retaliationActive?100:185))return;
   const angle=npc.heading*Math.PI/180;
-  const movement=(npc.baseSpeed||0)*dt;
+  const movement=npc.retaliationActive?Math.min((npc.baseSpeed||0)*dt,Math.max(0,gap-100)):(npc.baseSpeed||0)*dt;
   const moved=resolveIslandMovement(world.region,npc.x,npc.y,
     npc.x+Math.sin(angle)*movement,npc.y-Math.cos(angle)*movement,34);
   npc.x=moved.x;npc.y=moved.y;

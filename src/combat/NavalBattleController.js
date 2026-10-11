@@ -1054,9 +1054,9 @@ export class NavalBattleController {
         continue;
       }
 
-      if (npc.type !== 'npc' || npc.health <= 0 || npc.state !== 'retaliating' ||
-        npc.aggression === 'flee' || npc.cannonSlots === 0) continue;
-      const npcRange = Math.max(1, Number(npc.range) || 340);
+      if (npc.type !== 'npc' || npc.health <= 0 ||
+        (!npc.retaliationActive && (npc.state !== 'retaliating' || npc.aggression === 'flee')) || npc.cannonSlots === 0) continue;
+      const npcRange = npc.retaliationActive ? Math.max(520,Number(npc.range)||0) : Math.max(1, Number(npc.range) || 340);
       if (distanceBetween(npc, player) > npcRange) continue;
 
       fireSequenceShot({
