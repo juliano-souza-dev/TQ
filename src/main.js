@@ -207,6 +207,10 @@ async function startWorld() {
     : (await import('./world/regions/r1.js')).R1;
   if (generation !== worldGeneration) return;
   const world = createWorldState(region);
+  // A derrota de Varkor é definitiva: nenhuma missão de destroços pode recriar o chefe.
+  if(world.region.id==='r3'&&readSave().r3Campaign?.varkorDefeated){
+    world.entities.delete(world.region.terrorBoss?.id);
+  }
   const savedPosition = localSaves.load(currentUser.uid)?.payload?.playerPosition;
   // Migração dos pontos antigos de entrada da R2: próximos demais ao porto.
   // Não alterar posições conquistadas pelo jogador dentro da região.
@@ -1195,6 +1199,7 @@ async function startWorld() {
         recordMissionEvent({type:'flame-enemy',archetype:npc.archetype,id:npc.id+':'+(npc.sinkSerial??0)});
       } else if (world.region.id === 'r3' && npc.archetype === 'terror-do-mar') {
         recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now(),x:npc.x,y:npc.y});
+        world.entities.delete(npc.id);
         showOceanReward('🔥 Terror do Mar afundado! Capitão Varkor Tenebris foi derrotado.');
       } else if (world.region.id === 'r2' && npc.archetype === 'fugitive-frigate'
         && save.r2Campaign?.active === 'r2-destroy-thief') {
@@ -2844,6 +2849,10 @@ async function startWorld() {
             ghost.rebuildGuideActive=true;
           }else ghost.rebuildGuideActive=false;
         }
+      }
+      // Keep the defeated captain removed even if a population refresh recreates him.
+      if(world.region.id==='r3'&&readSave().r3Campaign?.varkorDefeated){
+        world.entities.delete(world.region.terrorBoss?.id);
       }
       // Varkor enters only after the Chama do Abismo has been claimed.
       // Clear ordinary R3 ships, but preserve the shadow thief and Emerald ally.
