@@ -1785,8 +1785,9 @@ async function startWorld() {
         missionHud.textContent='📜 Porto das Missões · A Chama do Abismo';
         void guideMissionTo('missions');
        }else if(campaign.active===R3_VARKOR_MISSION_ID){
-        missionHud.textContent=campaign.varkorDefeated?'🏆 Terror do Mar derrotado · Retorne ao Porto das Missões':'🌊 O Despertar do Terror do Mar · Derrote Varkor Tenebris';
-        if(campaign.varkorDefeated)void guideMissionTo('missions');
+        missionHud.textContent=campaign.varkorWreckClaimed?'🏆 Destroços recuperados · Retorne ao Porto das Missões':campaign.varkorDefeated?'🪵 Recolha os destroços de Varkor · Multiplicações '+(campaign.varkorWreckAnswers??0)+'/4':'🌊 O Despertar do Terror do Mar · Derrote Varkor Tenebris';
+        if(campaign.varkorWreckClaimed)void guideMissionTo('missions');
+        else if(campaign.varkorDefeated&&campaign.varkorWreckPosition)void guideMissionTo(campaign.varkorWreckPosition);
         else{
           const boss=world.entities.get(world.region.terrorBoss?.id);
           if(boss)void guideMissionTo(boss);
