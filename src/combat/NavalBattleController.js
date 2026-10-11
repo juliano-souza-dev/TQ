@@ -738,7 +738,7 @@ export class NavalBattleController {
       const flameBoost = this.isFlameActive() && this.isBossTarget(target) && (this.getRegionId()!=='r3' || (target.archetype==='terror-do-mar' && !!save.r3Campaign?.varkorFlameUnlocked));
       const goldenMission = this.getRegionId() === 'r2' && save.r2Campaign?.active === 'r2-golden-ii' && target.id === 'r2-morbi';
       const varkorBonus = target.archetype==='terror-do-mar' && target.varkorBattleUnlocked ? 7 * 1.25 : 1;
-      const damage = shotDamage(cannon, ammo.id) * SHIP_CANNON_DAMAGE_MULTIPLIER * varkorBonus * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
+      const damage = shotDamage(cannon, ammo.id) * SHIP_CANNON_DAMAGE_MULTIPLIER * (this.getRegionId()==='r4' && ammo.id==='volcanic-lava' && target.type==='npc' ? 3 : 1) * varkorBonus * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
       const tracking = ammo.trackingDurationMs > 0;
       const accepted = this.renderer.fire({
         from: muzzle, to: destination,
@@ -990,7 +990,7 @@ export class NavalBattleController {
         impactKind:'water',startTime:now,
         onImpact:({at})=>{
           const result=onImpact?onImpact({at}):this.resolveNpcImpact(npc.id,at,damage*SHIP_CANNON_DAMAGE_MULTIPLIER);
-          if(result?.kind==='ship' && ammo?.id==='frozen-explosion'){
+          if(result?.kind==='ship' && (ammo?.id==='frozen-explosion' || ammo?.id==='glacial-seeker')){
             this.playerFrozenUntil=Math.max(this.playerFrozenUntil||0,Date.now()+6000);
             this.onFeedback('❄️ Seu navio foi congelado por 6 segundos!');
           }
@@ -1093,6 +1093,13 @@ export class NavalBattleController {
         continue;
       }
 
+      if(this.getRegionId()==='r4' && npc.id==='r4-sombra-do-saque' && npc.health>0){
+        if(distanceBetween(npc,player)<=1250)fireSequenceShot({npc,target:player,count:1,
+          sequenceKey:npc.id+':glacial-sequence',reloadKey:npc.id+':glacial-reload',
+          reloadMs:5000,damage:Math.max(1,Number(npc.damage)||20),speed:700,
+          ammo:effectiveAmmo('glacial-seeker'),tracking:true});
+        continue;
+      }
       if (npc.type !== 'npc' || npc.health <= 0 ||
         (!npc.retaliationActive && (npc.state !== 'retaliating' || npc.aggression === 'flee')) || npc.cannonSlots === 0) continue;
       const npcRange = npc.retaliationActive ? Math.max(520,Number(npc.range)||0) : Math.max(1, Number(npc.range) || 340);
