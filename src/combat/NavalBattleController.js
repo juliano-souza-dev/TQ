@@ -917,6 +917,15 @@ export class NavalBattleController {
           startTime:this.clock(),
         });
       }
+      if(this.getRegionId()==='r3' && target.archetype==='terror-guardian'){
+        for(const ally of this.getEntities().values()){
+          if(ally.id===target.id || ally.archetype!=='terror-guardian'||ally.health<=0)continue;
+          ally.retaliationActive=false;
+          ally.aggression='flee';
+          ally.state='escaping';
+          ally.fleeUntil=Date.now()+30000;
+        }
+      }
       this.onVictory(target);
     }
     return { kind: 'ship' };
