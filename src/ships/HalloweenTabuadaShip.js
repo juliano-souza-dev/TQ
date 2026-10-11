@@ -12,7 +12,8 @@ export const HALLOWEEN_TABUADA_SHIP = Object.freeze({
     bow: 0,
     stern: 0,
   }),
-  speed: Object.freeze({ min: 80, initial: 170, max: 250 }),
+  // 10% faster than the previous campaign ship: Galeão das Velas Rubras.
+  speed: Object.freeze({ min: 158.4, initial: 198, max: 316.8 }),
   playable: true,
   npcEnabled: true,
   shopEnabled: false,
