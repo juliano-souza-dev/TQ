@@ -54,7 +54,7 @@ jobs:
       - name: Run game and camera smoke tests
         run: |
           node --check src/main.js
-          node --test tests/orbital-camera-projection.test.mjs
+          node --test tests/orbital-camera-projection.test.mjs tests/android-packaging.test.mjs
 
       # Retain the debug signing identity across CI runs, so Android upgrades
       # can keep localStorage saves. Production releases still use private secrets.
