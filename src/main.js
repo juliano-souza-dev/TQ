@@ -1162,6 +1162,8 @@ async function startWorld() {
   glintCanvas.className='glint-layer';
   root.append(glintCanvas);
   const glintCtx=glintCanvas.getContext('2d');
+  const frozenWreckImage=new Image();
+  frozenWreckImage.src=new URL('../assets/treasures/destrocos_terras_gelidas.webp',import.meta.url).href;
 
   navalCanvas = document.createElement('canvas');
   navalCanvas.className = 'naval-combat-webgl';
@@ -3375,10 +3377,13 @@ async function startWorld() {
           const x=gw/2+(wreck.x-world.cameraView.x)*world.camera.zoom*gd;
           const y=gh/2+(wreck.y-world.cameraView.y)*world.camera.zoom*gd;
           if(x<0||x>gw||y<0||y>gh)continue;
-          glintCtx.save();glintCtx.translate(x,y);
-          glintCtx.shadowColor='#55eaff';glintCtx.shadowBlur=24*gd;
-          glintCtx.fillStyle='#b5faff';glintCtx.strokeStyle='#ffffff';glintCtx.lineWidth=2*gd;
-          glintCtx.beginPath();glintCtx.moveTo(0,-13*gd);glintCtx.lineTo(12*gd,0);glintCtx.lineTo(0,13*gd);glintCtx.lineTo(-12*gd,0);glintCtx.closePath();glintCtx.fill();glintCtx.stroke();glintCtx.restore();
+          if(frozenWreckImage.complete&&frozenWreckImage.naturalWidth>0){
+            const size=Math.max(28,Math.min(100,72*world.camera.zoom))*gd;
+            glintCtx.save();
+            glintCtx.shadowColor='#55eaff';glintCtx.shadowBlur=12*gd;
+            glintCtx.drawImage(frozenWreckImage,x-size/2,y-size/2,size,size);
+            glintCtx.restore();
+          }
         }
       }
       // Frozen ships and AoE blast share the world-space overlay, keeping
