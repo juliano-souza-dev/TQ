@@ -200,6 +200,30 @@ async function startWorld() {
     }
   }
 
+  // Corrige saves que já iniciaram a limpeza sem receber a bateria e as munições.
+  {
+    const snapshot=localSaves.load(currentUser.uid)?.payload??{};
+    const flag='r3CleanupArsenalFixV1';
+    if(snapshot.r3Campaign?.active===R3_CLEANUP_MISSION_ID&&!snapshot.devFlags?.[flag]){
+      const equipment=snapshot.equipment??{};
+      const counts={...(equipment.cannonCounts??{})};
+      counts['aetherion-mk1']=Math.max(2,Number(counts['aetherion-mk1'])||0);
+      counts['pumpkin-terror']=Math.max(5,Number(counts['pumpkin-terror'])||0);
+      const loadout={...(equipment.loadout??{})};
+      const capacity=7+(snapshot.shipUpgrades?.masterShipwright?5:0);
+      const old=Array.isArray(loadout['terror-do-mar'])?loadout['terror-do-mar']:[];
+      loadout['terror-do-mar']=['aetherion-mk1','aetherion-mk1',
+        'pumpkin-terror','pumpkin-terror','pumpkin-terror','pumpkin-terror','pumpkin-terror',
+        ...old.slice(7,capacity)];
+      const ammo=snapshot.ammunition??{};
+      localSaves.save(currentUser.uid,{...snapshot,
+        equipment:{...equipment,cannonCounts:counts,loadout,
+          ownedCannonIds:[...new Set([...(equipment.ownedCannonIds??[]),'aetherion-mk1','pumpkin-terror'])]},
+        ammunition:{...ammo,'aetherion-seeker':(Number(ammo['aetherion-seeker'])||0)+10000,
+          'rusted-iron':(Number(ammo['rusted-iron'])||0)+2000},
+        devFlags:{...(snapshot.devFlags??{}),[flag]:true}});
+    }
+  }
   const storedRegion = localSaves.load(currentUser.uid)?.payload?.progression?.activeRegion ?? 1;
   const region = storedRegion >= 3
     ? (await import('./world/regions/r3.js')).R3
