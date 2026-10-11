@@ -220,7 +220,9 @@ async function startWorld() {
     }
   }
   const storedRegion = localSaves.load(currentUser.uid)?.payload?.progression?.activeRegion ?? 1;
-  const region = storedRegion >= 3
+  const region = storedRegion >= 4
+    ? (await import('./world/regions/r4.js')).R4
+    : storedRegion >= 3
     ? (await import('./world/regions/r3.js')).R3
     : storedRegion >= 2 ? (await import('./world/regions/r2.js')).R2
     : (await import('./world/regions/r1.js')).R1;
@@ -1861,8 +1863,8 @@ async function startWorld() {
         missionHud.textContent='📜 Porto das Missões · Os Últimos Resíduos';
         void guideMissionTo('missions');
       }else{
-        missionHud.textContent='🏆 Águas limpas · Próximo destino: Terras Gélidas';
-        firstVoyageGuide?.finish();
+        missionHud.textContent='❄️ Águas limpas · Siga até a passagem para Terras Gélidas';
+        void guideMissionTo({x:3930,y:3890});
       }
       return;
     }
