@@ -1,3 +1,4 @@
+import { createViewProjection } from '../rendering/OrbitalCameraProjection.js';
 import { screenPointToWorld } from './WorldNavigationInput.mjs';
 
 // Pointer gestures on the ocean only. HUD and joystick retain independent pointers.
@@ -25,8 +26,16 @@ export function createClickNavigation(canvas, world, onWorldClick = null) {
       const zoom = Math.max(world.camera.zoom, 0.01);
       const halfW = canvas.clientWidth / (2 * zoom);
       const halfH = canvas.clientHeight / (2 * zoom);
-      world.manualCamera.x = clamp(world.manualCamera.x - dx / zoom, world.region.width, halfW);
-      world.manualCamera.y = clamp(world.manualCamera.y - dy / zoom, world.region.height, halfH);
+      let panX=-dx/zoom, panY=-dy/zoom;
+      if(world.cameraPerspective?.enabled){
+        const rect=canvas.getBoundingClientRect();
+        const view=createViewProjection(world.cameraView,zoom,rect.width,rect.height,1,world.cameraPerspective);
+        const previous=view.unprojectGround({x:gesture.lastX-rect.left,y:gesture.lastY-rect.top});
+        const current=view.unprojectGround({x:event.clientX-rect.left,y:event.clientY-rect.top});
+        if(previous&&current){panX=previous.x-current.x;panY=previous.y-current.y;}
+      }
+      world.manualCamera.x = clamp(world.manualCamera.x + panX, world.region.width, halfW);
+      world.manualCamera.y = clamp(world.manualCamera.y + panY, world.region.height, halfH);
       event.preventDefault();
     }
     gesture.lastX = event.clientX;
@@ -43,12 +52,19 @@ export function createClickNavigation(canvas, world, onWorldClick = null) {
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const zoom = Math.max(world.camera.zoom, 0.01);
-    const point = screenPointToWorld(event.clientX, event.clientY, {
-      viewportLeft: rect.left, viewportTop: rect.top,
-      viewportWidth: rect.width, viewportHeight: rect.height,
-      cameraX: world.cameraView.x, cameraY: world.cameraView.y, zoom,
-      worldWidth: world.region.width, worldHeight: world.region.height,
-    });
+    const cameraOrbit=world.cameraPerspective;
+    const point=cameraOrbit?.enabled
+      ? createViewProjection(world.cameraView,zoom,rect.width,rect.height,1,cameraOrbit)
+        .unprojectGround({x:event.clientX-rect.left,y:event.clientY-rect.top})
+      : screenPointToWorld(event.clientX,event.clientY,{
+          viewportLeft:rect.left,viewportTop:rect.top,
+          viewportWidth:rect.width,viewportHeight:rect.height,
+          cameraX:world.cameraView.x,cameraY:world.cameraView.y,zoom,
+          worldWidth:world.region.width,worldHeight:world.region.height,
+        });
+    if(!point)return;
+    point.x=Math.max(0,Math.min(world.region.width,point.x));
+    point.y=Math.max(0,Math.min(world.region.height,point.y));
     const handled = onWorldClick?.(point);
     if (handled === true) { destination = null; return; }
     if (handled?.destination) {
