@@ -10,7 +10,7 @@ export const TERROR_DO_MAR_NPC = Object.freeze({
   damage: 12,
   range: 520,
   cannonSlots: TERROR_DO_MAR_SHIP.cannonSlots,
-  maxHealth: TERROR_DO_MAR_SHIP.maxHealth,
+  maxHealth: 1000000,
 });
 
 const normalize = angle => (angle % 360 + 360) % 360;
