@@ -180,6 +180,7 @@ in float aAcross;
 uniform vec2 uWakeResolution;
 uniform vec2 uWakeCamera;
 uniform float uWakeZoom;
+uniform vec4 uWakePerspective;
 
 out float vAlpha;
 out float vKind;
@@ -187,16 +188,35 @@ out float vAcross;
 out vec2 vWorld;
 
 void main(){
+  vAlpha=aAlpha;
+  vKind=aKind;
+  vAcross=aAcross;
+  vWorld=aWorld;
   vec2 screen=(aWorld-uWakeCamera)*uWakeZoom+uWakeResolution*0.5;
+  if(uWakePerspective.w>0.5){
+    float yaw=uWakePerspective.x;
+    float pitch=clamp(uWakePerspective.y,0.35,1.47);
+    float d=max(1.0,uWakePerspective.z);
+    float cp=cos(pitch),sp=sin(pitch),cy=cos(yaw),sy=sin(yaw);
+    vec3 forward=vec3(sy*cp,-cy*cp,-sp);
+    vec3 right=vec3(cy,sy,0.0);
+    vec3 up=vec3(sy*sp,-cy*sp,cp);
+    vec3 eye=vec3(uWakeCamera+vec2(-sy,cy)*d*cp,d*sp);
+    vec3 relative=vec3(aWorld-eye.xy,-eye.z);
+    float depth=dot(relative,forward);
+    if(depth<=0.01){
+      gl_Position=vec4(3.0,3.0,0.0,1.0);
+      return;
+    }
+    float focal=uWakeResolution.y/(2.0*tan(0.5235987756));
+    screen=vec2(uWakeResolution.x*0.5+focal*dot(relative,right)/depth,
+                uWakeResolution.y*0.5-focal*dot(relative,up)/depth);
+  }
   vec2 clip=vec2(
     screen.x/max(uWakeResolution.x,1.0)*2.0-1.0,
     1.0-screen.y/max(uWakeResolution.y,1.0)*2.0
   );
   gl_Position=vec4(clip,0.0,1.0);
-  vAlpha=aAlpha;
-  vKind=aKind;
-  vAcross=aAcross;
-  vWorld=aWorld;
 }
 `;
 
@@ -378,6 +398,7 @@ export class OceanWebGLRenderer{
         resolution:gl.getUniformLocation(this.wakeProgram,"uWakeResolution"),
         camera:gl.getUniformLocation(this.wakeProgram,"uWakeCamera"),
         zoom:gl.getUniformLocation(this.wakeProgram,"uWakeZoom"),
+        perspective:gl.getUniformLocation(this.wakeProgram,"uWakePerspective"),
         time:gl.getUniformLocation(this.wakeProgram,"uWakeTime")
       };
 
@@ -643,6 +664,9 @@ export class OceanWebGLRenderer{
     gl.uniform2f(this.wakeUniforms.resolution,Math.max(1,width),Math.max(1,height));
     gl.uniform2f(this.wakeUniforms.camera,Number(camera.x)||0,Number(camera.y)||0);
     gl.uniform1f(this.wakeUniforms.zoom,Math.max(.1,Number(zoom)||1));
+    const orbit=this.perspective;
+    gl.uniform4f(this.wakeUniforms.perspective,Number(orbit?.yaw)||0,Number(orbit?.pitch)||Math.PI/4,
+      Number(orbit?.distance)||1200,orbit?.enabled?1:0);
     gl.uniform1f(this.wakeUniforms.time,Math.max(0,Number(time)||0)/1000);
 
     gl.enable(gl.BLEND);
