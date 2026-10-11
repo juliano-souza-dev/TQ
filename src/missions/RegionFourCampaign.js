@@ -22,7 +22,7 @@ export function recordR4Event(save,event){
  const state=save.r4Campaign??{},id=state.active;
  if(!id)return null;
  if(id==='r4-ice-wreck-investigation'&&event.type==='r4-wreck'&&event.id&&!(state.wrecks??[]).includes(event.id))return {r4Campaign:{...state,wrecks:[...(state.wrecks??[]),event.id]}};
- const match=id==='r4-frost-watch'?event.archetype==='vigia-da-geada':String(event.id??'').startsWith('r4-sombra-do-saque');
+ const match=id==='r4-frost-watch'?event.archetype==='vigia-da-geada':event.id==='r4-sombra-do-saque';
  const required=id==='r4-ice-wreck-investigation'?5:id==='r4-frost-watch'?2:1;
  if(event.type==='defeat'&&match&&(state.defeats??0)<required)
   return {r4Campaign:{...state,defeats:(state.defeats??0)+1}};
