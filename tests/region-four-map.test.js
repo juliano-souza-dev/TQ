@@ -31,7 +31,7 @@ test('existing forgotten island uses winter art and a second one occupies new so
   for(const island of [original,added]){
     assert.ok(island);
     assert.equal(island.kind,'decoration');
-    assert.match(decodeURI(island.asset),/Ilha Invernal de Gelo e Neve\.png$/);
+    assert.match(decodeURI(island.asset),/ilha_invernal_gelo_neve\.webp$/);
     assert.ok(island.fallbackAsset);
     assert.ok(island.x>island.width/2 && island.x<R4.width-island.width/2);
     assert.ok(island.y>island.height/2 && island.y<R4.height-island.height/2);
