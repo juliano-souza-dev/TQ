@@ -88,6 +88,7 @@ export class NavalBattleController {
     this.selectedAmmoId = this.resolveSelectedAmmo();
     this.lastCombatActivityAt = -Infinity;
     this.playerFrozenUntil = 0;
+    this.freezeBursts=[];
   }
 
   markCombatActivity(now = this.clock()) {
@@ -755,6 +756,8 @@ export class NavalBattleController {
         impactKind: 'water', startTime: now,
         onImpact: ({ at }) => {
           if(areaFreezeArmed){
+            this.freezeBursts.push({x:at.x,y:at.y,startTime:performance.now(),radius:50});
+            this.freezeBursts=this.freezeBursts.slice(-8);
             let affected=0;
             for(const npc of this.getEntities().values()){
               if(npc.type!=='npc'||npc.health<=0||Math.hypot(npc.x-at.x,npc.y-at.y)>50)continue;
