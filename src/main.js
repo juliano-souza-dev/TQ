@@ -1,4 +1,4 @@
-import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS } from './missions/RegionThreeCampaign.js';
+import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout, verifySilasArsenalAtLeviathan } from './missions/R3SilasTrade.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
@@ -1765,8 +1765,18 @@ async function startWorld() {
       }else if(!campaign.claimed?.includes(R3_FLAME_MISSION_ID)){
         missionHud.textContent='📜 Porto das Missões · A Chama do Abismo';
         void guideMissionTo('missions');
+       }else if(campaign.active===R3_VARKOR_MISSION_ID){
+        missionHud.textContent=campaign.varkorDefeated?'🏆 Terror do Mar derrotado · Retorne ao Porto das Missões':'🌊 O Despertar do Terror do Mar · Derrote Varkor Tenebris';
+        if(campaign.varkorDefeated)void guideMissionTo('missions');
+        else{
+          const boss=world.entities.get(world.region.terrorBoss?.id);
+          if(boss)void guideMissionTo(boss);
+        }
+      }else if(!campaign.claimed?.includes(R3_VARKOR_MISSION_ID)){
+        missionHud.textContent='📜 Porto das Missões · O Despertar do Terror do Mar';
+        void guideMissionTo('missions');
       }else{
-        missionHud.textContent='📜 A queda do Leviathan revelou uma pista sobre o Coração do Abismo · A saga continua';
+        missionHud.textContent='🏆 Varkor Tenebris foi derrotado · As Águas Escuras estão livres';
         firstVoyageGuide?.finish();
       }
       return;
@@ -1862,7 +1872,9 @@ async function startWorld() {
           clearMissionNavigation();
           islandPanel.refreshMissionBoard();
           updateMissionHud();
-          showOceanReward(id===R3_FLAME_MISSION_ID
+          showOceanReward(id===R3_VARKOR_MISSION_ID
+            ? '🌊 A Chama rompeu o selo! O Terror do Mar desperta. A frota recua, mas o Ladrão Sombra continua. O Fantasma Esmeralda regressa para lutar ao seu lado. Enfrente Varkor Tenebris!'
+            : id===R3_FLAME_MISSION_ID
             ? '🔥 Siga os destroços em ordem, resolva sete contas e derrote dois corsários Red.'
             : id===R3_ABYSS_SECRET_MISSION_ID
             ? '⚔️ Afunde cinco Red e investigue três destroços, em qualquer ordem.'
@@ -2170,6 +2182,10 @@ async function startWorld() {
       });
     } else {
       islandPanel.open(contact.kind);
+    }
+    if(world.region.id==='r3'&&contact.kind==='missions'&&readSave().r3Campaign?.active===R3_VARKOR_MISSION_ID){
+      if(recordMissionEvent({type:'return-port'}))showOceanReward('🏆 O Terror do Mar caiu! A lenda de Varkor termina aqui. Resgate sua recompensa.');
+      islandPanel.refreshMissionBoard();
     }
     if(world.region.id==='r3'&&contact.kind==='missions'&&readSave().r3Campaign?.active===R3_FLAME_MISSION_ID){
       if(recordMissionEvent({type:'return-port'}))showOceanReward('🔥 Expedição concluída! Resgate a Chama 5×.');
@@ -2773,14 +2789,18 @@ async function startWorld() {
       }
       // Varkor enters only after the Chama do Abismo has been claimed.
       // Clear ordinary R3 ships, but preserve the shadow thief and Emerald ally.
-      if(world.region.id==='r3' && readSave().r3Campaign?.claimed?.includes(R3_FLAME_MISSION_ID)){
+      if(world.region.id==='r3' && readSave().r3Campaign?.active===R3_VARKOR_MISSION_ID){
         const boss=world.entities.get(world.region.terrorBoss?.id);
         if(boss && boss.health>0){
+          if(!readSave().r3Campaign?.varkorSummoned){
+            recordMissionEvent({type:'varkor-summon'});
+            showOceanReward('🌊 O oceano estremece! Varkor Tenebris, o Terror do Mar, desperta. A frota foge; o Fantasma Esmeralda retorna!');
+          }
           boss.varkorBattleUnlocked=true;
           boss.phasedOut=false;
           for(const [id,npc] of world.entities){
             if(id===boss.id || id==='r3-fantasma-esmeralda' ||
-              npc.archetype==='dark-waters-raider' || npc.type!=='npc')continue;
+              (npc.archetype==='dark-waters-raider' && npc.aggression==='flee') || npc.type!=='npc')continue;
             world.entities.delete(id);
           }
           const ghost=world.entities.get('r3-fantasma-esmeralda');
