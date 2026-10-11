@@ -16,6 +16,14 @@ export const HARPOON_LAUNCHERS=Object.freeze([
     projectileSpeed:760,accuracy:.96,dotDamage:25,dotIntervalMs:3000,
   }),
   Object.freeze({
+    id:'harpoon-terror-abyss-launcher',name:'Arpoeiro Terror do Abismo',
+    asset:new URL('../../assets/cannonball/lancador_arpoes_naval.webp',import.meta.url).href,
+    projectileAsset:new URL('../../assets/cannons/arpao_naval_simples.webp',import.meta.url).href,
+    reloadSeconds:1,range:1250,damageMultiplier:14,baseDamage:50,
+    projectileSpeed:950*50,accuracy:.98,flameTip:true,
+    acquisition:{type:'mission-reward',mission:'r3-terror-awakening'},
+  }),
+  Object.freeze({
     id:'harpoon-horizon-eye-launcher',name:'Arpoeiro Olho do Horizonte',
     // Temporary visuals reuse the existing, approved launcher/harpoon assets.
     asset:new URL('../../assets/cannonball/lancador_arpoes_naval.webp',import.meta.url).href,
@@ -27,6 +35,7 @@ export const HARPOON_LAUNCHERS=Object.freeze([
     acquisition:{type:'mission-reward',mission:'r3-silas-pact'},
   }),
 ]);
+export const TERROR_ABYSS_HARPOON_ID='harpoon-terror-abyss-launcher';
 export const HORIZON_HARPOON_ID='harpoon-horizon-eye-launcher';
 export const STARTER_HARPOON=HARPOON_LAUNCHERS[0];
 export const STARTER_HARPOON_AMMO=500;
