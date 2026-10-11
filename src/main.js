@@ -1,3 +1,4 @@
+import {drawFrozenShip,drawFreezeBurst} from './rendering/FreezeEffects.js';
 const R4_ICE_WRECKS=Object.freeze([{id:'r4-ice-wreck-1',x:920,y:1900},{id:'r4-ice-wreck-2',x:1830,y:2450},{id:'r4-ice-wreck-3',x:2870,y:3100},{id:'r4-ice-wreck-4',x:3450,y:1550},{id:'r4-ice-wreck-5',x:1360,y:3850}]);
 import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID, R3_REBUILD_MISSION_ID, R3_CLEANUP_MISSION_ID, R3_CLEANUP_RED_IDS } from './missions/RegionThreeCampaign.js';
 import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout, verifySilasArsenalAtLeviathan } from './missions/R3SilasTrade.js';
@@ -3378,6 +3379,30 @@ async function startWorld() {
           glintCtx.shadowColor='#55eaff';glintCtx.shadowBlur=24*gd;
           glintCtx.fillStyle='#b5faff';glintCtx.strokeStyle='#ffffff';glintCtx.lineWidth=2*gd;
           glintCtx.beginPath();glintCtx.moveTo(0,-13*gd);glintCtx.lineTo(12*gd,0);glintCtx.lineTo(0,13*gd);glintCtx.lineTo(-12*gd,0);glintCtx.closePath();glintCtx.fill();glintCtx.stroke();glintCtx.restore();
+        }
+      }
+      // Frozen ships and AoE blast share the world-space overlay, keeping
+      // their positions stable while the camera moves or zooms.
+      const fxNow=performance.now();
+      const iceScale=world.camera.zoom*gd;
+      const frozenPlayerUntil=navalBattle?.playerFrozenUntil||0;
+      if(Date.now()<frozenPlayerUntil){
+        const px=gw/2+(world.camera.x-world.cameraView.x)*iceScale;
+        const py=gh/2+(world.camera.y-world.cameraView.y)*iceScale;
+        drawFrozenShip(glintCtx,px,py,Math.max(38,125*iceScale),fxNow,frozenPlayerUntil);
+      }
+      for(const npc of world.entities.values()){
+        if(npc.type!=='npc'||npc.health<=0||Date.now()>=(npc.frozenUntil||0))continue;
+        const px=gw/2+(npc.x-world.cameraView.x)*iceScale;
+        const py=gh/2+(npc.y-world.cameraView.y)*iceScale;
+        if(px< -140||px>gw+140||py< -140||py>gh+140)continue;
+        drawFrozenShip(glintCtx,px,py,Math.max(38,125*iceScale),fxNow,npc.frozenUntil);
+      }
+      if(navalBattle?.freezeBursts){
+        navalBattle.freezeBursts=navalBattle.freezeBursts.filter(b=>fxNow-b.startTime<1250);
+        for(const burst of navalBattle.freezeBursts){
+          drawFreezeBurst(glintCtx,gw/2+(burst.x-world.cameraView.x)*iceScale,
+            gh/2+(burst.y-world.cameraView.y)*iceScale,burst.radius,fxNow,burst.startTime,iceScale);
         }
       }
       if(EVENTS.halloween && world.region.id!=='r4'){
