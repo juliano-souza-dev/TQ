@@ -214,7 +214,7 @@ async function startWorld() {
     ['Girar 15° para a esquerda (Q)',()=>{world.cameraPerspective.yaw-=Math.PI/12;}],
     ['Girar 15° para a direita (E)',()=>{world.cameraPerspective.yaw+=Math.PI/12;}],
     ['Elevar a câmera (PageUp)',()=>{world.cameraPerspective.pitch=Math.min(1.47,world.cameraPerspective.pitch+.10);}],
-    ['Baixar a câmera (PageDown)',()=>{world.cameraPerspective.pitch=Math.max(.60,world.cameraPerspective.pitch-.10);}],
+    ['Baixar a câmera (PageDown)',()=>{world.cameraPerspective.pitch=Math.max(.35,world.cameraPerspective.pitch-.10);}],
     ['Redefinir vista 3D (Home)',()=>{world.cameraPerspective.yaw=0;world.cameraPerspective.pitch=Math.PI/4;}],
   ];
   const orbitLabels=['3D ✓','↶','↷','↥','↧','⟲'];
