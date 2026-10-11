@@ -3179,9 +3179,9 @@ async function startWorld() {
         :world.region.id==='r3'&&readSave().r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID
           ?R3_ABYSS_WRECKS.filter(w=>!(readSave().r3Campaign?.abyssFragments??[]).includes(w.id)):[];
       const varkorState=readSave().r3Campaign??{};
-      const varkorWreck=world.region.id==='r3'&&varkorState.active===R3_VARKOR_MISSION_ID&&varkorState.varkorDefeated&&!varkorState.varkorWreckClaimed&&varkorState.varkorWreckPosition?[{id:'r3-varkor-wreck',name:'Destroços do Terror do Mar',...varkorState.varkorWreckPosition}]:[];
+      const varkorWreck=world.region.id==='r3'&&varkorState.active===R3_VARKOR_MISSION_ID&&varkorState.varkorDefeated&&!varkorState.varkorWreckClaimed&&varkorState.varkorWreckPosition?[{id:'r3-varkor-wreck',name:'Destroço do Capitão',label:'Destroço do Capitão',...varkorState.varkorWreckPosition}]:[];
       const rebuildState=readSave().r3Campaign??{};
-      const rebuildWreck=world.region.id==='r3'&&rebuildState.active===R3_REBUILD_MISSION_ID&&rebuildState.emeraldSpoken&&!rebuildState.emeraldWreckCollected?[{id:'r3-emerald-build-wreck',name:'Destroços para o Terror do Mar',x:2500,y:4200},{id:'r3-emerald-build-wreck-2',name:'Madeiras do Terror do Mar',x:2450,y:4090},{id:'r3-emerald-build-wreck-3',name:'Restos do casco',x:2440,y:4320}]:[];
+      const rebuildWreck=world.region.id==='r3'&&rebuildState.active===R3_REBUILD_MISSION_ID&&rebuildState.emeraldSpoken&&!rebuildState.emeraldWreckCollected?[{id:'r3-emerald-build-wreck',name:'Destroço',label:'Destroço',x:2500,y:4200},{id:'r3-emerald-build-wreck-2',name:'Destroço',label:'Destroço',x:2450,y:4090},{id:'r3-emerald-build-wreck-3',name:'Destroço',label:'Destroço',x:2440,y:4320}]:[];
       treasureRenderer.render([...renderedTreasures,...visibleMissionWrecks,...visibleFlameWreck,...varkorWreck,...rebuildWreck],world.cameraView,world.camera.zoom,oceanTimeMs);
       updateSupplyChestMarker();
       if (selectedNpcId && (world.entities.get(selectedNpcId)?.health ?? 0) <= 0) {
