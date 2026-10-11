@@ -14,6 +14,9 @@ import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.util.Log;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -41,10 +44,12 @@ public final class GameActivity extends Activity {
     private static final String GAME_URL = "https://" + APP_HOST + "/index.html";
 
     private WebView gameView;
+    private static final String LOG_TAG = "TabuadaQuestAndroid";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        try {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
         getWindow().setNavigationBarColor(Color.TRANSPARENT);
@@ -107,6 +112,34 @@ public final class GameActivity extends Activity {
             gameView.clearHistory();
         }
         gameView.loadUrl(GAME_URL);
+        } catch (Throwable startupFailure) {
+            Log.e(LOG_TAG, "Android startup failed", startupFailure);
+            showStartupError(startupFailure);
+        }
+    }
+
+    private void showStartupError(Throwable failure) {
+        try {
+            if (gameView != null) {
+                gameView.stopLoading();
+                gameView.destroy();
+                gameView = null;
+            }
+            TextView message = new TextView(this);
+            message.setTextColor(Color.WHITE);
+            message.setBackgroundColor(Color.rgb(8, 26, 51));
+            message.setTextSize(16);
+            message.setPadding(32, 32, 32, 32);
+            String detail = failure.getClass().getName() + ": " + String.valueOf(failure.getMessage());
+            message.setText("Tabuada Quest: falha ao iniciar.\n\n" + detail +
+                "\n\nEnvie uma captura desta tela para corrigirmos o problema.\n" +
+                "Os dados locais do jogo nao foram apagados.");
+            ScrollView scroll = new ScrollView(this);
+            scroll.addView(message);
+            setContentView(scroll);
+        } catch (Throwable fallbackFailure) {
+            Log.e(LOG_TAG, "Could not display startup error", fallbackFailure);
+        }
     }
 
     private WebResourceResponse openBundledAsset(String path) {
