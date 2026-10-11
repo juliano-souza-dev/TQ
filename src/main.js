@@ -2540,6 +2540,14 @@ async function startWorld() {
       progress.active===R3_CLEANUP_MISSION_ID
         ? Math.min(1,0.2+0.8*(progress.cleanupSunkIds??[]).length/3):0;
   }
+  let polarCanvas=null,polarCtx=null;
+  if(world.region.id==='r4'){
+    polarCanvas=document.createElement('canvas');
+    polarCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;';
+    polarCanvas.setAttribute('aria-hidden','true');
+    root.append(polarCanvas);
+    polarCtx=polarCanvas.getContext('2d');
+  }
   let oceanTimeMs = 0;
   let blackMarketMerchantOrbitAngle = 0;
   let leviathanArrivalArsenalChecked = false;
@@ -3247,6 +3255,20 @@ async function startWorld() {
       if(world.region.id==='r3'&&r3Purification<0.999)
         halloweenFogRenderer?.render(world.cameraView,world.camera.zoom,oceanTimeMs);
       cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs);
+      if(polarCtx&&polarCanvas){
+        const w=canvas.clientWidth,h=canvas.clientHeight;
+        if(polarCanvas.width!==w||polarCanvas.height!==h){polarCanvas.width=w;polarCanvas.height=h;}
+        polarCtx.clearRect(0,0,w,h);
+        polarCtx.fillStyle='rgba(211,233,244,0.27)';polarCtx.fillRect(0,0,w,h);
+        const t=oceanTimeMs*.001;
+        for(let i=0;i<230;i++){
+          const x=((i*83.7+t*(13+i%7*4))%(w+40))-20;
+          const y=((i*137.3+t*(35+i%9*8))%(h+40))-20;
+          polarCtx.beginPath();polarCtx.arc(x,y,1+(i%4)*.7,0,Math.PI*2);
+          polarCtx.fillStyle='rgba(255,255,255,'+(0.45+(i%5)*.1)+')';polarCtx.fill();
+        }
+      }
+
       islandRenderer.render(world.cameraView, world.camera.zoom);
       const hidePursuitTreasures = world.region.id === 'r2'
         && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active);
