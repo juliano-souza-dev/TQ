@@ -95,6 +95,24 @@ export function createCorsairPopulation(world, random = Math.random) {
         wanderTimeMs:1200, respawnRemainingMs:null,
       });
     }
+    // Ladrões do Norte form a separate fleet with their own dark pirate atlas.
+    for (let i = 0; i < 4; i++) {
+      const id='r4-ladrao-do-norte-'+String(i+1).padStart(2,'0');
+      if(world.entities.has(id))continue;
+      const point=spawnPosition(world.region,world.camera,random);
+      world.entities.set(id,{
+        id,type:'npc',archetype:'r4-ladrao-gelido',fleetId:'r4-frota-ladrao-do-norte',
+        name:'Ladrão do Norte',shipId:NORTHERN_THIEF_SHIP.id,
+        x:point.x,y:point.y,heading:random()*360,
+        health:24000,maxHealth:24000,speed:290,
+        state:'patrolling',aggression:'flee',retaliationActive:false,
+        cannonSlots:4,cannonLayout:NORTHERN_THIEF_SHIP.cannonLayout,
+        damage:5,range:840,cannonReloadMs:10000,
+        specialCannonAmmoId:'frozen-explosion',homing:true,
+        freezeOnHit:true,freezeDurationMs:5000,
+        wanderTimeMs:1200,respawnRemainingMs:null,
+      });
+    }
     return world.entities.size;
   }
 
