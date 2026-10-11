@@ -108,7 +108,7 @@ export class HalloweenFogRenderer {
       ]), gl.STATIC_DRAW);
       this.position = gl.getAttribLocation(this.program, 'aPosition');
       if (this.position < 0) throw new Error('Atributo aPosition indisponível');
-      for (const name of ['uResolution','uViewport','uCamera','uZoom','uTime','uIntensity']) {
+      for (const name of ['uResolution','uViewport','uCamera','uPerspective','uZoom','uTime','uIntensity']) {
         this.uniforms[name] = gl.getUniformLocation(this.program, name);
         if (this.uniforms[name] === null) throw new Error('Uniforme não encontrado: ' + name);
       }
@@ -128,7 +128,7 @@ export class HalloweenFogRenderer {
     }
   }
 
-  render(camera, zoom, timeMs) {
+  render(camera, zoom, timeMs, orbit = null) {
     if (!this.ready || this.disposed || !camera) return false;
     const bounds = this.canvas.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return false;
@@ -153,6 +153,8 @@ export class HalloweenFogRenderer {
     gl.uniform2f(this.uniforms.uResolution, width, height);
     gl.uniform2f(this.uniforms.uViewport, bounds.width, bounds.height);
     gl.uniform2f(this.uniforms.uCamera, camera.x, camera.y);
+    gl.uniform4f(this.uniforms.uPerspective,Number(orbit?.yaw)||0,Number(orbit?.pitch)||Math.PI/4,
+      bounds.height/(2*Math.tan(Math.PI/6))/Math.max(0.01,Number(zoom)||1),orbit?.enabled?1:0);
     gl.uniform1f(this.uniforms.uZoom, Math.max(0.01, Number(zoom) || 1));
     gl.uniform1f(this.uniforms.uTime, options.animate ? (timeMs % 1800000) / 1000 : 0);
     gl.uniform1f(this.uniforms.uIntensity, options.intensity * this.intensityScale);
