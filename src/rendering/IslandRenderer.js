@@ -24,6 +24,16 @@ export class IslandRenderer {
         const image = await loadAsset(island.asset);
         this.images.set(island.id, image);
       } catch (error) {
+        // Optional decorative fallback, used only by R4's new winter island.
+        // Keeps the island visible and collidable even before its PNG is shipped.
+        if (island.kind === 'decoration' && island.fallbackAsset) {
+          try {
+            this.images.set(island.id, await loadAsset(island.fallbackAsset));
+            return;
+          } catch (fallbackError) {
+            console.warn('[TabuadaQuest] Ilha sem fallback:', island.id, fallbackError);
+          }
+        }
         // Decorative scenery must never prevent the ocean from starting.
         // Ports remain required because they are gameplay destinations.
         if (island.kind === 'decoration') {
