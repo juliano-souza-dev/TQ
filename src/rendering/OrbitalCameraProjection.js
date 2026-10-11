@@ -64,3 +64,32 @@ export function orbitalGroundTransform(ctx, viewport, orbit = ORBIT_DEFAULTS) {
   ctx.transform(c * 1, s * squash, -s, c * squash, 0, 0);
   ctx.translate(-viewport.width / 2, -viewport.height / 2);
 }
+
+/**
+ * Screen-space transform for a complete composited frame.
+ * Unlike changing only ship/terrain coordinates, this keeps existing 2D
+ * rendering layers visually aligned. Interaction coordinates must be inverted
+ * with unprojectOrbitPoint before gameplay hit testing.
+ */
+export function orbitScreenTransform(point, viewport, orbit = ORBIT_DEFAULTS) {
+  const yaw = Number(orbit.yaw) || 0;
+  const pitch = clampOrbitPitch(orbit.pitch);
+  const dx = point.x - viewport.width / 2;
+  const dy = point.y - viewport.height / 2;
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  return {
+    x: viewport.width / 2 + dx * c - dy * s,
+    y: viewport.height / 2 + (dx * s + dy * c) * Math.sin(pitch),
+  };
+}
+export function unorbitScreenTransform(point, viewport, orbit = ORBIT_DEFAULTS) {
+  const yaw = Number(orbit.yaw) || 0;
+  const pitch = clampOrbitPitch(orbit.pitch);
+  const dx = point.x - viewport.width / 2;
+  const dy = (point.y - viewport.height / 2) / Math.sin(pitch);
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  return {
+    x: viewport.width / 2 + dx * c + dy * s,
+    y: viewport.height / 2 - dx * s + dy * c,
+  };
+}
