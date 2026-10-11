@@ -200,16 +200,18 @@ async function startWorld() {
     }
   }
 
-  // Reset unico antes do Renascimento, sem tocar nas missoes anteriores.
+  // Reset de campanha: retorna obrigatoriamente ao ponto anterior ao Renascimento.
   {
     const snapshot=localSaves.load(currentUser.uid)?.payload??{};
     const campaign=snapshot.r3Campaign??{};
-    const flag='r3BeforeRebirthResetV2';
-    if(campaign.claimed?.includes(R3_VARKOR_MISSION_ID)
-      && !campaign.claimed?.includes(R3_CLEANUP_MISSION_ID)
-      && (Number(snapshot.progression?.unlockedRegion)||1)<4
-      && !snapshot.devFlags?.[flag]){
+    const flag='r3BeforeRebirthHardResetV3';
+    const reachedRebirth=(campaign.claimed??[]).includes(R3_VARKOR_MISSION_ID)
+      || (campaign.claimed??[]).includes(R3_REBUILD_MISSION_ID)
+      || (campaign.claimed??[]).includes(R3_CLEANUP_MISSION_ID)
+      || [R3_REBUILD_MISSION_ID,R3_CLEANUP_MISSION_ID].includes(campaign.active);
+    if(reachedRebirth&&!snapshot.devFlags?.[flag]){
       localSaves.save(currentUser.uid,{...snapshot,
+        progression:{...(snapshot.progression??{}),activeRegion:3,unlockedRegion:3},
         r3Campaign:{...campaign,active:null,
           claimed:(campaign.claimed??[]).filter(id=>id!==R3_REBUILD_MISSION_ID&&id!==R3_CLEANUP_MISSION_ID),
           emeraldSpoken:false,emeraldWreckCollected:false,emeraldDeparted:false,
