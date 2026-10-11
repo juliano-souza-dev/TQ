@@ -441,6 +441,8 @@ export function createFrozenLandsFugitive(world) {
   },world.region);
   npc.storyOriginId='r3-sombra-do-saque';
   npc.storyRegion='r4';
+  npc.specialCannonCount=1;
+  npc.specialCannonAmmoId='frozen-explosion';
   world.entities.set(id,npc);
   return npc;
 }
