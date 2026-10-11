@@ -1,3 +1,4 @@
+import { NORTHERN_THIEF_SHIP } from '../ships/NorthernThiefShip.js';
 import { FROZEN_LANDS_GALLEON_SHIP } from '../ships/FrozenLandsGalleonShip.js';
 import { createRedSailCorsair, updateCorsair, RED_SAIL_CORSAIR } from './RedSailCorsair.js';
 import { createRoseGoldCorsair as createTerrorDaTabuada, ROSE_GOLD_CORSAIR as TERROR_DA_TABUADA } from './RoseGoldCorsair.js';
@@ -84,11 +85,11 @@ export function createCorsairPopulation(world, random = Math.random) {
         ? candidate : spawnPosition(world.region, world.camera, random);
       world.entities.set(id, {
         id, type:'npc', archetype:'r4-ladrao-gelido', fleetId:'r4-frota-ladrao-gelido',
-        name:'Corsário da Geada Negra', shipId:FROZEN_LANDS_GALLEON_SHIP.id,
+        name:'Ladrão do Norte', shipId:NORTHERN_THIEF_SHIP.id,
         x:point.x, y:point.y, heading:random()*360,
         health:24000, maxHealth:24000, speed:290,
         state:'patrolling', aggression:'flee', retaliationActive:false,
-        cannonSlots:9, damage:5, range:840, cannonReloadMs:10000,
+        cannonSlots:4, cannonLayout:NORTHERN_THIEF_SHIP.cannonLayout, damage:5, range:840, cannonReloadMs:10000,
         specialCannonAmmoId:'frozen-explosion', homing:true,
         freezeOnHit:true, freezeDurationMs:5000,
         wanderTimeMs:1200, respawnRemainingMs:null,
