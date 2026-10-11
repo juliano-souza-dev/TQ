@@ -2404,12 +2404,14 @@ async function startWorld() {
   const r2GuidedMission=world.region.id==='r2' ? readSave().r2Campaign?.active : null;
   const needsR2Guide=world.region.id==='r2'
     && (!readSave().progression?.r2PortVisited || r2GuidedMission==='r2-equip-terror');
-  if (needsR2Guide || (world.region.id === 'r1' && flow.destination)) {
+  const needsR4PortGuide=world.region.id==='r4' && !readSave().r4Campaign?.active && !(readSave().r4Campaign?.claimed??[]).includes('r4-ice-wreck-investigation');
+  if (needsR2Guide || needsR4PortGuide || (world.region.id === 'r1' && flow.destination)) {
     const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
     if (generation !== worldGeneration) return;
     firstVoyageGuide = createFirstVoyageGuide(world);
     root.append(...firstVoyageGuide.elements);
-    if (world.region.id === 'r2') {
+    if (needsR4PortGuide) firstVoyageGuide.guideTo('missions');
+    else if (world.region.id === 'r2') {
       const equipTerror=boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-equip-terror');
       firstVoyageGuide.guideTo(equipTerror?.status==='ready' ? 'missions'
         : r2GuidedMission==='r2-equip-terror' ? 'shipyard' : 'missions');
