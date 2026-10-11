@@ -36,7 +36,7 @@ test('Leviathan is a real Region 3 monster with 250,000 HP and retains dive mech
 });
 
 test('Leviathan Hunt unlocks only after Silas has been claimed and stays sequential',()=>{
-  assert.equal(R3_MISSIONS.length,4);
+  assert.equal(R3_MISSIONS.length,5);
   assert.equal(R3_MISSIONS[3].id,R3_LEVIATHAN_MISSION_ID);
   assert.equal(R3_MISSIONS[3].name,'Caça ao Leviathan');
   const before={r3Campaign:{claimed:['r3-equip-golden','r3-dark-waters-warning'],active:null}};

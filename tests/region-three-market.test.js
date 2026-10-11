@@ -37,11 +37,11 @@ test('Silas Rubro continua exclusivo das Águas Escuras', () => {
   assert.equal(collidesWithIsland(R3, merchant.x, merchant.y, 75), false);
 });
 
-test('Mapa 3 nasce com o chefe e exatamente dois ladrões do terror', () => {
+test('Mapa 3 nasce com o chefe, um saqueador e três Red guardiões', () => {
   const world = createWorldState(R3);
   createCorsairPopulation(world, () => .42);
 
-  assert.equal(world.entities.size, 5);
+  assert.equal(world.entities.size, 7);
   assert.equal([...world.entities.values()].some(n => n.archetype === 'red-sail-corsair'), false);
 
   const boss = world.entities.get('r3-terror-do-mar');
@@ -54,8 +54,12 @@ test('Mapa 3 nasce com o chefe e exatamente dois ladrões do terror', () => {
   assert.equal(collidesWithIsland(R3, boss.x, boss.y, 75), false);
 
   const raiders = [...world.entities.values()].filter(n => n.archetype === DARK_WATERS_RAIDER_ARCHETYPE);
-  assert.equal(raiders.length, 2);
-  assert.deepEqual(raiders.map(n => n.name).sort(), ['Dente do Pavor', 'Sombra do Saque']);
+  assert.equal(raiders.length, 1);
+  assert.deepEqual(raiders.map(n => n.name), ['Sombra do Saque']);
+  const reds=[...world.entities.values()].filter(n=>n.archetype==='terror-guardian');
+  assert.equal(reds.length,3);
+  assert.ok(reds.every(n=>n.health===12000 && n.shipId==='corsario-vermelho-sangue'));
+
   for (const raider of raiders) {
     assert.equal(raider.shipId, 'corsario-vermelho-sangue');
     assert.equal(raider.rewardAmmoId, DARK_WATERS_SPECIAL_AMMO_ID);
