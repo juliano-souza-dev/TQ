@@ -708,7 +708,8 @@ export class NavalBattleController {
       const destination = aimWithAccuracy(intercepted, muzzle, accuracy, this.random);
       const flameBoost = this.isFlameActive() && this.isBossTarget(target) && (this.getRegionId()!=='r3' || (target.archetype==='terror-do-mar' && !!save.r3Campaign?.varkorFlameUnlocked));
       const goldenMission = this.getRegionId() === 'r2' && save.r2Campaign?.active === 'r2-golden-ii' && target.id === 'r2-morbi';
-      const damage = shotDamage(cannon, ammo.id) * SHIP_CANNON_DAMAGE_MULTIPLIER * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
+      const varkorBonus = target.archetype==='terror-do-mar' && target.varkorBattleUnlocked ? 7 * 1.25 : 1;
+      const damage = shotDamage(cannon, ammo.id) * SHIP_CANNON_DAMAGE_MULTIPLIER * varkorBonus * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
       const tracking = ammo.trackingDurationMs > 0;
       const accepted = this.renderer.fire({
         from: muzzle, to: destination,
