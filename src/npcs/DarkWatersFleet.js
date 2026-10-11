@@ -244,14 +244,14 @@ function updateRaider(npc, world, deltaMs, random, raids) {
   const distance = Math.hypot(dx, dy);
 
   let desiredHeading = npc.heading;
-  if(npc.retaliationActive && npc.aggression==='flee'){
+  if(npc.escapeOnly || (npc.retaliationActive && npc.aggression==='flee')){
     // Defensive fire must not turn a fleeing raider toward the player.
     npc.state='escaping';
     desiredHeading=bearing(-dx,-dy);
   } else if(npc.retaliationActive){
     npc.state='retaliating';
     desiredHeading=bearing(dx,dy);
-  } else if (!npc.leviathanHuntLock && !npc.stolenThisPass && distance <= npc.detectionRange) {
+  } else if (!npc.escapeOnly && !npc.leviathanHuntLock && !npc.stolenThisPass && distance <= npc.detectionRange) {
     npc.state = 'raiding';
     desiredHeading = bearing(dx, dy);
   } else if (npc.stolenThisPass) {
@@ -441,6 +441,13 @@ export function createFrozenLandsFugitive(world) {
   },world.region);
   npc.storyOriginId='r3-sombra-do-saque';
   npc.storyRegion='r4';
+  npc.escapeOnly=true;
+  npc.aggression='flee';
+  npc.retaliationActive=true;
+  npc.range=1250;
+  npc.damage=20;
+  npc.cannonSlots=0;
+  npc.specialCannonAmmoId='glacial-seeker';
   npc.specialCannonCount=1;
   npc.specialCannonAmmoId='frozen-explosion';
   world.entities.set(id,npc);
