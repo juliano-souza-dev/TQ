@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {getR4Board,acceptR4Mission,recordR4Event,claimR4Mission} from '../src/missions/RegionFourCampaign.js';
-import {R3_FLAME_MISSION_ID,claimR3Mission} from '../src/missions/RegionThreeCampaign.js';
+import {R3_FLAME_MISSION_ID,claimR3Mission,acceptR3Mission,R3_ABYSS_SECRET_MISSION_ID} from '../src/missions/RegionThreeCampaign.js';
 import {canonicalSingleMissionState} from '../src/missions/CampaignState.js';
 import {R2_MISSIONS} from '../src/missions/RegionTwoCampaign.js';
 
@@ -70,6 +70,14 @@ test('R3 Flame can be claimed if an older save already has the award receipt',()
  assert.equal(result.patch.r3Campaign.varkorFlameUnlocked,true);
  assert.equal(result.patch.consumables,undefined);
  assert.equal(claimR3Mission(apply(save,result.patch),R3_FLAME_MISSION_ID),null);
+});
+
+test('accepting another R3 quest cannot overwrite the current unfinished contract',()=>{
+ const save={r3Campaign:{active:'r3-dark-waters-warning',claimed:[
+  'r3-equip-golden','r3-dark-waters-warning','r3-silas-pact','r3-leviathan-hunt'
+ ]}};
+ assert.equal(acceptR3Mission(save,R3_ABYSS_SECRET_MISSION_ID),null);
+ assert.equal(save.r3Campaign.active,'r3-dark-waters-warning');
 });
 
 test('claimed history survives additions and removals from the mission catalog',()=>{
