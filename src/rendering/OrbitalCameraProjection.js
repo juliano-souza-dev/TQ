@@ -50,3 +50,17 @@ export function createOrbitalCameraController(initial = {}) {
     },
   };
 }
+
+/**
+ * Apply the same ground-plane transform to every visual layer.
+ * Call only after screen-space HUD and hit-testing have been migrated.
+ * The existing gameplay camera and world positions are deliberately untouched.
+ */
+export function orbitalGroundTransform(ctx, viewport, orbit = ORBIT_DEFAULTS) {
+  const yaw = Number(orbit.yaw) || 0;
+  const pitch = clampOrbitPitch(orbit.pitch);
+  const c = Math.cos(yaw), s = Math.sin(yaw), squash = Math.sin(pitch);
+  ctx.translate(viewport.width / 2, viewport.height / 2);
+  ctx.transform(c * 1, s * squash, -s, c * squash, 0, 0);
+  ctx.translate(-viewport.width / 2, -viewport.height / 2);
+}
