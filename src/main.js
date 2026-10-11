@@ -853,7 +853,7 @@ async function startWorld() {
       showOceanReward('🧰 +10 5X em Chamas · +10 Escudos');
       return 'Baú resgatado: +10 5X em Chamas e +10 Escudos!';
     }
-    const result = resolvePedagogicalAction(readSave(), action, action.challenge, cleanAnswer);
+    const result = resolvePedagogicalAction(readSave(), {...action,regionId:world.region.id}, action.challenge, cleanAnswer);
     if (!result) return false;
     writePatch(result.patch);
     if (world.region.id === 'r2' && action.kind !== 'monster-assist') {
