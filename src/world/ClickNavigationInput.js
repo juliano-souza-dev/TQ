@@ -65,7 +65,10 @@ export function createClickNavigation(canvas, world, onWorldClick = null) {
     if(!point)return;
     point.x=Math.max(0,Math.min(world.region.width,point.x));
     point.y=Math.max(0,Math.min(world.region.height,point.y));
-    const handled = onWorldClick?.(point);
+    const handled = onWorldClick?.(point, {
+      screen:{x:event.clientX-rect.left,y:event.clientY-rect.top},
+      viewport:{width:rect.width,height:rect.height},
+    });
     if (handled === true) { destination = null; return; }
     if (handled?.destination) {
       destination = {x:Number(handled.destination.x),y:Number(handled.destination.y)};
