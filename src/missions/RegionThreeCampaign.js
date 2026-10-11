@@ -211,7 +211,7 @@ export function resetR3RebuildMission(save = {}) {
       (Number(save.progression?.unlockedRegion) || 1) >= 4) return null;
   return { r3Campaign: {
     ...state,
-    active: R3_REBUILD_MISSION_ID,
+    active: null,
     claimed: (state.claimed ?? []).filter(id => id !== R3_REBUILD_MISSION_ID && id !== R3_CLEANUP_MISSION_ID),
     emeraldSpoken: false,
     emeraldWreckCollected: false,
@@ -229,7 +229,7 @@ export function acceptR3Mission(save,id){
   counts['pumpkin-terror']=(Number(counts['pumpkin-terror'])||0)+5;
   counts['aetherion-mk1']=(Number(counts['aetherion-mk1'])||0)+2;
   const shipId='terror-do-mar';
-  const capacity=7+(save.shipUpgrades?.masterShipwright?5:0);
+  const capacity=12;
   const loadout={...(equipment.loadout??{})};
   // A missão exige uma bateria pronta para combate, mesmo se os slots antigos estiverem cheios.
   const previous=Array.isArray(loadout[shipId])?loadout[shipId]:[];
