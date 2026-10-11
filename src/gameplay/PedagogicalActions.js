@@ -50,9 +50,28 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
     const outcome = claimTreasure(save, action.id);
     if (!outcome) return null;
     patch = outcome.patch;
+    // Toda coleta de destroços concede o mesmo pacote especial, sem depender de missão.
+    const draw=(min,max)=>min+Math.floor(Math.random()*(max-min+1));
+    const bonus={
+      'halloween-purple-ball':draw(1,150),
+      'purple-pumpkin-orb':draw(100,350),
+      'ocean-pearl':draw(159,199),
+      'violet-crystal':10,
+      'terror-rose':draw(1,20),
+    };
+    patch.ammunition={...patch.ammunition};
+    for(const [id,amount] of Object.entries(bonus))
+      patch.ammunition[id]=(Number(patch.ammunition[id])||0)+amount;
     questEvent = { type: 'treasure', id: action.id };
-    message = 'Tesouro resgatado! +' + outcome.reward.gold
-      + ' ouro e +' + outcome.reward.iron + ' munições de ferro.';
+    message = 'Destroços resgatados! +' + outcome.reward.gold
+      + ' ouro, +' + outcome.reward.iron + ' ferro, ' +
+      Object.entries(bonus).map(([id,amount])=>'+'+amount+' '+({
+        'halloween-purple-ball':'Bolas Roxas',
+        'purple-pumpkin-orb':'Orbes de Abóbora Roxa',
+        'ocean-pearl':'Pérolas Oceânicas',
+        'violet-crystal':'Cristais Violetas',
+        'terror-rose':'Rosas do Terror',
+      }[id])).join(' · ');
   } else if (type === 'repair') {
     const outcome = accumulateHullRepair(save, Number(save.combat?.shipHealth) <= 0);
     if (!outcome) return null;
