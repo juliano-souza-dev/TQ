@@ -226,7 +226,7 @@ export class NpcRenderer {
       const shipSize = npcShipPixelSize(w, h, dpr, zoom, {
         merchant: npc.archetype === 'blood-red-market-merchant',
         fugitive: ship.id === FUGITIVE_FRIGATE_SHIP.id || ship.id === GREEN_GHOST_FUGITIVE_SHIP.id,
-      });
+      }) * (ship.id === FROZEN_LANDS_GALLEON_SHIP.id ? 1.1 : 1);
       const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
       const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
       if (x < -shipSize || x > w + shipSize || y < -shipSize || y > h + shipSize) continue;
