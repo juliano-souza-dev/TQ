@@ -4,6 +4,35 @@ import { resolveIslandMovement, collidesWithIsland } from '../world/IslandCollis
 import { createBloodRedMarketMerchant } from './BloodRedCorsairNpc.js';
 import { createDarkWatersFleet, updateDarkWatersFleet } from './DarkWatersFleet.js';
 
+
+// Separate overlapping NPC hulls after navigation, without moving them through islands.
+// The correction is capped per frame to avoid abrupt jumps.
+function resolveNpcCollisions(world) {
+  const ships = [...world.entities.values()].filter(n =>
+    n.type === 'npc' && n.health > 0 && Number.isFinite(n.x) && Number.isFinite(n.y));
+  const radius = n => Math.max(24, Math.min(62, Number(n.collisionRadius) || 38));
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < ships.length; i++) for (let j = i + 1; j < ships.length; j++) {
+      const a = ships[i], b = ships[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const distance = Math.hypot(dx, dy);
+      const minimum = radius(a) + radius(b);
+      if (distance >= minimum) continue;
+      const angle = distance > 0.001 ? {x: dx / distance, y: dy / distance} : {x: 1, y: 0};
+      const step = Math.min(8, (minimum - distance) / 2);
+      const valid = (ship, x, y) =>
+        x >= MARGIN && y >= MARGIN &&
+        x <= world.region.width - MARGIN && y <= world.region.height - MARGIN &&
+        !collidesWithIsland(world.region, x, y, radius(ship));
+      const ax = a.x - angle.x * step, ay = a.y - angle.y * step;
+      const bx = b.x + angle.x * step, by = b.y + angle.y * step;
+      const canA = valid(a, ax, ay), canB = valid(b, bx, by);
+      if (canA) { a.x = ax; a.y = ay; }
+      if (canB) { b.x = bx; b.y = by; }
+    }
+  }
+}
+
 export const CORSAIR_POPULATION = 20;
 export const CORSAIR_RESPAWN_MS = 20000;
 const MARGIN = 90;
@@ -43,7 +72,11 @@ export function createCorsairPopulation(world, random = Math.random) {
 }
 
 export function updateCorsairPopulation(world, deltaMs, random = Math.random, onFire = () => {}) {
-  if (world.region.id === 'r3') return updateDarkWatersFleet(world, deltaMs, random);
+  if (world.region.id === 'r3') {
+    const raids = updateDarkWatersFleet(world, deltaMs, random);
+    resolveNpcCollisions(world);
+    return raids;
+  }
 
   const targets = new Map([['player', world.camera]]);
   for (const npc of world.entities.values()) {
@@ -96,5 +129,6 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     npc.x = moved.x;
     npc.y = moved.y;
   }
+  resolveNpcCollisions(world);
   return [];
 }
