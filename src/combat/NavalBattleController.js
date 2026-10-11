@@ -1092,6 +1092,13 @@ export class NavalBattleController {
       const npcRange = npc.retaliationActive ? Math.max(520,Number(npc.range)||0) : Math.max(1, Number(npc.range) || 340);
       if (distanceBetween(npc, player) > npcRange) continue;
 
+      if(this.getRegionId()==='r4' && npc.specialCannonCount===1){
+        fireSequenceShot({npc,target:player,count:1,
+          sequenceKey:npc.id+':ice-sequence',reloadKey:npc.id+':ice-reload',
+          reloadMs:6000,damage:Math.max(1,Number(npc.damage)||5),speed:440,
+          ammo:effectiveAmmo('frozen-explosion'),
+        });
+      }
       fireSequenceShot({
         npc,target:player,count:Math.max(1,Number(npc.cannonSlots)||1),
         sequenceKey:npc.id+':regular-sequence',reloadKey:npc.id+':regular-reload',
