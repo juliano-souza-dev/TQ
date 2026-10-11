@@ -123,6 +123,13 @@ void main(){
   float glint=pow(max(sunLight,0.0),12.0)*crest*0.055;
   color=color*lighting+vec3(0.68,0.85,0.92)*glint;
 
+  // Gentle distance haze toward the far side of the 2.5D view.
+  // Screen-space only: it cannot affect navigation, world coordinates or hitboxes.
+  float farWater=smoothstep(0.43,1.0,vUv.y);
+  float nearWater=1.0-smoothstep(0.0,0.55,vUv.y);
+  color=mix(color,color*vec3(0.90,0.96,1.035),farWater*0.13);
+  color*=1.0-nearWater*0.035;
+
   if(uCorruptionEnabled>0.5){
     float n=corruptionNoiseAt(world);
     float m0=corruptionZoneMask(world,uCorruptionZone0,n);
