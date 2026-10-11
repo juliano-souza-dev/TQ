@@ -3395,7 +3395,7 @@ async function startWorld() {
           krakenImpact = { strength, phase: elapsed / 100 };
         }
       }
-      shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom, krakenImpact);
+      shipRenderer.render(heading, world.camera, world.cameraView, world.camera.zoom, krakenImpact, world.region.id);
       if (!repairAura.hidden) {
         const rect = canvas.getBoundingClientRect();
         const px = rect.left + rect.width / 2 + (world.camera.x - world.cameraView.x) * world.camera.zoom;
