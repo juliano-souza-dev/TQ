@@ -1,5 +1,5 @@
 import {drawFrozenShip,drawFreezeBurst} from './rendering/FreezeEffects.js';
-const R4_ICE_WRECKS=Object.freeze([{id:'r4-ice-wreck-1',x:920,y:1900},{id:'r4-ice-wreck-2',x:1830,y:2450},{id:'r4-ice-wreck-3',x:2870,y:3100},{id:'r4-ice-wreck-4',x:3450,y:1550},{id:'r4-ice-wreck-5',x:1360,y:3850}]);
+const R4_ICE_WRECKS=Object.freeze([{id:'r4-ice-wreck-1',x:1200,y:2400},{id:'r4-ice-wreck-2',x:1830,y:2450},{id:'r4-ice-wreck-3',x:2870,y:3100},{id:'r4-ice-wreck-4',x:3500,y:2600},{id:'r4-ice-wreck-5',x:1800,y:3650}]);
 import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID, R3_REBUILD_MISSION_ID, R3_CLEANUP_MISSION_ID, R3_CLEANUP_RED_IDS } from './missions/RegionThreeCampaign.js';
 import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout, verifySilasArsenalAtLeviathan } from './missions/R3SilasTrade.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
