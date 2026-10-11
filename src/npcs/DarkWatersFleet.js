@@ -428,3 +428,26 @@ export function updateDarkWatersFleet(world, deltaMs, random = Math.random) {
   }
   return raids;
 }
+
+/** R4 story encounter: the same named fugitive, using its R3 ship and escape AI. */
+export function createFrozenLandsFugitive(world) {
+  if(world.region.id!=='r4')return null;
+  const id='r4-sombra-do-saque';
+  if(world.entities.has(id))return world.entities.get(id);
+  const npc=createRaider({
+    id,name:'Sombra do Saque',x:520,y:3260,heading:90,
+    speed:442,maxHealth:45000,detectionRange:650,raidRadius:86,
+  },world.region);
+  npc.storyOriginId='r3-sombra-do-saque';
+  npc.storyRegion='r4';
+  world.entities.set(id,npc);
+  return npc;
+}
+export function updateFrozenLandsFugitive(world,deltaMs,random=Math.random) {
+  if(world.region.id!=='r4')return [];
+  const npc=world.entities.get('r4-sombra-do-saque');
+  if(!npc)return [];
+  const raids=[];
+  updateRaider(npc,world,deltaMs,random,raids);
+  return raids;
+}
