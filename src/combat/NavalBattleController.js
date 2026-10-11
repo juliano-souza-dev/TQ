@@ -87,6 +87,7 @@ export class NavalBattleController {
     this.renderer.prepareAmmo?.(this.enemyAmmo);
     this.selectedAmmoId = this.resolveSelectedAmmo();
     this.lastCombatActivityAt = -Infinity;
+    this.playerFrozenUntil = 0;
   }
 
   markCombatActivity(now = this.clock()) {
@@ -989,6 +990,10 @@ export class NavalBattleController {
         impactKind:'water',startTime:now,
         onImpact:({at})=>{
           const result=onImpact?onImpact({at}):this.resolveNpcImpact(npc.id,at,damage*SHIP_CANNON_DAMAGE_MULTIPLIER);
+          if(result?.kind==='ship' && ammo?.id==='frozen-explosion'){
+            this.playerFrozenUntil=Math.max(this.playerFrozenUntil||0,Date.now()+6000);
+            this.onFeedback('❄️ Seu navio foi congelado por 6 segundos!');
+          }
           playCannonSound(result?.kind==='ship'?'impact':'water');
           return result;
         },
@@ -1009,6 +1014,7 @@ export class NavalBattleController {
     };
 
     for (const npc of this.getEntities().values()) {
+      if(Date.now()<(npc.frozenUntil||0))continue;
       if(npc.id==='r2-pumpkin-ally'){
         const morbi=this.getEntities().get('r2-morbi');
         if(this.readSave().r2Campaign?.active==='r2-golden-ii'
