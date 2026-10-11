@@ -1869,7 +1869,7 @@ async function startWorld() {
     if(generation!==worldGeneration)return;
     if(!firstVoyageGuide){
       firstVoyageGuide=createFirstVoyageGuide(world);
-      root.append(...firstVoyageGuide.elements);
+      document.body.append(...firstVoyageGuide.elements);
     }
     firstVoyageGuide.guideTo(destination);
   }
@@ -2411,7 +2411,7 @@ async function startWorld() {
     const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
     if (generation !== worldGeneration) return;
     firstVoyageGuide = createFirstVoyageGuide(world);
-    root.append(...firstVoyageGuide.elements);
+    document.body.append(...firstVoyageGuide.elements);
     if (needsR4PortGuide) firstVoyageGuide.guideTo('missions');
     else if (world.region.id === 'r2') {
       const equipTerror=boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-equip-terror');
