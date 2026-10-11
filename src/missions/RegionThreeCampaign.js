@@ -9,6 +9,7 @@ export const R3_LEVIATHAN_ENTITY_ID = 'r3-leviathan';
 export const R3_ABYSS_SECRET_MISSION_ID='r3-abyss-secret';
 export const R3_FLAME_MISSION_ID='r3-abyss-flame';
 export const R3_VARKOR_MISSION_ID='r3-terror-awakening';
+export const R3_REBUILD_MISSION_ID='r3-rebuild-terror';
 export const R3_FLAME_STOPS=Object.freeze([
   Object.freeze({id:'r3-flame-wreck-1',x:850,y:2480,name:'Destroços Perdidos',questions:2}),
   Object.freeze({id:'r3-flame-wreck-2',x:1820,y:3020,name:'Fragmentos da Chama I',questions:1}),
@@ -74,6 +75,13 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
  {kind:'varkor-wreck',count:4,label:'Resolver quatro multiplicações nos destroços do Terror do Mar'},
  {kind:'return-port',count:1,label:'Retornar ao Porto das Missões'}],
  reward:{gold:25000},
+}),Object.freeze({
+ id:R3_REBUILD_MISSION_ID,name:'O Renascimento do Terror do Mar',
+ description:'De volta ao porto, uma mensagem do Fantasma Esmeralda revela que o projeto recuperado guarda um segredo. Encontre o navio verde perto da Ilha Esquecida, resolva a multiplicação, recolha os destroços que ele precisa e visite o Estaleiro para reconstruir e equipar o Terror do Mar. Só então a próxima região será liberada.',
+ objectives:[{kind:'emerald-talk',count:1,label:'Encontrar o Fantasma Esmeralda perto da Ilha Esquecida'},
+ {kind:'emerald-wreck',count:1,label:'Recolher os destroços para a construção'},
+ {kind:'terror-equip',count:1,label:'Construir e equipar o Terror do Mar no Estaleiro'}],
+ reward:{unlockRegion:4},
 })]);
 
 export function expectedR3GoldenLoadout(save, capacity) {
@@ -119,6 +127,7 @@ export function getR3Board(save={}) {
   const fifthDone=claimed.includes(R3_ABYSS_SECRET_MISSION_ID);
   const sixthDone=claimed.includes(R3_FLAME_MISSION_ID);
   const seventhDone=claimed.includes(R3_VARKOR_MISSION_ID);
+  const eighthDone=claimed.includes(R3_REBUILD_MISSION_ID);
   const wreckCount=Math.min(3,(save.r3Campaign?.wreckDiaries??[]).length);
   const delivered=Boolean(save.r3Campaign?.wreckDelivered);
   const first=R3_MISSIONS[0];
@@ -170,14 +179,24 @@ export function getR3Board(save={}) {
   const seventhReady=seventhActive&&varkor.varkorSummoned&&varkor.varkorDefeated&&varkor.varkorWreckClaimed&&varkor.varkorReturned;
   const seventhStatus=seventhDone?'claimed':!sixthDone?'locked':seventhReady?'ready':seventhActive?'active':'available';
   const seventhItem={...seventh,status:seventhStatus,progress:[varkor.varkorSummoned||seventhDone?1:0,varkor.varkorDefeated||seventhDone?1:0,Math.min(4,varkor.varkorWreckAnswers??0),varkor.varkorReturned||seventhDone?1:0],claimed:seventhDone,active:['active','ready'].includes(seventhStatus),ready:seventhStatus==='ready'};
-  const current=sixthDone?seventhItem:fifthDone?sixthItem:firstDone?(secondDone?(thirdDone?(fourthDone?fifthItem:fourthItem):thirdItem):secondItem):firstItem;
-  return {missions:[firstItem,secondItem,thirdItem,fourthItem,fifthItem,sixthItem,seventhItem],
+  const eighth=R3_MISSIONS[7],rebuild=save.r3Campaign??{};
+  const eighthActive=rebuild.active===R3_REBUILD_MISSION_ID;
+  const eighthReady=eighthActive&&rebuild.emeraldWreckCollected&&save.equipment?.equippedShipId==='terror-do-mar';
+  const eighthStatus=eighthDone?'claimed':!seventhDone?'locked':eighthReady?'ready':eighthActive?'active':'available';
+  const eighthItem={...eighth,status:eighthStatus,progress:[rebuild.emeraldSpoken||eighthDone?1:0,rebuild.emeraldWreckCollected||eighthDone?1:0,save.equipment?.equippedShipId==='terror-do-mar'||eighthDone?1:0],claimed:eighthDone,active:['active','ready'].includes(eighthStatus),ready:eighthStatus==='ready'};
+  const current=seventhDone?eighthItem:sixthDone?seventhItem:fifthDone?sixthItem:firstDone?(secondDone?(thirdDone?(fourthDone?fifthItem:fourthItem):thirdItem):secondItem):firstItem;
+  return {missions:[firstItem,secondItem,thirdItem,fourthItem,fifthItem,sixthItem,seventhItem,eighthItem],
     essentialClaimed:claimed.filter(id=>R3_MISSIONS.some(m=>m.id===id)).length,
-    unlockedRegion:3,activeRegion:3,
+    unlockedRegion:Math.max(3,Number(save.progression?.unlockedRegion)||3),activeRegion:3,
     active:current.active?[current]:[],claimable:current.ready?[current]:[],
     available:current.status==='available'?[current]:[]};
 }
 export function acceptR3Mission(save,id){
+ if(id===R3_REBUILD_MISSION_ID){
+  const state=save.r3Campaign??{};
+  if(!state.claimed?.includes(R3_VARKOR_MISSION_ID)||state.claimed.includes(id)||state.active)return null;
+  return {r3Campaign:{...state,active:id,emeraldSpoken:false,emeraldWreckCollected:false}};
+ }
  if(id===R3_VARKOR_MISSION_ID){
   const state=save.r3Campaign??{};
   if(!state.claimed?.includes(R3_FLAME_MISSION_ID)||state.claimed.includes(id)||state.active)return null;
@@ -207,6 +226,12 @@ export function acceptR3Mission(save,id){
   return {r3Campaign:{...(save.r3Campaign??{}),active:id,wreckDiaries:[],wreckDelivered:false}};
 }
 export function recordR3Event(save,event){
+ if(save.r3Campaign?.active===R3_REBUILD_MISSION_ID){
+  const state=save.r3Campaign;
+  if(event.type==='emerald-talk'&&!state.emeraldSpoken)return {r3Campaign:{...state,emeraldSpoken:true}};
+  if(event.type==='emerald-wreck'&&state.emeraldSpoken&&!state.emeraldWreckCollected)return {r3Campaign:{...state,emeraldWreckCollected:true}};
+  return null;
+ }
  if(save.r3Campaign?.active===R3_VARKOR_MISSION_ID){
   const state=save.r3Campaign;
   if(event.type==='varkor-summon'&&!state.varkorSummoned)return {r3Campaign:{...state,varkorSummoned:true}};
@@ -270,6 +295,11 @@ export function recordR3Event(save,event){
   return null;
 }
 export function claimR3Mission(save,id){
+ if(id===R3_REBUILD_MISSION_ID){
+  const state=save.r3Campaign??{};
+  if(state.active!==id||!state.emeraldWreckCollected||save.equipment?.equippedShipId!=='terror-do-mar'||state.claimed?.includes(id))return null;
+  return {mission:R3_MISSIONS[7],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...(state.claimed??[]),id])]},progression:{...(save.progression??{}),unlockedRegion:Math.max(4,Number(save.progression?.unlockedRegion)||1)}}};
+ }
  if(id===R3_VARKOR_MISSION_ID){
   const state=save.r3Campaign??{};
   if(state.active!==id||!state.varkorSummoned||!state.varkorDefeated||!state.varkorWreckClaimed||!state.varkorReturned||state.claimed?.includes(id))return null;
