@@ -94,6 +94,31 @@ export class ShipRenderer {
       ctx.fill();
       ctx.restore();
     }
+    // Waterline shimmer and contact foam sit behind the ship sprite.
+    // They share the ship's visual transform but never affect gameplay geometry.
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+    ctx.save();
+    const waterY = drawH * .19;
+    const reflection = ctx.createLinearGradient(0, waterY, 0, waterY + drawH * .24);
+    reflection.addColorStop(0, 'rgba(185, 231, 245, 0.17)');
+    reflection.addColorStop(1, 'rgba(185, 231, 245, 0)');
+    ctx.fillStyle = reflection;
+    ctx.beginPath();
+    ctx.ellipse(0, waterY + drawH * .085, drawW * .22, drawH * .16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(215, 245, 252, 0.32)';
+    ctx.lineWidth = Math.max(1, dpr * 1.25);
+    ctx.beginPath();
+    ctx.ellipse(0, waterY, drawW * .235, drawH * .082, 0, .12 * Math.PI, .87 * Math.PI);
+    ctx.stroke();
+    if (!reducedMotion) {
+      ctx.strokeStyle = 'rgba(235, 250, 255, 0.19)';
+      ctx.lineWidth = Math.max(0.75, dpr);
+      ctx.beginPath();
+      ctx.ellipse(0, waterY + drawH * .02, drawW * .275, drawH * .108, 0, .15 * Math.PI, .80 * Math.PI);
+      ctx.stroke();
+    }
+    ctx.restore();
     ctx.save();
     ctx.shadowColor = 'rgba(4, 18, 28, 0.55)';
     ctx.shadowBlur = 9 * dpr;
