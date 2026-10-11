@@ -88,7 +88,7 @@ export function createCorsairPopulation(world, random = Math.random) {
         id, type:'npc', archetype:'r4-ladrao-gelido', fleetId:'r4-frota-ladrao-gelido',
         name:'Ladrão da Geada', shipId:FROST_THIEF_SHIP.id,
         x:point.x, y:point.y, heading:random()*360,
-        health:24000, maxHealth:24000, speed:290,
+        health:24000, maxHealth:24000, speed:442,
         state:'patrolling', aggression:'flee', retaliationActive:false,
         cannonSlots:4, cannonLayout:NORTHERN_THIEF_SHIP.cannonLayout, damage:5, range:840, cannonReloadMs:10000,
         specialCannonAmmoId:'frozen-explosion', homing:true,
@@ -105,7 +105,7 @@ export function createCorsairPopulation(world, random = Math.random) {
         id,type:'npc',archetype:'r4-ladrao-gelido',fleetId:'r4-frota-ladrao-do-norte',
         name:'Ladrão do Norte',shipId:NORTHERN_THIEF_SHIP.id,
         x:point.x,y:point.y,heading:random()*360,
-        health:24000,maxHealth:24000,speed:290,
+        health:24000,maxHealth:24000,speed:442,
         state:'patrolling',aggression:'flee',retaliationActive:false,
         cannonSlots:4,cannonLayout:NORTHERN_THIEF_SHIP.cannonLayout,
         damage:5,range:840,cannonReloadMs:10000,
@@ -228,7 +228,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
       }else if(npc.wanderTimeMs<=0){
         npc.heading=random()*360;npc.wanderTimeMs=1200+random()*2500;
       }
-      const movement=engaged?(stand?Math.min(npc.speed*dt,Math.max(0,distance-220)):npc.speed*dt):npc.speed*dt*.45;
+      const movement=engaged?(stand?Math.min(npc.speed*dt,Math.max(0,distance-220)):npc.speed*dt):npc.speed*dt*.65;
       const rad=npc.heading*Math.PI/180;
       const moved=resolveIslandMovement(world.region,npc.x,npc.y,
         Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(rad)*movement)),
