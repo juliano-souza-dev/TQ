@@ -1,3 +1,4 @@
+const R4_ICE_WRECKS=Object.freeze([{id:'r4-ice-wreck-1',x:920,y:1900},{id:'r4-ice-wreck-2',x:1830,y:2450},{id:'r4-ice-wreck-3',x:2870,y:3100},{id:'r4-ice-wreck-4',x:3450,y:1550},{id:'r4-ice-wreck-5',x:1360,y:3850}]);
 import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID, R3_REBUILD_MISSION_ID, R3_CLEANUP_MISSION_ID, R3_CLEANUP_RED_IDS } from './missions/RegionThreeCampaign.js';
 import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoadout, verifySilasArsenalAtLeviathan } from './missions/R3SilasTrade.js';
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
@@ -3026,7 +3027,17 @@ async function startWorld() {
       }
       updateMonsterPopulation(world, stepMs);
       glintElapsed+=stepMs;
-      if(EVENTS.halloween){
+      if(world.region.id==='r4'){
+        const save=readSave();
+        const collected=save.r4CollectedWrecks??[];
+        const wreck=R4_ICE_WRECKS.find(w=>!collected.includes(w.id)&&Math.hypot(w.x-world.camera.x,w.y-world.camera.y)<65);
+        if(wreck){
+          const amount=100+Math.floor(Math.random()*151);
+          writePatch({r4CollectedWrecks:[...collected,wreck.id],ammunition:{...(save.ammunition??{}),'frozen-explosion':(Number(save.ammunition?.['frozen-explosion'])||0)+amount}});
+          showOceanReward('❄️ Destroços Gélidos: +'+amount+' Explosões Gélidas!');
+        }
+      }
+      if(EVENTS.halloween && world.region.id!=='r4'){
         const save=readSave();
         const nearby=SEA_GLINTS.find(g=>!(save.collectedGlints??[]).includes(g.id)&&Math.hypot(g.x-world.camera.x,g.y-world.camera.y)<55);
         if(nearby){
@@ -3355,7 +3366,20 @@ async function startWorld() {
       const gw=Math.max(1,Math.round(gr.width*gd)),gh=Math.max(1,Math.round(gr.height*gd));
       if(glintCanvas.width!==gw||glintCanvas.height!==gh){glintCanvas.width=gw;glintCanvas.height=gh;}
       glintCtx.clearRect(0,0,gw,gh);
-      if(EVENTS.halloween){
+      if(world.region.id==='r4'){
+        const collected=readSave().r4CollectedWrecks??[];
+        for(const wreck of R4_ICE_WRECKS){
+          if(collected.includes(wreck.id))continue;
+          const x=gw/2+(wreck.x-world.cameraView.x)*world.camera.zoom*gd;
+          const y=gh/2+(wreck.y-world.cameraView.y)*world.camera.zoom*gd;
+          if(x<0||x>gw||y<0||y>gh)continue;
+          glintCtx.save();glintCtx.translate(x,y);
+          glintCtx.shadowColor='#55eaff';glintCtx.shadowBlur=24*gd;
+          glintCtx.fillStyle='#b5faff';glintCtx.strokeStyle='#ffffff';glintCtx.lineWidth=2*gd;
+          glintCtx.beginPath();glintCtx.moveTo(0,-13*gd);glintCtx.lineTo(12*gd,0);glintCtx.lineTo(0,13*gd);glintCtx.lineTo(-12*gd,0);glintCtx.closePath();glintCtx.fill();glintCtx.stroke();glintCtx.restore();
+        }
+      }
+      if(EVENTS.halloween && world.region.id!=='r4'){
         const collected=readSave().collectedGlints??[];
         for(const g of SEA_GLINTS){
           if(collected.includes(g.id))continue;
