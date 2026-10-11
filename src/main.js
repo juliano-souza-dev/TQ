@@ -2831,9 +2831,15 @@ async function startWorld() {
       // This flag is derived from the active mission, never persisted as a new NPC.
       if(world.region.id==='r3'){
         const ghost=world.entities.get('r3-fantasma-esmeralda');
-        if(ghost)ghost.leviathanHuntActive=
-          readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
-          && !readSave().r3Campaign?.leviathanDefeated;
+        if(ghost){
+          ghost.leviathanHuntActive=readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
+            && !readSave().r3Campaign?.leviathanDefeated;
+          if(readSave().r3Campaign?.active===R3_REBUILD_MISSION_ID){
+            ghost.varkorAllyActive=false;
+            ghost.x=2450;ghost.y=3880;ghost.heading=180;
+            ghost.rebuildGuideActive=true;
+          }else ghost.rebuildGuideActive=false;
+        }
       }
       // Varkor enters only after the Chama do Abismo has been claimed.
       // Clear ordinary R3 ships, but preserve the shadow thief and Emerald ally.
