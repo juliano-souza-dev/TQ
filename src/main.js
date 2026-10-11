@@ -3393,8 +3393,15 @@ async function startWorld() {
         // flake keeps falling independently through the frozen landscape.
         const t=oceanTimeMs*.001,z=Math.max(.01,world.camera.zoom);
         const cell=95,view=world.cameraView;
-        const left=view.x-w/(2*z)-cell,right=view.x+w/(2*z)+cell;
-        const top=view.y-h/(2*z)-cell,bottom=view.y+h/(2*z)+cell;
+        const snowCamera=createViewProjection(view,z,w,h,1,world.cameraPerspective);
+        const corners=[
+          {x:0,y:0},{x:w,y:0},{x:0,y:h},{x:w,y:h},
+        ].map(point=>snowCamera.unprojectGround(point)).filter(Boolean);
+        const extent=Math.min(4200,Math.max(700,Math.max(w,h)/z*2.2));
+        const left=Math.max(view.x-extent,Math.min(...corners.map(p=>p.x),view.x))-cell;
+        const right=Math.min(view.x+extent,Math.max(...corners.map(p=>p.x),view.x))+cell;
+        const top=Math.max(view.y-extent,Math.min(...corners.map(p=>p.y),view.y))-cell;
+        const bottom=Math.min(view.y+extent,Math.max(...corners.map(p=>p.y),view.y))+cell;
         const firstX=Math.floor(left/cell),lastX=Math.ceil(right/cell);
         const firstY=Math.floor(top/cell),lastY=Math.ceil(bottom/cell);
         for(let gy=firstY;gy<=lastY;gy++){
@@ -3404,9 +3411,11 @@ async function startWorld() {
             const fall=(t*(25+seed*40))%cell;
             const wx=gx*cell+seed*cell+drift;
             const wy=gy*cell+((seed*.73+.17)%1)*cell+fall;
-            const x=w*.5+(wx-view.x)*z,y=h*.5+(wy-view.y)*z;
+            const screen=snowCamera.project({x:wx,y:wy,z:0});
+            if(!screen)continue;
+            const {x,y}=screen;
             if(x< -8||x>w+8||y< -8||y>h+8)continue;
-            polarCtx.beginPath();polarCtx.arc(x,y,(1+seed*2.3)*Math.min(1.5,Math.max(.7,z)),0,Math.PI*2);
+            polarCtx.beginPath();polarCtx.arc(x,y,(1+seed*2.3)*Math.min(1.5,Math.max(.7,z))*screen.relativeScale,0,Math.PI*2);
             polarCtx.fillStyle='rgba(255,255,255,'+(0.5+seed*.45)+')';polarCtx.fill();
           }
         }
