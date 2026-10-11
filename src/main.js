@@ -1015,7 +1015,7 @@ async function startWorld() {
   function beginRepairSession(forced = false) {
     const save=readSave();
     const health=Number(save.combat?.shipHealth??getMaxHullHealth(save));
-    if(health>=getMaxHullHealth(save)||save.combat?.repairingUntil)return false;
+    if(health>=getMaxHullHealth(save)||(Number(save.combat?.repairingUntil)||0)>Date.now())return false;
     repairIsForced=forced;
     return mathGate.open({
       kind:'repair',
