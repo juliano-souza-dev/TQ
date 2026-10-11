@@ -26,9 +26,17 @@ export function createMonsterPopulation(world, random = Math.random, save = {}) 
   const region = world.region;
   for (let i = 0; i < MONSTERS_PER_MAP; i++) {
     let x = region.width / 2, y = region.height / 2;
+    // In R4, keep Krakens discoverable near the player's sailing area.
+    // The old map-wide random distribution often placed both far off-screen.
     for (let attempt = 0; attempt < 150; attempt++) {
-      const candidateX = 130 + random() * Math.max(1, region.width - 260);
-      const candidateY = 130 + random() * Math.max(1, region.height - 260);
+      const angle=random()*Math.PI*2;
+      const radius=420+random()*650;
+      const candidateX = region.id==='r4'
+        ? Math.max(130,Math.min(region.width-130,world.camera.x+Math.cos(angle)*radius))
+        : 130 + random() * Math.max(1, region.width - 260);
+      const candidateY = region.id==='r4'
+        ? Math.max(130,Math.min(region.height-130,world.camera.y+Math.sin(angle)*radius))
+        : 130 + random() * Math.max(1, region.height - 260);
       if (collidesWithIsland(region, candidateX, candidateY, 85)) continue;
       if (Math.hypot(candidateX - world.camera.x, candidateY - world.camera.y) < 300) continue;
       if ([...world.entities.values()].some(other => other.type === 'monster' && Math.hypot(candidateX-other.x,candidateY-other.y)<170)) continue;
