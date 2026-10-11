@@ -327,6 +327,7 @@ export const EMERALD_GHOST_LEVIATHAN_RELOAD_MS=2000;
 export const EMERALD_GHOST_LEVIATHAN_RANGE=760;
 
 function updateEmeraldGhost(npc, world, deltaMs, random) {
+  if(npc.rebuildGuideActive){npc.state='awaiting-player';return;}
   const dt = Math.min(64, Math.max(0, deltaMs)) / 1000;
   const varkor=npc.varkorAllyActive ? world.entities.get(world.region.terrorBoss?.id) : null;
   if(varkor?.health>0 && npc.health>0){
