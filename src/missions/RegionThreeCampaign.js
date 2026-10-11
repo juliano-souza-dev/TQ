@@ -7,6 +7,7 @@ export const R3_LEVIATHAN_MISSION_ID = 'r3-leviathan-hunt';
 export const R3_LEVIATHAN_ENTITY_ID = 'r3-leviathan';
 export const R3_ABYSS_SECRET_MISSION_ID='r3-abyss-secret';
 export const R3_FLAME_MISSION_ID='r3-abyss-flame';
+export const R3_VARKOR_MISSION_ID='r3-terror-awakening';
 export const R3_FLAME_STOPS=Object.freeze([
   Object.freeze({id:'r3-flame-wreck-1',x:850,y:2480,name:'Destroços Perdidos',questions:2}),
   Object.freeze({id:'r3-flame-wreck-2',x:1820,y:3020,name:'Fragmentos da Chama I',questions:1}),
@@ -63,6 +64,14 @@ export const R3_MISSIONS = Object.freeze([Object.freeze({
  {kind:'flame-enemies',count:2,label:'Derrotar dois corsários Red'},
  {kind:'return-port',count:1,label:'Retornar ao Porto das Missões'}],
  reward:{consumables:{'flame-5x':1}},
+}),Object.freeze({
+ id:R3_VARKOR_MISSION_ID,
+ name:'O Despertar do Terror do Mar',
+ description:'A Chama do Abismo rompeu o selo do oceano. A frota foge, mas o Ladrão Sombra continua à espreita. O Fantasma Esmeralda regressa para enfrentar o Capitão Varkor Tenebris. Navegue até o Terror do Mar, sobreviva ao confronto e retorne ao Porto das Missões para contar a vitória.',
+ objectives:[{kind:'varkor-summon',count:1,label:'Convocar o Terror do Mar'},
+ {kind:'varkor-defeat',count:1,label:'Derrotar o Terror do Mar'},
+ {kind:'return-port',count:1,label:'Retornar ao Porto das Missões'}],
+ reward:{gold:25000},
 })]);
 
 export function expectedR3GoldenLoadout(save, capacity) {
@@ -107,6 +116,7 @@ export function getR3Board(save={}) {
   const fourthDone=claimed.includes(R3_LEVIATHAN_MISSION_ID);
   const fifthDone=claimed.includes(R3_ABYSS_SECRET_MISSION_ID);
   const sixthDone=claimed.includes(R3_FLAME_MISSION_ID);
+  const seventhDone=claimed.includes(R3_VARKOR_MISSION_ID);
   const wreckCount=Math.min(3,(save.r3Campaign?.wreckDiaries??[]).length);
   const delivered=Boolean(save.r3Campaign?.wreckDelivered);
   const first=R3_MISSIONS[0];
@@ -152,14 +162,25 @@ export function getR3Board(save={}) {
   const flameReady=flame.active===R3_FLAME_MISSION_ID&&flame.flameStep===6&&flame.flameReturned;
   const sixthStatus=sixthDone?'claimed':!fifthDone?'locked':flameReady?'ready':flame.active===R3_FLAME_MISSION_ID?'active':'available';
   const sixthItem={...sixth,status:sixthStatus,progress:[Math.min(4,flame.flameWrecks??0),Math.min(7,flame.flameMath??0),Math.min(2,flame.flameKills??0),flame.flameReturned?1:0],claimed:sixthDone,active:['active','ready'].includes(sixthStatus),ready:sixthStatus==='ready'};
-  const current=fifthDone?sixthItem:firstDone?(secondDone?(thirdDone?(fourthDone?fifthItem:fourthItem):thirdItem):secondItem):firstItem;
-  return {missions:[firstItem,secondItem,thirdItem,fourthItem,fifthItem,sixthItem],
+  const seventh=R3_MISSIONS[6];
+  const varkor=save.r3Campaign??{};
+  const seventhActive=varkor.active===R3_VARKOR_MISSION_ID;
+  const seventhReady=seventhActive&&varkor.varkorSummoned&&varkor.varkorDefeated&&varkor.varkorReturned;
+  const seventhStatus=seventhDone?'claimed':!sixthDone?'locked':seventhReady?'ready':seventhActive?'active':'available';
+  const seventhItem={...seventh,status:seventhStatus,progress:[varkor.varkorSummoned||seventhDone?1:0,varkor.varkorDefeated||seventhDone?1:0,varkor.varkorReturned||seventhDone?1:0],claimed:seventhDone,active:['active','ready'].includes(seventhStatus),ready:seventhStatus==='ready'};
+  const current=sixthDone?seventhItem:fifthDone?sixthItem:firstDone?(secondDone?(thirdDone?(fourthDone?fifthItem:fourthItem):thirdItem):secondItem):firstItem;
+  return {missions:[firstItem,secondItem,thirdItem,fourthItem,fifthItem,sixthItem,seventhItem],
     essentialClaimed:claimed.filter(id=>R3_MISSIONS.some(m=>m.id===id)).length,
     unlockedRegion:3,activeRegion:3,
     active:current.active?[current]:[],claimable:current.ready?[current]:[],
     available:current.status==='available'?[current]:[]};
 }
 export function acceptR3Mission(save,id){
+ if(id===R3_VARKOR_MISSION_ID){
+  const state=save.r3Campaign??{};
+  if(!state.claimed?.includes(R3_FLAME_MISSION_ID)||state.claimed.includes(id)||state.active)return null;
+  return {r3Campaign:{...state,active:id,varkorSummoned:false,varkorDefeated:false,varkorReturned:false}};
+ }
  if(id===R3_FLAME_MISSION_ID){
   if(!save.r3Campaign?.claimed?.includes(R3_ABYSS_SECRET_MISSION_ID)||save.r3Campaign.claimed.includes(id)||save.r3Campaign.active)return null;
   return {r3Campaign:{...save.r3Campaign,active:id,flameStep:0,flameWrecks:0,flameMath:0,flameKills:0,flameKillIds:[],flameReturned:false}};
@@ -184,6 +205,13 @@ export function acceptR3Mission(save,id){
   return {r3Campaign:{...(save.r3Campaign??{}),active:id,wreckDiaries:[],wreckDelivered:false}};
 }
 export function recordR3Event(save,event){
+ if(save.r3Campaign?.active===R3_VARKOR_MISSION_ID){
+  const state=save.r3Campaign;
+  if(event.type==='varkor-summon'&&!state.varkorSummoned)return {r3Campaign:{...state,varkorSummoned:true}};
+  if(event.type==='defeat'&&event.archetype==='terror-do-mar'&&state.varkorSummoned&&!state.varkorDefeated)return {r3Campaign:{...state,varkorDefeated:true}};
+  if(event.type==='return-port'&&state.varkorDefeated&&!state.varkorReturned)return {r3Campaign:{...state,varkorReturned:true}};
+  return null;
+ }
  if(save.r3Campaign?.active===R3_FLAME_MISSION_ID){
   const state=save.r3Campaign,step=state.flameStep??0;
   if(event.type==='flame-math'&&step<6&&step%3!==1){
@@ -236,6 +264,11 @@ export function recordR3Event(save,event){
   return null;
 }
 export function claimR3Mission(save,id){
+ if(id===R3_VARKOR_MISSION_ID){
+  const state=save.r3Campaign??{};
+  if(state.active!==id||!state.varkorSummoned||!state.varkorDefeated||!state.varkorReturned||state.claimed?.includes(id))return null;
+  return {mission:R3_MISSIONS[6],patch:{r3Campaign:{...state,active:null,claimed:[...new Set([...(state.claimed??[]),id])]},profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+25000}}};
+ }
  if(id===R3_FLAME_MISSION_ID){
   const state=save.r3Campaign??{};
   if(state.active!==id||state.flameStep!==6||!state.flameReturned||state.claimed?.includes(id))return null;
