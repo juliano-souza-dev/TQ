@@ -785,11 +785,23 @@ async function startWorld() {
         ||Math.hypot(world.camera.x-silas.x,world.camera.y-silas.y)>silas.interactionRadius)return false;
       return 'Multiplicação correta! Confira a proposta de Silas e confirme se deseja realizar a troca.';
     }
+    const grantR3WreckAmmo=()=>{
+      const draw=(min,max)=>min+Math.floor(Math.random()*(max-min+1));
+      const rewards=[['halloween-purple-ball',draw(1,150)],['purple-pumpkin-orb',draw(100,350)],
+        ['ocean-pearl',draw(159,199)],['violet-crystal',10],['terror-rose',draw(1,20)]];
+      const current=readSave(),stock={...(current.ammunition??{})};
+      for(const [id,n] of rewards)stock[id]=(Number(stock[id])||0)+n;
+      writePatch({ammunition:stock});
+      showOceanReward('🪵 Destroços: '+rewards.map(([id,n])=>'+'+n+' '+({
+        'halloween-purple-ball':'Bolas Roxas','purple-pumpkin-orb':'Orbes de Abóbora Roxa',
+        'ocean-pearl':'Pérolas Oceânicas','violet-crystal':'Cristais Violetas','terror-rose':'Rosas do Terror'}[id])).join(' · '));
+    };
     if(action.kind==='r3-abyss-fragment'){
       if(world.region.id!=='r3'||readSave().r3Campaign?.active!==R3_ABYSS_SECRET_MISSION_ID)return false;
       const wreck=R3_ABYSS_WRECKS.find(w=>w.id===action.id);
       if(!wreck||Math.hypot(world.camera.x-wreck.x,world.camera.y-wreck.y)>180)return false;
       if(!recordMissionEvent({type:'abyss-fragment',id:wreck.id}))return false;
+      grantR3WreckAmmo();
       showOceanReward('🪵 Fragmento recuperado: '+wreck.name);
       return 'Fragmento recuperado! Continue sua missão.';
     }
@@ -798,6 +810,7 @@ async function startWorld() {
       const wreck=R3_WRECKS.find(w=>w.id===action.id);
       if(!wreck||Math.hypot(world.camera.x-wreck.x,world.camera.y-wreck.y)>180)return false;
       if(!recordMissionEvent({type:'wreck-diary',id:wreck.id}))return false;
+      grantR3WreckAmmo();
       showOceanReward('📜 Diário recuperado: '+wreck.name+'.');
       updateMissionHud();
       return 'Fragmento recuperado! Continue seguindo o guia.';
@@ -1130,17 +1143,10 @@ async function startWorld() {
         }
         return;
       }
-      if (world.region.id === 'r3' && npc.archetype === 'dark-waters-raider') {
-        const ammoId=npc.rewardAmmoId || 'terror-rose';
-        const amount=Math.max(1,Math.floor(Number(npc.rewardAmmoAmount)||100));
-        const nowSave=readSave();
-        writePatch({ammunition:{...(nowSave.ammunition??{}),
-          [ammoId]:(Number(nowSave.ammunition?.[ammoId])||0)+amount}});
+      if(world.region.id==='r3'&&npc.archetype==='dark-waters-raider'){
         recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
-        showOceanReward('🏴‍☠️ '+npc.name+' afundado! +'+amount+' Rosas do Terror.');
-      } else if(world.region.id==='r3'&&npc.archetype==='terror-guardian'){
+      }else if(world.region.id==='r3'&&npc.archetype==='terror-guardian'){
         recordMissionEvent({type:'abyss-red-sunk',archetype:npc.archetype,id:npc.id+':'+(npc.sinkSerial??0)});
-        showOceanReward('🏴‍☠️ '+npc.name+' afundado!');
       } else if (world.region.id === 'r3' && npc.archetype === 'terror-do-mar') {
         recordMissionEvent({type:'defeat',archetype:npc.archetype,id:npc.id+':'+Date.now()});
         showOceanReward('🔥 Terror do Mar afundado! Capitão Varkor Tenebris foi derrotado.');
@@ -1168,21 +1174,11 @@ async function startWorld() {
           id: npc.id + ':' + Date.now() + ':' + performance.now(),
         });
       }
-      // One random ammunition drop per sinking; keep Red's fixed prize as well.
-      if(npc.type==='npc' && npc.health<=0 && npc.merchantKind!=='black-market' && !npc.lootGranted){
+      if(npc.type==='npc'&&npc.health<=0&&npc.merchantKind!=='black-market'&&!npc.lootGranted){
         npc.lootGranted=true;
         const loot=rollNpcAmmoLoot();
         const patch=grantNpcAmmoLoot(readSave(),loot);
-        if(patch){
-          writePatch(patch);
-          showOceanReward('🎁 Saque do navio: +'+loot.amount+' '+loot.name+'.');
-        }
-        if(world.region.id==='r3' && npc.archetype==='terror-guardian'){
-          const current=readSave();
-          writePatch({profile:{...(current.profile??{}),gold:(Number(current.profile?.gold)||0)+5000},
-            ammunition:{...(current.ammunition??{}),'terror-rose':(Number(current.ammunition?.['terror-rose'])||0)+100}});
-          showOceanReward('🏴‍☠️ Red afundado: +5.000 ouro e +100 Rosas do Terror.');
-        }
+        if(patch){writePatch(patch);showOceanReward('🎁 '+npc.name+': +1 munição de ferro enferrujado · +150 ouro.');}
       }
     },
   });
