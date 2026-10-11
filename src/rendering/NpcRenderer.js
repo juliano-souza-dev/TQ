@@ -1,3 +1,4 @@
+import { createViewProjection, cameraRelativeHeading } from './OrbitalCameraProjection.js';
 import { FROST_THIEF_SHIP } from '../ships/FrozenLandsGalleonShip.js';
 import { NORTHERN_THIEF_SHIP } from '../ships/NorthernThiefShip.js';
 import { BLACK_MARKET_SHIP } from '../ships/BlackMarketShip.js';
@@ -94,21 +95,22 @@ export class NpcRenderer {
       }
     }
   }
-  paintFoam(ctx,w,h,camera,zoom,dpr,oceanTimeMs){
+  paintFoam(ctx,w,h,camera,zoom,dpr,oceanTimeMs,projection){
     ctx.save();ctx.globalCompositeOperation='screen';
     for(const p of this.foam){
       const alpha=Math.max(0,1-p.age/2000);
-      const x=w/2+(p.x-camera.x)*zoom*dpr;
       const oceanT=oceanTimeMs/1000;
       const ripple=Math.sin(p.y*.018+p.x*.004+oceanT*.65)*1.8;
-      const y=h/2+(p.y-camera.y+ripple)*zoom*dpr;
-      const r=Math.max(1,p.size*zoom*dpr*(.4+.6*alpha));
+      const screen=projection.project({x:p.x,y:p.y+ripple});
+      if(!screen)continue;
+      const {x,y}=screen;
+      const r=Math.max(1,p.size*zoom*dpr*screen.relativeScale*(.4+.6*alpha));
       ctx.fillStyle='rgba(225,255,249,'+(.35*alpha)+')';
       ctx.beginPath();ctx.ellipse(x,y,r,r*.4,0,0,Math.PI*2);ctx.fill();
     }ctx.restore();
   }
   hasShipSprite(id) { return this.images.has(id); }
-  render(entities, camera, zoom = 1, selectedId = null, krakenAttacks = [], now = performance.now(), oceanTimeMs = now, playerY = null) {
+  render(entities, camera, zoom = 1, selectedId = null, krakenAttacks = [], now = performance.now(), oceanTimeMs = now, playerY = null, orbit = null) {
     const bounds = this.canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.max(1, Math.round(bounds.width * dpr));
@@ -122,19 +124,27 @@ export class NpcRenderer {
       }
       this.frontCtx.clearRect(0,0,w,h);
     }
+    const projection=createViewProjection(camera,zoom,w,h,dpr,orbit);
+    const playerScreenY=Number.isFinite(playerY)
+      ? projection.project({x:camera.x,y:playerY})?.y : null;
     const baseCtx=this.ctx;
     let ctx=baseCtx;ctx.clearRect(0, 0, w, h);
     this.updateFoam(entities,now);
-    this.paintFoam(ctx,w,h,camera,zoom,dpr,oceanTimeMs);
+    this.paintFoam(ctx,w,h,camera,zoom,dpr,oceanTimeMs,projection);
     const size = Math.min(w * 0.32, h * 0.32, 185 * dpr) * zoom;
-    const ordered=[...entities.values()].filter(n=>n.type==='npc'||n.type==='monster').sort((a,b)=>a.y-b.y);
+    const ordered=[...entities.values()].filter(n=>n.type==='npc'||n.type==='monster').sort((a,b)=>orbit?.enabled
+      ? (projection.project(a)?.y??-Infinity)-(projection.project(b)?.y??-Infinity)
+      : a.y-b.y);
     for (const npc of ordered) {
-      ctx=(this.frontCtx&&Number.isFinite(playerY)&&npc.y>playerY)?this.frontCtx:baseCtx;
+      const screen=projection.project(npc);
+      if(!screen)continue;
+      ctx=(this.frontCtx&&Number.isFinite(playerY)
+        &&(orbit?.enabled?screen.y>(playerScreenY??h/2):npc.y>playerY))
+        ?this.frontCtx:baseCtx;
       if ((npc.type !== 'npc' && npc.type !== 'monster') || npc.health <= 0 || npc.phasedOut) continue;
       if (npc.type === 'monster') {
-        const monsterSize = size * (npc.archetype==='sea-monster-leviathan'?2.6:1.75);
-        const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
-        const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
+        const monsterSize = size * (npc.archetype==='sea-monster-leviathan'?2.6:1.75) * screen.relativeScale;
+        const {x,y}=screen;
         if (x < -monsterSize || x > w + monsterSize || y < -monsterSize || y > h + monsterSize) continue;
         const image = npc.archetype==='sea-monster-leviathan' ? this.leviathanImage : this.monsterImage;
         const attack = krakenAttacks.find(item => item.from && item.monsterId === npc.id && now >= item.startTime && now - item.startTime < item.duration);
@@ -225,14 +235,16 @@ export class NpcRenderer {
       const rows = ship.sprite.rows;
       const frameW = image.width / columns;
       const frameH = image.height / rows;
-      const frame = getShipFrame(npc.heading ?? 0, ship);
+      const relativeHeading=orbit?.enabled
+        ? cameraRelativeHeading(npc.heading ?? 0,orbit.yaw)
+        : (npc.heading ?? 0);
+      const frame = getShipFrame(relativeHeading, ship);
       this.scanWaterlines(ship.id,image,columns,rows);
       const shipSize = npcShipPixelSize(w, h, dpr, zoom, {
         merchant: npc.archetype === 'blood-red-market-merchant',
         fugitive: ship.id === FUGITIVE_FRIGATE_SHIP.id || ship.id === GREEN_GHOST_FUGITIVE_SHIP.id,
-      }) * (ship.id === FROZEN_LANDS_GALLEON_SHIP.id ? 1.1 : 1);
-      const x = w / 2 + (npc.x - camera.x) * zoom * dpr;
-      const y = h / 2 + (npc.y - camera.y) * zoom * dpr;
+      }) * (ship.id === FROZEN_LANDS_GALLEON_SHIP.id ? 1.1 : 1) * screen.relativeScale;
+      const {x,y}=screen;
       if (x < -shipSize || x > w + shipSize || y < -shipSize || y > h + shipSize) continue;
       if (npc.id === selectedId) {
         ctx.save();
@@ -244,7 +256,7 @@ export class NpcRenderer {
       // Espelhamento opcional, exclusivamente no desenho do sprite.
       // O ID, a posição, o rumo, a colisão e a seleção permanecem inalterados.
       const headingStep = ship.sprite.angleStepDegrees;
-      const headingIndex = Math.round(((((npc.heading ?? 0) % 360) + 360) % 360) / headingStep)
+      const headingIndex = Math.round(((((relativeHeading) % 360) + 360) % 360) / headingStep)
         % ship.sprite.framesByHeading.length;
       const flipX = ship.sprite.flipXByHeading?.[headingIndex] === true;
       if (flipX) {
