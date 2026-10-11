@@ -349,7 +349,8 @@ function updateTerrorGuardian(npc,world,deltaMs,playerAlive=true){
   const player=world.camera;
   const distance=Math.hypot(player.x-npc.x,player.y-npc.y);
   const squad=[...world.entities.values()].filter(n=>n.archetype==='terror-guardian'&&n.health>0);
-  const engaged=npc.retaliationActive===true && npc.fleeUntil!==Infinity;
+  if(npc.fleeUntil && Date.now()>=npc.fleeUntil){npc.fleeUntil=0;npc.retaliationActive=false;}
+  const engaged=npc.retaliationActive===true && !(npc.fleeUntil && Date.now()<npc.fleeUntil);
   if(!engaged && npc.fleeUntil && Date.now()<npc.fleeUntil){
     npc.state='escaping';npc.aggression='flee';
     const dt=Math.min(64,Math.max(0,deltaMs))/1000;
