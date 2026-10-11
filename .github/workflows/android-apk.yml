@@ -67,6 +67,13 @@ jobs:
       - name: Build installable debug APK
         run: gradle -p android --no-daemon :app:assembleDebug
 
+      - name: Verify game files actually shipped inside APK
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          unzip -Z1 "$APK" | grep -Fx 'assets/www/index.html' > /dev/null
+          unzip -Z1 "$APK" | grep -Fx 'assets/www/src/main.js' > /dev/null
+          unzip -Z1 "$APK" | grep -Fx 'assets/www/assets/globals/ocean-tile-tabuada-region01.webp' > /dev/null
+
       - name: Verify debug APK certificate
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose \
