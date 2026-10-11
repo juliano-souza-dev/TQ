@@ -3034,6 +3034,7 @@ async function startWorld() {
         if(wreck){
           const amount=100+Math.floor(Math.random()*151);
           writePatch({r4CollectedWrecks:[...collected,wreck.id],ammunition:{...(save.ammunition??{}),'frozen-explosion':(Number(save.ammunition?.['frozen-explosion'])||0)+amount}});
+          recordMissionEvent({type:'r4-wreck',id:wreck.id});
           showOceanReward('❄️ Destroços Gélidos: +'+amount+' Explosões Gélidas!');
         }
       }
