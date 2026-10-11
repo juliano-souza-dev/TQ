@@ -84,7 +84,7 @@ export function createCorsairPopulation(world, random = Math.random) {
         ? candidate : spawnPosition(world.region, world.camera, random);
       world.entities.set(id, {
         id, type:'npc', archetype:'r4-ladrao-gelido', fleetId:'r4-frota-ladrao-gelido',
-        name:'Ladrão das Terras Gélidas', shipId:FROZEN_LANDS_GALLEON_SHIP.id,
+        name:'Corsário da Geada Negra', shipId:FROZEN_LANDS_GALLEON_SHIP.id,
         x:point.x, y:point.y, heading:random()*360,
         health:24000, maxHealth:24000, speed:290,
         state:'patrolling', aggression:'flee', retaliationActive:false,
