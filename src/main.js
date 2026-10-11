@@ -905,7 +905,34 @@ async function startWorld() {
     marketTrade.disabled=gold===0&&iron===0;
     marketOverlay.hidden=false;
   }
+  function showR4RedTrade(){
+    const save=readSave(),red=world.entities.get('r4-mercador-red');
+    if(world.region.id!=='r4'||save.r4Campaign?.active!=='r4-building-strength'||save.r4Campaign?.packagePurchased||!red||Math.hypot(world.camera.x-red.x,world.camera.y-red.y)>red.interactionRadius)return;
+    marketHeading.textContent='❄️ Mercador Red · Construindo Força';
+    marketDetails.textContent='Pacote: 12 Canhões Terror Gélido, 2.000 Explosões Gélidas e 10 Congelamentos em Área.';
+    marketPrice.textContent='Preço: 15.000 moedas de ouro.';
+    marketTrade.textContent='Comprar pacote';
+    marketTrade.disabled=(Number(save.profile?.gold)||0)<15000;
+    marketOverlay.hidden=false;
+  }
   marketTrade.addEventListener('click',()=>{
+    if(world.region.id==='r4'&&readSave().r4Campaign?.active==='r4-building-strength'){
+      const save=readSave(),red=world.entities.get('r4-mercador-red');
+      if(save.r4Campaign?.packagePurchased||!red||Math.hypot(world.camera.x-red.x,world.camera.y-red.y)>red.interactionRadius)return;
+      if((Number(save.profile?.gold)||0)<15000){showOceanReward('🪙 Ouro insuficiente para o pacote Terror Gélido.');return;}
+      const equipment=save.equipment??{},consumables=save.consumables??{};
+      writePatch({
+        profile:{...save.profile,gold:Number(save.profile.gold)-15000},
+        equipment:{...equipment,ownedCannonIds:[...new Set([...(equipment.ownedCannonIds??[]),'ice-terror'])],cannonCounts:{...(equipment.cannonCounts??{}),'ice-terror':Math.max(12,Number(equipment.cannonCounts?.['ice-terror'])||0)}},
+        ammunition:{...(save.ammunition??{}),'frozen-explosion':(Number(save.ammunition?.['frozen-explosion'])||0)+2000},
+        consumables:{...consumables,quantities:{...(consumables.quantities??{}),'area-freeze':(Number(consumables.quantities?.['area-freeze'])||0)+10}},
+        r4Campaign:{...save.r4Campaign,packagePurchased:true}
+      });
+      marketOverlay.hidden=true;marketDismissedNearby=true;
+      void guideMissionTo('missions');updateMissionHud();islandPanel?.refreshMissionBoard?.();navalHud?.refresh();
+      showOceanReward('❄️ Pacote Terror Gélido comprado! Retorne ao Porto das Missões.');
+      return;
+    }
     if(world.region.id==='r3' && readSave().r3Campaign?.active===R3_SILAS_MISSION_ID){
       if(!silasTradeAuthorized)return;
       const silas=world.entities.get('r3-mercador-do-breu');
@@ -1783,6 +1810,18 @@ async function startWorld() {
       : flow.stage === 'next' ? '📜 Corsário afundado · 1/1 · Retorne ao porto'
       : '📜 ' + flow.objective;
 
+    if(world.region.id==='r4'&&readSave().r4Campaign?.active==='r4-building-strength'){
+      const purchased=!!readSave().r4Campaign?.packagePurchased;
+      missionHud.textContent=purchased?'⚓ Pacote comprado · Retorne ao Porto das Missões':'❄️ Construindo Força · Encontre o Mercador Red';
+      void guideMissionTo(purchased?'missions':world.entities.get('r4-mercador-red')??{x:2050,y:2700,name:'Mercador Red'});
+      return;
+    }
+    if(world.region.id==='r4'&&readSave().r4Campaign?.active==='r4-equip-ice-terror'){
+      const equipped=Math.max(0,...Object.values(readSave().equipment?.loadout??{}).map(slots=>(slots??[]).filter(id=>id==='ice-terror').length));
+      missionHud.textContent='⚓ Armamento Gélido · '+equipped+'/12 canhões instalados';
+      void guideMissionTo(equipped===12?'missions':'shipyard');
+      return;
+    }
     if(world.region.id==='r4' && readSave().r4Campaign?.active==='r4-ice-wreck-investigation'){
       const collected=readSave().r4CollectedWrecks??[];
       const nextWreck=R4_ICE_WRECKS.find(w=>!collected.includes(w.id));
@@ -2193,6 +2232,10 @@ async function startWorld() {
     pendingCombatPortId=null;
     contactId = contact.id;
     clickNavigation.cancel();
+    if(world.region.id==='r4'&&contact.kind==='shipyard'&&readSave().r4Campaign?.active!=='r4-equip-ice-terror'){
+      showOceanReward('🔒 Estaleiro bloqueado até a próxima missão de equipagem.');
+      return false;
+    }
     const autoR3Equip=world.region.id==='r3' && contact.kind==='shipyard'
       && !readSave().r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID);
     const autoTerrorEquip=world.region.id==='r2' && contact.kind==='shipyard'
