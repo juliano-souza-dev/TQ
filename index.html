@@ -8,6 +8,8 @@
   <style>
     #tq-boot{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 75%,#103d52 0%,#081e32 52%,#050f20 100%);color:#f3e4be;font-family:system-ui,-apple-system,sans-serif;transition:opacity .4s ease;pointer-events:auto}
     #tq-boot.tq-ready{opacity:0;pointer-events:none}
+    #app{visibility:hidden}
+    body.tq-game-ready #app{visibility:visible}
     .tq-boot-panel{text-align:center;padding:28px;max-width:340px;width:85%}
     .tq-boot-ship{font-size:58px;display:block;filter:drop-shadow(0 8px 10px #0008);animation:tq-float 2.2s ease-in-out infinite}
     .tq-boot-title{font-size:clamp(21px,5vw,30px);font-weight:850;letter-spacing:.09em;margin:20px 0 6px}
@@ -44,13 +46,30 @@
       if (bootFinished) return;
       bootFinished = true;
       observer.disconnect();
+      document.body.classList.add('tq-game-ready');
       boot.classList.add('tq-ready');
       boot.addEventListener('transitionend', () => boot.remove(), {once:true});
       setTimeout(() => boot.remove(), 800);
     };
+    let readyCheckPending = false;
     const checkBoot = () => {
-      if (app.querySelector('#ocean') && app.querySelector('.combat-hud')) dismissBoot();
-      else if (app.querySelector('.portal-card, .portal-stage')) dismissBoot();
+      if (bootFinished || readyCheckPending) return;
+      const portal = app.querySelector('.portal-card, .portal-stage');
+      if (portal) { dismissBoot(); return; }
+      const ocean = app.querySelector('canvas#ocean');
+      if (!ocean || !app.querySelector('.combat-hud')) return;
+      readyCheckPending = true;
+      // A mounted HUD is not proof that the ocean has rendered. Wait for
+      // canvas dimensions and multiple frames before revealing the game.
+      const verify = () => {
+        readyCheckPending = false;
+        if (bootFinished || !ocean.isConnected) return;
+        if (ocean.width < 2 || ocean.height < 2 || !app.querySelector('.combat-hud')) return;
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (!bootFinished && ocean.isConnected && ocean.width > 1 && ocean.height > 1) dismissBoot();
+        }));
+      };
+      setTimeout(verify, 450);
     };
     const observer = new MutationObserver(checkBoot);
     observer.observe(app, {childList:true,subtree:true});
