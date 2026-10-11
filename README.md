@@ -2,6 +2,14 @@
 
 Jogo educativo de navegação e multiplicação, com gameplay de missões, navios e combate naval. Aplicação JavaScript ES modules, sem etapa de build, mobile-first.
 
+## Aplicativo Android 📱
+
+O TQ também possui um projeto Android com **tela cheia imersiva**, **orientação horizontal obrigatória** e **jogo e assets embarcados no APK**. O aplicativo inicia diretamente em modo local, com progresso salvo no aparelho.
+
+**[Baixar o APK pelo GitHub Actions](https://github.com/juliano-souza-dev/TQ/actions/workflows/android-apk.yml)**: abra a execução mais recente, vá até *Artifacts*, baixe `TabuadaQuest-Android-APK`, extraia o ZIP e instale o `app-debug.apk`.
+
+Para builds de distribuição que podem atualizar o app sem perder saves, é necessária uma chave de assinatura estável. Instruções detalhadas em [android/README.md](android/README.md).
+
 ## Executar
 
 ```bash
