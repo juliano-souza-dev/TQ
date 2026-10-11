@@ -2965,9 +2965,10 @@ async function startWorld() {
         const wreck=R4_ICE_WRECKS.find(w=>!collected.includes(w.id)&&Math.hypot(w.x-world.camera.x,w.y-world.camera.y)<65);
         if(wreck){
           const amount=100+Math.floor(Math.random()*151);
-          writePatch({r4CollectedWrecks:[...collected,wreck.id],ammunition:{...(save.ammunition??{}),'frozen-explosion':(Number(save.ammunition?.['frozen-explosion'])||0)+amount}});
+          const gold=100+Math.floor(Math.random()*151);
+          writePatch({r4CollectedWrecks:[...collected,wreck.id],ammunition:{...(save.ammunition??{}),'frozen-explosion':(Number(save.ammunition?.['frozen-explosion'])||0)+amount},profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+gold}});
           recordMissionEvent({type:'r4-wreck',id:wreck.id});
-          showOceanReward('❄️ Destroços Gélidos: +'+amount+' Explosões Gélidas!');
+          showOceanReward('❄️ Destroços Gélidos: +'+amount+' Explosões Gélidas e +'+gold+' ouro!');
         }
       }
       if(EVENTS.halloween && world.region.id!=='r4'){
