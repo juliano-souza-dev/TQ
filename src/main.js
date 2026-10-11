@@ -5,7 +5,7 @@ import { R3_SILAS_MISSION_ID, exchangeR3SilasCargo, reconcileSilasAutomaticLoado
 import { expectedR3GoldenLoadout, r3GoldenReady, R3_FIRST_MISSION_ID } from './missions/RegionThreeCampaign.js';
 import { campaignFor, boardFor, missionReady } from './missions/CampaignEngine.js';
 import { getR2Board,acceptR2Mission,recordR2Event,claimR2Mission,advanceR2Story } from './missions/RegionTwoCampaign.js';
-import { beginHullRecovery, advanceHullRecovery } from './combat/HullRepair.js';
+import { beginHullRecovery, advanceHullRecovery, getMaxHullHealth } from './combat/HullRepair.js';
 import { getCampaignBoard, recordCampaignEvent } from './missions/RegionOneCampaign.js';
 import { resolvePedagogicalAction, resolveMissionReward, activateNextRegion } from './gameplay/PedagogicalActions.js';
 import { createMathGate } from './ui/MathGate.js';
@@ -983,9 +983,9 @@ async function startWorld() {
   repairAura.hidden = true;
   root.append(repairAura);
   function beginRepairSession(forced = false) {
-    const health=Number(readSave().combat?.shipHealth??100);
-    if(world.region.id==='r2' && readSave().r2Campaign?.active==='r2-why-help')return false;
-    if(health>=100||readSave().combat?.repairingUntil)return false;
+    const save=readSave();
+    const health=Number(save.combat?.shipHealth??getMaxHullHealth(save));
+    if(health>=getMaxHullHealth(save)||save.combat?.repairingUntil)return false;
     repairIsForced=forced;
     return mathGate.open({
       kind:'repair',
