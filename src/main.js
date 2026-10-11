@@ -207,10 +207,6 @@ async function startWorld() {
     : (await import('./world/regions/r1.js')).R1;
   if (generation !== worldGeneration) return;
   const world = createWorldState(region);
-  // A derrota de Varkor é definitiva: nenhuma missão de destroços pode recriar o chefe.
-  if(world.region.id==='r3'&&readSave().r3Campaign?.varkorDefeated){
-    world.entities.delete(world.region.terrorBoss?.id);
-  }
   const savedPosition = localSaves.load(currentUser.uid)?.payload?.playerPosition;
   // Migração dos pontos antigos de entrada da R2: próximos demais ao porto.
   // Não alterar posições conquistadas pelo jogador dentro da região.
@@ -239,6 +235,11 @@ async function startWorld() {
   let glintElapsed = 0;
   let hudRefreshElapsed = 0;
   const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
+  // A derrota de Varkor é definitiva: nenhuma missão de destroços pode recriar o chefe.
+  if(world.region.id==='r3'&&readSave().r3Campaign?.varkorDefeated){
+    world.entities.delete(world.region.terrorBoss?.id);
+  }
+
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
 
   // A missão final da R1 só é concluída depois que o novo mapa já carregou.
