@@ -3293,8 +3293,12 @@ async function startWorld() {
         const halfH = canvas.clientHeight / (2 * zoom);
         const clamp = (value, extent, half) => extent <= 2 * half
           ? extent / 2 : Math.max(half, Math.min(extent - half, value));
-        world.manualCamera.x = clamp(world.manualCamera.x + cameraInput.x * distance, world.region.width, halfW);
-        world.manualCamera.y = clamp(world.manualCamera.y + cameraInput.y * distance, world.region.height, halfH);
+        const yaw=world.cameraPerspective.enabled ? world.cameraPerspective.yaw : 0;
+        const rightX=Math.cos(yaw),rightY=Math.sin(yaw);
+        const panX=cameraInput.x*rightX-cameraInput.y*rightY;
+        const panY=cameraInput.x*rightY+cameraInput.y*rightX;
+        world.manualCamera.x = clamp(world.manualCamera.x + panX * distance, world.region.width, halfW);
+        world.manualCamera.y = clamp(world.manualCamera.y + panY * distance, world.region.height, halfH);
       }
       if (islandPanel.isOpen) {
         renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
