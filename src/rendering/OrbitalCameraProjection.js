@@ -2,7 +2,7 @@
 // World coordinates, collision, navigation and weapon ranges remain in XY.
 export const ORBIT_DEFAULTS = Object.freeze({ yaw: 0, pitch: Math.PI / 4 });
 export function clampOrbitPitch(pitch) {
-  return Math.max(Math.PI / 9, Math.min(Math.PI * 0.47, Number(pitch) || ORBIT_DEFAULTS.pitch));
+  return Math.max(0.35, Math.min(1.47, Number.isFinite(Number(pitch)) ? Number(pitch) : ORBIT_DEFAULTS.pitch));
 }
 export function projectOrbitPoint(point, camera, viewport, orbit = ORBIT_DEFAULTS) {
   const yaw = Number(orbit.yaw) || 0;
@@ -111,7 +111,7 @@ export function createPerspectiveCamera({
   fov = PERSPECTIVE_FOV,
   viewport = { width: 1280, height: 720 },
 } = {}) {
-  const p = Math.max(0.60, Math.min(1.47, Number(pitch) || Math.PI / 4));
+  const p = Math.max(0.35, Math.min(1.47, Number(pitch) || Math.PI / 4));
   const d = Math.max(1, Number(distance) || 1200);
   const focal = Math.max(1, viewport.height) /
     (2 * Math.tan(Math.max(0.2, Math.min(2.5, fov)) / 2));
