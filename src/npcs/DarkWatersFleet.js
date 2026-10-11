@@ -308,6 +308,19 @@ export const EMERALD_GHOST_LEVIATHAN_RANGE=760;
 
 function updateEmeraldGhost(npc, world, deltaMs, random) {
   const dt = Math.min(64, Math.max(0, deltaMs)) / 1000;
+  const varkor=npc.varkorAllyActive ? world.entities.get(world.region.terrorBoss?.id) : null;
+  if(varkor?.health>0 && npc.health>0){
+    const distance=Math.hypot(varkor.x-npc.x,varkor.y-npc.y);
+    npc.state='varkor-ally';
+    npc.heading=turnToward(npc.heading,bearing(varkor.x-npc.x,varkor.y-npc.y),135*dt);
+    if(distance>450){
+      const movement=Math.min(distance-450,300*dt),angle=npc.heading*Math.PI/180;
+      const moved=resolveIslandMovement(world.region,npc.x,npc.y,
+        npc.x+Math.sin(angle)*movement,npc.y-Math.cos(angle)*movement,42);
+      npc.x=moved.x;npc.y=moved.y;
+    }
+    return;
+  }
   const monster=npc.leviathanHuntActive ? world.entities.get('r3-leviathan') : null;
   if(monster?.health>0 && npc.health>0){
     // Sail to meet the player, then flank the real, moving Leviathan. No teleports.
