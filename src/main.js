@@ -1783,6 +1783,18 @@ async function startWorld() {
       : flow.stage === 'next' ? '📜 Corsário afundado · 1/1 · Retorne ao porto'
       : '📜 ' + flow.objective;
 
+    if(world.region.id==='r4' && readSave().r4Campaign?.active==='r4-ice-wreck-investigation'){
+      const collected=readSave().r4CollectedWrecks??[];
+      const nextWreck=R4_ICE_WRECKS.find(w=>!collected.includes(w.id));
+      if(nextWreck){
+        missionHud.textContent='❄️ Coletando Destroços · '+collected.length+'/5 · Siga até o próximo destroço';
+        void guideMissionTo({...nextWreck,name:'Destroço Gélido'});
+      }else{
+        missionHud.textContent='⚓ Destroços coletados · Retorne ao Porto das Missões';
+        void guideMissionTo('missions');
+      }
+      return;
+    }
     const campaignDestination = campaignMission && campaignMission.status!=='ready'
       ? (['r1-shipyard-upgrade','r1-equip-roses'].includes(campaignMission.id) ? 'shipyard' : null)
       : null;
