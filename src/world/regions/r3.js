@@ -27,7 +27,7 @@ export const R3=Object.freeze({
       x:3570,y:3260,heading:270,speed:285,maxHealth:12000,
       detectionRange:680,raidRadius:86,role:'terror-guardian',
     }),
-    Object.freeze({id:'r3-red-marea',name:'Red da Maré Rubra',x:1080,y:2740,heading:90,speed:285,maxHealth:12000,detectionRange:680,raidRadius:86,role:'terror-guardian'}),
+    Object.freeze({id:'r3-red-marea',name:'Red da Maré Rubra',x:1080,y:2740,heading:90,speed:171,maxHealth:12000,detectionRange:680,raidRadius:86,role:'terror-guardian'}),
     Object.freeze({id:'r3-red-coral',name:'Red do Coral Sangrento',x:3220,y:4480,heading:270,speed:285,maxHealth:12000,detectionRange:680,raidRadius:86,role:'terror-guardian'}),
   ]),
   islands:Object.freeze([
