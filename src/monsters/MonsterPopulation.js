@@ -24,6 +24,8 @@ export function createMonsterPopulation(world, random = Math.random, save = {}) 
     return 0;
   }
   const region = world.region;
+  // Terras Gélidas: nenhum monstro marinho deve ser criado.
+  if (region.id === 'r4') return 0;
   for (let i = 0; i < MONSTERS_PER_MAP; i++) {
     let x = region.width / 2, y = region.height / 2;
     // In R4, keep Krakens discoverable near the player's sailing area.
