@@ -804,7 +804,13 @@ async function startWorld() {
       const wreck=R3_FLAME_STOPS[index];
       if(!wreck||wreck.id!==action.id||Math.hypot(world.camera.x-wreck.x,world.camera.y-wreck.y)>180)return false;
       if(!recordMissionEvent({type:'flame-math',id:wreck.id}))return false;
-      showOceanReward('🔥 Pista recuperada: '+wreck.name);
+      const updated=readSave().r3Campaign??{};
+      if((updated.flameStep??0)>step){
+        grantR3WreckAmmo();
+        showOceanReward('🔥 Destroços recuperados: '+wreck.name+'. Recompensas adicionadas ao arsenal!');
+      }else{
+        showOceanReward('🔥 Conta resolvida! Continue recuperando os destroços.');
+      }
       updateMissionHud();
       return 'Multiplicação correta! Continue a expedição.';
     }
