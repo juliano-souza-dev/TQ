@@ -2571,6 +2571,7 @@ async function startWorld() {
     root.append(polarCanvas);
     polarCtx=polarCanvas.getContext('2d');
   }
+  let firstOceanFrameSent = false;
   let oceanTimeMs = 0;
   let blackMarketMerchantOrbitAngle = 0;
   let leviathanArrivalArsenalChecked = false;
@@ -3305,6 +3306,10 @@ async function startWorld() {
             zones:r3Purification>=0.999?[]:originalR3Ocean.corruption?.zones??[]}}};
       }
       renderer.render(world, oceanTimeMs);
+      if (!firstOceanFrameSent && generation === worldGeneration) {
+        firstOceanFrameSent = true;
+        window.dispatchEvent(new Event('tq:world-first-frame'));
+      }
       if(halloweenFogCanvas){
         halloweenFogCanvas.hidden=world.region.id!=='r3'||r3Purification>=0.999;
         halloweenFogCanvas.style.opacity=String(Math.max(0,1-r3Purification));
