@@ -186,7 +186,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
       if(Date.now()<(npc.frozenUntil||0)){npc.state='frozen';continue;}
       const nearby=thieves.filter(other=>other.health>0 &&
         Math.hypot(other.x-npc.x,other.y-npc.y)<=100).length;
-      const engaged=!!npc.retaliationActive;
+      const engaged=!!npc.retaliationActive && npc.health>0;
       const stand=engaged&&!sunk&&nearby>2;
       npc.aggression=stand?'attack':'flee';
       npc.state=engaged?(stand?'retaliating':'escaping'):'patrolling';
@@ -207,6 +207,8 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
         Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(rad)*movement)),38);
       npc.x=moved.x;npc.y=moved.y;
     }
+    const fugitive=world.entities.get('r4-sombra-do-saque');
+    if(fugitive && !fugitive.retaliationActive){fugitive.aggression='flee';fugitive.state='escaping';}
     const raids=updateFrozenLandsFugitive(world,deltaMs,random);
     resolveNpcCollisions(world);
     return raids;
