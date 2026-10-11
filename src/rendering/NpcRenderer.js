@@ -1,5 +1,5 @@
 import { BLACK_MARKET_SHIP } from '../ships/BlackMarketShip.js';
-import { GOLDEN_GALLEON_SHIP, PUMPKIN_FLEET_GALLEON_SHIP, BLOOD_RED_CORSAIR_SHIP, TERROR_DO_MAR_SHIP, EMERALD_GHOST_SHIP } from '../ships/ShipRegistry.js';
+import { GOLDEN_GALLEON_SHIP, FROZEN_LANDS_GALLEON_SHIP, PUMPKIN_FLEET_GALLEON_SHIP, BLOOD_RED_CORSAIR_SHIP, TERROR_DO_MAR_SHIP, EMERALD_GHOST_SHIP } from '../ships/ShipRegistry.js';
 import { STARTER_SHIP, getShipFrame } from '../ships/ShipRegistry.js';
 import { HALLOWEEN_TABUADA_SHIP } from '../ships/HalloweenTabuadaShip.js';
 import { FUGITIVE_FRIGATE_SHIP, GREEN_GHOST_FUGITIVE_SHIP } from '../ships/FugitiveFrigateShip.js';
@@ -36,7 +36,7 @@ export class NpcRenderer {
     await loadShipSprite(FUGITIVE_FRIGATE_SHIP)
       .then(image => this.images.set(FUGITIVE_FRIGATE_SHIP.id, image))
       .catch(() => console.warn('Fragata Sombra Fugitiva aguardando sprite no repositório.'));
-    await Promise.all([GREEN_GHOST_FUGITIVE_SHIP,GOLDEN_GALLEON_SHIP,PUMPKIN_FLEET_GALLEON_SHIP,BLACK_MARKET_SHIP,BLOOD_RED_CORSAIR_SHIP,TERROR_DO_MAR_SHIP,EMERALD_GHOST_SHIP].map(ship=>
+    await Promise.all([GREEN_GHOST_FUGITIVE_SHIP,GOLDEN_GALLEON_SHIP,FROZEN_LANDS_GALLEON_SHIP,PUMPKIN_FLEET_GALLEON_SHIP,BLACK_MARKET_SHIP,BLOOD_RED_CORSAIR_SHIP,TERROR_DO_MAR_SHIP,EMERALD_GHOST_SHIP].map(ship=>
       loadShipSprite(ship).then(image=>this.images.set(ship.id,image))
         .catch(()=>console.warn('NPC aguardando sprite:',ship.id))));
     const image = new Image();
