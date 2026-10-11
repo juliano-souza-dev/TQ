@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createViewProjection, cameraRelativeHeading } from '../src/rendering/OrbitalCameraProjection.js';
 import { createClickNavigation } from '../src/world/ClickNavigationInput.js';
+import { findNpcAtProjectedScreen } from '../src/npcs/NpcSelection.js';
 
 const target = { x: 2000, y: 3000 };
 
@@ -115,4 +116,16 @@ test('WebGL sea-plane ray equation matches Canvas and UI inverse projection', ()
       }
     }
   }
+});
+
+test('3D picking includes visible sails above the ground contact point', () => {
+  const orbit={enabled:true,yaw:.4,pitch:.65};
+  const camera=createViewProjection(target,1,1280,720,1,orbit);
+  const npc={id:'t',type:'npc',x:2100,y:3000,health:100};
+  const screen=camera.project(npc);
+  const hit=findNpcAtProjectedScreen(
+    new Map([[npc.id,npc]]),{x:screen.x,y:screen.y-55},
+    target,1,{width:1280,height:720},orbit
+  );
+  assert.equal(hit,npc);
 });
