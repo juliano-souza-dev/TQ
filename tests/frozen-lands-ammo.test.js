@@ -17,7 +17,7 @@ test('ice ammunition has independent ID, art and six-second status',()=>{
  assert.match(ice.fx.projectile.texture,/explosao_gelida.svg/);
 });
 test('R4 mission reward is claimable exactly once',()=>{
- let save={};
+ let save={r4Campaign:{claimed:['r4-ice-wreck-investigation']}};
  const accepted=acceptR4Mission(save,'r4-frost-watch');
  assert.ok(accepted);
  save={...save,...accepted};
