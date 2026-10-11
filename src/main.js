@@ -1788,6 +1788,7 @@ async function startWorld() {
       : null;
     if(campaignDestination) void guideMissionTo(campaignDestination);
     else if (firstVoyageGuide && flow.destination && flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
+    else if (firstVoyageGuide && world.region.id==='r4' && !readSave().r4Campaign?.active && boardFor(readSave(),'r4').missions.some(m=>m.status==='available'||m.status==='ready')) firstVoyageGuide.guideTo('missions');
     else if (firstVoyageGuide && !flow.destination && !campaignMission) {
       firstVoyageGuide.finish();
       firstVoyageGuide.dispose();
@@ -2320,7 +2321,7 @@ async function startWorld() {
   const r2GuidedMission=world.region.id==='r2' ? readSave().r2Campaign?.active : null;
   const needsR2Guide=world.region.id==='r2'
     && (!readSave().progression?.r2PortVisited || r2GuidedMission==='r2-equip-terror');
-  const needsR4PortGuide=world.region.id==='r4' && !readSave().r4Campaign?.active && !(readSave().r4Campaign?.claimed??[]).includes('r4-ice-wreck-investigation');
+  const needsR4PortGuide=world.region.id==='r4' && !readSave().r4Campaign?.active && boardFor(readSave(),'r4').missions.some(m=>m.status==='available'||m.status==='ready');
   if (needsR2Guide || needsR4PortGuide || (world.region.id === 'r1' && flow.destination)) {
     const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
     if (generation !== worldGeneration) return;
