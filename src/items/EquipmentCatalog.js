@@ -17,7 +17,7 @@ export const AMMUNITION = Object.freeze([
   {id:'volcanic-lava',name:'Orbe Vulcânico de Lava Incandescente',asset:'Orbe Vulcânico de Lava Incandescente.webp',event:null,acquisition:{type:'unconfigured'}},
   {id:'purple-pumpkin-orb',name:'Orbe Místico de Abóbora Roxa',asset:'Orbe Místico de Abóbora Roxa.webp',event:'halloween',acquisition:{type:'event-reward',event:'halloween',condition:null}},
   {id:'halloween-purple-ball',name:'Bola de Canhão Roxa',asset:'bola_canhao_halloween_roxa (2).webp',event:'halloween',acquisition:{type:'event-reward',event:'halloween',condition:null}},
-  {id:'frozen-explosion',name:'Explosão Gélida',asset:'Orbe Mágico de Cristal Violeta.webp',event:null,acquisition:{type:'r4-npc-loot-and-mission',region:'r4'}},
+  {id:'frozen-explosion',name:'Explosão Gélida',asset:'explosao_gelida.svg',event:null,acquisition:{type:'r4-npc-loot-and-mission',region:'r4'}},
   {id:'terror-rose',name:'Rosa do Terror',asset:'rosa do terror.webp',event:null,acquisition:{type:'r3-raider-reward',region:'r3'}},
 ].map(item=>Object.freeze(item)));
 export function isItemVisible(item,events=EVENTS) { return !item.event || events[item.event] === true; }
