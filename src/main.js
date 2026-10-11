@@ -1803,6 +1803,13 @@ async function startWorld() {
       }
       return;
     }
+    if(world.region.id==='r4'&&!readSave().r4Campaign?.active){
+      const pending=boardFor(readSave(),'r4').missions.find(m=>m.status==='available'||m.status==='ready');
+      missionHud.hidden=false;
+      missionHud.textContent=pending?'📜 Vá ao Porto das Missões · '+pending.name:'⚓ Campanha das Terras Gélidas concluída';
+      if(pending)guideMissionTo('missions');
+      return;
+    }
     const board=boardFor(readSave(),world.region.id);
     const campaignMission=board.active?.[0] ?? null;
     const flow = getMissionFlow(readSave(), activeShip.id);
@@ -1880,7 +1887,8 @@ async function startWorld() {
       const next=R4_ICE_WRECKS.find(w=>!collected.includes(w.id));
       target=next?{...next,name:'Destroço Gélido'}:'missions';
     }else if(state.active==='r4-frost-watch'){
-      target=[...world.entities.values()].find(n=>n.archetype==='vigia-da-geada'&&n.health>0)??'missions';
+      const mission=boardFor(save,'r4').missions.find(m=>m.id==='r4-frost-watch');
+      target=mission?.status==='ready'?'missions':([...world.entities.values()].find(n=>n.archetype==='vigia-da-geada'&&n.health>0)??'missions');
     }else if(state.active==='r4-shadow-trail'){
       target=world.entities.get('r4-sombra-do-saque')??'missions';
     }else if(boardFor(save,'r4').missions.some(m=>m.status==='available'||m.status==='ready'))target='missions';
