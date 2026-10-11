@@ -1,3 +1,4 @@
+import { createViewProjection } from './OrbitalCameraProjection.js';
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
 
 export class DamageTextRenderer {
@@ -21,7 +22,7 @@ export class DamageTextRenderer {
     return true;
   }
 
-  render(camera,zoom=1,now=performance.now()){
+  render(camera,zoom=1,now=performance.now(),orbit=null){
     const rect=this.canvas.getBoundingClientRect();
     const dpr=Math.min(window.devicePixelRatio||1,2);
     const w=Math.max(1,Math.round(rect.width*dpr));
@@ -35,6 +36,7 @@ export class DamageTextRenderer {
 
     const visualScale=clamp((Number(zoom)||1)/.88,.32,1.08);
     const alive=[];
+    const projection=createViewProjection(camera,zoom,w,h,dpr,orbit);
     for(const item of this.items){
       const age=now-item.startTime;
       if(age<0||age>=item.duration)continue;
@@ -45,8 +47,10 @@ export class DamageTextRenderer {
 
       const progress=clamp(age/item.duration,0,1);
       const fade=1-Math.pow(progress,1.65);
-      const x=w/2+(tx-camera.x)*zoom*dpr+(item.lane*6*visualScale*dpr);
-      const y=h/2+(ty-camera.y)*zoom*dpr-(38+30*progress)*visualScale*dpr;
+      const screen=projection.project({x:tx,y:ty});
+      if(!screen){alive.push(item);continue;}
+      const x=screen.x+(item.lane*6*visualScale*dpr);
+      const y=screen.y-(38+30*progress)*visualScale*dpr*screen.relativeScale;
       if(x<-80*dpr||x>w+80*dpr||y<-80*dpr||y>h+80*dpr){
         alive.push(item);
         continue;
