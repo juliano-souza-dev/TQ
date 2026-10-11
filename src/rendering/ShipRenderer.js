@@ -82,8 +82,26 @@ export class ShipRenderer {
       ctx.scale(1 + Math.sin(phase * 4.1) * .026 * strength,
         1 - Math.sin(phase * 4.1) * .026 * strength);
     }
+    // Lightweight 2.5D depth cues: water contact shadow and reflected hull glow.
+    // Purely visual, with no changes to ship position, scale or cannon mapping.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches !== true) {
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = '#061626';
+      ctx.filter = 'blur(' + Math.max(2, 5 * dpr) + 'px)';
+      ctx.beginPath();
+      ctx.ellipse(3 * dpr, drawH * .18, drawW * .24, drawH * .105, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.shadowColor = 'rgba(4, 18, 28, 0.55)';
+    ctx.shadowBlur = 9 * dpr;
+    ctx.shadowOffsetX = 2 * dpr;
+    ctx.shadowOffsetY = 5 * dpr;
     ctx.drawImage(this.image, (frame % columns) * frameWidth, Math.floor(frame / columns) * frameHeight,
       frameWidth, frameHeight, -drawW / 2, -drawH / 2, drawW, drawH);
+    ctx.restore();
     ctx.restore();
   }
 }
