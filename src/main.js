@@ -3206,7 +3206,8 @@ async function startWorld() {
           if (result.arrived) clickNavigation.cancel();
         } else {
           // Desaceleração por inércia da cinemática do projeto anterior.
-          advanceNavigation(world, { x: 0, y: 0 }, stepMs, shipSpeed*(readSave().r2Campaign?.active==='r2-why-help' ? .55 : (navalBattle?.isSpeedActive()?1.1:1)));
+          if(Date.now()<(navalBattle?.playerFrozenUntil||0))world.navigationVelocity={vx:0,vy:0};
+          else advanceNavigation(world, { x: 0, y: 0 }, stepMs, shipSpeed*(readSave().r2Campaign?.active==='r2-why-help' ? .55 : (navalBattle?.isSpeedActive()?1.1:1)));
         }
       }
       if (world.region.id === 'r1') {
