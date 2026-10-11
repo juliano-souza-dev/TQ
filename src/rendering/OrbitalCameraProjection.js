@@ -25,3 +25,28 @@ export function unprojectOrbitPoint(screen, camera, viewport, orbit = ORBIT_DEFA
   const c = Math.cos(yaw), s = Math.sin(yaw);
   return { x: camera.x + x * c + y * s, y: camera.y - x * s + y * c };
 }
+
+export function createOrbitalCameraController(initial = {}) {
+  const state = {
+    yaw: Number(initial.yaw) || 0,
+    pitch: clampOrbitPitch(initial.pitch ?? ORBIT_DEFAULTS.pitch),
+  };
+  return {
+    state,
+    rotate(deltaRadians) {
+      if (!Number.isFinite(deltaRadians)) return state;
+      state.yaw = ((state.yaw + deltaRadians + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+      return state;
+    },
+    tilt(deltaRadians) {
+      if (!Number.isFinite(deltaRadians)) return state;
+      state.pitch = clampOrbitPitch(state.pitch + deltaRadians);
+      return state;
+    },
+    reset() {
+      state.yaw = ORBIT_DEFAULTS.yaw;
+      state.pitch = ORBIT_DEFAULTS.pitch;
+      return state;
+    },
+  };
+}
