@@ -3455,7 +3455,7 @@ async function startWorld() {
         leviathanAura.style.top=screen.y+'px';
         leviathanAura.style.setProperty('--leviathan-aura-size',Math.min(470,240*z*screen.relativeScale)+'px');
       }
-      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now(), oceanTimeMs, world.camera.y, world.cameraPerspective);
+      npcRenderer.render(world.entities, world.cameraView, world.camera.zoom, selectedNpcId, navalRenderer.getKrakenAttacks(), performance.now(), oceanTimeMs, world.camera, world.cameraPerspective);
       damageTextRenderer?.render(world.cameraView, world.camera.zoom, performance.now(), world.cameraPerspective);
       spectralShipRenderer?.render(
         world.entities, world.cameraView, world.camera.zoom,
