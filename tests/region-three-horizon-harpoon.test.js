@@ -35,11 +35,11 @@ test('Horizon launcher preserves both original launchers and has approved statis
 
 test('R3 diaries grant gold only, then unlock Silas Pact',()=>{
   const save=claimedSave();
-  assert.equal(R3_MISSIONS[1].reward.gold,100000);
+  assert.equal(R3_MISSIONS[1].reward.gold,10000);
   assert.equal(R3_MISSIONS[1].reward.harpoonLaunchers,undefined);
   const claim=claimR3Mission(save,'r3-dark-waters-warning');
   assert.ok(claim);
-  assert.equal(claim.patch.profile.gold,100250);
+  assert.equal(claim.patch.profile.gold,10250);
   assert.equal(claim.patch.equipment,undefined);
   const after={...save,...claim.patch};
   assert.equal(getR3Board(after).missions[2].status,'available');
