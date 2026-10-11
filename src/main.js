@@ -2994,8 +2994,18 @@ async function startWorld() {
           }
         }
       }
+      if(world.region.id==='r4'){
+        const fugitive=world.entities.get('r4-sombra-do-saque');
+        if(fugitive){
+          const savedExpiry=Number(readSave().r4RaidCooldownUntil)||0;
+          fugitive.nextRaidAt=Math.max(Number(fugitive.nextRaidAt)||0,savedExpiry);
+        }
+      }
       const darkWaterRaids = updateCorsairPopulation(world, stepMs);
       for (const raider of darkWaterRaids ?? []) {
+        if(world.region.id==='r4' && raider.id==='r4-sombra-do-saque'){
+          writePatch({r4RaidCooldownUntil:Number(raider.nextRaidAt)||Date.now()+60000});
+        }
         const save=readSave();
         const gold=Math.max(0,Math.floor(Number(save.profile?.gold)||0));
         const storedIron=save.ammunition?.['rusted-iron'];
