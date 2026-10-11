@@ -246,7 +246,10 @@ export function acceptR3Mission(save,id){
     }
   }
   loadout[shipId]=slots;
-  return {r3Campaign:{...state,active:id,cleanupSunkIds:[],cleanupReturned:false,emeraldDeparted:true},
+  const ammo=save.ammunition??{};
+  return {ammunition:{...ammo,'aetherion-seeker':(Number(ammo['aetherion-seeker'])||0)+10000,
+      'rusted-iron':(Number(ammo['rusted-iron'])||0)+2000},
+    r3Campaign:{...state,active:id,cleanupSunkIds:[],cleanupReturned:false,emeraldDeparted:true},
     equipment:{...equipment,cannonCounts:counts,
       ownedCannonIds:[...new Set([...(equipment.ownedCannonIds??[]),'pumpkin-terror','aetherion-mk1'])],
       loadout}};
