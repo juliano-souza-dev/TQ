@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <script>
+    // Android's landscape viewport is wide, but the APK must keep touch HUD.
+    if (location.hostname === 'appassets.androidplatform.net') {
+      document.documentElement.classList.add('tq-android-app');
+    }
+  </script>
   <meta name="theme-color" content="#081a33">
   <title>Tabuada Quest</title>
   <style>
