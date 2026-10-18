@@ -32,7 +32,31 @@ const NAMES=Object.freeze({
  imperial:'Fragata Imperial',crimson:'Corsário da Caveira',veil:'Vigia do Véu',
  market:'Mercenário do Mercado Negro',
 });
+// The Iron Strait's captain belongs to the Halloween flotilla, never to the
+// imperial ship class. The imperial galleon is reserved for the R6 final duel.
+export const R6_HALLOWEEN_CAPTAIN=Object.freeze({
+ name:'Capitão do Halloween',
+ shipId:'galeao-halloween-tabuada',
+ fleetId:'r6-halloween'
+});
 const number=id=>Math.max(1,Number(id.slice(1))||1);
+export function replaceLegacyR6ImperialCaptains(world){
+ if(world?.region?.id!=='r6'||!world.entities)return 0;
+ let changed=0;
+ for(const npc of world.entities.values()){
+  if(!String(npc.id||'').startsWith('r6-fleet-')||npc.archetype!=='fleet-raider'
+    ||Number(npc.health)<=0)continue;
+  const wasImperial=npc.shipId===SHIPS.imperial||/Fragata Imperial/i.test(npc.name||'');
+  if(!wasImperial)continue;
+  const elite=npc.fleetElite===true||/^Capitão /i.test(npc.name||'');
+  const replacement=elite
+    ?R6_HALLOWEEN_CAPTAIN
+    :{name:NAMES.pumpkin,shipId:SHIPS.pumpkin,fleetId:'r6-pumpkin'};
+  Object.assign(npc,replacement);
+  changed++;
+ }
+ return changed;
+}
 function location(world,index,random){
  const {region}=world;
  for(let attempt=0;attempt<360;attempt++){
@@ -52,6 +76,8 @@ function location(world,index,random){
 export function createFleetPopulation(world,random=Math.random,save={}){
  const id=world.region.id,plan=FLEET_REGIONS[id];
  if(!world.fleetNoRespawn||!plan||!FLEETS[id])return 0;
+ // Also re-skin any in-memory legacy R6 captains without resetting their HP or quest IDs.
+ replaceLegacyR6ImperialCaptains(world);
  const expected=id==='r3'?12:plan.enemyGoal;
  const defeated=new Set(save.fleetCampaign?.defeated?.[id]??[]);
  const wave=fleetWaveStatus(id,plan.enemyGoal,defeated.size);
@@ -70,11 +96,14 @@ export function createFleetPopulation(world,random=Math.random,save={}){
   const type=pool[(i*7+Math.floor(i/Math.max(1,pool.length)))%pool.length];
   const position=location(world,i,random);
   const elite=i%7===0;
+  const halloweenCaptain=id==='r6'&&elite;
   const health=Math.round((id==='r3'?4500:id==='r4'?9000:16000+rank*3600)*(elite?1.9:1)*(1+(i%4)*.14)*(id==='r5'?3:1));
   const speed=type==='shadow'?360:type==='thief'?340:type==='imperial'?180:240+(i%3)*22;
   world.entities.set(key,{
-   id:key,type:'npc',archetype:'fleet-raider',name:(elite?'Capitão ':'')+NAMES[type],
-   shipId:SHIPS[type],fleetId:id+'-'+type,
+   id:key,type:'npc',archetype:'fleet-raider',
+   name:halloweenCaptain?R6_HALLOWEEN_CAPTAIN.name:(elite?'Capitão ':'')+NAMES[type],
+   shipId:halloweenCaptain?R6_HALLOWEEN_CAPTAIN.shipId:SHIPS[type],
+   fleetId:halloweenCaptain?R6_HALLOWEEN_CAPTAIN.fleetId:id+'-'+type,
    x:position.x,y:position.y,heading:random()*360,
    health,maxHealth:health,speed,baseSpeed:speed,
    range:Math.min(1200,640+rank*34),damage:Math.max(2,Math.round((rank+2)*(elite?1.25:.75)))*(id==='r5'?10:1),
