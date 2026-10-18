@@ -1,5 +1,5 @@
 import { cancelHullRecovery, getMaxHullHealth } from './HullRepair.js';
-import { equippedHarpoon, harpoonDamage, harpoonStock, horizonHarpoonStock, leviathanHuntHarpoonDamage, HORIZON_HARPOON_AMMO_ID, HARPOON_AMMO_ID, ARMOR_PIERCING_HARPOON_ID, ARMOR_PIERCING_HARPOON_DAMAGE, armorPiercingHarpoonStock } from './HarpoonCatalog.js';
+import { equippedHarpoon, harpoonDamage, harpoonStock, horizonHarpoonStock, leviathanHuntHarpoonDamage, playerHarpoonDamage, playerHarpoonReloadMs, HORIZON_HARPOON_AMMO_ID, HARPOON_AMMO_ID, ARMOR_PIERCING_HARPOON_ID, ARMOR_PIERCING_HARPOON_DAMAGE, armorPiercingHarpoonStock } from './HarpoonCatalog.js';
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
 import { leviathanMouthOrigin } from '../monsters/LeviathanMouthMap.js';
@@ -345,7 +345,7 @@ export class NavalBattleController {
       harpoonFiring: this.firing && monsterTarget,
       harpoonName: harpoon.name,
       harpoonRange: harpoon.range,
-      harpoonReloadSeconds: harpoon.reloadSeconds,
+      harpoonReloadSeconds: harpoon.reloadSeconds / 2,
       harpoonAmmo: harpoon.flameTip ? horizonHarpoonStock(save) : harpoonStock(save) + armorPiercingHarpoonStock(save),
       ready: reason === 'ready',
       reason, distance,
@@ -620,12 +620,12 @@ export class NavalBattleController {
         fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
       impactKind:'water',startTime:now,flameBoost,
       onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,
-        (launcher.dotDamage?harpoonDamage(launcher):(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:leviathanHuntHarpoonDamage(launcher,save,target)))*(flameBoost?5:1),launcher),
+        playerHarpoonDamage((launcher.dotDamage?harpoonDamage(launcher):(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:leviathanHuntHarpoonDamage(launcher,save,target)))*(flameBoost?5:1)),launcher),
     });
     if (!accepted) {this.onFeedback('⚠️ Disparo de arpão indisponível.');return false;}
     playCannonSound('harpoon');
     this.writePatch({harpoonAmmo:{...(save.harpoonAmmo??{}),[harpoonAmmoId]:(launcher.flameTip?horizonHarpoonStock(save):piercing?armorPiercingHarpoonStock(save):harpoonStock(save))-1}});
-    this.nextHarpoonAt=now+Math.max(100,launcher.reloadSeconds*1000/(flameBoost?5:1));
+    this.nextHarpoonAt=now+playerHarpoonReloadMs(launcher.reloadSeconds,{flameBoost});
     this.onFeedback((horizonFlame?'🔥 Arpão incandescente':flameBoost?'🔥 Arpão em chamas':'⚓ Arpão')+' lançado contra '+target.name+'!');
     return true;
   }
