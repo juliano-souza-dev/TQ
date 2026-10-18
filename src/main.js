@@ -1042,7 +1042,6 @@ async function startWorld() {
       description:'Resolva uma multiplicação para recuperar o Corsário da Geada Negra e equipá-lo com o melhor arsenal antes de enfrentar os inimigos do gelo.',
     }));
   }
-  let repairIsForced = Number(readSave().combat?.repairingFrom) === 0 && Boolean(readSave().combat?.repairingUntil);
   let repairTickMs = 0;
   const repairAura = document.createElement('div');
   repairAura.className = 'ship-repair-aura';
@@ -1050,14 +1049,15 @@ async function startWorld() {
   repairAura.innerHTML = '<span>+</span><span>+</span><span>+</span><span>+</span><span>+</span>';
   repairAura.hidden = true;
   root.append(repairAura);
-  function beginRepairSession(forced = false) {
+  function beginRepairSession() {
     const save=readSave();
     const health=Number(save.combat?.shipHealth??getMaxHullHealth(save));
     if(health>=getMaxHullHealth(save)||(Number(save.combat?.repairingUntil)||0)>Date.now())return false;
-    repairIsForced=forced;
+    // Repair is a player action. Sunk saves must never open a dialog
+    // automatically or steal focus from the initial map or another challenge.
     return mathGate.open({
       kind:'repair',
-      title:forced?'☠️ Navio afundado! Resolva para reparar':'🔧 Consertar o casco',
+      title:health<=0?'☠️ Navio afundado! Resolva para reparar':'🔧 Consertar o casco',
       description:'Acerte uma multiplicação para iniciar a recuperação automática de 10% da vida total por segundo.',
       repeatOnSuccess:false,
       // A successful answer dismisses the math gate automatically.
@@ -1260,7 +1260,7 @@ async function startWorld() {
     },
   });
   navalHud = createNavalCombatHud(navalBattle, {
-    onRepair: () => beginRepairSession(false),
+    onRepair: () => beginRepairSession(),
     isCameraDetached: () => world.manualCamera !== null && world.manualCamera !== undefined,
     onCenterShip: () => {
       world.manualCamera = null;
@@ -3545,14 +3545,10 @@ async function startWorld() {
       const repairState = readSave().combat ?? {};
       const recovering = Boolean(repairState.repairingUntil);
       repairAura.hidden = !recovering;
-      const ambushed=world.region.id==='r2' && readSave().r2Campaign?.active==='r2-why-help';
       const sunk = Number(repairState.shipHealth ?? 100) <= 0;
-      if (sunk && !ambushed && !recovering && (!mathGate.isOpen || mathGate.activeKind !== 'repair' || !repairIsForced)) {
-        clickNavigation.cancel();
-        navalBattle.firing = false;
-        if (mathGate.isOpen) mathGate.close(true);
-        beginRepairSession(true);
-      }
+      // A saved 0-HP hull disables sailing until repaired, but does not
+      // interrupt another dialog or force a repair on map startup.
+      // The HUD repair button stays available at 0 HP.
       // Marcador visual acompanha a selecao automatica.
       selectedNpcId = navalBattle.targetId;
       hudRefreshElapsed += stepMs;
@@ -3577,10 +3573,8 @@ async function startWorld() {
         clickNavigation.cancel();
         renderer.updatePlayerWake({x:world.camera.x,y:world.camera.y,heading},stepMs,oceanTimeMs);
         updateCamera(world, canvas.clientWidth, canvas.clientHeight);
-        if (!recovering && !sunk) repairIsForced = false;
         return;
       }
-      if (!recovering) repairIsForced = false;
       // Manual camera moves only while WASD is held; no inertia or ship movement.
       const cameraInput = keyboardCamera.getVector();
       if (cameraInput.x !== 0 || cameraInput.y !== 0) {

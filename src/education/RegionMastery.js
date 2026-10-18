@@ -43,7 +43,10 @@ export function chooseRegionChallenge(progress = {}, preferredFamily = null, ran
   const candidates = mastery.families.filter(entry => !entry.mastered);
   const preferred = Number(preferredFamily);
   const family = REGION_FAMILIES[selectedRegion].includes(preferred) ? preferred
-    : (candidates.sort((a, b) => a.attempts - b.attempts || a.family - b.family)[0]?.family ?? 2);
+    : (candidates.sort((a, b) => a.attempts - b.attempts || a.family - b.family)[0]?.family
+      ?? mastery.families[0].family);
+  // Once every family is mastered, practice and repairs must still use
+  // a family taught in the active region (R3 permits 3 and 4, not 2).
   const record = progress?.['region' + selectedRegion]?.families?.[String(family)]?.byFactor ?? {};
   const factors = Array.from({ length: 10 }, (_, index) => index + 1);
   const min = Math.min(...factors.map(factor => whole(record[factor]?.attempts)));
