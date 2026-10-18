@@ -1726,7 +1726,7 @@ async function startWorld() {
       thiefGuide.style.zIndex='18';
       thiefGuide.querySelector('.thief-guide-label').textContent=
         '🧭 Saída · '+Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y))+' m';
-      thiefGuide.setAttribute('aria-label','Mão perto do navio indicando a saída da região');
+      thiefGuide.setAttribute('aria-label','Mão indicando a saída da região, próxima ao navio');
       thiefGuide.title='Siga a mão até a passagem para a próxima região.';
       thiefGuide.hidden=false;
       return;
