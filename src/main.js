@@ -704,6 +704,7 @@ async function startWorld() {
     missionCompleteOverlay.hidden=false;
   }
   function recordMissionEvent(event) {
+    if(world.fleetNoRespawn)return false;
     const patch = campaignFor(world.region.id).record(readSave(), event);
     if (!patch) return false;
     writePatch(patch);
@@ -1344,7 +1345,7 @@ async function startWorld() {
   const minimap = createMinimap(world, {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
-    getTreasures: () => (world.region.id === 'r2' && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active)) ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),
+    getTreasures: () => world.fleetNoRespawn?visibleTreasures():(world.region.id === 'r2' && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active)) ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),
     hasTreasureSense: () => Boolean(world.treasureSenseActive || navalBattle?.isTreasureMapActive()),
   });
   minimapElement = minimap.element;
@@ -2882,7 +2883,7 @@ async function startWorld() {
         // its reward is awaiting collection at the Missions port.
         const goldenIIReady=boardFor(readSave(),'r2').missions
           .some(m=>m.id==='r2-golden-ii' && (m.status==='ready'||m.status==='claimed'));
-        if(goldenIIReady){
+        if(goldenIIReady&&!world.fleetNoRespawn){
           world.entities.delete('r2-morbi');
           world.entities.delete('r2-pumpkin-ally');
         }
@@ -3102,7 +3103,7 @@ async function startWorld() {
       }
       // Varkor enters only after the Chama do Abismo has been claimed.
       // Clear ordinary R3 ships, but preserve the shadow thief and Emerald ally.
-      if(world.region.id==='r3' && readSave().r3Campaign?.active===R3_VARKOR_MISSION_ID){
+      if(!world.fleetNoRespawn&&world.region.id==='r3' && readSave().r3Campaign?.active===R3_VARKOR_MISSION_ID){
         const boss=world.entities.get(world.region.terrorBoss?.id);
         if(boss && boss.health>0){
           if(!readSave().r3Campaign?.varkorSummoned){
@@ -3122,7 +3123,7 @@ async function startWorld() {
           if(ghost)ghost.varkorAllyActive=true;
         }
       }
-      if(world.region.id==='r3'){
+      if(!world.fleetNoRespawn&&world.region.id==='r3'){
         const state=readSave().r3Campaign??{};
         const cleaning=state.active===R3_CLEANUP_MISSION_ID||state.claimed?.includes(R3_CLEANUP_MISSION_ID);
         if(cleaning){
@@ -3168,7 +3169,7 @@ async function startWorld() {
       }
       updateNegotiationFrigate(world, readSave());
       updateFugitiveFrigatePopulation(world, stepMs);
-      if (world.region.id === 'r2') {
+      if (!world.fleetNoRespawn && world.region.id === 'r2') {
         const thiefMission = readSave().r2Campaign?.active === 'r2-destroy-thief';
         for (const npc of world.entities.values()) {
           if (npc.archetype !== 'fugitive-frigate') continue;
@@ -3197,7 +3198,7 @@ async function startWorld() {
           }
         }
       }
-      if(world.region.id==='r3'){
+      if(!world.fleetNoRespawn&&world.region.id==='r3'){
         const leviathan=world.entities.get(R3_LEVIATHAN_ENTITY_ID);
         if(leviathan)leviathan.huntActive=readSave().r3Campaign?.active===R3_LEVIATHAN_MISSION_ID
           && !readSave().r3Campaign?.leviathanDefeated;
