@@ -1,4 +1,5 @@
 import { collidesWithIsland } from '../world/IslandCollision.js';
+import {R5_LEVIATHAN_ID} from '../missions/RegionFiveEclipse.js';
 
 export const MONSTERS_PER_MAP = 2;
 export const MONSTER_RESPAWN_MS = 60000;
@@ -72,6 +73,19 @@ export function createMonsterPopulation(world, random = Math.random, save = {}) 
     return 0;
   }
   const region = world.region;
+  if(region.id==='r5'){
+    const defeated=new Set(save.fleetCampaign?.monsters?.r5??[]);
+    if(defeated.has(R5_LEVIATHAN_ID))return 0;
+    for(let y=450;y<region.height-200;y+=180)for(let x=420;x<region.width-200;x+=180){
+      if(Math.hypot(x-region.spawn.x,y-region.spawn.y)<650||collidesWithIsland(region,x,y,135))continue;
+      const leviathan=newLeviathan(x,y);
+      Object.assign(leviathan,{id:R5_LEVIATHAN_ID,name:'Leviathan · Guardião da Lua',
+        health:420000,maxHealth:420000,attackDamage:500,huntActive:true,huntEngaged:false});
+      world.entities.set(leviathan.id,leviathan);
+      return 1;
+    }
+    return 0;
+  }
   // Terras Gélidas: nenhum monstro marinho deve ser criado.
   if (region.id === 'r4') return 0;
   for (let i = 0; i < MONSTERS_PER_MAP; i++) {
