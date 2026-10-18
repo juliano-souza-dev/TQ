@@ -1,0 +1,67 @@
+import { CANNONS } from '../items/EquipmentCatalog.js';
+import { STARTER_SHIP, HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP,
+  SHADOW_CHASER_SHIP, TERROR_DO_MAR_SHIP } from './ShipRegistry.js';
+import { GREEN_GHOST_FUGITIVE_SHIP } from './FugitiveFrigateShip.js';
+
+export const PLAYABLE_TERROR_DO_MAR=Object.freeze({...TERROR_DO_MAR_SHIP,
+  status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,maxHealth:2000});
+export const PLAYABLE_SHADOW_THIEF=Object.freeze({...GREEN_GHOST_FUGITIVE_SHIP,
+  status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,
+  cannonSlots:4,cannonLayout:Object.freeze({port:4,starboard:4,bow:0,stern:0}),maxHealth:600});
+export const FLEET_PLAYER_SHIPS=Object.freeze([STARTER_SHIP,HALLOWEEN_TABUADA_SHIP,
+  SHADOW_CHASER_SHIP,GOLDEN_GALLEON_SHIP,PLAYABLE_TERROR_DO_MAR,PLAYABLE_SHADOW_THIEF]);
+
+const count=(equipment,id)=>Math.max(0,Math.floor(Number(equipment?.cannonCounts?.[id])||0));
+const uniq=values=>[...new Set(values)];
+export function grantFleetPreparation(save,regionId,{fugitive=false}={}){
+ const e=save.equipment??{},counts={...(e.cannonCounts??{})};
+ const ownedShipIds=uniq([...(e.ownedShipIds??[]),'starter-red-sails']);
+ const ownedCannonIds=uniq([...(e.ownedCannonIds??[]),'blue-gold-pirate']);
+ let cannon=null,qty=0,ammoId='rusted-iron',ammoQty=0;
+ if(regionId==='r1'){cannon='blue-gold-pirate';qty=3;ammoQty=20000;}
+ if(regionId==='r2'){cannon=fugitive?'aetherion-mk1':'royal-lion';qty=fugitive?2:7;ammoId=fugitive?'aetherion-seeker':'rusted-iron';ammoQty=fugitive?60000:30000;}
+ if(regionId==='r3'){cannon='royal-lion';qty=7;ammoQty=80000;}
+ if(regionId==='r4'){cannon='ice-terror';qty=12;ammoId='frozen-explosion';ammoQty=60000;}
+ if(fugitive)ownedShipIds.push('fragata-sombra-cacadora');
+ if(cannon){counts[cannon]=Math.max(count(e,cannon),qty);ownedCannonIds.push(cannon);}
+ const stock=save.ammunition??{};
+ return {equipment:{...e,cannonCounts:counts,ownedCannonIds:uniq(ownedCannonIds),
+   ownedShipIds:uniq(ownedShipIds)},
+  ammunition:{...stock,[ammoId]:Math.max(Number(stock[ammoId])||0,ammoQty)}};
+}
+export function fleetShipForRegion(save,regionId){
+ const e=save.equipment??{},owned=new Set(['starter-red-sails',...(e.ownedShipIds??[])]);
+ const prior={r1:'starter-red-sails',r2:owned.has('fragata-sombra-cacadora')
+    ?'fragata-sombra-cacadora':owned.has('galeao-halloween-tabuada')?'galeao-halloween-tabuada':'starter-red-sails',
+   r3:'galeao-dourado',r4:'terror-do-mar'}[regionId]||'starter-red-sails';
+ const id=owned.has(prior)?prior:e.equippedShipId;
+ return FLEET_PLAYER_SHIPS.find(s=>s.id===id&&owned.has(s.id))??STARTER_SHIP;
+}
+export function cannonStrength(c){
+ const damage=Number(c.baseDamage)||10*(Number(c.damageMultiplier)||1);
+ const precision=Math.max(.1,Number(c.accuracy)||.8);
+ const range=1+Math.min(1800,Number(c.range)||0)/10000;
+ return damage*precision*range/Math.max(.25,Number(c.reloadSeconds)||1);
+}
+export function bestFleetLoadout(save,ship){
+ const e=save.equipment??{},owned=new Set(e.ownedCannonIds??[]);
+ const capacity=Math.max(0,Math.floor(Number(ship.cannonSlots)||0))
+  +(save.shipUpgrades?.masterShipwright?5:0);
+ const candidate=CANNONS.filter(c=>count(e,c.id)>0
+  ||(e.cannonCounts?.[c.id]===undefined&&owned.has(c.id)))
+  .sort((a,b)=>cannonStrength(b)-cannonStrength(a)||a.id.localeCompare(b.id));
+ const slots=[];
+ for(const cannon of candidate){
+  const quantity=e.cannonCounts?.[cannon.id]===undefined?1:count(e,cannon.id);
+  for(let i=0;i<quantity&&slots.length<capacity;i++)slots.push(cannon.id);
+ }
+ return [...slots,...Array(Math.max(0,capacity-slots.length)).fill(null)];
+}
+export function reconcileFleetEquipment(save,regionId){
+ const ship=fleetShipForRegion(save,regionId),e=save.equipment??{};
+ const expected=bestFleetLoadout(save,ship),current=e.loadout?.[ship.id]??[];
+ if(e.equippedShipId===ship.id&&expected.length===current.length
+  &&expected.every((id,index)=>id===current[index]))return null;
+ return {equipment:{...e,equippedShipId:ship.id,
+  loadout:{...(e.loadout??{}),[ship.id]:expected}}};
+}
