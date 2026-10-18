@@ -48,19 +48,19 @@ const MARGIN = 90;
 export const R2_CORSAIR_PROFILES = Object.freeze([
   Object.freeze({
     name:'Corsário das Velas Rubras',shipId:'starter-red-sails',
-    health:260,speed:155,damage:2,range:580,cannonSlots:2,
+    health:1200,speed:170,damage:5,range:650,cannonSlots:2,
   }),
   Object.freeze({
     name:'Corsário Vermelho Sangue',shipId:BLOOD_RED_CORSAIR_SHIP.id,
-    health:850,speed:195,damage:3,range:690,cannonSlots:3,
+    health:2600,speed:200,damage:7,range:740,cannonSlots:3,
   }),
   Object.freeze({
     name:'Mercenário do Mercado Negro',shipId:BLACK_MARKET_SHIP.id,
-    health:1950,speed:150,damage:4,range:760,cannonSlots:3,
+    health:4800,speed:170,damage:9,range:820,cannonSlots:4,
   }),
   Object.freeze({
     name:'Galeão Saqueador das Abóboras',shipId:PUMPKIN_FLEET_GALLEON_SHIP.id,
-    health:3900,speed:180,damage:5,range:840,cannonSlots:4,
+    health:7600,speed:185,damage:12,range:900,cannonSlots:5,
   }),
 ]);
 export function applyR2CorsairProfile(npc,index){
