@@ -8,7 +8,7 @@ export const MONSTER_GOLD_MAX = 80;
 export function createMonsterPopulation(world, random = Math.random, save = {}) {
   // Região 3 possui um único Leviathan que serve de alvo para a caçada.
   if (world.region.id === 'r3') {
-    if(save.r3Campaign?.leviathanDefeated || save.r3Campaign?.claimed?.includes('r3-leviathan-hunt'))return 0;
+    if(save.fleetCampaign?.version!==1 && (save.r3Campaign?.leviathanDefeated || save.r3Campaign?.claimed?.includes('r3-leviathan-hunt')))return 0;
     const zone=world.region.ocean?.corruption?.zones?.[0] ?? {x:3220,y:3450};
     const x=zone.x+300,y=zone.y+500;
     if (!collidesWithIsland(world.region,x,y,110)) {
@@ -196,6 +196,7 @@ export function updateMonsterPopulation(world, stepMs) {
       monster.animationTimeMs = (monster.animationTimeMs + stepMs) % 600000;
     }
     if (monster.health > 0) { monster.respawnRemainingMs = null; continue; }
+    if(world.fleetNoRespawn)continue;
     if (monster.respawnRemainingMs === null) monster.respawnRemainingMs = MONSTER_RESPAWN_MS;
     else monster.respawnRemainingMs -= Math.max(0, stepMs);
     if (monster.respawnRemainingMs !== null && monster.respawnRemainingMs <= 0) {
