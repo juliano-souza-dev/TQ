@@ -4,6 +4,7 @@ import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
 import { leviathanMouthOrigin } from '../monsters/LeviathanMouthMap.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
+import { applySeekingOrbSlow } from './SeekingOrbSlow.js';
 import { EMERALD_GHOST_LEVIATHAN_DAMAGE, EMERALD_GHOST_LEVIATHAN_RELOAD_MS, EMERALD_GHOST_LEVIATHAN_RANGE } from '../npcs/DarkWatersFleet.js';
 import {
   ammoStock, armedCannons, availableNavalAmmo, cannonHardpoint, cannonRange,
@@ -782,6 +783,10 @@ export class NavalBattleController {
             this.onFeedback('❄️ Coração do Inverno: congelamento em área por 4 segundos!');
           }
           const result = this.resolvePlayerImpact(target.id, at, damage);
+          if(result?.kind==='ship' && target.type==='npc' && target.health>0){
+            const slow=applySeekingOrbSlow(target,ammo.id,Date.now());
+            if(slow>0)this.onFeedback('🌀 '+target.name+' desacelerado em '+Math.round(slow*100)+'% por Orbe Teleguiado!');
+          }
           if(result?.kind==='ship' && ammo.id==='frozen-explosion' && target.health>0){
             target.frozenUntil=Math.max(Number(target.frozenUntil)||0,Date.now()+(npc.freezeDurationMs||6000));
             this.onFeedback('❄️ '+target.name+' congelado por 6 segundos!');
