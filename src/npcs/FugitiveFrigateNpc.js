@@ -1,3 +1,4 @@
+import { seekingOrbMovementSpeed } from '../combat/SeekingOrbSlow.js';
 import { FUGITIVE_FRIGATE_SHIP } from '../ships/FugitiveFrigateShip.js';
 import { resolveIslandMovement, collidesWithIsland } from '../world/IslandCollision.js';
 
@@ -102,7 +103,7 @@ export function updateFugitiveFrigate(npc, player, region, deltaMs, random = Mat
   npc.speed = Math.max(speedSpec.min, Math.min(speedSpec.max,
     npc.speed + Math.max(-step, Math.min(step, desiredSpeed - npc.speed))));
   const radians = npc.heading * Math.PI / 180;
-  const movement = npc.speed * dt;
+  const movement = seekingOrbMovementSpeed(npc,npc.speed) * dt;
   const safeMargin = npc.keepAwayFromEdges ? Math.min(240, region.width * .18, region.height * .18) : MARGIN;
   const nextX = Math.max(safeMargin, Math.min(region.width - safeMargin, npc.x + Math.sin(radians) * movement));
   const nextY = Math.max(safeMargin, Math.min(region.height - safeMargin, npc.y - Math.cos(radians) * movement));
