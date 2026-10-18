@@ -6,7 +6,7 @@ export const FLEET_CAMPAIGN_VERSION=1;
 export const FLEET_REGIONS=Object.freeze({
  r1:{name:'Enseada dos Aprendizes',enemyGoal:19,encounters:[{id:'terror-da-tabuada',name:'Terror da Tabuada',ship:'galeao-halloween-tabuada'}]},
  r2:{name:'Costa dos Corsários',enemyGoal:20,encounters:[{id:'fugitive-frigate',name:'Fragata Sombra Fugitiva',ship:null},{id:'r2-morbi',name:'Morbi · Galeão Dourado',ship:'galeao-dourado'}]},
- r3:{name:'Águas Escuras',enemyGoal:3,encounters:[{id:'r3-leviathan',name:'Leviatã das Águas Escuras',ship:null},{id:'terror-do-mar',name:'Terror do Mar',ship:'terror-do-mar'}]},
+ r3:{name:'Águas Escuras',enemyGoal:4,encounters:[{id:'r3-leviathan',name:'Leviatã das Águas Escuras',ship:null},{id:'terror-do-mar',name:'Terror do Mar',ship:'terror-do-mar'}]},
  r4:{name:'Terras Gélidas',enemyGoal:17,encounters:[{id:'r4-sombra-do-saque',name:'Sombra do Saque',ship:'sombra-fugitiva-verde-fantasma'}]},
  r5:{name:'Região 5',enemyGoal:28,encounters:[{id:'r5-eclipse',name:'Galeão Eclipse',ship:'galeao-eclipse'}]},
  r6:{name:'Região 6',enemyGoal:22,encounters:[{id:'r6-imperial',name:'Galeão Negro Imperial',ship:null}]},
@@ -57,7 +57,7 @@ export function fleetRole(regionId,npc){
  const kind=npc.archetype,id=npc.id;
  if(regionId==='r1')return kind==='terror-da-tabuada'?'boss':kind==='red-sail-corsair'?'enemy':null;
  if(regionId==='r2')return id==='r2-morbi'?'boss':kind==='fugitive-frigate'?'boss':kind==='red-sail-corsair'?'enemy':null;
- if(regionId==='r3')return kind==='terror-do-mar'?'boss':id==='r3-leviathan'?'boss':kind==='terror-guardian'?'enemy':null;
+ if(regionId==='r3')return kind==='terror-do-mar'?'boss':id==='r3-leviathan'?'boss':['terror-guardian','r3-pumpkin-galleon'].includes(kind)?'enemy':null;
  if(regionId==='r4')return id==='r4-sombra-do-saque'?'boss':['vigia-da-geada','r4-ladrao-gelido'].includes(kind)?'enemy':null;
  return null;
 }
