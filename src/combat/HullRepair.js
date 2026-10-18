@@ -37,12 +37,13 @@ export function repairHull(save = {}, bonusPercent = 0) {
 // One successful multiplication starts continuous 10% max hull repair per second.
 export const REPAIR_RATE_PER_SECOND = 10;
 export const REPAIR_DURATION_MS = 10000;
-export function accumulateHullRepair(save = {}) {
+export function accumulateHullRepair(save = {},now=Date.now()) {
   const combat=save.combat??{};
   const maxHealth=getMaxHullHealth(save);
   const health=Math.max(0,Math.min(maxHealth,Number(combat.shipHealth) || 0));
-  if(health>=maxHealth || combat.repairingUntil)return null;
-  const now=Date.now();
+  // A finished repair timestamp can remain in a save before the next frame
+  // updates it. Only an actual future end time prevents another repair.
+  if(health>=maxHealth || (Number(combat.repairingUntil)||0)>now)return null;
   return {patch:{combat:{...combat,repairPending:0,repairingFrom:health,
     repairingTo:maxHealth,repairingStartedAt:now,
     repairingUntil:now+(maxHealth-health)/(maxHealth*.1)*1000}},
@@ -62,8 +63,19 @@ export function cancelHullRecovery(save = {}) {
 export function advanceHullRecovery(save = {},now=Date.now()) {
   const combat=save.combat??{};
   if(!combat.repairingUntil)return null;
+  // Old/partial saves may have an end timestamp without the recovery origin.
+  // Never zero a damaged hull from such metadata. Just clear an expired lock.
+  const validFrom=combat.repairingFrom!==null&&combat.repairingFrom!==undefined
+    &&Number.isFinite(Number(combat.repairingFrom));
+  const validStart=Number.isFinite(Number(combat.repairingStartedAt))
+    &&Number(combat.repairingStartedAt)>0;
+  if(!validFrom||!validStart){
+    if(now<(Number(combat.repairingUntil)||0))return null;
+    return {combat:{...combat,repairingUntil:null,
+      repairingStartedAt:null,repairingFrom:null,repairingTo:null}};
+  }
   const from=Math.max(0,Number(combat.repairingFrom)||0);
-  const elapsed=Math.max(0,now-(Number(combat.repairingStartedAt)||now));
+  const elapsed=Math.max(0,now-Number(combat.repairingStartedAt));
   const maxHealth=getMaxHullHealth(save);
   const health=Math.min(maxHealth,from+elapsed*maxHealth*.1/1000);
   const complete=health>=maxHealth||now>=combat.repairingUntil;

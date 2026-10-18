@@ -4,7 +4,7 @@ import {
   claimCampaignMission, startRegion2,
 } from '../missions/RegionOneCampaign.js';
 import { claimTreasure,treasureReward } from '../treasures/RegionTreasures.js';
-import { accumulateHullRepair } from '../combat/HullRepair.js';
+import { accumulateHullRepair,advanceHullRecovery,getMaxHullHealth } from '../combat/HullRepair.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
 import { fleetEnabled, recordFleetTreasure } from '../missions/FleetCampaign.js';
 
@@ -80,10 +80,18 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
         'terror-rose':'Rosas do Terror',
       }[id])).join(' · ');
   } else if (type === 'repair') {
-    const outcome = accumulateHullRepair(save, Number(save.combat?.shipHealth) <= 0);
-    if (!outcome?.patch) return null;
-    patch = outcome.patch;
-    message = 'Reparação iniciada! +10% da vida máxima por segundo.';
+    // Repair is not a one-use mission action. During the math question,
+    // the current repair may finish or the hull may be healed by another
+    // mechanism. A correct answer must not be falsely reported as invalid.
+    const settled=advanceHullRecovery(save);
+    const current=settled?{...save,...settled}:save;
+    const outcome=accumulateHullRepair(current);
+    patch=outcome?.patch??settled??{};
+    message=outcome?.patch
+      ? 'Reparação iniciada! +10% da vida máxima por segundo.'
+      : Number(current.combat?.shipHealth)>=getMaxHullHealth(current)
+        ? 'Resposta correta! O casco já está totalmente reparado.'
+        : 'Resposta correta! A recuperação do casco já está em andamento.';
   } else if (type === 'negotiation') {
     const campaign = save.campaign ?? {};
     if (!campaign.active?.includes('r1-negotiation') || campaign.negotiationRobbed) return null;
