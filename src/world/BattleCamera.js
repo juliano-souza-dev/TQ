@@ -81,3 +81,18 @@ export function computeOneVsOneFraming({
     },
   };
 }
+
+// The fleet campaign shares the same perspective renderer as legacy maps.
+// Pitch is measured from the sea plane: 1.18 rad is a high overview, and
+// 0.64 rad is a lower, more cinematic combat approach. Only presentation.
+export function computeDynamicCameraFraming(player,target,{overviewZoom=.76,combatZoom=1.02}={}){
+  const distance=player&&target&&Number(target.health)>0
+    ?Math.hypot(Number(player.x)-Number(target.x),Number(player.y)-Number(target.y)):Infinity;
+  const t=Number.isFinite(distance)
+    ?clamp((850-distance)/650,0,1):0;
+  const smooth=t*t*(3-2*t);
+  return {distance,proximity:smooth,
+    pitch:1.18-(1.18-.64)*smooth,
+    zoom:overviewZoom+(combatZoom-overviewZoom)*smooth,
+  };
+}
