@@ -7,7 +7,7 @@ const SHIPS=Object.freeze({
  frost:'corsario-geada-negra',thief:'ladrao-da-geada',northern:'ladrao-do-norte',
  gold:'galeao-dourado',eclipse:'galeao-eclipse',
  imperial:'galeao-negro-imperial',crimson:'galeao-caveira-rubra',
- veil:'corsario-do-veu-negro',market:'corsario-mercado-negro',
+ veil:'corsario-do-veu-negro',market:'mercado-negro',
 });
 const FLEETS=Object.freeze({
  r3:['shadow','pumpkin','red','ghost'],
