@@ -6,6 +6,7 @@ import {
 import { claimTreasure } from '../treasures/RegionTreasures.js';
 import { accumulateHullRepair } from '../combat/HullRepair.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
+import { fleetEnabled, recordFleetTreasure } from '../missions/FleetCampaign.js';
 
 
 export function applyNegotiationTheft(save) {
@@ -47,8 +48,10 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
     questEvent = { type: 'visit', island: 'missions' };
     message = 'Contrato aceito! Boa aventura.';
   } else if (type === 'treasure') {
-    const outcome = claimTreasure(save, action.id);
-    if (!outcome) return null;
+    const outcome = fleetEnabled(save)
+      ? {patch:recordFleetTreasure(save,action.regionId,action.id),reward:{gold:100,iron:350}}
+      : claimTreasure(save, action.id);
+    if (!outcome?.patch) return null;
     patch = outcome.patch;
     // Toda coleta de destroços concede o mesmo pacote especial, sem depender de missão.
     const draw=(min,max)=>min+Math.floor(Math.random()*(max-min+1));
@@ -65,7 +68,7 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
     patch.ammunition={...patch.ammunition};
     for(const [id,amount] of Object.entries(bonus))
       patch.ammunition[id]=(Number(patch.ammunition[id])||0)+amount;
-    questEvent = { type: 'treasure', id: action.id };
+    questEvent = fleetEnabled(save)?null:{ type: 'treasure', id: action.id };
     message = 'Destroços resgatados! +' + outcome.reward.gold
       + ' ouro, +' + outcome.reward.iron + ' ferro, ' +
       Object.entries(bonus).map(([id,amount])=>'+'+amount+' '+({
@@ -77,7 +80,7 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
       }[id])).join(' · ');
   } else if (type === 'repair') {
     const outcome = accumulateHullRepair(save, Number(save.combat?.shipHealth) <= 0);
-    if (!outcome) return null;
+    if (!outcome?.patch) return null;
     patch = outcome.patch;
     message = 'Reparação iniciada! +10% da vida máxima por segundo.';
   } else if (type === 'negotiation') {
