@@ -89,6 +89,7 @@ let islandPanelElement = null;
 let clickNavigation = null;
 let keyboardCamera = null;
 let fireKeyCleanup = null;
+let hudDispose=null;
 let cameraOrbitCleanup = null;
 let firstVoyageGuide = null;
 let worldGeneration = 0;
@@ -101,6 +102,7 @@ function stopWorld() {
   worldGeneration++;
   fireKeyCleanup?.();
   fireKeyCleanup = null;
+  hudDispose?.();hudDispose=null;
   cameraOrbitCleanup?.();
   cameraOrbitCleanup = null;
   if (loop) loop.stop();
@@ -1156,7 +1158,12 @@ async function startWorld() {
     getExit: () => world.fleetNoRespawn&&fleetProgress(readSave(),world.region.id,fleetTreasureGoal(world.region.id,world.region))?.complete?fleetExitPoint(world.region):null,
     getEntities: () => world.entities,
     onFeedback: message => navalHud?.setFeedback(message),
-    onDamageVisual: event => damageTextRenderer?.add(event),
+    onDamageVisual: event => {
+      damageTextRenderer?.add(event);
+      if(event?.source==='player'&&event.damage>0&&layoutMode.value==='mobile-portrait'){
+        try{if('vibrate' in navigator)navigator.vibrate(30);}catch{}
+      }
+    },
     onPlayerSunk: npcId => {
       disperseR4Raiders();
       if(npcId!=='r2-morbi'||readSave().r2Campaign?.active!=='r2-golden-i')return;
@@ -1268,6 +1275,7 @@ async function startWorld() {
   });
   navalHud = createNavalCombatHud(navalBattle, {
     onRepair: () => beginRepairSession(),
+    layoutMode,
     isCameraDetached: () => world.manualCamera !== null && world.manualCamera !== undefined,
     onCenterShip: () => {
       world.manualCamera = null;
@@ -1276,6 +1284,7 @@ async function startWorld() {
     },
   });
   root.append(navalHud.element);
+  hudDispose=()=>navalHud?.dispose?.();
   // F inicia ou cancela o mesmo ciclo de ataque do HUD.
   // KeyboardEvent.code independe de maiúsculas, Shift e Caps Lock.
   const onFireKey = event => {
