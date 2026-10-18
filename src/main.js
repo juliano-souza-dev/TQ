@@ -2664,7 +2664,7 @@ async function startWorld() {
       boss.varkorBattleUnlocked=true;boss.attackProtectedUntil=0;boss.phasedOut=false;
       boss.damage=12;boss.cannonSlots=12;boss.speed=270;
     }
-    if(boss.id==='r3-leviathan'){boss.huntActive=true;boss.huntEngaged=true;}
+    if(boss.id==='r3-leviathan'){boss.huntActive=true;boss.huntEngaged=true;return;}
     if(boss.archetype==='fugitive-frigate')boss.keepAwayFromEdges=true;
     else if(stepMs>0){
       boss.retaliationActive=true;boss.aggression='attack';
@@ -3230,7 +3230,7 @@ async function startWorld() {
           }
         }
       }
-      if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_REBUILD_MISSION_ID&&!mathGate.isOpen&&!islandPanel.isOpen){
+      if(!world.fleetNoRespawn&&world.region.id==='r3'&&readSave().r3Campaign?.active===R3_REBUILD_MISSION_ID&&!mathGate.isOpen&&!islandPanel.isOpen){
         const state=readSave().r3Campaign??{},ghost=world.entities.get('r3-fantasma-esmeralda');
         if(!state.emeraldSpoken&&ghost&&Math.hypot(world.camera.x-ghost.x,world.camera.y-ghost.y)<125){
           clickNavigation.cancel();navalBattle.firing=false;
@@ -3241,14 +3241,14 @@ async function startWorld() {
           void guideMissionTo('shipyard');
         }
       }
-      if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_VARKOR_MISSION_ID&&!mathGate.isOpen&&!islandPanel.isOpen){
+      if(!world.fleetNoRespawn&&world.region.id==='r3'&&readSave().r3Campaign?.active===R3_VARKOR_MISSION_ID&&!mathGate.isOpen&&!islandPanel.isOpen){
         const state=readSave().r3Campaign??{},point=state.varkorWreckPosition;
         if(state.varkorDefeated&&!state.varkorWreckClaimed&&point&&Math.hypot(world.camera.x-point.x,world.camera.y-point.y)<125){
           clickNavigation.cancel();navalBattle.firing=false;
           mathGate.open({kind:'r3-varkor-wreck',id:'r3-varkor-wreck',title:'🪵 Destroços do Terror do Mar',description:'Acerte quatro multiplicações para resgatar o arsenal de Varkor.'});
         }
       }
-      if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_FLAME_MISSION_ID&&
+      if(!world.fleetNoRespawn&&world.region.id==='r3'&&readSave().r3Campaign?.active===R3_FLAME_MISSION_ID&&
         !mathGate.isOpen&&!islandPanel.isOpen){
         const campaign=readSave().r3Campaign,step=campaign.flameStep??0;
         const index=step===0?0:step===2?1:step===3?2:step===5?3:-1;
@@ -3258,13 +3258,13 @@ async function startWorld() {
           mathGate.open({kind:'r3-flame-wreck',id:wreck.id,title:'🔥 '+wreck.name,description:'Resolva a multiplicação para recuperar a pista.'});
         }
       }
-      if(world.region.id==='r3'&&readSave().r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID&&
+      if(!world.fleetNoRespawn&&world.region.id==='r3'&&readSave().r3Campaign?.active===R3_ABYSS_SECRET_MISSION_ID&&
         !mathGate.isOpen&&!islandPanel.isOpen){
         const missing=R3_ABYSS_WRECKS.find(w=>!(readSave().r3Campaign?.abyssFragments??[]).includes(w.id)&&Math.hypot(world.camera.x-w.x,world.camera.y-w.y)<125);
         if(missing){clickNavigation.cancel();navalBattle.firing=false;
           mathGate.open({kind:'r3-abyss-fragment',id:missing.id,title:'🪵 '+missing.name,description:'Resolva a multiplicação para recuperar o fragmento do mapa.'});}
       }
-      if(world.region.id==='r3'&&readSave().r3Campaign?.active==='r3-dark-waters-warning'&&
+      if(!world.fleetNoRespawn&&world.region.id==='r3'&&readSave().r3Campaign?.active==='r3-dark-waters-warning'&&
          !mathGate.isOpen&&!islandPanel.isOpen){
         const missing=R3_WRECKS.find(w=>!(readSave().r3Campaign?.wreckDiaries??[]).includes(w.id));
         if(missing&&Math.hypot(world.camera.x-missing.x,world.camera.y-missing.y)<125){
