@@ -217,6 +217,30 @@ export class NpcRenderer {
           const barW = monsterSize * 0.65;
           ctx.fillStyle = '#152233'; ctx.fillRect(x-barW/2,y-monsterSize*0.58,barW,6*dpr);
           ctx.fillStyle = '#db5655'; ctx.fillRect(x-barW/2,y-monsterSize*0.58,barW * Math.max(0,npc.health/npc.maxHealth),6*dpr);
+        }else if(npc.archetype==='sea-monster-leviathan'&&npc.ambushPhase!=='submerged'){
+          // WebP decode can fail on some mobile browsers. A missing texture
+          // must NEVER make the region boss completely invisible.
+          const {x,y}=screen,r=Math.max(36,monsterSize*.34);
+          ctx.save();
+          ctx.globalAlpha=npc.ambushPhase==='diving'
+            ?Math.max(.12,1-(npc.ambushElapsedMs||0)/680)
+            :npc.ambushPhase==='surfacing'
+              ?Math.max(.12,Math.min(1,(npc.ambushElapsedMs||0)/720)):1;
+          ctx.fillStyle='#082a32';ctx.strokeStyle='#5cebd5';ctx.lineWidth=Math.max(3,dpr*3);
+          for(let i=0;i<7;i++){
+            const offset=(i-3)*r*.36,angle=now*.001+i*.8;
+            ctx.beginPath();ctx.moveTo(x+offset*.5,y);
+            ctx.quadraticCurveTo(x+offset+Math.sin(angle)*r*.55,y+r*.9,x+offset*1.65,y+r*1.5);
+            ctx.stroke();
+          }
+          ctx.beginPath();ctx.ellipse(x,y-r*.18,r,r*.68,0,0,Math.PI*2);
+          ctx.fill();ctx.stroke();
+          ctx.fillStyle='#e9fff4';
+          ctx.beginPath();ctx.arc(x-r*.32,y-r*.27,r*.085,0,Math.PI*2);
+          ctx.arc(x+r*.32,y-r*.27,r*.085,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle='#13202b';ctx.fillRect(x-r,y-r*1.05,2*r,7*dpr);
+          ctx.fillStyle='#ff6767';ctx.fillRect(x-r,y-r*1.05,2*r*Math.max(0,npc.health/npc.maxHealth),7*dpr);
+          ctx.restore();
         }
         continue;
       }

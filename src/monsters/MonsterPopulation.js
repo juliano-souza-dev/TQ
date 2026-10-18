@@ -5,6 +5,60 @@ export const MONSTER_RESPAWN_MS = 60000;
 export const MONSTER_GOLD_MIN = 20;
 export const MONSTER_GOLD_MAX = 80;
 
+function newLeviathan(x,y){
+  return {id:'r3-leviathan',name:'Leviatã das Águas Escuras',
+    type:'monster',archetype:'sea-monster-leviathan',
+    x,y,heading:0,health:250000,maxHealth:250000,
+    attackDamage:50000,state:'retaliating',ambushPhase:'surface',ambushSurfaceMs:1500,
+    respawnRemainingMs:null,animationTimeMs:0};
+}
+
+// In the fleet campaign the Leviathan is summoned only by its own boss stage.
+// Position it in navigable water within striking distance of the player's ship.
+// This also recreates the creature when a legacy spawn was rejected by collision.
+export function ensureFleetLeviathan(world){
+  if(!world?.fleetNoRespawn||world.region?.id!=='r3')return null;
+  const previous=world.entities.get('r3-leviathan');
+  if(previous?.fleetEncounterPositioned)return previous;
+  const {region, camera}=world;
+  const px=Number.isFinite(camera?.x)?camera.x:region.spawn.x;
+  const py=Number.isFinite(camera?.y)?camera.y:region.spawn.y;
+  const safe=(x,y)=>{
+    if(x<155||y<155||x>region.width-155||y>region.height-155)return false;
+    if(collidesWithIsland(region,x,y,135))return false;
+    return ![...world.entities.values()].some(n=>n!==previous&&n.health>0
+      && Math.hypot(n.x-x,n.y-y)<175);
+  };
+  let point=null;
+  for(const radius of [560,700,850,1000]){
+    for(let i=0;i<16;i++){
+      const angle=i*Math.PI/8;
+      const x=px+Math.cos(angle)*radius,y=py+Math.sin(angle)*radius;
+      if(safe(x,y)){point={x,y};break;}
+    }
+    if(point)break;
+  }
+  if(!point){
+    let best=Infinity;
+    for(let y=200;y<region.height-155;y+=160)
+      for(let x=200;x<region.width-155;x+=160){
+        if(!safe(x,y))continue;
+        const distance=Math.hypot(px-x,py-y);
+        if(distance<300)continue;
+        const score=Math.abs(distance-700);
+        if(score<best){best=score;point={x,y};}
+      }
+  }
+  if(!point)return null;
+  const leviathan=previous??newLeviathan(point.x,point.y);
+  leviathan.x=point.x;leviathan.y=point.y;
+  leviathan.heading=(Math.atan2(px-point.x,-(py-point.y))*180/Math.PI+360)%360;
+  leviathan.ambushPhase='surface';leviathan.ambushElapsedMs=0;leviathan.ambushSurfaceMs=1500;
+  leviathan.huntActive=true;leviathan.huntEngaged=true;leviathan.fleetEncounterPositioned=true;
+  world.entities.set(leviathan.id,leviathan);
+  return leviathan;
+}
+
 export function createMonsterPopulation(world, random = Math.random, save = {}) {
   // Região 3 possui um único Leviathan que serve de alvo para a caçada.
   if (world.region.id === 'r3') {
@@ -12,13 +66,7 @@ export function createMonsterPopulation(world, random = Math.random, save = {}) 
     const zone=world.region.ocean?.corruption?.zones?.[0] ?? {x:3220,y:3450};
     const x=zone.x+300,y=zone.y+500;
     if (!collidesWithIsland(world.region,x,y,110)) {
-      world.entities.set('r3-leviathan', {
-        id:'r3-leviathan',name:'Leviatã das Águas Escuras',
-        type:'monster',archetype:'sea-monster-leviathan',
-        x,y,heading:0,health:250000,maxHealth:250000,
-        attackDamage:50000,state:'retaliating',ambushPhase:'surface',ambushSurfaceMs:1500,
-        respawnRemainingMs:null,animationTimeMs:0,
-      });
+      world.entities.set('r3-leviathan',newLeviathan(x,y));
       return 1;
     }
     return 0;

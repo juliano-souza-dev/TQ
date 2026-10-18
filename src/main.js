@@ -291,7 +291,7 @@ async function startWorld() {
   if(!world.fleetNoRespawn||Number(world.region.id.slice(1))<=4)createCorsairPopulation(world);
   const { createFugitiveFrigatePopulation, updateFugitiveFrigatePopulation, updateNegotiationFrigate, NEGOTIATION_APPROACH_RADIUS } =
     await import('./npcs/FugitiveFrigateNpc.js');
-  const { createMonsterPopulation, updateMonsterPopulation, monsterGoldReward } = await import('./monsters/MonsterPopulation.js');
+  const { createMonsterPopulation, ensureFleetLeviathan, updateMonsterPopulation, monsterGoldReward } = await import('./monsters/MonsterPopulation.js');
   createMonsterPopulation(world, Math.random, localSaves.load(currentUser.uid)?.payload??{});
   createFleetPopulation(world);
 
@@ -1193,6 +1193,10 @@ async function startWorld() {
         if(patch)writePatch(patch);
         grantSinkingLoot();
         world.entities.delete(npc.id);
+        if(patch&&world.region.id==='r3'&&npc.id==='r3-leviathan'){
+          firstVoyageGuide?.finish();
+          showOceanReward('🐙 Leviatã derrotado! Prepare-se: o Terror do Mar será o próximo confronto.');
+        }
         if(patch){
           showOceanReward('⚔️ '+npc.name+' derrotado!');
           updateMissionHud();
@@ -2699,7 +2703,12 @@ async function startWorld() {
     if(npc.fleetBalanced)return;
     npc.fleetBalanced=true;
     // Scale boss HP to actual player firepower, not to an immutable legacy boss value.
-    npc.maxHealth=fleetBossPower(save);
+    const power=fleetBossPower(save);
+    // R3's two guardians must feel like bosses, not die as ordinary pirates.
+    npc.maxHealth=npc.archetype==='sea-monster-leviathan'
+      ? Math.max(250000,Math.round(power*2.5))
+      :npc.archetype==='terror-do-mar'
+        ? Math.max(160000,Math.round(power*1.8)):power;
     npc.health=npc.maxHealth;
     npc.fleetDamage=Math.max(2,Math.round(getMaxHullHealth(save)*.0075));
     npc.damage=npc.fleetDamage;
@@ -2798,11 +2807,6 @@ async function startWorld() {
     }
     void updateFleetEquipment();
     const encounter=p.encounter;if(!encounter)return;
-    if(fleetEncounterAnnouncement!==encounter.id){
-      fleetEncounterAnnouncement=encounter.id;
-      showOceanReward('☠️ '+encounter.name+' apareceu e vem atrás de você!');
-      updateMissionHud();
-    }
     let boss=[...world.entities.values()].find(n=>encounterMatches(encounter,n));
     if(!boss){
       const template=[...fleetDormantBosses.entries()].find(([,npc])=>encounterMatches(encounter,npc));
@@ -2811,6 +2815,10 @@ async function startWorld() {
         world.entities.set(id,npc);boss=npc;
       }
     }
+    // The Leviathan has no ship sprite: never gate its creation on NPC sprites
+    // or on a cached spawn that may be missing in an older save.
+    if(!boss&&encounter.id==='r3-leviathan')
+      boss=ensureFleetLeviathan(world);
     if(!boss&&encounter.id==='fugitive-frigate'&&npcRenderer.hasShipSprite('fragata-sombra-fugitiva')){
       createFugitiveFrigatePopulation(world);
       boss=[...world.entities.values()].find(n=>n.archetype==='fugitive-frigate');
@@ -2844,7 +2852,7 @@ async function startWorld() {
         world.entities.set(boss.id,boss);
       }
     }
-    if(!boss)return;
+    if(!boss)return; // Never announce an encounter without a real entity.
     fleetBossStat(boss,save);
     if(!boss.fleetSnapshotRestored){
       boss.fleetSnapshotRestored=true;
@@ -2860,7 +2868,19 @@ async function startWorld() {
       boss.varkorBattleUnlocked=true;boss.attackProtectedUntil=0;boss.phasedOut=false;
       boss.damage=boss.fleetDamage;boss.speed=270;
     }
-    if(boss.id==='r3-leviathan'){boss.huntActive=true;boss.huntEngaged=true;return;}
+    if(boss.id==='r3-leviathan'){
+      // Restore the saved HP first, then move an overly distant encounter into
+      // navigable water. Do not modify the saved victory list or reset progress.
+      boss=ensureFleetLeviathan(world)??boss;
+      boss.huntActive=true;boss.huntEngaged=true;
+    }
+    if(fleetEncounterAnnouncement!==encounter.id){
+      fleetEncounterAnnouncement=encounter.id;
+      showOceanReward('☠️ '+encounter.name+' está no oceano! Siga o guia até o confronto.');
+      updateMissionHud();
+      if(world.region.id==='r3')guideMissionTo(boss);
+    }
+    if(boss.id==='r3-leviathan')return;
     if(boss.archetype==='fugitive-frigate')boss.keepAwayFromEdges=true;
     else if(stepMs>0){
       boss.retaliationActive=true;boss.aggression='attack';
