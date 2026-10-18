@@ -1,5 +1,6 @@
 import { getVisibleTreasures } from '../treasures/RegionTreasures.js';
 import { collidesWithIsland } from '../world/IslandCollision.js';
+import { FLEET_PLAYER_SHIPS, bestFleetLoadout } from '../ships/FleetAutoEquipment.js';
 
 // Saves from the first fleet campaign keep the same version and their completed objectives.
 export const FLEET_CAMPAIGN_VERSION=1;
@@ -90,6 +91,62 @@ export function fleetProgress(save={},regionId,treasureGoal=0){
   encounterIndex,encounter:ready&&encounterIndex>=0?plan.encounters[encounterIndex]:null,
   ready,complete:ready&&encounterIndex<0};
 }
+// Boss prizes are separate from the first-mission preparation and persist in saves.
+export const FLEET_BOSS_CANNON_REWARDS=Object.freeze({
+ r1:Object.freeze({cannon:'royal-lion',quantity:7,ammo:'rusted-iron',ammoAmount:30000}),
+ r2:Object.freeze({cannon:'aetherion-mk1',quantity:7,ammo:'aetherion-seeker',ammoAmount:60000}),
+});
+export function claimFleetBossPrize(save,regionId,encounterId){
+ if(!fleetEnabled(save))return null;
+ const c=save.fleetCampaign,plan=FLEET_REGIONS[regionId];
+ const encounter=plan?.encounters.find(e=>e.id===encounterId);
+ if(!encounter||ids(c.claimedBossPrizes).includes(encounterId))return null;
+ if(!ids(c.bosses?.[regionId]).includes(encounterId))return null;
+ // Only the final region boss gives the ship and the new cannon battery.
+ const final=plan.encounters[plan.encounters.length-1]?.id===encounterId;
+ if(!final)return null;
+ const reward=FLEET_BOSS_CANNON_REWARDS[regionId];
+ const e=save.equipment??{},counts={...(e.cannonCounts??{})};
+ const ownedShipIds=ids([...(e.ownedShipIds??[]),...(encounter.ship?[encounter.ship]:[])]);
+ const ownedCannonIds=ids([...(e.ownedCannonIds??[]),...(reward?[reward.cannon]:[])]);
+ if(reward)counts[reward.cannon]=Math.max(Number(counts[reward.cannon])||0,reward.quantity);
+ const equip=encounter.ship && 'r'+c.region===regionId;
+ const equippedShipId=equip?encounter.ship:e.equippedShipId;
+ let equipment={...e,ownedShipIds,ownedCannonIds,cannonCounts:counts,
+   ...(equippedShipId?{equippedShipId}:{})};
+ if(equip){
+   const ship=FLEET_PLAYER_SHIPS.find(item=>item.id===encounter.ship);
+   if(ship)equipment={...equipment,
+     loadout:{...(e.loadout??{}),[ship.id]:bestFleetLoadout({...save,equipment},ship)}};
+ }
+ const ammunition=reward?{...(save.ammunition??{}),
+   [reward.ammo]:Math.max(Number(save.ammunition?.[reward.ammo])||0,reward.ammoAmount)}:undefined;
+ // The newly conquered ship is seaworthy; restore its hull only upon first award.
+ const playerShip=FLEET_PLAYER_SHIPS.find(ship=>ship.id===encounter.ship);
+ const combat=equip&&playerShip?{...(save.combat??{}),
+   shipHealth:Math.max(100,Number(playerShip.maxHealth)||100),repairingUntil:null,repairingFrom:null}:undefined;
+ return {
+   fleetCampaign:{...c,claimedBossPrizes:ids([...(c.claimedBossPrizes??[]),encounterId])},
+   equipment,
+   ...(ammunition?{ammunition}:{}),
+   ...(combat?{combat}:{})
+ };
+}
+// For a victory saved before the rewards fix: grant once, without resetting
+// kills, treasure objectives, active region or already collected inventory.
+export function reconcileFleetBossPrizes(save){
+ if(!fleetEnabled(save))return null;
+ let current=save,changed=false;
+ for(const [regionId,plan] of Object.entries(FLEET_REGIONS)){
+  const final=plan.encounters[plan.encounters.length-1];
+  if(!ids(current.fleetCampaign?.bosses?.[regionId]).includes(final.id))continue;
+  const patch=claimFleetBossPrize(current,regionId,final.id);
+  if(patch){current={...current,...patch};changed=true;}
+ }
+ if(!changed)return null;
+ return Object.fromEntries(Object.keys(current)
+  .filter(k=>current[k]!==save[k]).map(k=>[k,current[k]]));
+}
 export function recordFleetDefeat(save,regionId,npc){
  if(!fleetEnabled(save)||'r'+save.fleetCampaign.region!==regionId)return null;
  const role=fleetRole(regionId,npc);if(!role)return null;
@@ -105,9 +162,10 @@ export function recordFleetDefeat(save,regionId,npc){
  const old=ids(c.bosses?.[regionId]);if(old.includes(encounter.id))return null;
  const progress=fleetProgress(save,regionId,save.fleetCampaign?.treasureGoal?.[regionId]??0);
  if(!progress?.ready||progress.encounter?.id!==encounter.id)return null;
- const equipment=save.equipment??{};
- return {fleetCampaign:{...c,bosses:{...(c.bosses??{}),[regionId]:[...old,encounter.id]}},
-  ...(encounter.ship?{equipment:{...equipment,ownedShipIds:ids([...(equipment.ownedShipIds??[]),encounter.ship])}}:{})};
+ const base={...save,fleetCampaign:{...c,
+    bosses:{...(c.bosses??{}),[regionId]:[...old,encounter.id]}}};
+ const prize=claimFleetBossPrize(base,regionId,encounter.id);
+ return prize?{...prize}:{fleetCampaign:base.fleetCampaign};
 }
 export function fleetLabel(p){
  if(!p)return 'Campanha naval';
