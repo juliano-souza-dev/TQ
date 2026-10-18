@@ -4,6 +4,7 @@ import { FLEET_REGIONS, fleetWaveStatus } from '../missions/FleetCampaign.js';
 
 const SHIPS=Object.freeze({
  shadow:'sombra-fugitiva-verde-fantasma',pumpkin:'galeao-frota-das-aboboras',
+ halloween:'galeao-halloween-tabuada',
  red:'corsario-vermelho-sangue',ghost:'fantasma-esmeralda',
  frost:'corsario-geada-negra',thief:'ladrao-da-geada',northern:'ladrao-do-norte',
  gold:'galeao-dourado',eclipse:'galeao-eclipse',
@@ -14,7 +15,8 @@ const FLEETS=Object.freeze({
  r3:['shadow','pumpkin','red','ghost'],
  r4:['frost','thief','red','shadow','northern'],
  r5:['ghost','red','pumpkin','gold','market'],
- r6:['imperial','frost','red','northern','market'],
+ // Iron Strait has the Halloween pirate flotilla. Keep the imperial encounter unique.
+ r6:['pumpkin','halloween','ghost','red','shadow'],
  r7:['crimson','red','pumpkin','imperial','shadow'],
  r8:['veil','shadow','market','ghost','red'],
  r9:['pumpkin','thief','gold','red','eclipse'],
@@ -23,7 +25,8 @@ const FLEETS=Object.freeze({
  r12:['imperial','crimson','veil','eclipse','pumpkin','red'],
 });
 const NAMES=Object.freeze({
- shadow:'Sombra Veloz',pumpkin:'Saqueador das Abóboras',red:'Corsário Rubro',
+ shadow:'Sombra Veloz',pumpkin:'Saqueador das Abóboras',
+ halloween:'Corsário de Halloween',red:'Corsário Rubro',
  ghost:'Sentinela Esmeralda',frost:'Vigia da Geada',thief:'Pirata Gélido',
  northern:'Ladrão do Norte',gold:'Guarda Dourada',eclipse:'Corsário Eclipse',
  imperial:'Fragata Imperial',crimson:'Corsário da Caveira',veil:'Vigia do Véu',
