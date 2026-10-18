@@ -69,3 +69,35 @@ test('5X applies equally to guided shots against a boss without boosting non-gui
  assert.equal(plain.shot.flameBoost,false);
  assert.ok(guided.damage>plain.damage*3.5);
 });
+
+
+// Duration and cooldown are absolute saved timestamps. A reload cannot erase
+// the 3-minute lock, and only guided Aetherion shots benefit during 30 seconds.
+test('5X lasts 30 seconds, then remains on a 3-minute cooldown',()=>{
+ const now=Date.now();
+ let save={consumables:{selectedId:'flame-5x',quantities:{'flame-5x':3}}};
+ const controller=new NavalBattleController({shipId:'starter',
+  renderer:{prepareAmmo(){},fire(){return true}},
+  readSave:()=>save,writePatch:patch=>{save={...save,...patch}},
+  getPlayer:()=>({x:0,y:0,heading:0}),getEntities:()=>new Map()});
+ const first=controller.activateConsumable();
+ assert.equal(first.ok,true);
+ assert.equal(save.consumables.quantities['flame-5x'],2);
+ assert.ok(save.consumables.activeUntil>=now+30000 && save.consumables.activeUntil<=Date.now()+30000);
+ assert.ok(save.consumables.cooldownUntil>=now+180000 && save.consumables.cooldownUntil<=Date.now()+180000);
+ assert.equal(controller.activateConsumable().ok,false,'active effect cannot consume another unit');
+ const reloaded=new NavalBattleController({shipId:'starter',renderer:{prepareAmmo(){},fire(){return true}},
+  readSave:()=>save,writePatch:patch=>{save={...save,...patch}},
+  getPlayer:()=>({x:0,y:0,heading:0}),getEntities:()=>new Map()});
+ assert.equal(reloaded.getConsumables().cooldownUntil,save.consumables.cooldownUntil);
+ const originalNow=Date.now;
+ try{
+  Date.now=()=>save.consumables.activeUntil+1;
+  assert.equal(reloaded.isFlameActive(),false,'effect expires at 30 seconds');
+  assert.equal(reloaded.activateConsumable().ok,false,'cannot restart while cooldown remains');
+  assert.equal(save.consumables.quantities['flame-5x'],2);
+  Date.now=()=>now+180001;
+  assert.equal(reloaded.activateConsumable().ok,true,'5X can be used again after 180 seconds');
+  assert.equal(save.consumables.quantities['flame-5x'],1);
+ }finally{Date.now=originalNow;}
+});

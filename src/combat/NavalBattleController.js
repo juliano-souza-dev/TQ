@@ -154,7 +154,7 @@ export class NavalBattleController {
     }
     const config={
       shield:{active:'shieldActiveUntil',cooldown:'shieldCooldownUntil',duration:56250,reload:180000,label:'Escudo'},
-      'flame-5x':{active:'activeUntil',cooldown:'cooldownUntil',duration:75000,reload:150000,label:'5X em Chamas'},
+      'flame-5x':{active:'activeUntil',cooldown:'cooldownUntil',duration:30000,reload:180000,label:'5X em Chamas'},
       'speed-plus':{active:'speedActiveUntil',cooldown:'speedCooldownUntil',duration:120000,reload:300000,label:'Veloz+'},
       'treasure-map':{active:'treasureMapActiveUntil',cooldown:'treasureMapCooldownUntil',duration:900000,reload:1800000,label:'Mapa do Tesouro'},
     }[c.selectedId];
@@ -1189,6 +1189,28 @@ export class NavalBattleController {
         continue;
       }
 
+      if(this.getRegionId()==='r4' && npc.archetype==='frozen-mirror-boss' && npc.health>0){
+        const distance=distanceBetween(npc,player);
+        if(distance<=Math.max(900,Number(npc.range)||0)){
+          // The mirror uses all nine gunports of the player's Corsário da
+          // Geada Negra. Ice ordnance is a separately reloaded tenth shot.
+          fireSequenceShot({
+            npc,target:player,count:Math.max(1,Math.min(9,Number(npc.cannonSlots)||9)),
+            sequenceKey:npc.id+':mirror-broadside-sequence',
+            reloadKey:npc.id+':mirror-broadside-reload',
+            reloadMs:5500,damage:Math.max(2,Math.round((Number(npc.damage)||10)*.32)),
+            speed:550,
+          });
+          if(distance<=950)fireSequenceShot({
+            npc,target:player,count:1,
+            sequenceKey:npc.id+':mirror-freeze-sequence',
+            reloadKey:npc.id+':mirror-freeze-reload',
+            reloadMs:10000,damage:Math.max(3,Math.round((Number(npc.damage)||10)*.75)),
+            speed:640,ammo:effectiveAmmo('frozen-explosion'),
+          });
+        }
+        continue;
+      }
       if(this.getRegionId()==='r4' && npc.id==='r4-sombra-do-saque' && npc.health>0){
         if(npc.retaliationActive && distanceBetween(npc,player)<=1250)fireSequenceShot({npc,target:player,count:1,
           sequenceKey:npc.id+':glacial-sequence',reloadKey:npc.id+':glacial-reload',

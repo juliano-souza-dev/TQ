@@ -104,7 +104,7 @@ test('R4 starts with earned ice ship, then continues to the fifth region',()=>{
   const ice=grantFleetPreparation(save,'r4');
   assert.ok(ice.equipment.ownedCannonIds.includes('ice-terror'));
   save=combine(save,{fleetCampaign:{...save.fleetCampaign,preparedRegions:['r4']}});
-  save=combine(save,recordFleetDefeat(save,'r4',{id:'r4-sombra-do-saque',archetype:'dark-waters-raider'}));
+  save=combine(save,recordFleetDefeat(save,'r4',{id:'r4-almirante-boreal',archetype:'frozen-mirror-boss',shipId:'corsario-geada-negra'}));
   assert.equal(fleetProgress(save,'r4',1).complete,true);
   const ending=finishFleetRegion(save,'r4',1);
   assert.equal(ending.fleetCampaign.finished,false);

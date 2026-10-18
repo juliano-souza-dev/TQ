@@ -294,13 +294,14 @@ async function startWorld() {
   const { createMonsterPopulation, ensureFleetLeviathan, updateMonsterPopulation, monsterGoldReward } = await import('./monsters/MonsterPopulation.js');
   createMonsterPopulation(world, Math.random, localSaves.load(currentUser.uid)?.payload??{});
   createFleetPopulation(world,Math.random,localSaves.load(currentUser.uid)?.payload??{});
+  const { createFrozenMirrorBoss } = await import('./npcs/FrozenMirrorBoss.js');
 
   const fleetDormantBosses=new Map();
   if(world.fleetNoRespawn){
     for(const [id,npc] of [...world.entities]){
       if((world.region.id==='r1'&&npc.archetype==='terror-da-tabuada')
       ||(world.region.id==='r3'&&(npc.archetype==='terror-do-mar'||id==='r3-leviathan'))
-      ||(world.region.id==='r4'&&id==='r4-sombra-do-saque')){
+      ){
         fleetDormantBosses.set(id,npc);world.entities.delete(id);
       }
     }
@@ -2708,12 +2709,14 @@ async function startWorld() {
     npc.maxHealth=npc.archetype==='sea-monster-leviathan'
       ? Math.max(250000,Math.round(power*2.5))
       :npc.archetype==='terror-do-mar'
-        ? Math.max(160000,Math.round(power*1.8)):power;
+        ? Math.max(160000,Math.round(power*1.8))
+        :npc.archetype==='frozen-mirror-boss'
+          ? Math.max(120000,Math.round(power*1.5)):power;
     npc.health=npc.maxHealth;
     npc.fleetDamage=Math.max(2,Math.round(getMaxHullHealth(save)*.0075));
     npc.damage=npc.fleetDamage;
     npc.range=Math.max(840,Number(npc.range)||0);
-    npc.cannonSlots=Math.max(3,Math.min(8,Number(npc.cannonSlots)||5));
+    npc.cannonSlots=Math.max(3,Math.min(npc.archetype==='frozen-mirror-boss'?9:8,Number(npc.cannonSlots)||5));
     npc.retaliationActive=true;npc.aggression='attack';npc.state='retaliating';
     if(npc.specialCannon){npc.specialCannon={...npc.specialCannon,damage:npc.fleetDamage*1.3};}
     if(npc.broadside){npc.broadside={...npc.broadside,regularDamage:npc.fleetDamage*.6,regularCannons:Math.min(8,npc.cannonSlots)};}
@@ -2776,7 +2779,10 @@ async function startWorld() {
         const reward=last.ship?(FLEET_PLAYER_SHIPS.find(ship=>ship.id===last.ship)?.name||last.ship):'recompensas da campanha';
         const extras=world.region.id==='r1'?' +7 Canhões Reais Dourados e 30.000 munições de ferro.'
           :world.region.id==='r2'?' +2 Canhões Aetherion MK-I e 60.000 orbes autoguiados.':'.';
-        showFleetStage('🏆 Missão 2 concluída!',p.plan.name+' libertada! Navio conquistado: '+reward+extras+' O navio e os melhores canhões foram equipados. Siga a mão guia até a saída da região.');
+        const victoryText=world.region.id==='r4'
+          ? p.plan.name+': Almirante Boreal foi derrotado! O Corsário da Geada Negra continua equipado. Siga a mão guia até a saída da região.'
+          : p.plan.name+' libertada! Navio conquistado: '+reward+extras+' O navio e os melhores canhões foram equipados. Siga a mão guia até a saída da região.';
+        showFleetStage('🏆 Missão 2 concluída!',victoryText);
         updateMissionHud();
       }
       void updateFleetEquipment();
@@ -2824,6 +2830,9 @@ async function startWorld() {
     // or on a cached spawn that may be missing in an older save.
     if(!boss&&encounter.id==='r3-leviathan')
       boss=ensureFleetLeviathan(world);
+    // Unique R4 mirror ship replaces the thief, who remains a normal raider.
+    if(!boss&&encounter.id==='r4-almirante-boreal')
+      boss=createFrozenMirrorBoss(world);
     if(!boss&&encounter.id==='fugitive-frigate'&&npcRenderer.hasShipSprite('fragata-sombra-fugitiva')){
       createFugitiveFrigatePopulation(world);
       boss=[...world.entities.values()].find(n=>n.archetype==='fugitive-frigate');
@@ -2883,7 +2892,7 @@ async function startWorld() {
       fleetEncounterAnnouncement=encounter.id;
       showOceanReward('☠️ '+encounter.name+' está no oceano! Siga o guia até o confronto.');
       updateMissionHud();
-      if(world.region.id==='r3')guideMissionTo(boss);
+      if(['r3','r4'].includes(world.region.id))guideMissionTo(boss);
     }
     if(boss.id==='r3-leviathan')return;
     if(boss.archetype==='fugitive-frigate')boss.keepAwayFromEdges=true;

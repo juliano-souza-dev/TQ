@@ -8,7 +8,7 @@ export const FLEET_REGIONS=Object.freeze({
  r1:{name:'Enseada dos Aprendizes',enemyGoal:19,monsterGoal:2,encounters:[{id:'terror-da-tabuada',name:'Terror da Tabuada',ship:'galeao-halloween-tabuada'}]},
  r2:{name:'Costa dos Corsários',enemyGoal:20,monsterGoal:2,encounters:[{id:'fugitive-frigate',name:'Fragata Sombra Fugitiva',ship:'fragata-sombra-cacadora'}]},
  r3:{name:'Águas Escuras',enemyGoal:16,monsterGoal:0,encounters:[{id:'r3-leviathan',name:'Leviatã das Águas Escuras',ship:null},{id:'terror-do-mar',name:'Terror do Mar',ship:'terror-do-mar'}]},
- r4:{name:'Terras Gélidas',enemyGoal:30,monsterGoal:0,encounters:[{id:'r4-sombra-do-saque',name:'Sombra do Saque',ship:null}]},
+ r4:{name:'Terras Gélidas',enemyGoal:30,monsterGoal:0,encounters:[{id:'r4-almirante-boreal',name:'Almirante Boreal · O Reflexo Gelado',ship:null,shipId:'corsario-geada-negra'}]},
  r5:{name:'Costa do Eclipse',enemyGoal:28,monsterGoal:2,encounters:[{id:'r2-morbi',name:'Morbi · Galeão Dourado',ship:'galeao-dourado'}]},
  r6:{name:'Estreito de Ferro',enemyGoal:22,monsterGoal:2,encounters:[{id:'r6-imperial',name:'Galeão Negro Imperial',ship:null}]},
  r7:{name:'Baía Rubra',enemyGoal:24,monsterGoal:2,encounters:[{id:'r7-crimson',name:'Galeão da Caveira Rubra',ship:'galeao-caveira-rubra'}]},
@@ -123,6 +123,9 @@ export function fleetProgress(save={},regionId,treasureGoal=0){
   bosses=ids(c.bosses?.[regionId]);
  // Old R5 Eclipse victories remain complete after moving the new boss to R5.
  if(regionId==='r5'&&bosses.includes('r5-eclipse'))bosses.push('r2-morbi');
+ // A previous R4 victory stays completed after the boss identity changes.
+ // New players must face Almirante Boreal; existing saves are not reset.
+ if(regionId==='r4'&&bosses.includes('r4-sombra-do-saque'))bosses.push('r4-almirante-boreal');
  const encounterIndex=plan.encounters.findIndex(e=>!bosses.includes(e.id));
  const missionOneComplete=defeated>=plan.enemyGoal&&collected>=treasureGoal&&monsters>=plan.monsterGoal;
  const prepared=ids(c.preparedRegions).includes(regionId);
