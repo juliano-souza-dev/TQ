@@ -2854,7 +2854,7 @@ async function startWorld() {
       writePatch({...reward,fleetCampaign:nextCampaign,
         combat:{...(save.combat??{}),shipHealth:world.region.id==='r3'?2400:getMaxHullHealth({...save,equipment})}});
       const awarded=world.region.id==='r3'?'Fantasma Esmeralda':world.region.id==='r4'?'arsenal gélido':
-        world.region.id==='r2'?'canhões reais':'canhões e munições';
+        world.region.id==='r2'?'canhões reais':world.region.id==='r5'?'acesso ao confronto com o Eclipse':'canhões e munições';
       showFleetStage('🎁 Missão 1 concluída!',p.plan.name+': inimigos, monstros e tesouros concluídos. Você recebeu '+awarded+'. Equipe-se para o confronto com o chefe.');
       updateMissionHud();
       void updateFleetEquipment();
