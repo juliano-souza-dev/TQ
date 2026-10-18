@@ -328,12 +328,19 @@ async function startWorld() {
     if(c.treasureGoal?.[world.region.id]!==goal)
       writePatch({fleetCampaign:{...c,treasureGoal:{...(c.treasureGoal??{}),[world.region.id]:goal}}});
     // The preparation prize belongs to mission 1, not to map load.
-    // R3 starts with the agile shadow ship so its fleeing fleet is catchable.
-    if(world.region.id==='r3'&&!current.fleetCampaign?.entryShipRegions?.includes('r3')){
+    // R3 retains the green starting ship and migrates existing saves to its
+    // stronger four-cannon loadout without changing an already equipped ship.
+    if(world.region.id==='r3'&&(!current.fleetCampaign?.entryShipRegions?.includes('r3')
+      ||!current.fleetCampaign?.r3GuidedArsenalV1)){
       const first=readSave();
-      writePatch({...grantFleetEntry(first,'r3'),
+      const alreadyEntered=first.fleetCampaign?.entryShipRegions?.includes('r3');
+      const entry=grantFleetEntry(first,'r3');
+      writePatch({...entry,
+        equipment:alreadyEntered?{...entry.equipment,
+          equippedShipId:first.equipment?.equippedShipId??entry.equipment.equippedShipId}:entry.equipment,
         fleetCampaign:{...first.fleetCampaign,
-          entryShipRegions:[...(first.fleetCampaign?.entryShipRegions??[]),'r3']}});
+          entryShipRegions:[...new Set([...(first.fleetCampaign?.entryShipRegions??[]),'r3'])],
+          r3GuidedArsenalV1:true}});
     }
   }
 
@@ -2738,7 +2745,7 @@ async function startWorld() {
         const last=p.plan.encounters[p.plan.encounters.length-1];
         const reward=last.ship?(FLEET_PLAYER_SHIPS.find(ship=>ship.id===last.ship)?.name||last.ship):'recompensas da campanha';
         const extras=world.region.id==='r1'?' +7 Canhões Reais Dourados e 30.000 munições de ferro.'
-          :world.region.id==='r2'?' +7 Canhões Aetherion MK-I e 60.000 orbes autoguiados.':'.';
+          :world.region.id==='r2'?' +2 Canhões Aetherion MK-I e 60.000 orbes autoguiados.':'.';
         showFleetStage('🏆 Missão 2 concluída!',p.plan.name+' libertada! Navio conquistado: '+reward+extras+' O navio e os melhores canhões foram equipados. Siga a mão guia até a saída da região.');
         updateMissionHud();
       }
@@ -2796,7 +2803,7 @@ async function startWorld() {
         boss.cannonSlots=1;boss.range=840;boss.damage=3;boss.keepAwayFromEdges=true;
       }
     }
-    if(!boss&&encounter.id==='r2-morbi'){
+    if(!boss&&world.region.id==='r5'&&encounter.id==='r2-morbi'){
       boss={id:'r2-morbi',name:'Morbi · Galeão Dourado',type:'npc',
         archetype:'golden-galleon',shipId:'galeao-dourado',heading:180,
         x:Math.min(world.region.width-280,world.camera.x+650),

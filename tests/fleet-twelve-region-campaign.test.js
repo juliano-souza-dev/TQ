@@ -41,10 +41,11 @@ test('boss reward is only awarded once and exit travels only after complete',()=
  c.fleetCampaign.defeated.r5=Array.from({length:p.enemyGoal},(_,i)=>'npc-'+i);
  c.fleetCampaign.monsters.r5=['m1','m2'];
  c.fleetCampaign.treasures.r5=['t1'];
- const boss={id:'r5-eclipse',type:'npc',archetype:'fleet-boss',shipId:'galeao-eclipse'};
+ const boss={id:'r2-morbi',type:'npc',archetype:'golden-galleon',shipId:'galeao-dourado'};
  assert.equal(fleetRole('r5',boss),'boss');
+ assert.equal(fleetRole('r2',boss),null,'Morbi must not be an R2 boss');
  const win=recordFleetDefeat(c,'r5',boss);
- assert.ok(win.equipment.ownedShipIds.includes('galeao-eclipse'));
+ assert.ok(win.equipment.ownedShipIds.includes('galeao-dourado'));
  const after={...c,...win};
  assert.equal(recordFleetDefeat(after,'r5',boss),null);
  assert.equal(fleetProgress(after,'r5',1).complete,true);
@@ -79,10 +80,30 @@ test('ice ship arrives through opening challenge and emerald ghost after mission
  const save=base(3);
  const shadow=grantFleetEntry(save,'r3');
  assert.ok(shadow.equipment.ownedShipIds.includes('sombra-fugitiva-verde-fantasma'));
+ assert.equal(shadow.equipment.equippedShipId,'sombra-fugitiva-verde-fantasma');
+ assert.deepEqual(shadow.equipment.loadout['sombra-fugitiva-verde-fantasma'],
+   ['aetherion-mk1','aetherion-mk1','royal-lion','royal-lion']);
  const ghost=grantFleetPreparation({...save,equipment:shadow.equipment},'r3');
  assert.ok(ghost.equipment.ownedShipIds.includes('fantasma-esmeralda'));
  const ice=grantFleetEntry(save,'r4');
  assert.ok(ice.equipment.ownedShipIds.includes('corsario-geada-negra'));
  for(const id of ['galeao-eclipse','galeao-caveira-rubra','corsario-do-veu-negro','fantasma-esmeralda','corsario-geada-negra'])
   assert.ok(FLEET_PLAYER_SHIPS.some(s=>s.id===id&&s.playable&&s.speed));
+});
+
+test('R3 green ship upgrades old loadouts, keeping two guided guns and filling all slots',()=>{
+ const save=base(3);
+ save.equipment={...save.equipment,
+  equippedShipId:'sombra-fugitiva-verde-fantasma',
+  ownedShipIds:['starter-red-sails','sombra-fugitiva-verde-fantasma'],
+  ownedCannonIds:['aetherion-mk1','royal-lion','spectral-necromancer'],
+  cannonCounts:{'aetherion-mk1':7,'royal-lion':7,'spectral-necromancer':2},
+  loadout:{'sombra-fugitiva-verde-fantasma':['aetherion-mk1','aetherion-mk1','aetherion-mk1','aetherion-mk1']}};
+ const upgrade=grantFleetEntry(save,'r3');
+ assert.deepEqual(upgrade.equipment.loadout['sombra-fugitiva-verde-fantasma'],
+  ['aetherion-mk1','aetherion-mk1','spectral-necromancer','spectral-necromancer']);
+ assert.equal(upgrade.equipment.cannonCounts['aetherion-mk1'],7,
+  'surplus guided cannons stay owned, but are not equipped on the green ship');
+ assert.deepEqual(grantFleetEntry({...save,equipment:upgrade.equipment},'r3').equipment.loadout,
+  upgrade.equipment.loadout,'migration is idempotent');
 });

@@ -54,7 +54,16 @@ export function grantFleetPreparation(save,regionId,{fugitive=false}={}){
 export function grantFleetEntry(save,regionId){
  const e=save.equipment??{},ownedShipIds=uniq(e.ownedShipIds??[]);
  if(regionId==='r3'){
-  return {equipment:{...e,ownedShipIds:uniq([...ownedShipIds,PLAYABLE_SHADOW_THIEF.id]),equippedShipId:PLAYABLE_SHADOW_THIEF.id}};
+  // Four green-ship slots: exactly two tracking Aetherion cannons, then
+  // the strongest conventional guns the player owns. Never take ammo away.
+  const cannonCounts={...(e.cannonCounts??{}),
+    'aetherion-mk1':Math.max(2,count(e,'aetherion-mk1')),
+    'royal-lion':Math.max(2,count(e,'royal-lion'))};
+  const armed={...e,ownedShipIds:uniq([...ownedShipIds,PLAYABLE_SHADOW_THIEF.id]),
+    ownedCannonIds:uniq([...(e.ownedCannonIds??[]),'aetherion-mk1','royal-lion']),
+    cannonCounts,equippedShipId:PLAYABLE_SHADOW_THIEF.id};
+  return {equipment:{...armed,loadout:{...(e.loadout??{}),
+    [PLAYABLE_SHADOW_THIEF.id]:bestFleetLoadout({...save,equipment:armed},PLAYABLE_SHADOW_THIEF)}}};
  }
  if(regionId==='r4'){
   const patch=grantFleetPreparation(save,regionId),next=patch.equipment;
@@ -88,7 +97,18 @@ export function bestFleetLoadout(save,ship){
   ||(e.cannonCounts?.[c.id]===undefined&&owned.has(c.id)))
   .sort((a,b)=>cannonStrength(b)-cannonStrength(a)||a.id.localeCompare(b.id));
  const slots=[];
+ // Fleet's green ship reserves two guided-orb cannons even when the
+ // inventory includes seven or more Aetherion batteries from older saves.
+ const greenFleetShip=save.fleetCampaign?.version===1 && ship.id===PLAYABLE_SHADOW_THIEF.id;
+ if(greenFleetShip){
+  const guided=candidate.find(c=>c.id==='aetherion-mk1');
+  if(guided){
+   const quantity=e.cannonCounts?.[guided.id]===undefined?1:count(e,guided.id);
+   for(let i=0;i<Math.min(2,quantity,capacity);i++)slots.push(guided.id);
+  }
+ }
  for(const cannon of candidate){
+  if(greenFleetShip && (cannon.id==='aetherion-mk1'||cannon.exclusiveAmmoId))continue;
   const quantity=e.cannonCounts?.[cannon.id]===undefined?1:count(e,cannon.id);
   for(let i=0;i<quantity&&slots.length<capacity;i++)slots.push(cannon.id);
  }

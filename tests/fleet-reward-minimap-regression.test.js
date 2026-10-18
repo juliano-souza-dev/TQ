@@ -57,15 +57,25 @@ test('no boss reward is granted before the boss actually falls',()=>{
  assert.equal(reconcileFleetBossPrizes(save),null);
  assert.equal(save.equipment.ownedShipIds.includes('galeao-halloween-tabuada'),false);
 });
-test('R2 final boss adds its galleon and Aetherion battery without duplicating it',()=>{
+test('R2 fugitive awards its hunter ship and exactly two guided cannons',()=>{
  const save=initial();
  save.fleetCampaign.region=2;
- save.fleetCampaign.bosses={r2:['fugitive-frigate','r2-morbi']};
+ save.fleetCampaign.bosses={r2:['fugitive-frigate']};
  const patch=reconcileFleetBossPrizes(save);
  const after={...save,...patch};
- assert.equal(after.equipment.equippedShipId,'galeao-dourado');
- assert.equal(after.equipment.cannonCounts['aetherion-mk1'],7);
+ assert.equal(after.equipment.equippedShipId,'fragata-sombra-cacadora');
+ assert.equal(after.equipment.cannonCounts['aetherion-mk1'],2);
  assert.ok(after.ammunition['aetherion-seeker']>=60000);
+ assert.equal(reconcileFleetBossPrizes(after),null);
+});
+test('R5 Morbi awards the Golden Galleon only after its R5 victory',()=>{
+ const save=initial();
+ save.fleetCampaign.region=5;
+ save.fleetCampaign.bosses={r5:['r2-morbi']};
+ const patch=reconcileFleetBossPrizes(save);
+ const after={...save,...patch};
+ assert.ok(after.equipment.ownedShipIds.includes('galeao-dourado'));
+ assert.equal(after.equipment.equippedShipId,'galeao-dourado');
  assert.equal(reconcileFleetBossPrizes(after),null);
 });
 test('every map edge and corner projects safely inside the ornamental radar circle',()=>{

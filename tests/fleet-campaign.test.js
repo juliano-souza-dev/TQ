@@ -72,7 +72,7 @@ test('R1 boss awards the ship and changes region only after victory',()=>{
   assert.equal(next.fleetCampaign.completedRegions.length,1);
   assert.equal(finishFleetRegion({...save,...next},'r1',1),null);
 });
-test('R2 fugitive is followed by Morbi and unlocks the Golden Galleon',()=>{
+test('R2 finishes after the fugitive: Morbi must wait for R5',()=>{
   let save=winEnemies(fresh(2),'r2',20,'red-sail-corsair');
   save=combine(save,recordFleetTreasure(save,'r2',treasureId('r2')));
   save=combine(save,{fleetCampaign:{...save.fleetCampaign,preparedRegions:['r2'],monsters:{r2:['m1','m2']}}});
@@ -81,9 +81,10 @@ test('R2 fugitive is followed by Morbi and unlocks the Golden Galleon',()=>{
   const pursuit=grantFleetPreparation(save,'r2',{fugitive:true});
   assert.ok(pursuit.equipment.ownedShipIds.includes('fragata-sombra-cacadora'));
   save=combine(save,recordFleetDefeat(save,'r2',{id:'fugitive-frigate-r2-01',archetype:'fugitive-frigate'}));
-  assert.equal(fleetProgress(save,'r2',1).encounter.id,'r2-morbi');
-  save=combine(save,recordFleetDefeat(save,'r2',{id:'r2-morbi',archetype:'golden-galleon'}));
-  assert.ok(save.equipment.ownedShipIds.includes('galeao-dourado'));
+  assert.equal(fleetProgress(save,'r2',1).complete,true);
+  assert.ok(save.equipment.ownedShipIds.includes('fragata-sombra-cacadora'));
+  assert.equal(save.equipment.cannonCounts['aetherion-mk1'],2);
+  assert.equal(save.equipment.ownedShipIds.includes('galeao-dourado'),false);
   assert.equal(finishFleetRegion(save,'r2',1).progression.activeRegion,3);
 });
 test('R3 unlocks the harpoon without replacing saved ammunition',()=>{

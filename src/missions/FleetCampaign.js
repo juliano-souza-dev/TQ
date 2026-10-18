@@ -6,10 +6,10 @@ import { FLEET_PLAYER_SHIPS, bestFleetLoadout } from '../ships/FleetAutoEquipmen
 export const FLEET_CAMPAIGN_VERSION=1;
 export const FLEET_REGIONS=Object.freeze({
  r1:{name:'Enseada dos Aprendizes',enemyGoal:19,monsterGoal:2,encounters:[{id:'terror-da-tabuada',name:'Terror da Tabuada',ship:'galeao-halloween-tabuada'}]},
- r2:{name:'Costa dos Corsários',enemyGoal:20,monsterGoal:2,encounters:[{id:'fugitive-frigate',name:'Fragata Sombra Fugitiva',ship:null},{id:'r2-morbi',name:'Morbi · Galeão Dourado',ship:'galeao-dourado'}]},
+ r2:{name:'Costa dos Corsários',enemyGoal:20,monsterGoal:2,encounters:[{id:'fugitive-frigate',name:'Fragata Sombra Fugitiva',ship:'fragata-sombra-cacadora'}]},
  r3:{name:'Águas Escuras',enemyGoal:16,monsterGoal:0,encounters:[{id:'r3-leviathan',name:'Leviatã das Águas Escuras',ship:null},{id:'terror-do-mar',name:'Terror do Mar',ship:'terror-do-mar'}]},
  r4:{name:'Terras Gélidas',enemyGoal:24,monsterGoal:0,encounters:[{id:'r4-sombra-do-saque',name:'Sombra do Saque',ship:null}]},
- r5:{name:'Costa do Eclipse',enemyGoal:28,monsterGoal:2,encounters:[{id:'r5-eclipse',name:'Galeão Eclipse',ship:'galeao-eclipse'}]},
+ r5:{name:'Costa do Eclipse',enemyGoal:28,monsterGoal:2,encounters:[{id:'r2-morbi',name:'Morbi · Galeão Dourado',ship:'galeao-dourado'}]},
  r6:{name:'Estreito de Ferro',enemyGoal:22,monsterGoal:2,encounters:[{id:'r6-imperial',name:'Galeão Negro Imperial',ship:null}]},
  r7:{name:'Baía Rubra',enemyGoal:24,monsterGoal:2,encounters:[{id:'r7-crimson',name:'Galeão da Caveira Rubra',ship:'galeao-caveira-rubra'}]},
  r8:{name:'Mar do Véu Negro',enemyGoal:18,monsterGoal:2,encounters:[{id:'r8-black-veil',name:'Corsário do Véu Negro',ship:'corsario-do-veu-negro'}]},
@@ -82,6 +82,8 @@ export function fleetProgress(save={},regionId,treasureGoal=0){
   monsters=Math.min(plan.monsterGoal??0,ids(c.monsters?.[regionId]).length),
   collected=Math.min(treasureGoal,ids(c.treasures?.[regionId]).length),
   bosses=ids(c.bosses?.[regionId]);
+ // Old R5 Eclipse victories remain complete after moving the new boss to R5.
+ if(regionId==='r5'&&bosses.includes('r5-eclipse'))bosses.push('r2-morbi');
  const encounterIndex=plan.encounters.findIndex(e=>!bosses.includes(e.id));
  const missionOneComplete=defeated>=plan.enemyGoal&&collected>=treasureGoal&&monsters>=plan.monsterGoal;
  const prepared=ids(c.preparedRegions).includes(regionId);
@@ -94,7 +96,7 @@ export function fleetProgress(save={},regionId,treasureGoal=0){
 // Boss prizes are separate from the first-mission preparation and persist in saves.
 export const FLEET_BOSS_CANNON_REWARDS=Object.freeze({
  r1:Object.freeze({cannon:'royal-lion',quantity:7,ammo:'rusted-iron',ammoAmount:30000}),
- r2:Object.freeze({cannon:'aetherion-mk1',quantity:7,ammo:'aetherion-seeker',ammoAmount:60000}),
+ r2:Object.freeze({cannon:'aetherion-mk1',quantity:2,ammo:'aetherion-seeker',ammoAmount:60000}),
 });
 export function claimFleetBossPrize(save,regionId,encounterId){
  if(!fleetEnabled(save))return null;
