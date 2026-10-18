@@ -1,3 +1,4 @@
+import { seekingOrbMovementSpeed } from '../combat/SeekingOrbSlow.js';
 import { PUMPKIN_FLEET_GALLEON_SHIP } from '../ships/PumpkinFleetGalleonShip.js';
 import { BLOOD_RED_CORSAIR_SHIP } from '../ships/BloodRedCorsairShip.js';
 import { BLACK_MARKET_SHIP } from '../ships/BlackMarketShip.js';
@@ -236,7 +237,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
         npc.heading=random()*360;npc.wanderTimeMs=1600+random()*3200;
       }
       const distance=Math.hypot(world.camera.x-npc.x,world.camera.y-npc.y);
-      const move=npc.retaliationActive?Math.min(npc.speed*dt,Math.max(0,distance-220)):npc.speed*dt*.45;
+      const move=npc.retaliationActive?Math.min(seekingOrbMovementSpeed(npc,npc.speed)*dt,Math.max(0,distance-220)):seekingOrbMovementSpeed(npc,npc.speed)*dt*.45;
       const rad=npc.heading*Math.PI/180;
       const moved=resolveIslandMovement(world.region,npc.x,npc.y,
         Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(rad)*move)),
@@ -283,7 +284,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
       }else if(npc.wanderTimeMs<=0){
         npc.heading=random()*360;npc.wanderTimeMs=1200+random()*2500;
       }
-      const movement=engaged?(stand?Math.min(npc.speed*dt,Math.max(0,distance-220)):npc.speed*dt):npc.speed*dt*.65;
+      const movement=engaged?(stand?Math.min(seekingOrbMovementSpeed(npc,npc.speed)*dt,Math.max(0,distance-220)):seekingOrbMovementSpeed(npc,npc.speed)*dt):seekingOrbMovementSpeed(npc,npc.speed)*dt*.65;
       const rad=npc.heading*Math.PI/180;
       const moved=resolveIslandMovement(world.region,npc.x,npc.y,
         Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(rad)*movement)),
@@ -334,9 +335,10 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     const speed = npc.patrolSpeed ?? (npc.archetype === TERROR_DA_TABUADA.id
       ? TERROR_DA_TABUADA.speed.initial
       : RED_SAIL_CORSAIR.speed.initial);
+    const slowedSpeed=seekingOrbMovementSpeed(npc,speed);
     const distance = npc.retaliationActive
-      ? Math.min(speed*deltaMs/1000,Math.max(0,Math.hypot(world.camera.x-npc.x,world.camera.y-npc.y)-100))
-      : speed * deltaMs / 1000;
+      ? Math.min(slowedSpeed*deltaMs/1000,Math.max(0,Math.hypot(world.camera.x-npc.x,world.camera.y-npc.y)-100))
+      : slowedSpeed * deltaMs / 1000;
     const nextX = Math.max(MARGIN, Math.min(world.region.width - MARGIN, npc.x + Math.sin(radians) * distance));
     const nextY = Math.max(MARGIN, Math.min(world.region.height - MARGIN, npc.y - Math.cos(radians) * distance));
     const moved = resolveIslandMovement(world.region, npc.x, npc.y, nextX, nextY, 32);
