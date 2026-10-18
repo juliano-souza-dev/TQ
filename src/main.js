@@ -1,6 +1,6 @@
 import {createFirstVoyageGuide} from './ui/FirstVoyageGuide.js';
 import {fleetEnabled,startFleetCampaign,getFleetTreasures,fleetTreasureGoal,
- fleetProgress,fleetLabel,recordFleetDefeat,finishFleetRegion,encounterMatches} from './missions/FleetCampaign.js';
+ fleetProgress,fleetLabel,recordFleetDefeat,reconcileFleetBossPrizes,finishFleetRegion,encounterMatches} from './missions/FleetCampaign.js';
 import {FLEET_PLAYER_SHIPS,grantFleetPreparation,grantFleetEntry,reconcileFleetEquipment,cannonStrength} from './ships/FleetAutoEquipment.js';
 import { createFleetPopulation,updateFleetPopulation } from './npcs/FleetPopulation.js';
 import { FUTURE_FLEET_REGIONS,fleetExitPoint } from './world/regions/FutureFleetRegions.js';
@@ -320,6 +320,9 @@ async function startWorld() {
 
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
   if(world.fleetNoRespawn){
+    // Repair already defeated bosses before rendering the initial ship, without replaying battles.
+    const recovered=reconcileFleetBossPrizes(readSave());
+    if(recovered)writePatch(recovered);
     const current=readSave(),c=current.fleetCampaign??{};
     const goal=fleetTreasureGoal(world.region.id,world.region);
     if(c.treasureGoal?.[world.region.id]!==goal)
@@ -1686,7 +1689,34 @@ async function startWorld() {
     darkPortalEffect.render(now);
   }
   function updateThiefGuide() {
-    if(world.fleetNoRespawn){thiefGuide.hidden=true;return;}
+    if(world.fleetNoRespawn){
+      const progress=fleetProgress(readSave(),world.region.id,fleetTreasureGoal(world.region.id,world.region));
+      if(!progress?.complete){thiefGuide.hidden=true;return;}
+      const target=fleetExitPoint(world.region);
+      const width=canvas.clientWidth,height=canvas.clientHeight;
+      if(!width||!height){thiefGuide.hidden=true;return;}
+      const point=projectScreenPoint(target.x,target.y);
+      // Preserve space for the compass and the combat HUD.
+      const safeLeft=Math.min(90,Math.max(40,width*.08));
+      const safeRight=Math.min(width*.38,Math.max(width<700?100:205,60));
+      const safeTop=Math.min(120,Math.max(85,height*.14));
+      const safeBottom=Math.min(210,Math.max(115,height*.24));
+      const px=Math.max(safeLeft,Math.min(width-safeRight,point.x));
+      const py=Math.max(safeTop,Math.min(height-safeBottom,point.y));
+      thiefGuide.style.left=px+'px';thiefGuide.style.top=py+'px';
+      thiefGuide.style.setProperty('--thief-angle',angleToGuidedTarget({
+        pointerX:px,pointerY:py,targetX:point.x,targetY:point.y
+      })+'deg');
+      thiefGuide.classList.add('is-route-guide');
+      thiefGuide.classList.remove('is-visible-target','is-dark-voyage');
+      thiefGuide.style.zIndex='45';
+      thiefGuide.querySelector('.thief-guide-label').textContent=
+        '🧭 Saída da região · '+Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y))+' m';
+      thiefGuide.setAttribute('aria-label','Mão indicando a saída da região');
+      thiefGuide.title='Siga a mão até a passagem para a próxima região.';
+      thiefGuide.hidden=false;
+      return;
+    }
     const campaign = readSave().campaign ?? {};
     const thiefActive = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed && !mathGate.isOpen;
     const exitActive = campaign.active?.includes('r1-finale')
@@ -2656,10 +2686,13 @@ async function startWorld() {
   }
   async function updateFleetEquipment(){
     if(!world.fleetNoRespawn||fleetSwitchingShip)return;
-    const change=reconcileFleetEquipment(readSave(),world.region.id);
-    if(!change)return;
-    const desired=FLEET_PLAYER_SHIPS.find(ship=>ship.id===change.equipment.equippedShipId);
-    if(!desired)return;
+    const save=readSave();
+    const change=reconcileFleetEquipment(save,world.region.id);
+    const targetId=change?.equipment?.equippedShipId??save.equipment?.equippedShipId;
+    const desired=FLEET_PLAYER_SHIPS.find(ship=>ship.id===targetId);
+    // A mission prize may already persist the correct loadout while the renderer
+    // still displays the previous ship. Synchronize both independently.
+    if(!desired||(!change&&activeShip.id===desired.id))return;
     fleetSwitchingShip=true;
     try{
       if(activeShip.id!==desired.id){
@@ -2689,8 +2722,10 @@ async function startWorld() {
       if(!fleetVictoryAnnouncement){
         fleetVictoryAnnouncement=true;
         const last=p.plan.encounters[p.plan.encounters.length-1];
-        const reward=last.ship?(FLEET_PLAYER_SHIPS.find(ship=>ship.id===last.ship)?.name||last.ship):'ouro, munições e experiência';
-        showFleetStage('🏆 Missão 2 concluída!',p.plan.name+' libertada! Recompensa recebida: '+reward+'. Navegue até a passagem marcada no minimapa para avançar.');
+        const reward=last.ship?(FLEET_PLAYER_SHIPS.find(ship=>ship.id===last.ship)?.name||last.ship):'recompensas da campanha';
+        const extras=world.region.id==='r1'?' +7 Canhões Reais Dourados e 30.000 munições de ferro.'
+          :world.region.id==='r2'?' +7 Canhões Aetherion MK-I e 60.000 orbes autoguiados.':'.';
+        showFleetStage('🏆 Missão 2 concluída!',p.plan.name+' libertada! Navio conquistado: '+reward+extras+' O navio e os melhores canhões foram equipados. Siga a mão guia até a saída da região.');
         updateMissionHud();
       }
       void updateFleetEquipment();
