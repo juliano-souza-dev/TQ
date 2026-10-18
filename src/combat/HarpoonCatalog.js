@@ -1,5 +1,13 @@
 // Armas anti-monstros: apenas um lançador equipado por jogador.
 // Novos modelos podem ser adicionados sem alterar a lógica de combate.
+// Player-only combat bonus: stronger strikes and twice the reload speed.
+// Keep the launcher definitions unchanged so NPC helpers retain their original tuning.
+export const PLAYER_HARPOON_DAMAGE_FACTOR=2;
+export const PLAYER_HARPOON_RELOAD_SPEED_FACTOR=2;
+export const playerHarpoonDamage=baseDamage=>Math.max(1,Math.round(baseDamage*PLAYER_HARPOON_DAMAGE_FACTOR));
+export const playerHarpoonReloadMs=(seconds,{flameBoost=false}={})=>
+  Math.max(100,Number(seconds)*1000/(PLAYER_HARPOON_RELOAD_SPEED_FACTOR*(flameBoost?5:1)));
+
 export const HARPOON_LAUNCHERS=Object.freeze([
   Object.freeze({
     id:'naval-harpoon-starter', name:'Arpoeiro do Marujo',
