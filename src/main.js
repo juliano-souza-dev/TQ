@@ -4,6 +4,7 @@ import {fleetEnabled,startFleetCampaign,getFleetTreasures,fleetTreasureGoal,
 import {FLEET_PLAYER_SHIPS,grantFleetPreparation,grantFleetEntry,reconcileFleetEquipment,cannonStrength} from './ships/FleetAutoEquipment.js';
 import { createFleetPopulation,updateFleetPopulation } from './npcs/FleetPopulation.js';
 import {R5_ECLIPSE_BOSS_ID,MOON_BARRAGE_AMMO_ID,isLunarResupply} from './missions/RegionFiveEclipse.js';
+import {seekingOrbMovementSpeed} from './combat/SeekingOrbSlow.js';
 import { FUTURE_FLEET_REGIONS,fleetExitPoint } from './world/regions/FutureFleetRegions.js';
 import { createViewProjection } from './rendering/OrbitalCameraProjection.js';
 import {drawFrozenShip,drawFreezeBurst} from './rendering/FreezeEffects.js';
@@ -2966,7 +2967,10 @@ async function startWorld() {
       const dx=world.camera.x-boss.x,dy=world.camera.y-boss.y;
       const distance=Math.hypot(dx,dy);
       if(distance>250){
-        const speed=Math.max(180,Math.min(350,Number(boss.speed)||220));
+        const baseSpeed=Math.max(180,Math.min(350,Number(boss.speed)||220));
+        // Tracking-orb slowing must affect the live Eclipse pursuit, not just show a HUD message.
+        const speed=boss.id===R5_ECLIPSE_BOSS_ID
+          ? seekingOrbMovementSpeed(boss,baseSpeed,Date.now()):baseSpeed;
         const step=Math.min(distance-250,speed*Math.min(64,stepMs)/1000);
         const angle=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
         boss.heading=angle;
