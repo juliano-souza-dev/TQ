@@ -8,6 +8,7 @@ import {createMonsterPopulation} from '../src/monsters/MonsterPopulation.js';
 import {rollNpcAmmoLoot} from '../src/combat/NpcAmmoLoot.js';
 import {grantFleetEntry,fleetShipForRegion} from '../src/ships/FleetAutoEquipment.js';
 import {effectiveAmmo} from '../src/combat/NavalBattleRules.js';
+import {NavalBattleController} from '../src/combat/NavalBattleController.js';
 import {MOON_BARRAGE_AMMO_ID,R5_ECLIPSE_BOSS_ID,R5_LEVIATHAN_ID,lunarRandomAmount} from '../src/missions/RegionFiveEclipse.js';
 
 const region=FUTURE_FLEET_REGIONS.r5;
@@ -48,6 +49,26 @@ test('R5 raiders triple hit points and deal ten times base damage',()=>{
   const previousDamage=Math.max(2,Math.round((5+2)*1.25));
   assert.equal(first.maxHealth,previousHp*3);
   assert.equal(first.damage,previousDamage*10);
+});
+
+test('the Eclipse takes no damage from common shells and accepts lunar impact',()=>{
+  const boss={id:R5_ECLIPSE_BOSS_ID,type:'npc',archetype:'eclipse-mirror-boss',
+    health:500,maxHealth:500,x:800,y:900,aggression:'attack'};
+  const battle=Object.create(NavalBattleController.prototype);
+  battle.getEntities=()=>new Map([[boss.id,boss]]);
+  battle.getRegionId=()=> 'r5';
+  battle.readSave=()=>({fleetCampaign:{version:1}});
+  battle.getThiefMissionTarget=()=>null;
+  battle.isProtectedInformant=()=>false;
+  battle.renderer={getKrakenAttacks:()=>[]};
+  battle.clock=()=>0;
+  battle.markCombatActivity=()=>{};
+  battle.onFeedback=()=>{};
+  battle.onDamageVisual=()=>{};
+  assert.equal(battle.resolvePlayerImpact(boss.id,{x:800,y:900},50,'rusted-iron').kind,'water');
+  assert.equal(boss.health,500);
+  assert.equal(battle.resolvePlayerImpact(boss.id,{x:800,y:900},50,MOON_BARRAGE_AMMO_ID).kind,'ship');
+  assert.equal(boss.health,450);
 });
 
 test('one required Leviathan spawns and does not respawn after victory',()=>{
