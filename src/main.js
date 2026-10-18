@@ -203,6 +203,24 @@ async function startWorld() {
   // A single physical camera defines the water shader, sprites, HUD targets,
   // naval combat effects and reverse pointer raycasts. XY gameplay is unchanged.
   world.cameraPerspective = { enabled: !world.fleetNoRespawn, yaw: 0, pitch: Math.PI / 4 };
+  // Dynamic camera: high overview at sea, gradually lowers near a live target.
+  // Preserve player orbit yaw and manual camera adjustments.
+  const dynamicCamera={pitch:Math.PI/4,lastTime:0};
+  function updateDynamicCameraPitch(){
+    if(!world.cameraPerspective.enabled || world.fleetNoRespawn)return;
+    const target=world.entities?.get?.(selectedNpcId);
+    const distance=target?.health>0
+      ?Math.hypot(world.camera.x-target.x,world.camera.y-target.y):Infinity;
+    const proximity=Number.isFinite(distance)
+      ?Math.max(0,Math.min(1,(850-distance)/650)):0;
+    const smooth=proximity*proximity*(3-2*proximity);
+    const desired=1.18-(1.18-0.64)*smooth;
+    const now=performance.now();
+    const dt=dynamicCamera.lastTime?Math.min(.1,(now-dynamicCamera.lastTime)/1000):1/60;
+    dynamicCamera.lastTime=now;
+    dynamicCamera.pitch+=(desired-dynamicCamera.pitch)*(1-Math.exp(-2.2*dt));
+    world.cameraPerspective.pitch=dynamicCamera.pitch;
+  }
   const projectScreenPoint = (x,y) => {
     const width=canvas.clientWidth,height=canvas.clientHeight;
     const screen=createViewProjection(
@@ -3765,6 +3783,7 @@ async function startWorld() {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
     },
     render: () => {
+      updateDynamicCameraPitch();
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
       if(!world.fleetNoRespawn)restoreR4Guide();
       firstVoyageGuide?.update();
