@@ -524,14 +524,14 @@ export class OceanWebGLRenderer{
     gl.uniform1f(this.uniforms.uTileSize,Math.max(64,Number(ocean.tileSize)||720));
     gl.uniform1f(this.uniforms.uSpeed,clamp(Number(ocean.speed)||0,0,100));
     gl.uniform1f(this.uniforms.uSwell,clamp(Number(ocean.swell)||0,0,100));
-    gl.uniform1f(this.uniforms.uBrightness,clamp(Number(ocean.brightness)||100,50,150)/100);
+    gl.uniform1f(this.uniforms.uBrightness,clamp(Number(ocean.brightness)||100,ocean.night?10:50,150)/100);
     gl.uniform1f(this.uniforms.uSaturation,clamp(Number(ocean.saturation)||100,0,180)/100);
     gl.uniform1f(this.uniforms.uContrast,clamp(Number(ocean.contrast)||100,50,150)/100);
     gl.uniform3f(
       this.uniforms.uTint,
-      clamp(Number(ocean.tintR)||100,50,150)/100,
-      clamp(Number(ocean.tintG)||100,50,150)/100,
-      clamp(Number(ocean.tintB)||100,50,150)/100
+      clamp(Number(ocean.tintR)||100,ocean.night?10:50,150)/100,
+      clamp(Number(ocean.tintG)||100,ocean.night?10:50,150)/100,
+      clamp(Number(ocean.tintB)||100,ocean.night?10:50,150)/100
     );
     gl.uniform1f(this.uniforms.uDistortion,clamp(Number(ocean.distortion)||0,0,100));
     gl.uniform1f(this.uniforms.uWaveFrequencyA,clamp(Number(ocean.waveFrequencyA)||18,2,60));
