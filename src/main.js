@@ -36,7 +36,7 @@ import { renderLogin, renderLoading, renderConfigurationRequired } from './ui/Po
 import { createSyncPreferenceStore, SYNC_MODE } from './persistence/SyncPreference.js';
 import { createLocalSaveStore } from './persistence/LocalSaveStore.js';
 import { formatMissionHudObjectives } from './ui/MissionHud.js';
-import {createGuidedPointerImage,angleToGuidedTarget} from './ui/GuidedPointer.js';
+import {createGuidedPointerImage,angleToGuidedTarget,placeGuideNearShip} from './ui/GuidedPointer.js';
 import { DamageTextRenderer } from './rendering/DamageTextRenderer.js';
 import { TreasureGlowWebGLRenderer } from './rendering/TreasureGlowWebGLRenderer.js';
 
@@ -1702,26 +1702,31 @@ async function startWorld() {
       const progress=fleetProgress(readSave(),world.region.id,fleetTreasureGoal(world.region.id,world.region));
       if(!progress?.complete){thiefGuide.hidden=true;return;}
       const target=fleetExitPoint(world.region);
-      const width=canvas.clientWidth,height=canvas.clientHeight;
-      if(!width||!height){thiefGuide.hidden=true;return;}
-      const point=projectScreenPoint(target.x,target.y);
-      // Preserve space for the compass and the combat HUD.
-      const safeLeft=Math.min(90,Math.max(40,width*.08));
-      const safeRight=Math.min(width*.38,Math.max(width<700?100:205,60));
-      const safeTop=Math.min(120,Math.max(85,height*.14));
-      const safeBottom=Math.min(210,Math.max(115,height*.24));
-      const px=Math.max(safeLeft,Math.min(width-safeRight,point.x));
-      const py=Math.max(safeTop,Math.min(height-safeBottom,point.y));
-      thiefGuide.style.left=px+'px';thiefGuide.style.top=py+'px';
+      const bounds=canvas.getBoundingClientRect();
+      if(!bounds.width||!bounds.height){thiefGuide.hidden=true;return;}
+      // Project the player's live position rather than the distant exit.
+      const shipPoint=projectScreenPoint(world.camera.x,world.camera.y);
+      const goalPoint=projectScreenPoint(target.x,target.y);
+      const ship={x:bounds.left+shipPoint.x,y:bounds.top+shipPoint.y};
+      const goal={x:bounds.left+goalPoint.x,y:bounds.top+goalPoint.y};
+      // Full rectangles are excluded, including the ship's status/weapon buttons.
+      const obstacles=[navalHud.element,minimapElement,missionHud,targetHud,joystick.element]
+        .filter(el=>el&&!el.hidden)
+        .map(el=>el.getBoundingClientRect());
+      const placed=placeGuideNearShip({
+        ship,bounds,obstacles,width:138,height:82,
+      });
+      thiefGuide.style.left=placed.x+'px';thiefGuide.style.top=placed.y+'px';
       thiefGuide.style.setProperty('--thief-angle',angleToGuidedTarget({
-        pointerX:px,pointerY:py,targetX:point.x,targetY:point.y
+        pointerX:placed.x,pointerY:placed.y,targetX:goal.x,targetY:goal.y
       })+'deg');
-      thiefGuide.classList.add('is-route-guide');
+      thiefGuide.classList.add('is-route-guide','fleet-exit-guide');
       thiefGuide.classList.remove('is-visible-target','is-dark-voyage');
-      thiefGuide.style.zIndex='45';
+      // The hand cannot cover or intercept combat controls even on small displays.
+      thiefGuide.style.zIndex='18';
       thiefGuide.querySelector('.thief-guide-label').textContent=
-        '🧭 Saída da região · '+Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y))+' m';
-      thiefGuide.setAttribute('aria-label','Mão indicando a saída da região');
+        '🧭 Saída · '+Math.round(Math.hypot(target.x-world.camera.x,target.y-world.camera.y))+' m';
+      thiefGuide.setAttribute('aria-label','Mão perto do navio indicando a saída da região');
       thiefGuide.title='Siga a mão até a passagem para a próxima região.';
       thiefGuide.hidden=false;
       return;
