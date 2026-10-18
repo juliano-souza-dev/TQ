@@ -1488,3 +1488,37 @@ html[data-tq-layout="mobile-portrait"] .mission-math-option {
  html[data-tq-layout="mobile-portrait"] .combat-hud .combat-fire-icon-button,
  html[data-tq-layout="mobile-portrait"] .combat-hud .combat-feedback {transition:none;}
 }
+
+/* Mobile portrait HUD refinement: persistent radar and compact controls. */
+html[data-tq-layout="mobile-portrait"] .minimap {
+  width:108px;height:108px;top:calc(env(safe-area-inset-top,0px) + 51px);
+  right:max(8px,env(safe-area-inset-right,0px));
+}
+html[data-tq-layout="mobile-portrait"] .minimap canvas {width:108px;height:108px;}
+html[data-tq-layout="mobile-portrait"] .minimap .minimap-collapse-button {display:none!important;}
+html[data-tq-layout="mobile-portrait"] .target-status-hud {
+  display:block!important;position:fixed;left:auto;
+  right:max(8px,env(safe-area-inset-right,0px));
+  top:calc(env(safe-area-inset-top,0px) + 163px)!important;
+  width:min(196px,55vw);max-width:min(196px,55vw);
+  padding:6px 9px;z-index:29;font-size:11px;
+  pointer-events:none;
+}
+html[data-tq-layout="mobile-portrait"] .target-status-hud[hidden] {display:none!important;}
+html[data-tq-layout="mobile-portrait"] .portrait-boss-line {display:none!important;}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-cannon-quantity {display:none!important;}
+html[data-tq-layout="mobile-portrait"] .combat-hud {
+  grid-template-rows:34px 52px 72px;
+  gap:2px;padding-top:2px;padding-bottom:max(2px,env(safe-area-inset-bottom,0px));
+}
+html[data-tq-layout="mobile-portrait"] .portrait-status-panel,
+html[data-tq-layout="mobile-portrait"] .combat-hud .portrait-status-toggle {height:34px;min-height:34px;}
+html[data-tq-layout="mobile-portrait"] .combat-hud .portrait-ability-dock {height:52px;}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-attack-controls {height:72px;}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-attack-controls > .combat-fire-icon-button {
+  width:72px;height:72px;min-width:72px;min-height:72px;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-fire-icon {width:68px;height:68px;}
+html[data-tq-layout="mobile-portrait"] .analog-joystick {
+  bottom:calc(clamp(170px,23dvh,192px) + env(safe-area-inset-bottom,0px) + 12px);
+}
