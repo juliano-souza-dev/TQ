@@ -1091,15 +1091,19 @@ async function startWorld() {
   // Na R3 ela representa a contaminação do Terror, não um evento de Halloween.
   const useGreenMist = (world.region.id === 'r1' && isHalloweenAtmosphereActive(EVENTS))
     || world.region.id === 'r3';
-  if (useGreenMist) {
+  const useColdNightMist = world.region.atmosphere?.kind === 'cold-night-mist';
+  if (useGreenMist || useColdNightMist) {
     halloweenFogCanvas = document.createElement('canvas');
-    halloweenFogCanvas.className = 'halloween-fog-layer';
+    halloweenFogCanvas.className = 'halloween-fog-layer'
+      +(useColdNightMist?' cold-night-fog-layer':'');
     halloweenFogCanvas.setAttribute('aria-hidden', 'true');
     root.append(halloweenFogCanvas);
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     halloweenFogRenderer = new HalloweenFogRenderer(halloweenFogCanvas, {
       getReducedMotion: () => reducedMotion?.matches === true,
-      intensityScale: world.region.id === 'r3' ? 1.22 : 1,
+      intensityScale: useColdNightMist ? world.region.atmosphere.intensity
+        : world.region.id === 'r3' ? 1.22 : 1,
+      palette: useColdNightMist ? 'cold-night' : 'green',
     });
     if (!halloweenFogRenderer.init()) {
       halloweenFogCanvas.classList.add('halloween-fog-fallback');
@@ -3786,11 +3790,15 @@ async function startWorld() {
         window.dispatchEvent(new Event('tq:world-first-frame'));
       }
       if(halloweenFogCanvas){
-        halloweenFogCanvas.hidden=world.region.id!=='r3'||r3Purification>=0.999;
-        halloweenFogCanvas.style.opacity=String(Math.max(0,1-r3Purification));
+        const fogVisible=useColdNightMist
+          || (world.region.id==='r3'&&r3Purification<0.999)
+          || (world.region.id==='r1'&&useGreenMist);
+        halloweenFogCanvas.hidden=!fogVisible;
+        halloweenFogCanvas.style.opacity=String(world.region.id==='r3'
+          ? Math.max(0,1-r3Purification):1);
+        if(fogVisible)halloweenFogRenderer?.render(world.cameraView,world.camera.zoom,
+          oceanTimeMs,world.cameraPerspective);
       }
-      if(world.region.id==='r3'&&r3Purification<0.999)
-        halloweenFogRenderer?.render(world.cameraView,world.camera.zoom,oceanTimeMs,world.cameraPerspective);
       cloudRenderer?.render(world.cameraView, world.camera.zoom, oceanTimeMs, world.cameraPerspective);
       if(polarCtx&&polarCanvas){
         const w=canvas.clientWidth,h=canvas.clientHeight;
