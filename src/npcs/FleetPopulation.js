@@ -35,9 +35,9 @@ const NAMES=Object.freeze({
 // The Iron Strait's captain belongs to the Halloween flotilla, never to the
 // imperial ship class. The imperial galleon is reserved for the R6 final duel.
 export const R6_HALLOWEEN_CAPTAIN=Object.freeze({
- name:'Capitão do Halloween',
- shipId:'galeao-halloween-tabuada',
- fleetId:'r6-halloween'
+ name:'Capitão da Frota das Abóboras',
+ shipId:'galeao-frota-das-aboboras',
+ fleetId:'r6-pumpkin'
 });
 const number=id=>Math.max(1,Number(id.slice(1))||1);
 export function replaceLegacyR6ImperialCaptains(world){
