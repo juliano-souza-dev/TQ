@@ -305,7 +305,7 @@ async function startWorld() {
       }
     }
     const c=localSaves.load(currentUser.uid)?.payload?.fleetCampaign;
-    for(const id of c?.defeated?.[world.region.id]??[])world.entities.delete(id);
+    for(const id of [...(c?.defeated?.[world.region.id]??[]),...(c?.monsters?.[world.region.id]??[])])world.entities.delete(id);
   }
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
   let selectedNpcId = null;
@@ -2659,9 +2659,8 @@ async function startWorld() {
   function fleetBossStat(npc,save){
     if(npc.fleetBalanced)return;
     npc.fleetBalanced=true;
-    const health=Math.max(Number(npc.health)||0,fleetBossPower(save));
-    // Use encounter-duration balancing, never immutable million-HP values from legacy quests.
-    npc.maxHealth=health===0?fleetBossPower(save):fleetBossPower(save);
+    // Scale boss HP to actual player firepower, not to an immutable legacy boss value.
+    npc.maxHealth=fleetBossPower(save);
     npc.health=npc.maxHealth;
     npc.fleetDamage=Math.max(2,Math.round(getMaxHullHealth(save)*.0075));
     npc.damage=npc.fleetDamage;
