@@ -285,7 +285,9 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     const areaFreezeSelected=consumable.selectedId==='area-freeze';
     const qty=doubleSelected?doubleQty:shieldSelected?shieldQty:speedSelected?speedQty:mapSelected?mapQty:areaFreezeSelected?areaFreezeQty:flameQty;
     selectedIcon.hidden=noneSelected||doubleSelected||shieldSelected||speedSelected||mapSelected||areaFreezeSelected;
-    countLabel.textContent=noneSelected?'🔒':doubleSelected?'💥 '+qty:shieldSelected?'🛡️ '+qty:speedSelected?'💨 '+qty:mapSelected?'🗺️ '+qty:areaFreezeSelected?'❄️ '+qty:String(qty);
+    const quantityLabel=(isPortrait()?'×':'')+Number(qty).toLocaleString('pt-BR');
+    setText(countLabel,noneSelected?'🔒':doubleSelected?'💥 '+quantityLabel:shieldSelected?'🛡️ '+quantityLabel
+      :speedSelected?'💨 '+quantityLabel:mapSelected?'🗺️ '+quantityLabel:areaFreezeSelected?'❄️ '+quantityLabel:quantityLabel);
     flameOption.hidden=flameQty<=0;
     doubleDamageOption.hidden=doubleQty<=0&&!consumable.doubleDamageEnabled;
     shieldOption.hidden=shieldQty<=0;
@@ -344,7 +346,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
         - ((NAVAL_AMMO[a.id]?.damagePerShot || 0) * (NAVAL_AMMO[a.id]?.damageFactor || 0)));
     const selectedAmmo = AMMUNITION.find(item => item.id === status.ammoId);
     if (selectedAmmo) ammoIcon.src = getAmmunitionAssetUrl(selectedAmmo);
-    setText(ammoCount,isPortrait()?'×'+(status.ammo??0):String(status.ammo??0));
+    setText(ammoCount,isPortrait()?'×'+Number(status.ammo||0).toLocaleString('pt-BR'):String(status.ammo??0));
     ammoButton.title = selectedAmmo?.name || 'Selecionar munição';
     const ammoAvailable=choices.some(item=>item.amount>0);
     ammoButton.disabled=!ammoAvailable&&!isPortrait();
