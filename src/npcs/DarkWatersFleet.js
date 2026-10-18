@@ -1,3 +1,4 @@
+import { seekingOrbMovementSpeed } from '../combat/SeekingOrbSlow.js';
 import { createTerrorDoMar, TERROR_DO_MAR_NPC } from './TerrorDoMarNpc.js';
 import { BLOOD_RED_CORSAIR_SHIP } from '../ships/BloodRedCorsairShip.js';
 import { GREEN_GHOST_FUGITIVE_SHIP } from '../ships/FugitiveFrigateShip.js';
@@ -192,7 +193,7 @@ function updateBoss(npc, world, deltaMs, random) {
     npc.state='retaliating';
     npc.retaliationActive=true;
     if(distance>desiredGap){
-      const move=Math.min(distance-desiredGap,Math.max(0,Number(npc.speed)||0)*dt);
+      const move=Math.min(distance-desiredGap,seekingOrbMovementSpeed(npc,npc.speed)*dt);
       const angle=npc.heading*Math.PI/180;
       const moved=resolveIslandMovement(world.region,npc.x,npc.y,
         Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(angle)*move)),
@@ -217,7 +218,7 @@ function updateBoss(npc, world, deltaMs, random) {
   const desired = npc.patrolHeading ?? npc.heading;
   npc.heading = turnToward(npc.heading, desired, 38 * dt);
   const radians = npc.heading * Math.PI / 180;
-  const movement = Math.max(0, Number(npc.speed) || 0) * dt;
+  const movement = seekingOrbMovementSpeed(npc,npc.speed) * dt;
   const nx = Math.max(MARGIN, Math.min(world.region.width - MARGIN, npc.x + Math.sin(radians) * movement));
   const ny = Math.max(MARGIN, Math.min(world.region.height - MARGIN, npc.y - Math.cos(radians) * movement));
   const moved = resolveIslandMovement(world.region, npc.x, npc.y, nx, ny, 42);
@@ -245,7 +246,7 @@ function updateRaider(npc, world, deltaMs, random, raids, playerAlive=true) {
     if(npc.patrolTimeMs<=0){npc.patrolHeading=normalize(npc.heading+75+random()*200);npc.patrolTimeMs=2400+random()*3200;}
     npc.heading=turnToward(npc.heading,npc.patrolHeading,65*dt);
     const angle=npc.heading*Math.PI/180;
-    const moved=resolveIslandMovement(world.region,npc.x,npc.y,Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(angle)*npc.baseSpeed*dt)),Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(angle)*npc.baseSpeed*dt)),42);
+    const moved=resolveIslandMovement(world.region,npc.x,npc.y,Math.max(MARGIN,Math.min(world.region.width-MARGIN,npc.x+Math.sin(angle)*seekingOrbMovementSpeed(npc,npc.baseSpeed)*dt)),Math.max(MARGIN,Math.min(world.region.height-MARGIN,npc.y-Math.cos(angle)*seekingOrbMovementSpeed(npc,npc.baseSpeed)*dt)),42);
     npc.x=moved.x;npc.y=moved.y;
     return;
   }
@@ -372,7 +373,7 @@ function updateTerrorGuardian(npc,world,deltaMs,playerAlive=true){
   const desired=tooClose?bearing(-dx,-dy):bearing(dx,dy);
   npc.heading=turnToward(npc.heading,desired,180*dt);
   const step=engaged
-    ? tooClose?Math.min(preferredGap-gap,(npc.baseSpeed||0)*dt)
+    ? tooClose?Math.min(preferredGap-gap,seekingOrbMovementSpeed(npc,npc.baseSpeed)*dt)
       : Math.min(Math.max(0,gap-preferredGap),(npc.baseSpeed||0)*dt)
     : Math.min(Math.max(0,gap-preferredGap),(npc.baseSpeed||0)*dt);
   if(step<=0)return;
