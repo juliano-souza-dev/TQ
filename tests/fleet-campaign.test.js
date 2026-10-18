@@ -99,7 +99,7 @@ test('R3 unlocks the harpoon without replacing saved ammunition',()=>{
   assert.equal(automatic.selectedNavalAmmoId,undefined);
 });
 test('R4 starts with earned ice ship, then continues to the fifth region',()=>{
-  let save=winEnemies(fresh(4),'r4',24,'vigia-da-geada');
+  let save=winEnemies(fresh(4),'r4',30,'vigia-da-geada');
   save=combine(save,recordFleetTreasure(save,'r4',treasureId('r4')));
   const ice=grantFleetPreparation(save,'r4');
   assert.ok(ice.equipment.ownedCannonIds.includes('ice-terror'));
