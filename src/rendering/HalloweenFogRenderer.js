@@ -45,10 +45,11 @@ function makeProgram(gl) {
  * consume ammunition or access player persistence.
  */
 export class HalloweenFogRenderer {
-  constructor(canvas, { getReducedMotion = () => false, intensityScale = 1 } = {}) {
+  constructor(canvas, { getReducedMotion = () => false, intensityScale = 1, palette = 'green' } = {}) {
     this.canvas = canvas;
     this.getReducedMotion = getReducedMotion;
     this.intensityScale = Math.max(0, Number(intensityScale) || 0);
+    this.palette = palette === 'cold-night' ? 'cold-night' : 'green';
     this.gl = null;
     this.program = null;
     this.buffer = null;
@@ -108,7 +109,7 @@ export class HalloweenFogRenderer {
       ]), gl.STATIC_DRAW);
       this.position = gl.getAttribLocation(this.program, 'aPosition');
       if (this.position < 0) throw new Error('Atributo aPosition indisponível');
-      for (const name of ['uResolution','uViewport','uCamera','uPerspective','uZoom','uTime','uIntensity']) {
+      for (const name of ['uResolution','uViewport','uCamera','uPerspective','uZoom','uTime','uIntensity','uMistPalette']) {
         this.uniforms[name] = gl.getUniformLocation(this.program, name);
         if (this.uniforms[name] === null) throw new Error('Uniforme não encontrado: ' + name);
       }
@@ -158,6 +159,7 @@ export class HalloweenFogRenderer {
     gl.uniform1f(this.uniforms.uZoom, Math.max(0.01, Number(zoom) || 1));
     gl.uniform1f(this.uniforms.uTime, options.animate ? (timeMs % 1800000) / 1000 : 0);
     gl.uniform1f(this.uniforms.uIntensity, options.intensity * this.intensityScale);
+    gl.uniform1f(this.uniforms.uMistPalette, this.palette === 'cold-night' ? 1 : 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     return true;
   }
