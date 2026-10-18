@@ -203,13 +203,13 @@ async function startWorld() {
   world.fleetNoRespawn=fleetEnabled(localSaves.load(currentUser.uid)?.payload);
   // A single physical camera defines the water shader, sprites, HUD targets,
   // naval combat effects and reverse pointer raycasts. XY gameplay is unchanged.
-  // The campaign must not disable perspective. That flag prevented the dynamic
-  // high-to-low camera from running in every saved fleet region.
-  world.cameraPerspective = { enabled:true, yaw:0, pitch:1.18 };
+  // Keep the game in 2.5D: orthographic sprites and WebGL ocean, not a 3D tilt.
+  // Dynamic distance is achieved through smooth zoom, never camera pitch.
+  world.cameraPerspective = { enabled:false, yaw:0, pitch:Math.PI/2 };
   world.camera.zoom=.76;
   const dynamicCamera={pitch:1.18,zoom:.76,lastTime:0};
   function updateDynamicCameraPitch(){
-    if(!world.cameraPerspective.enabled||world.manualCamera)return;
+    if(world.manualCamera)return;
     const selected=world.entities?.get?.(selectedNpcId);
     // Acquiring an enemy automatically should also trigger the camera, even
     // before the player taps a target on the radar.
@@ -230,7 +230,7 @@ async function startWorld() {
     const blend=1-Math.exp(-2.2*dt);
     dynamicCamera.pitch+=(desired.pitch-dynamicCamera.pitch)*blend;
     dynamicCamera.zoom+=(desired.zoom-dynamicCamera.zoom)*blend;
-    world.cameraPerspective.pitch=dynamicCamera.pitch;
+    // Preserve the flat 2.5D projection while changing camera distance.
     world.camera.zoom=dynamicCamera.zoom;
   }
   const projectScreenPoint = (x,y) => {
