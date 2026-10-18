@@ -1,4 +1,5 @@
 import { CANNONS } from '../items/EquipmentCatalog.js';
+import {HORIZON_HARPOON_ID,HORIZON_HARPOON_AMMO_ID} from '../combat/HarpoonCatalog.js';
 import { STARTER_SHIP, HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP,
   SHADOW_CHASER_SHIP, TERROR_DO_MAR_SHIP } from './ShipRegistry.js';
 import { GREEN_GHOST_FUGITIVE_SHIP } from './FugitiveFrigateShip.js';
@@ -27,7 +28,12 @@ export function grantFleetPreparation(save,regionId,{fugitive=false}={}){
  const stock=save.ammunition??{};
  return {equipment:{...e,cannonCounts:counts,ownedCannonIds:uniq(ownedCannonIds),
    ownedShipIds:uniq(ownedShipIds)},
-  ammunition:{...stock,[ammoId]:Math.max(Number(stock[ammoId])||0,ammoQty)}};
+  ammunition:{...stock,[ammoId]:Math.max(Number(stock[ammoId])||0,ammoQty)},
+  ...(regionId==='r3'?{
+    harpoonAmmo:{...(save.harpoonAmmo??{}),[HORIZON_HARPOON_AMMO_ID]:Math.max(1200,Number(save.harpoonAmmo?.[HORIZON_HARPOON_AMMO_ID])||0)},
+    equipment:{...e,cannonCounts:counts,ownedCannonIds:uniq(ownedCannonIds),ownedShipIds:uniq(ownedShipIds),
+      ownedHarpoonIds:uniq([...(e.ownedHarpoonIds??[]),HORIZON_HARPOON_ID]),equippedHarpoonId:HORIZON_HARPOON_ID},
+  }: {})};
 }
 export function fleetShipForRegion(save,regionId){
  const e=save.equipment??{},owned=new Set(['starter-red-sails',...(e.ownedShipIds??[])]);
