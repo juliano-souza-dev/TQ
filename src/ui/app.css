@@ -386,6 +386,14 @@ button:disabled { opacity: .55; cursor: not-allowed; }
     radial-gradient(ellipse 36% 30% at 53% 15%, rgba(62, 203, 102, .21), transparent 79%);
   animation: halloween-ambient-drift 18s ease-in-out infinite alternate;
 }
+/* Post-Eclipse fog fallback: subdued slate-blue, never radioactive green. */
+.halloween-fog-layer.cold-night-fog-layer.halloween-fog-fallback {
+  background:
+    radial-gradient(ellipse 50% 37% at 14% 38%, rgba(43, 59, 101, .22), transparent 80%),
+    radial-gradient(ellipse 45% 32% at 85% 69%, rgba(47, 63, 106, .20), transparent 79%),
+    radial-gradient(ellipse 37% 31% at 53% 17%, rgba(76, 85, 130, .13), transparent 78%);
+  animation: none;
+}
 @keyframes halloween-ambient-drift {
   0% { filter: hue-rotate(-8deg); opacity: .73; }
   100% { filter: hue-rotate(8deg); opacity: 1; }
