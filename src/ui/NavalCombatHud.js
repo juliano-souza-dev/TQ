@@ -437,14 +437,14 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
       : 'Reparar casco com continha (+20 PV por acerto)';
     // A imagem indica exatamente o estado retornado pelo controlador de batalha.
     const iconUrl = status.firing ? cancelAttackUrl : startFireUrl;
-    // Existing timed shot sequence supplies a lightweight visual reload ring.
-    const nowMs=controller.clock?.()??performance.now();
-    const remaining=Math.max(0,(Number(controller.nextPlayerSequenceAt)||0)-nowMs);
-    const progress=Math.min(1,remaining/350);
+    // Real controller timers: multi-cannon cadence, slot reload or harpoon reload.
+    // This visual is read-only; no new cooldown is introduced.
+    const reload=controller.getPlayerReloadState?.()??{remainingMs:0,durationMs:0};
+    const progress=reload.durationMs>0?Math.max(0,Math.min(1,reload.remainingMs/reload.durationMs)):0;
     const ring=Math.round(progress*100)+'%';
     if(fireRing.style.getPropertyValue('--reload-left')!==ring)
       fireRing.style.setProperty('--reload-left',ring);
-    fireIconButton.classList.toggle('is-reloading',status.firing&&remaining>0);
+    fireIconButton.classList.toggle('is-reloading',status.firing&&reload.remainingMs>0);
     if (fireIcon.src !== iconUrl) fireIcon.src = iconUrl;
     // Keep the attack control clickable so unavailable attacks explain the cause.
     fireIconButton.disabled = false;
