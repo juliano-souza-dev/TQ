@@ -8,6 +8,10 @@ export const FLEET_REGIONS=Object.freeze({
  r2:{name:'Costa dos Corsários',enemyGoal:20,encounters:[{id:'fugitive-frigate',name:'Fragata Sombra Fugitiva',ship:null},{id:'r2-morbi',name:'Morbi · Galeão Dourado',ship:'galeao-dourado'}]},
  r3:{name:'Águas Escuras',enemyGoal:3,encounters:[{id:'r3-leviathan',name:'Leviatã das Águas Escuras',ship:null},{id:'terror-do-mar',name:'Terror do Mar',ship:'terror-do-mar'}]},
  r4:{name:'Terras Gélidas',enemyGoal:17,encounters:[{id:'r4-sombra-do-saque',name:'Sombra do Saque',ship:'sombra-fugitiva-verde-fantasma'}]},
+ r5:{name:'Região 5',enemyGoal:28,encounters:[{id:'r5-eclipse',name:'Galeão Eclipse',ship:'galeao-eclipse'}]},
+ r6:{name:'Região 6',enemyGoal:22,encounters:[{id:'r6-imperial',name:'Galeão Negro Imperial',ship:null}]},
+ r7:{name:'Região 7',enemyGoal:24,encounters:[{id:'r7-crimson',name:'Galeão da Caveira Rubra',ship:'galeao-caveira-rubra'}]},
+ r8:{name:'Região 8',enemyGoal:18,encounters:[{id:'r8-black-veil',name:'Corsário do Véu Negro',ship:'corsario-do-veu-negro'}]},
 });
 const ids=a=>[...new Set((Array.isArray(a)?a:[]).filter(x=>typeof x==='string'))];
 export const fleetEnabled=save=>save?.fleetCampaign?.version===FLEET_CAMPAIGN_VERSION;
