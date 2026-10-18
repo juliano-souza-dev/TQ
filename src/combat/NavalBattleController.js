@@ -811,7 +811,7 @@ export class NavalBattleController {
     if(!target || Number(target.health)<=0)return {kind:'water'};
     const lockedThief = this.getThiefMissionTarget();
     if (lockedThief && target?.id !== lockedThief.id) return { kind: 'water' };
-    if(target?.id==='r2-morbi' && this.readSave().r2Campaign?.active!=='r2-golden-ii')return {kind:'water'};
+    if(target?.id==='r2-morbi' && this.readSave().r2Campaign?.active!=='r2-golden-ii' && this.readSave().fleetCampaign?.version!==1)return {kind:'water'};
     if (this.isProtectedInformant(target)) {
       this.onFeedback('🕊️ O informante não pode ser atacado durante a missão.');
       return { kind: 'water' };
@@ -1208,7 +1208,7 @@ export class NavalBattleController {
   }
 
   resolveNpcImpact(npcId, point, damage = 5) {
-    if(npcId==='r2-morbi' && !['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active))return {kind:'water'};
+    if(npcId==='r2-morbi' && !['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active) && this.readSave().fleetCampaign?.version!==1)return {kind:'water'};
     const player = this.getPlayer();
     if (!shipCollision(point, { ...player, health: this.getHealth() }, 56)) {
       return { kind: 'water' };
