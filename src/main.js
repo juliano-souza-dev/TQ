@@ -1,4 +1,7 @@
 import {createFirstVoyageGuide} from './ui/FirstVoyageGuide.js';
+import {fleetEnabled,startFleetCampaign,getFleetTreasures,fleetTreasureGoal,
+ fleetProgress,fleetLabel,recordFleetDefeat,finishFleetRegion,encounterMatches} from './missions/FleetCampaign.js';
+import {FLEET_PLAYER_SHIPS,grantFleetPreparation,reconcileFleetEquipment} from './ships/FleetAutoEquipment.js';
 import { createViewProjection } from './rendering/OrbitalCameraProjection.js';
 import {drawFrozenShip,drawFreezeBurst} from './rendering/FreezeEffects.js';
 const R4_ICE_WRECKS=Object.freeze([{id:'r4-ice-wreck-1',x:1200,y:2400},{id:'r4-ice-wreck-2',x:1830,y:2450},{id:'r4-ice-wreck-3',x:2870,y:3100},{id:'r4-ice-wreck-4',x:3500,y:2600},{id:'r4-ice-wreck-5',x:1800,y:3650}]);
@@ -175,6 +178,8 @@ async function startWorld() {
     import('./npcs/NpcSelection.js'),
   ]);
   if (generation !== worldGeneration) return;
+  const entrySave=localSaves.load(currentUser.uid)?.payload??{};
+  if(!fleetEnabled(entrySave))localSaves.save(currentUser.uid,{...entrySave,...startFleetCampaign(entrySave)});
   const storedRegion = localSaves.load(currentUser.uid)?.payload?.progression?.activeRegion ?? 1;
   const region = storedRegion >= 4
     ? (await import('./world/regions/r4.js')).R4
@@ -184,9 +189,10 @@ async function startWorld() {
     : (await import('./world/regions/r1.js')).R1;
   if (generation !== worldGeneration) return;
   const world = createWorldState(region);
+  world.fleetNoRespawn=fleetEnabled(localSaves.load(currentUser.uid)?.payload);
   // A single physical camera defines the water shader, sprites, HUD targets,
   // naval combat effects and reverse pointer raycasts. XY gameplay is unchanged.
-  world.cameraPerspective = { enabled: true, yaw: 0, pitch: Math.PI / 4 };
+  world.cameraPerspective = { enabled: !world.fleetNoRespawn, yaw: 0, pitch: Math.PI / 4 };
   const projectScreenPoint = (x,y) => {
     const width=canvas.clientWidth,height=canvas.clientHeight;
     const screen=createViewProjection(
@@ -205,6 +211,7 @@ async function startWorld() {
       relativeScale:.06,offscreen:true,
     };
   };
+  if(!world.fleetNoRespawn){
   const orbitToolbar=document.createElement('div');
   orbitToolbar.setAttribute('role','toolbar');
   orbitToolbar.setAttribute('aria-label','Câmera 3D');
@@ -258,6 +265,7 @@ async function startWorld() {
   cameraOrbitCleanup=()=>{document.removeEventListener('keydown',onOrbitKey,true);orbitToolbar.remove();};
   root.append(orbitToolbar);
   refreshOrbitButtons();
+  }
 
   const savedPosition = localSaves.load(currentUser.uid)?.payload?.playerPosition;
   // Migração dos pontos antigos de entrada da R2: próximos demais ao porto.
@@ -281,6 +289,18 @@ async function startWorld() {
     await import('./npcs/FugitiveFrigateNpc.js');
   const { createMonsterPopulation, updateMonsterPopulation, monsterGoldReward } = await import('./monsters/MonsterPopulation.js');
   createMonsterPopulation(world, Math.random, localSaves.load(currentUser.uid)?.payload??{});
+  const fleetDormantBosses=new Map();
+  if(world.fleetNoRespawn){
+    for(const [id,npc] of [...world.entities]){
+      if((world.region.id==='r1'&&npc.archetype==='terror-da-tabuada')
+      ||(world.region.id==='r3'&&(npc.archetype==='terror-do-mar'||id==='r3-leviathan'))
+      ||(world.region.id==='r4'&&id==='r4-sombra-do-saque')){
+        fleetDormantBosses.set(id,npc);world.entities.delete(id);
+      }
+    }
+    const c=localSaves.load(currentUser.uid)?.payload?.fleetCampaign;
+    for(const id of c?.defeated?.[world.region.id]??[])world.entities.delete(id);
+  }
   updateCamera(world, canvas.clientWidth, canvas.clientHeight);
   let selectedNpcId = null;
   let heading = 0;
@@ -288,11 +308,23 @@ async function startWorld() {
   let hudRefreshElapsed = 0;
   const readSave = () => localSaves.load(currentUser.uid)?.payload ?? {};
   // A derrota de Varkor é definitiva: nenhuma missão de destroços pode recriar o chefe.
-  if(world.region.id==='r3'&&readSave().r3Campaign?.varkorDefeated){
+  if(world.region.id==='r3'&&!world.fleetNoRespawn&&readSave().r3Campaign?.varkorDefeated){
     world.entities.delete(world.region.terrorBoss?.id);
   }
 
   const writePatch = patch => localSaves.save(currentUser.uid, { ...readSave(), ...patch });
+  if(world.fleetNoRespawn){
+    const current=readSave(),c=current.fleetCampaign??{};
+    const goal=fleetTreasureGoal(world.region.id,world.region);
+    if(c.treasureGoal?.[world.region.id]!==goal)
+      writePatch({fleetCampaign:{...c,treasureGoal:{...(c.treasureGoal??{}),[world.region.id]:goal}}});
+    if(!readSave().fleetCampaign?.preparedRegions?.includes(world.region.id)){
+      const prior=readSave();
+      writePatch({...grantFleetPreparation(prior,world.region.id),
+        fleetCampaign:{...prior.fleetCampaign,
+        preparedRegions:[...(prior.fleetCampaign?.preparedRegions??[]),world.region.id]}});
+    }
+  }
 
   // A missão final da R1 só é concluída depois que o novo mapa já carregou.
   if(world.region.id==='r2' && readSave().transitionFlags?.r1FinalePending){
@@ -512,7 +544,7 @@ async function startWorld() {
     writePatch({harpoonAmmo:{...(readSave().harpoonAmmo??{}),'harpoon-mariner':500}});
   }
   const { SHIP_CATALOG } = await import('./ships/ShipRegistry.js');
-  const playableShips = [STARTER_SHIP, ...SHIP_CATALOG];
+  const playableShips = world.fleetNoRespawn?FLEET_PLAYER_SHIPS:[STARTER_SHIP, ...SHIP_CATALOG];
   const savedEquipment = readSave().equipment ?? {};
   const initialShip = playableShips.find(ship => ship.id === savedEquipment.equippedShipId &&
     (ship.id === STARTER_SHIP.id || savedEquipment.ownedShipIds?.includes(ship.id))) ?? STARTER_SHIP;
@@ -622,8 +654,8 @@ async function startWorld() {
   const notifiedMissionIds=new Set(
     boardFor(readSave(),world.region.id).missions.filter(m=>m.status==='ready').map(m=>m.id)
   );
-  if(readyAtLoad)queueMicrotask(()=>routeToMissionsPort({announce:false}));
-  if(world.region.id==='r3')queueMicrotask(()=>{
+  if(!world.fleetNoRespawn&&readyAtLoad)queueMicrotask(()=>routeToMissionsPort({announce:false}));
+  if(world.region.id==='r3'&&!world.fleetNoRespawn)queueMicrotask(()=>{
     if(finishR3OutfitIfReady()){
       showOceanReward('✅ Galeão Dourado preparado. Primeira missão concluída. Vá ao Porto das Missões.');
     }else if(readSave().r3Campaign?.claimed?.includes(R3_FIRST_MISSION_ID)){
@@ -788,7 +820,7 @@ async function startWorld() {
     const result = resolvePedagogicalAction(readSave(), {...action,regionId:world.region.id}, action.challenge, cleanAnswer);
     if (!result) return false;
     writePatch(result.patch);
-    if (world.region.id === 'r2' && action.kind !== 'monster-assist') {
+    if (!world.fleetNoRespawn && world.region.id === 'r2' && action.kind !== 'monster-assist') {
       const questPatch=campaignFor(world.region.id).record(readSave(),{
         type: action.kind === 'informant' ? 'informant' : 'study',
         id:action.challenge.id+':'+Date.now()
@@ -812,7 +844,10 @@ async function startWorld() {
     }
     updateMissionHud();
     navalHud?.refresh();
-    if(action.kind==='treasure') pendingTreasureId=null;
+    if(action.kind==='treasure'){
+      pendingTreasureId=null;
+      if(world.fleetNoRespawn)syncFleetEncounter();
+    }
     if (['treasure','repair','accept-mission'].includes(action.kind))showOceanReward(result.message);
     return result.message;
   }
@@ -1209,7 +1244,9 @@ async function startWorld() {
   });
 
   let pendingTreasureId = null;
-  const visibleTreasures = () => (world.region.id === 'r2'
+  const visibleTreasures = () => world.fleetNoRespawn
+    ? getFleetTreasures(readSave(),world.region.id,world.region)
+    : (world.region.id === 'r2'
     && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active))
       ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
   const openTreasureChallenge = treasure => {
@@ -1641,6 +1678,11 @@ async function startWorld() {
   }
 
   const updateMissionHud = () => {
+    if(world.fleetNoRespawn){
+      missionHud.hidden=false;
+      missionHud.textContent=fleetLabel(fleetProgress(readSave(),world.region.id,fleetTreasureGoal(world.region.id,world.region)));
+      return;
+    }
     checkMissionCompletion();
     const activeEquipShipMission=boardFor(readSave(),world.region.id).active?.find(
       mission=>mission.objectives?.some(objective=>objective.kind==='equip-ship')
@@ -2315,6 +2357,7 @@ async function startWorld() {
     return true;
   }
   function checkDockContact(fromX, fromY, inputX, inputY, stepMs) {
+    if(world.fleetNoRespawn)return;
     if(combatMissionBlocksPorts()) { contactId=null; return; }
     const magnitude = Math.hypot(inputX, inputY);
     const step = shipSpeed * stepMs / 1000;
@@ -2364,7 +2407,7 @@ async function startWorld() {
   }
   // Só ativa o NPC quando seu sprite estiver realmente carregado.
   // Se o arquivo ainda não foi enviado ao GitHub, o oceano inicia normalmente.
-  if (['r1', 'r2'].includes(world.region.id) && npcRenderer.hasShipSprite('fragata-sombra-fugitiva')) {
+  if (!world.fleetNoRespawn && ['r1', 'r2'].includes(world.region.id) && npcRenderer.hasShipSprite('fragata-sombra-fugitiva')) {
     createFugitiveFrigatePopulation(world);
   }
   const previousSave = localSaves.load(currentUser.uid);
@@ -2373,7 +2416,7 @@ async function startWorld() {
   const needsR2Guide=world.region.id==='r2'
     && (!readSave().progression?.r2PortVisited || r2GuidedMission==='r2-equip-terror');
   const needsR4PortGuide=world.region.id==='r4' && !readSave().r4Campaign?.active && boardFor(readSave(),'r4').missions.some(m=>m.status==='available'||m.status==='ready');
-  if (needsR2Guide || needsR4PortGuide || (world.region.id === 'r1' && flow.destination)) {
+  if (!world.fleetNoRespawn && (needsR2Guide || needsR4PortGuide || (world.region.id === 'r1' && flow.destination))) {
     const { createFirstVoyageGuide } = await import('./ui/FirstVoyageGuide.js');
     if (generation !== worldGeneration) return;
     firstVoyageGuide = createFirstVoyageGuide(world);
@@ -2388,7 +2431,7 @@ async function startWorld() {
   updateMissionHud();
   // Restore the R4 guided pointer on every world load, including active missions.
   // The earlier startup condition only covered players without an active contract.
-  if(world.region.id==='r4'){
+  if(world.region.id==='r4'&&!world.fleetNoRespawn){
     const current=readSave().r4Campaign??{};
     if(current.active==='r4-building-strength')
       void guideMissionTo(current.packagePurchased?'missions':world.entities.get('r4-mercador-red')??{x:2050,y:2700,name:'Mercador Red'});
@@ -2551,7 +2594,7 @@ async function startWorld() {
         updateCamera(world,canvas.clientWidth,canvas.clientHeight);
         return;
       }
-      if(world.region.id==='r3'&&readSave().r3Campaign?.claimed?.includes(R3_CLEANUP_MISSION_ID)){
+      if(!world.fleetNoRespawn&&world.region.id==='r3'&&readSave().r3Campaign?.claimed?.includes(R3_CLEANUP_MISSION_ID)){
         const exit={x:3930,y:3890};
         if(Math.hypot(world.camera.x-exit.x,world.camera.y-exit.y)<110){
           const save=readSave();
@@ -2625,7 +2668,7 @@ async function startWorld() {
           }
         }
       }
-      if (world.region.id === 'r2') {
+      if (!world.fleetNoRespawn && world.region.id === 'r2') {
         const rendezvous=boardFor(readSave(),'r2').missions.find(m=>m.id==='r2-meet-forgotten');
         const forgotten=world.region.islands.find(i=>i.id==='r2-scenery-north');
         if(rendezvous?.status==='active' && forgotten
@@ -2639,7 +2682,7 @@ async function startWorld() {
         // Touching the portal automatically travels to R3. Earlier R2 missions
         // must be claimed; the final objective can be active, ready or claimed.
         const passageDistance=Math.hypot(world.camera.x-darkWatersExit.x,world.camera.y-darkWatersExit.y);
-        if(passageDistance<105 && !darkPortalTraveling){
+        if(!world.fleetNoRespawn && passageDistance<105 && !darkPortalTraveling){
           const save=readSave(),board=getR2Board(save),last=board.missions.find(m=>m.id==='r2-dark-voyage');
           const prerequisites=board.missions.filter(m=>m.id!=='r2-dark-voyage')
             .every(m=>m.status==='claimed');
@@ -2660,7 +2703,7 @@ async function startWorld() {
             return;
           }
         }
-        updatePumpkinAmbush(stepMs);
+        if(!world.fleetNoRespawn)updatePumpkinAmbush(stepMs);
         const active = boardFor(readSave(),world.region.id).active[0];
         const island = world.region.islands.find(i=>i.id==='r2-scenery-north');
         // Fora das missões que exigem encontro em coordenada fixa, o mercador
@@ -2913,7 +2956,7 @@ async function startWorld() {
           }
         }
       }
-      updatePursuitPopulation();
+      if(!world.fleetNoRespawn)updatePursuitPopulation();
       // The existing Fantasma Esmeralda joins only the Leviathan hunt.
       // This flag is derived from the active mission, never persisted as a new NPC.
       if(world.region.id==='r3'){
@@ -2929,7 +2972,7 @@ async function startWorld() {
         }
       }
       // Keep the defeated captain removed even if a population refresh recreates him.
-      if(world.region.id==='r3'&&readSave().r3Campaign?.varkorDefeated){
+      if(world.region.id==='r3'&&!world.fleetNoRespawn&&readSave().r3Campaign?.varkorDefeated){
         world.entities.delete(world.region.terrorBoss?.id);
       }
       // Varkor enters only after the Chama do Abismo has been claimed.
@@ -3236,7 +3279,7 @@ async function startWorld() {
           else advanceNavigation(world, { x: 0, y: 0 }, stepMs, shipSpeed*(readSave().r2Campaign?.active==='r2-why-help' ? .55 : (navalBattle?.isSpeedActive()?1.1:1)));
         }
       }
-      if (world.region.id === 'r1') {
+      if (!world.fleetNoRespawn && world.region.id === 'r1') {
         const exit = world.region.exitPoint;
         const distanceToExit = exit ? Math.hypot(world.camera.x-exit.x,world.camera.y-exit.y) : Infinity;
         if (distanceToExit > (exit?.radius ?? 0) + 45) exitDismissed = false;
@@ -3256,7 +3299,7 @@ async function startWorld() {
     },
     render: () => {
       updateCamera(world, canvas.clientWidth, canvas.clientHeight);
-      restoreR4Guide();
+      if(!world.fleetNoRespawn)restoreR4Guide();
       firstVoyageGuide?.update();
       if(originalR3Ocean){
         const progress=readSave().r3Campaign??{};
@@ -3327,7 +3370,7 @@ async function startWorld() {
       islandRenderer.render(world.cameraView, world.camera.zoom, world.cameraPerspective);
       const hidePursuitTreasures = world.region.id === 'r2'
         && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active);
-      const renderedTreasures=hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
+      const renderedTreasures=world.fleetNoRespawn?visibleTreasures():hidePursuitTreasures ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id);
       treasureGlowRenderer?.render(renderedTreasures,world.cameraView,world.camera.zoom,oceanTimeMs,pendingTreasureId,world.cameraPerspective);
       const flameStep=readSave().r3Campaign?.flameStep??0;
       const flameIndex=flameStep===0?0:flameStep===2?1:flameStep===3?2:flameStep===5?3:-1;
