@@ -1,4 +1,5 @@
 import { getVisibleTreasures, treasureReward } from '../treasures/RegionTreasures.js';
+import {MOON_BARRAGE_AMMO_ID,R5_ECLIPSE_BOSS_ID,R5_LUNAR_TREASURE_MIN,R5_LUNAR_TREASURE_MAX,lunarRandomAmount,isLunarResupply} from './RegionFiveEclipse.js';
 import { collidesWithIsland } from '../world/IslandCollision.js';
 import { FLEET_PLAYER_SHIPS, bestFleetLoadout } from '../ships/FleetAutoEquipment.js';
 
@@ -9,7 +10,7 @@ export const FLEET_REGIONS=Object.freeze({
  r2:{name:'Costa dos Corsários',enemyGoal:20,monsterGoal:2,encounters:[{id:'fugitive-frigate',name:'Fragata Sombra Fugitiva',ship:'fragata-sombra-cacadora'}]},
  r3:{name:'Águas Escuras',enemyGoal:16,monsterGoal:0,encounters:[{id:'r3-leviathan',name:'Leviatã das Águas Escuras',ship:null},{id:'terror-do-mar',name:'Terror do Mar',ship:'terror-do-mar'}]},
  r4:{name:'Terras Gélidas',enemyGoal:30,monsterGoal:0,encounters:[{id:'r4-almirante-boreal',name:'Almirante Boreal · O Reflexo Gelado',ship:null,shipId:'corsario-geada-negra'}]},
- r5:{name:'Costa do Eclipse',enemyGoal:28,monsterGoal:2,encounters:[{id:'r2-morbi',name:'Morbi · Galeão Dourado',ship:'galeao-dourado'}]},
+ r5:{name:'Domínio do Eclipse',enemyGoal:28,monsterGoal:1,encounters:[{id:R5_ECLIPSE_BOSS_ID,name:'Galeão Eclipse · Senhor da Noite',ship:'galeao-eclipse'}]},
  r6:{name:'Estreito de Ferro',enemyGoal:22,monsterGoal:2,encounters:[{id:'r6-imperial',name:'Galeão Negro Imperial',ship:null}]},
  r7:{name:'Baía Rubra',enemyGoal:24,monsterGoal:2,encounters:[{id:'r7-crimson',name:'Galeão da Caveira Rubra',ship:'galeao-caveira-rubra'}]},
  r8:{name:'Mar do Véu Negro',enemyGoal:18,monsterGoal:2,encounters:[{id:'r8-black-veil',name:'Corsário do Véu Negro',ship:'corsario-do-veu-negro'}]},
@@ -72,7 +73,30 @@ export function getFleetTreasures(save={},regionId,region){
  const collected=source.filter(t=>taken.has(t.id)).length;
  const wave=fleetWaveStatus(regionId,source.length,collected);
  const visible=wave?source.slice(0,wave.limit):source;
- return visible.filter(t=>!taken.has(t.id));
+ const remaining=visible.filter(t=>!taken.has(t.id));
+ // Never strand a player without the lunar ammunition required by Eclipse.
+ // Extra treasures do not count toward the map's original treasure goal.
+ if(regionId==='r5' && fleetEnabled(save) && save.fleetCampaign?.region===5
+   && (Number(save.ammunition?.[MOON_BARRAGE_AMMO_ID])||0)<=0
+   && !ids(save.fleetCampaign?.bosses?.r5).includes(R5_ECLIPSE_BOSS_ID)
+   && fleetProgress(save,regionId,source.length)?.ready){
+   const index=ids(save.fleetCampaign?.treasures?.r5).filter(isLunarResupply).length+1;
+   const baseX=(region?.width||4096)*.5,baseY=(region?.height||5632)*.5;
+   let position=null;
+   for(const radius of [300,520,780,980,1250]){
+     for(let i=0;i<16;i++){
+       const angle=(i+index*3)*Math.PI/8;
+       const x=Math.round(baseX+Math.cos(angle)*radius);
+       const y=Math.round(baseY+Math.sin(angle)*radius);
+       if(x<160||y<160||x>(region?.width||4096)-160||y>(region?.height||5632)-160)continue;
+       if(region&&collidesWithIsland(region,x,y,90))continue;
+       position={id:'fleet-r5-moon-resupply-'+index,x,y};break;
+     }
+     if(position)break;
+   }
+   if(position)remaining.push(position);
+ }
+ return remaining;
 }
 export function fleetTreasureGoal(regionId,region){
  return fleetTreasureCatalog(regionId,region).length;
@@ -86,10 +110,12 @@ export function recordFleetTreasure(save,regionId,treasureId,region){
  const c=save.fleetCampaign,old=ids(c.treasures?.[regionId]);
  if(old.includes(treasureId))return null;
  const reward=treasureReward(treasureId);
+ const moonAmount=regionId==='r5'?lunarRandomAmount(R5_LUNAR_TREASURE_MIN,R5_LUNAR_TREASURE_MAX):0;
  return {
   fleetCampaign:{...c,treasures:{...(c.treasures??{}),[regionId]:[...old,treasureId]}},
   profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+100},
-  ammunition:{...(save.ammunition??{}),'rusted-iron':(Number(save.ammunition?.['rusted-iron'])||0)+350},
+  ammunition:{...(save.ammunition??{}),'rusted-iron':(Number(save.ammunition?.['rusted-iron'])||0)+350,
+   ...(moonAmount?{[MOON_BARRAGE_AMMO_ID]:(Number(save.ammunition?.[MOON_BARRAGE_AMMO_ID])||0)+moonAmount}:{})},
   consumables:{...(save.consumables??{}),quantities:{...(save.consumables?.quantities??{}),
    'double-damage':(Number(save.consumables?.quantities?.['double-damage'])||0)+reward.doubleDamage,
    'flame-5x':(Number(save.consumables?.quantities?.['flame-5x'])||0)+reward.flame5x}},
@@ -119,10 +145,10 @@ export function fleetProgress(save={},regionId,treasureGoal=0){
  if(!plan)return null;
  const defeated=Math.min(plan.enemyGoal,ids(c.defeated?.[regionId]).length),
   monsters=Math.min(plan.monsterGoal??0,ids(c.monsters?.[regionId]).length),
-  collected=Math.min(treasureGoal,ids(c.treasures?.[regionId]).length),
+  collected=Math.min(treasureGoal,ids(c.treasures?.[regionId]).filter(id=>!isLunarResupply(id)).length),
   bosses=ids(c.bosses?.[regionId]);
- // Old R5 Eclipse victories remain complete after moving the new boss to R5.
- if(regionId==='r5'&&bosses.includes('r5-eclipse'))bosses.push('r2-morbi');
+ // Preserve fully completed legacy regions without skipping the Eclipse for active players.
+ if(regionId==='r5'&&c.completedRegions?.includes('r5')&&bosses.includes('r2-morbi'))bosses.push(R5_ECLIPSE_BOSS_ID);
  // A previous R4 victory stays completed after the boss identity changes.
  // New players must face Almirante Boreal; existing saves are not reset.
  if(regionId==='r4'&&bosses.includes('r4-sombra-do-saque'))bosses.push('r4-almirante-boreal');
