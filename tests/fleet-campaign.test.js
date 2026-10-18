@@ -41,6 +41,12 @@ test('boss cannot appear before the entire fleet AND every treasure are cleared'
   const patch=recordFleetTreasure(save,'r1',treasureId('r1'));
   save=combine(save,patch);
   p=fleetProgress(save,'r1',1);
+  assert.equal(p.missionOneComplete,false,'marine monsters are still required');
+  save=combine(save,{fleetCampaign:{...save.fleetCampaign,monsters:{r1:['kraken-1','kraken-2']}}});
+  assert.equal(fleetProgress(save,'r1',1).missionOneComplete,true);
+  assert.equal(fleetProgress(save,'r1',1).ready,false,'mission 1 reward must be claimed');
+  save=combine(save,{fleetCampaign:{...save.fleetCampaign,preparedRegions:['r1']}});
+  p=fleetProgress(save,'r1',1);
   assert.equal(p.ready,true);
   assert.equal(p.encounter.id,'terror-da-tabuada');
 });
@@ -56,6 +62,7 @@ test('R1 boss awards the ship and changes region only after victory',()=>{
   let save=winEnemies(fresh(1),'r1',19,'red-sail-corsair');
   assert.equal(finishFleetRegion(save,'r1',1),null);
   save=combine(save,recordFleetTreasure(save,'r1',treasureId('r1')));
+  save=combine(save,{fleetCampaign:{...save.fleetCampaign,preparedRegions:['r1'],monsters:{r1:['m1','m2']}}});
   const victory=recordFleetDefeat(save,'r1',{id:'corsair-r1-01',archetype:'terror-da-tabuada'});
   assert.ok(victory);
   save=combine(save,victory);
@@ -68,6 +75,7 @@ test('R1 boss awards the ship and changes region only after victory',()=>{
 test('R2 fugitive is followed by Morbi and unlocks the Golden Galleon',()=>{
   let save=winEnemies(fresh(2),'r2',20,'red-sail-corsair');
   save=combine(save,recordFleetTreasure(save,'r2',treasureId('r2')));
+  save=combine(save,{fleetCampaign:{...save.fleetCampaign,preparedRegions:['r2'],monsters:{r2:['m1','m2']}}});
   assert.equal(fleetProgress(save,'r2',1).encounter.id,'fugitive-frigate');
   assert.equal(recordFleetDefeat(save,'r2',{id:'r2-morbi',archetype:'golden-galleon'}),null);
   const pursuit=grantFleetPreparation(save,'r2',{fugitive:true});
@@ -89,14 +97,17 @@ test('R3 unlocks the harpoon without replacing saved ammunition',()=>{
   assert.equal(automatic.ammunition,undefined);
   assert.equal(automatic.selectedNavalAmmoId,undefined);
 });
-test('final R4 victory grants the shadow ship without looping to another map',()=>{
-  let save=winEnemies(fresh(4),'r4',17,'vigia-da-geada');
+test('R4 starts with earned ice ship, then continues to the fifth region',()=>{
+  let save=winEnemies(fresh(4),'r4',24,'vigia-da-geada');
   save=combine(save,recordFleetTreasure(save,'r4',treasureId('r4')));
+  const ice=grantFleetPreparation(save,'r4');
+  assert.ok(ice.equipment.ownedCannonIds.includes('ice-terror'));
+  save=combine(save,{fleetCampaign:{...save.fleetCampaign,preparedRegions:['r4']}});
   save=combine(save,recordFleetDefeat(save,'r4',{id:'r4-sombra-do-saque',archetype:'dark-waters-raider'}));
-  assert.ok(save.equipment.ownedShipIds.includes('sombra-fugitiva-verde-fantasma'));
+  assert.equal(fleetProgress(save,'r4',1).complete,true);
   const ending=finishFleetRegion(save,'r4',1);
-  assert.equal(ending.fleetCampaign.finished,true);
-  assert.equal(ending.progression.activeRegion,4);
+  assert.equal(ending.fleetCampaign.finished,false);
+  assert.equal(ending.progression.activeRegion,5);
 });
 test('ordinary pirates never respawn when campaign no-respawn mode is on',()=>{
  const npc={id:'corsair-r1-02',type:'npc',archetype:'red-sail-corsair',
