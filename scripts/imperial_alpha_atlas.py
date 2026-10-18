@@ -53,7 +53,7 @@ if np.any(edge):
 clean[alpha == 0] = 0
 rgba = np.dstack([np.uint8(np.rint(clean)), alpha])
 result = Image.fromarray(rgba, mode="RGBA")
-result.save(TARGET, "WEBP", lossless=True, method=6)
+result.save(TARGET, "WEBP", quality=94, alpha_quality=100, method=6, exact=True)
 verification = Image.open(TARGET)
 assert verification.size == image.size and verification.mode == "RGBA"
 assert verification.getextrema()[3][0] == 0
