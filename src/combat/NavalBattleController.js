@@ -332,7 +332,8 @@ export class NavalBattleController {
     const monsterTarget = target?.type === 'monster';
     const eclipseTarget=target?.id===R5_ECLIPSE_BOSS_ID && this.getRegionId()==='r5';
     const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon) && availableNavalAmmo(save).some(item => item.amount > 0 && (!eclipseTarget||item.id===MOON_BARRAGE_AMMO_ID) && cannonAcceptsAmmo(cannon,item.id)));
-    const ammo = ammoStock(save, this.selectedAmmoId);
+    const statusAmmoId=eclipseTarget?MOON_BARRAGE_AMMO_ID:this.selectedAmmoId;
+    const ammo = ammoStock(save, statusAmmoId);
     // R1 possui um tutorial obrigatório. R2 já começa com combate liberado.
     // Finishing the introductory Corsair mission unlocks naval combat permanently.
     // Do not disable cannons between contracts or while collecting their rewards.
@@ -363,7 +364,7 @@ export class NavalBattleController {
       targetName: target?.name || '',
       equippedCannons: battery.length,
       cannonsInRange: inRangeCannons.length,
-      ammoId: this.selectedAmmoId,
+      ammoId: statusAmmoId,
       ammo,
       options: availableNavalAmmo(save),
       health: this.getHealth(),
