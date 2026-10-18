@@ -1,3 +1,4 @@
+import { PUMPKIN_FLEET_GALLEON_SHIP } from '../ships/PumpkinFleetGalleonShip.js';
 import { NORTHERN_THIEF_SHIP } from '../ships/NorthernThiefShip.js';
 import { FROZEN_LANDS_GALLEON_SHIP, FROST_THIEF_SHIP } from '../ships/FrozenLandsGalleonShip.js';
 import { createRedSailCorsair, updateCorsair, RED_SAIL_CORSAIR } from './RedSailCorsair.js';
@@ -57,6 +58,18 @@ export function createCorsairPopulation(world, random = Math.random) {
       world.entities.set(merchant.id, merchant);
     }
     createDarkWatersFleet(world);
+    if(!world.entities.has('r3-pumpkin-galleon')){
+      const point=spawnPosition(world.region,world.camera,random);
+      world.entities.set('r3-pumpkin-galleon',{
+        id:'r3-pumpkin-galleon',type:'npc',archetype:'r3-pumpkin-galleon',
+        name:'Galeão da Frota das Abóboras',shipId:PUMPKIN_FLEET_GALLEON_SHIP.id,
+        fleetId:'r3-pumpkin-fleet',x:point.x,y:point.y,heading:random()*360,
+        health:21000,maxHealth:21000,speed:215,damage:16,range:850,
+        cannonSlots:8,cannonLayout:PUMPKIN_FLEET_GALLEON_SHIP.cannonLayout,
+        state:'patrolling',aggression:'attack',retaliationActive:true,
+        wanderTimeMs:1400,respawnRemainingMs:null,
+      });
+    }
     return world.entities.size;
   }
 

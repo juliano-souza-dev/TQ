@@ -1,5 +1,4 @@
-// Navio mapeado e mantido somente no catálogo técnico por enquanto.
-// O asset foi recebido na conversa; o caminho abaixo é o destino esperado quando for enviado ao repositório.
+// Reutiliza o asset já existente do Corsário Vermelho Sangue, conforme identificação do criador.
 export const CRIMSON_SKULL_GALLEON_SHIP = Object.freeze({
   id: 'galeao-caveira-rubra',
   name: 'Galeão da Caveira Rubra',
@@ -9,7 +8,7 @@ export const CRIMSON_SKULL_GALLEON_SHIP = Object.freeze({
   npcEnabled: false,
   shopEnabled: false,
   rewardEnabled: false,
-  assetPending: true,
+  assetPending: false,
   cannonSlots: 7,
   cannonLayout: Object.freeze({
     port: 7,
@@ -18,7 +17,7 @@ export const CRIMSON_SKULL_GALLEON_SHIP = Object.freeze({
     stern: 0,
   }),
   sprite: Object.freeze({
-    path: '../../assets/ships/galeao-caveira-rubra.webp',
+    path: '../../assets/ships/corsário-vermelho-sangue.webp',
     frameWidth: 400,
     frameHeight: 400,
     columns: 4,

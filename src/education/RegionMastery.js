@@ -3,6 +3,16 @@
 export const REGION_FAMILIES = Object.freeze({
   1: Object.freeze([2, 5, 10]),
   2: Object.freeze([2, 3, 5, 10]),
+  3: Object.freeze([3, 4]),
+  4: Object.freeze([3, 4, 6]),
+  5: Object.freeze([2, 3, 4, 5, 6, 10]),
+  6: Object.freeze([6, 7]),
+  7: Object.freeze([7, 8]),
+  8: Object.freeze([8]),
+  9: Object.freeze([7, 8, 9]),
+  10: Object.freeze([2, 3, 4, 5, 6, 7, 8, 9, 10]),
+  11: Object.freeze([2, 3, 4, 5, 6, 7, 8, 9, 10]),
+  12: Object.freeze([2, 3, 4, 5, 6, 7, 8, 9, 10]),
 });
 export const REGION_GATE = 0.75;
 export const REQUIRED_QUESTIONS_PER_FAMILY = 10;
@@ -19,13 +29,13 @@ export const familyStats = (progress = {}, family, region = 1) => {
   return {
     family, attempts, clean, distinct, accuracy,
     mastered: attempts >= REQUIRED_QUESTIONS_PER_FAMILY
-      && distinct >= REQUIRED_DISTINCT_FACTORS && accuracy >= REGION_GATE,
+      && distinct >= REQUIRED_DISTINCT_FACTORS && accuracy >= (region>=10?.8:REGION_GATE),
   };
 };
 export function getRegionMastery(progress = {}, region = 1) {
   const selectedRegion = REGION_FAMILIES[region] ? region : 1;
   const families = REGION_FAMILIES[selectedRegion].map(family => familyStats(progress, family, selectedRegion));
-  return { region: selectedRegion, families, mastered: families.every(record => record.mastered), gate: REGION_GATE };
+  return { region: selectedRegion, families, mastered: families.every(record => record.mastered), gate: selectedRegion>=10?.8:REGION_GATE };
 }
 export function chooseRegionChallenge(progress = {}, preferredFamily = null, random = Math.random, region = 1) {
   const selectedRegion = REGION_FAMILIES[region] ? region : 1;
