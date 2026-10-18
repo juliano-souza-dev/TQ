@@ -1141,6 +1141,17 @@ async function startWorld() {
     },
     onVictory: npc => {
       const save = readSave();
+      if(world.fleetNoRespawn){
+        const patch=recordFleetDefeat(save,world.region.id,npc);
+        if(patch)writePatch(patch);
+        world.entities.delete(npc.id);
+        if(patch){
+          showOceanReward('⚔️ '+npc.name+' derrotado!');
+          updateMissionHud();
+          syncFleetEncounter();
+        }
+        return;
+      }
       if (npc.type === 'monster') {
         const gold = monsterGoldReward();
         writePatch({ profile: { ...save.profile, gold: (Number(save.profile?.gold) || 0) + gold } });
@@ -2429,6 +2440,7 @@ async function startWorld() {
     } else if (flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
   }
   updateMissionHud();
+  if(world.fleetNoRespawn)syncFleetEncounter();
   // Restore the R4 guided pointer on every world load, including active missions.
   // The earlier startup condition only covered players without an active contract.
   if(world.region.id==='r4'&&!world.fleetNoRespawn){
@@ -2554,6 +2566,119 @@ async function startWorld() {
     }
     if(navalBattle.getHealth()<=0){
       finishPumpkinAmbush();
+    }
+  }
+
+  let fleetSwitchingShip=false, fleetEncounterAnnouncement=null;
+  async function updateFleetEquipment(){
+    if(!world.fleetNoRespawn||fleetSwitchingShip)return;
+    const change=reconcileFleetEquipment(readSave(),world.region.id);
+    if(!change)return;
+    const desired=FLEET_PLAYER_SHIPS.find(ship=>ship.id===change.equipment.equippedShipId);
+    if(!desired)return;
+    fleetSwitchingShip=true;
+    try{
+      if(activeShip.id!==desired.id){
+        shipRenderer.definition=desired;
+        await shipRenderer.init();
+        if(generation!==worldGeneration)return;
+        activeShip=desired;navalBattle.shipId=desired.id;navalBattle.firing=false;
+        shipSpeed=getShipSpeed(desired);
+      }
+      const latest=reconcileFleetEquipment(readSave(),world.region.id);
+      if(latest)writePatch(latest);
+      navalBattle.selectedAmmoId=navalBattle.resolveSelectedAmmo();
+      navalBattle.renderer.prepareAmmo?.(effectiveAmmo(navalBattle.selectedAmmoId));
+      navalHud?.refresh();
+    }catch(e){
+      console.error('Troca automática de navio:',e);
+      shipRenderer.definition=activeShip;
+      await shipRenderer.init().catch(console.error);
+    }finally{fleetSwitchingShip=false;}
+  }
+  function syncFleetEncounter(stepMs=0){
+    if(!world.fleetNoRespawn||generation!==worldGeneration)return;
+    let save=readSave();
+    let p=fleetProgress(save,world.region.id,fleetTreasureGoal(world.region.id,world.region));
+    if(!p||save.fleetCampaign?.finished)return;
+    if(p.complete){
+      const patch=finishFleetRegion(save,world.region.id,p.treasureGoal);
+      if(!patch)return;
+      writePatch(patch);
+      if(world.region.id==='r4'){
+        showOceanReward('🏆 Campanha concluída! Todas as quatro regiões libertadas.');
+        updateMissionHud();
+      }else{
+        showOceanReward('🏆 Chefe derrotado! Navio conquistado. Rumo à próxima região!');
+        queueMicrotask(()=>{if(generation===worldGeneration)void startWorld();});
+      }
+      return;
+    }
+    if(!p.ready){void updateFleetEquipment();return;}
+    if(world.region.id==='r2'&&p.encounter?.id==='fugitive-frigate'
+      && !save.fleetCampaign?.fugitivePrepared){
+      writePatch({...grantFleetPreparation(save,'r2',{fugitive:true}),
+        fleetCampaign:{...save.fleetCampaign,fugitivePrepared:true}});
+      save=readSave();
+      p=fleetProgress(save,world.region.id,p.treasureGoal);
+      showOceanReward('⚓ Fragata Caçadora das Sombras recebida para perseguir o ladrão!');
+    }
+    void updateFleetEquipment();
+    const encounter=p.encounter;if(!encounter)return;
+    if(fleetEncounterAnnouncement!==encounter.id){
+      fleetEncounterAnnouncement=encounter.id;
+      showOceanReward('☠️ '+encounter.name+' apareceu e vem atrás de você!');
+      updateMissionHud();
+    }
+    let boss=[...world.entities.values()].find(n=>encounterMatches(encounter,n));
+    if(!boss){
+      const template=[...fleetDormantBosses.entries()].find(([,npc])=>encounterMatches(encounter,npc));
+      if(template){
+        const [id,npc]=template;fleetDormantBosses.delete(id);
+        world.entities.set(id,npc);boss=npc;
+      }
+    }
+    if(!boss&&encounter.id==='fugitive-frigate'&&npcRenderer.hasShipSprite('fragata-sombra-fugitiva')){
+      createFugitiveFrigatePopulation(world);
+      boss=[...world.entities.values()].find(n=>n.archetype==='fugitive-frigate');
+      if(boss){
+        boss.health=100000;boss.maxHealth=100000;boss.thiefBossInitialized=true;
+        boss.cannonSlots=1;boss.range=840;boss.damage=3;boss.keepAwayFromEdges=true;
+      }
+    }
+    if(!boss&&encounter.id==='r2-morbi'){
+      boss={id:'r2-morbi',name:'Morbi · Galeão Dourado',type:'npc',
+        archetype:'golden-galleon',shipId:'galeao-dourado',heading:180,
+        x:Math.min(world.region.width-280,world.camera.x+650),
+        y:Math.min(world.region.height-280,world.camera.y+430),
+        health:900000,maxHealth:900000,state:'retaliating',aggression:'attack',
+        cannonSlots:20,range:840,damage:1200,speed:210,broadsideActive:true,
+        specialCannon:{id:'morbi-golden-cannon',damage:1200,range:840,
+          reloadMs:10000,countBeforePhase:1,countAfterPhase:2},
+        broadside:{regularCannons:18,regularDamage:300,reloadMs:5000,range:840}};
+      world.entities.set(boss.id,boss);
+    }
+    if(!boss)return;
+    if(boss.archetype==='terror-do-mar'){
+      boss.varkorBattleUnlocked=true;boss.attackProtectedUntil=0;boss.phasedOut=false;
+      boss.damage=12;boss.cannonSlots=12;boss.speed=270;
+    }
+    if(boss.id==='r3-leviathan'){boss.huntActive=true;boss.huntEngaged=true;}
+    if(boss.archetype==='fugitive-frigate')boss.keepAwayFromEdges=true;
+    else if(stepMs>0){
+      boss.retaliationActive=true;boss.aggression='attack';
+      const dx=world.camera.x-boss.x,dy=world.camera.y-boss.y;
+      const distance=Math.hypot(dx,dy);
+      if(distance>250){
+        const speed=Math.max(180,Math.min(350,Number(boss.speed)||220));
+        const step=Math.min(distance-250,speed*Math.min(64,stepMs)/1000);
+        const angle=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+        boss.heading=angle;
+        const rad=angle*Math.PI/180;
+        const moved=resolveIslandMovement(world.region,boss.x,boss.y,
+          boss.x+Math.sin(rad)*step,boss.y-Math.cos(rad)*step,48);
+        boss.x=moved.x;boss.y=moved.y;
+      }
     }
   }
   let positionSaveElapsed = 0;
@@ -3078,6 +3203,7 @@ async function startWorld() {
           && !readSave().r3Campaign?.leviathanDefeated;
       }
       updateMonsterPopulation(world, stepMs);
+      if(world.fleetNoRespawn)syncFleetEncounter(stepMs);
       glintElapsed+=stepMs;
       if(world.region.id==='r4'){
         const save=readSave();
