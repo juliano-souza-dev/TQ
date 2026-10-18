@@ -1,5 +1,5 @@
 // World-space minimap: markers are data-driven and independent of region identity.
-export function createMinimap(world, { getPlayer, getNpcs = () => [], getTreasures = () => [], hasTreasureSense = () => false }) {
+export function createMinimap(world, { getPlayer, getNpcs = () => [], getTreasures = () => [], getExit = () => null, hasTreasureSense = () => false }) {
   const root = document.createElement('section');
   root.className = 'minimap';
   root.setAttribute('aria-label', 'Minimapa');
@@ -62,6 +62,17 @@ export function createMinimap(world, { getPlayer, getNpcs = () => [], getTreasur
       ctx.shadowBlur=6+pulse*5;
       ctx.fillStyle='#fff3ad';
       ctx.beginPath();ctx.arc(0,0,2.1+pulse*.7,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    const exit=getExit();
+    if(exit){
+      const p=point(exit.x,exit.y);
+      ctx.save();
+      ctx.shadowBlur=14;ctx.shadowColor='#88fce5';
+      ctx.fillStyle='#48efc2';ctx.strokeStyle='#052c33';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(p.x,p.y,9,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle='#062a31';ctx.fillText('➜',p.x,p.y);
       ctx.restore();
     }
     const player = getPlayer();
