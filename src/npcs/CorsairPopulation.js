@@ -160,6 +160,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     const alerted = fleet.some(n=>n.health>0 && (n.retaliationActive || n.aggression==='attack'));
     for (const npc of fleet) {
       if (npc.health<=0) {
+        if(world.fleetNoRespawn)continue;
         npc.respawnRemainingMs=(npc.respawnRemainingMs??120000)-deltaMs;
         if(npc.respawnRemainingMs<=0){
           const point=spawnPosition(world.region,world.camera,random);
@@ -203,6 +204,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     }
     for(const npc of thieves){
       if(npc.health<=0){
+        if(world.fleetNoRespawn)continue;
         npc.respawnRemainingMs=(npc.respawnRemainingMs??120000)-deltaMs;
         if(npc.respawnRemainingMs<=0){
           const p=spawnPosition(world.region,world.camera,random);
@@ -246,6 +248,7 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     if (npc.archetype !== RED_SAIL_CORSAIR.id && npc.archetype !== TERROR_DA_TABUADA.id) continue;
 
     if (npc.health <= 0) {
+      if(world.fleetNoRespawn)continue;
       if (npc.respawnRemainingMs == null) npc.respawnRemainingMs = CORSAIR_RESPAWN_MS;
       else npc.respawnRemainingMs -= deltaMs;
       if (npc.respawnRemainingMs <= 0) {
