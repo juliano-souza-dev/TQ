@@ -3,6 +3,7 @@ import { equippedHarpoon, harpoonDamage, harpoonStock, horizonHarpoonStock, levi
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
 import { leviathanMouthOrigin } from '../monsters/LeviathanMouthMap.js';
+import {R5_ECLIPSE_BOSS_ID,R5_LEVIATHAN_ID,MOON_BARRAGE_AMMO_ID} from '../missions/RegionFiveEclipse.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
 import { applySeekingOrbSlow } from './SeekingOrbSlow.js';
 import { EMERALD_GHOST_LEVIATHAN_DAMAGE, EMERALD_GHOST_LEVIATHAN_RELOAD_MS, EMERALD_GHOST_LEVIATHAN_RANGE } from '../npcs/DarkWatersFleet.js';
@@ -128,7 +129,7 @@ export class NavalBattleController {
   }
   isBossTarget(target) {
     return !!target && target.health > 0 &&
-      (target.archetype === 'terror-do-mar' || target.id === 'r2-morbi');
+      (target.archetype === 'terror-do-mar' || target.id === 'r2-morbi' || target.id === R5_ECLIPSE_BOSS_ID);
   }
   isFlameActive() { return Date.now() < this.getConsumables().activeUntil; }
   isShieldActive() { return Date.now() < this.getConsumables().shieldActiveUntil; }
@@ -329,7 +330,8 @@ export class NavalBattleController {
     const distance = target ? distanceBetween(player, target) : Infinity;
     const harpoon = equippedHarpoon(save);
     const monsterTarget = target?.type === 'monster';
-    const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon) && availableNavalAmmo(save).some(item => item.amount > 0 && cannonAcceptsAmmo(cannon,item.id)));
+    const eclipseTarget=target?.id===R5_ECLIPSE_BOSS_ID && this.getRegionId()==='r5';
+    const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon) && availableNavalAmmo(save).some(item => item.amount > 0 && (!eclipseTarget||item.id===MOON_BARRAGE_AMMO_ID) && cannonAcceptsAmmo(cannon,item.id)));
     const ammo = ammoStock(save, this.selectedAmmoId);
     // R1 possui um tutorial obrigatório. R2 já começa com combate liberado.
     // Finishing the introductory Corsair mission unlocks naval combat permanently.
@@ -345,7 +347,7 @@ export class NavalBattleController {
     else if (!monsterTarget && !missionActive) reason = 'mission';
     else if (!monsterTarget && !battery.length) reason = 'no-cannon';
     else if (!target) reason = 'target';
-    else if (!monsterTarget && !inRangeCannons.length) reason = battery.some(({ cannon }) => distance <= cannonRange(cannon)) ? 'ammo' : 'range';
+    else if (!monsterTarget && !inRangeCannons.length) reason = battery.some(({ cannon }) => distance <= cannonRange(cannon)) ? (eclipseTarget?'lunar-ammo':'ammo') : 'range';
 
     else if (this.getHealth() <= 0) reason = 'sunk';
     return {
@@ -353,7 +355,7 @@ export class NavalBattleController {
       harpoonFiring: this.firing && monsterTarget,
       harpoonName: harpoon.name,
       harpoonRange: harpoon.range,
-      harpoonReloadSeconds: harpoon.reloadSeconds / 2,
+      harpoonReloadSeconds: harpoon.reloadSeconds / (this.getRegionId()==='r5'?4:2),
       harpoonAmmo: harpoon.flameTip ? horizonHarpoonStock(save) : harpoonStock(save) + armorPiercingHarpoonStock(save),
       ready: reason === 'ready',
       reason, distance,
@@ -389,6 +391,7 @@ export class NavalBattleController {
         'no-cannon':'Nenhum canhão equipado. Equipe um canhão no Estaleiro.',
         target:'Aproxime-se e selecione um navio inimigo.',
         ammo:'Sem munição compatível para os canhões equipados.',
+        'lunar-ammo':'O Eclipse só sofre dano da Rajada da Lua. Resgate um tesouro lunar no mapa.',
         range:'Alvo fora do alcance dos canhões.',
         sunk:'Repare o casco antes de atacar.',
       };
@@ -629,12 +632,14 @@ export class NavalBattleController {
         fx:{preset:'rusted-iron',projectile:{texture:launcher.projectileAsset,scale:1.5}}},
       impactKind:'water',startTime:now,flameBoost,
       onImpact:({at})=>this.resolveHarpoonImpact(targetId,at,
-        playerHarpoonDamage((launcher.dotDamage?harpoonDamage(launcher):(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:leviathanHuntHarpoonDamage(launcher,save,target)))*(flameBoost?5:1)),launcher),
+        playerHarpoonDamage((launcher.dotDamage?harpoonDamage(launcher):(piercing?ARMOR_PIERCING_HARPOON_DAMAGE:leviathanHuntHarpoonDamage(launcher,save,target)))*(flameBoost?5:1))
+           * (this.getRegionId()==='r5'&&target.id===R5_LEVIATHAN_ID?4:1),launcher),
     });
     if (!accepted) {this.onFeedback('⚠️ Disparo de arpão indisponível.');return false;}
     playCannonSound('harpoon');
     this.writePatch({harpoonAmmo:{...(save.harpoonAmmo??{}),[harpoonAmmoId]:(launcher.flameTip?horizonHarpoonStock(save):piercing?armorPiercingHarpoonStock(save):harpoonStock(save))-1}});
-    this.nextHarpoonAt=now+playerHarpoonReloadMs(launcher.reloadSeconds,{flameBoost});
+    this.nextHarpoonAt=now+playerHarpoonReloadMs(launcher.reloadSeconds,{flameBoost})
+      / (this.getRegionId()==='r5'?2:1);
     this.onFeedback((horizonFlame?'🔥 Arpão incandescente':flameBoost?'🔥 Arpão em chamas':'⚓ Arpão')+' lançado contra '+target.name+'!');
     return true;
   }
@@ -734,7 +739,10 @@ export class NavalBattleController {
       const { slot, cannon } = battery[batteryIndex];
       if (now < (this.nextBySlot.get(slot) ?? -Infinity)) continue;
 
-      const ammoId = cannon.exclusiveAmmoId
+      const eclipseOnlyMoon=target.id===R5_ECLIPSE_BOSS_ID&&this.getRegionId()==='r5';
+      const ammoId = eclipseOnlyMoon
+        ? (cannonAcceptsAmmo(cannon,MOON_BARRAGE_AMMO_ID)&&ammoStockById[MOON_BARRAGE_AMMO_ID]>0?MOON_BARRAGE_AMMO_ID:null)
+        : cannon.exclusiveAmmoId
         ? cannon.exclusiveAmmoId
         : (cannonAcceptsAmmo(cannon, this.selectedAmmoId) && ammoStockById[this.selectedAmmoId] > 0
           ? this.selectedAmmoId
@@ -796,7 +804,7 @@ export class NavalBattleController {
             }
             this.onFeedback('❄️ Coração do Inverno: congelamento em área por 4 segundos!');
           }
-          const result = this.resolvePlayerImpact(target.id, at, damage);
+          const result = this.resolvePlayerImpact(target.id, at, damage, ammo.id);
           if(result?.kind==='ship' && target.type==='npc' && target.health>0){
             const slow=applySeekingOrbSlow(target,ammo.id,Date.now());
             if(slow>0)this.onFeedback('🌀 '+target.name+' desacelerado em '+Math.round(slow*100)+'% por Orbe Teleguiado!');
@@ -835,10 +843,14 @@ export class NavalBattleController {
     return 0;
   }
 
-  resolvePlayerImpact(targetId, at, damage) {
+  resolvePlayerImpact(targetId, at, damage, ammoId=null) {
     const target = this.getEntities().get(targetId);
     // An already sunk target cannot produce another victory, loot roll or mission event.
     if(!target || Number(target.health)<=0)return {kind:'water'};
+    if(this.getRegionId()==='r5' && target.id===R5_ECLIPSE_BOSS_ID && ammoId!==MOON_BARRAGE_AMMO_ID){
+      this.onFeedback('🌙 O Eclipse só pode ser ferido pela Rajada da Lua.');
+      return {kind:'water'};
+    }
     const lockedThief = this.getThiefMissionTarget();
     if (lockedThief && target?.id !== lockedThief.id) return { kind: 'water' };
     if(target?.id==='r2-morbi' && this.readSave().r2Campaign?.active!=='r2-golden-ii' && this.readSave().fleetCampaign?.version!==1)return {kind:'water'};
@@ -1021,9 +1033,11 @@ export class NavalBattleController {
           const current=this.getEntities().get(monster.id);
           if(!current||current.health<=0||this.isShieldActive()||this.readSave().combat?.repairingUntil)return true;
           const save=this.readSave();
-          const health=Math.max(0,this.getHealth()-50000);
+          const leviathanDamage=this.getRegionId()==='r5'
+             ? Math.max(1,Math.round(this.getMaxHealth()*.08)):50000;
+           const health=Math.max(0,this.getHealth()-leviathanDamage);
           this.writePatch({combat:{...save.combat,shipHealth:health}});
-          this.onFeedback(health>0?'🔥 Leviatã atingiu o casco! -50.000 PV.':'☠️ O fogo do Leviatã afundou seu navio!');
+          this.onFeedback(health>0?'🔥 Leviatã atingiu o casco! -'+leviathanDamage+' PV.':'☠️ O fogo do Leviatã afundou seu navio!');
           if(!health)this.firing=false;
           return true;
         }:null,
@@ -1189,7 +1203,8 @@ export class NavalBattleController {
         continue;
       }
 
-      if(this.getRegionId()==='r4' && npc.archetype==='frozen-mirror-boss' && npc.health>0){
+      if((this.getRegionId()==='r4' && npc.archetype==='frozen-mirror-boss'
+        ||this.getRegionId()==='r5'&&npc.archetype==='eclipse-mirror-boss') && npc.health>0){
         const distance=distanceBetween(npc,player);
         if(distance<=Math.max(900,Number(npc.range)||0)){
           // The mirror uses all nine gunports of the player's Corsário da
@@ -1206,7 +1221,7 @@ export class NavalBattleController {
             sequenceKey:npc.id+':mirror-freeze-sequence',
             reloadKey:npc.id+':mirror-freeze-reload',
             reloadMs:10000,damage:Math.max(3,Math.round((Number(npc.damage)||10)*.75)),
-            speed:640,ammo:effectiveAmmo('frozen-explosion'),
+            speed:640,ammo:effectiveAmmo(npc.archetype==='eclipse-mirror-boss'?MOON_BARRAGE_AMMO_ID:'frozen-explosion'),
           });
         }
         continue;
