@@ -17,10 +17,15 @@ export const FUTURE_FLEET_REGIONS=Object.freeze(Object.fromEntries(presets.map((
   ...R2,id:'r'+n,name,width,height,
   spawn:Object.freeze({x:400,y:850}),
   exitPoint:Object.freeze({x:width-170,y:height-170,radius:155,toRegion:n+1}),
-  islands:Object.freeze(R2.islands.map(island=>Object.freeze({...island,
-   id:'r'+n+'-'+island.id,
-   // Retain known collision-safe dock locations.
-  }))),
+  // R6 is open black water: remove decorative islands from both rendering and collision.
+  // Mission and shipyard docks remain physically reachable, but nearly disappear in shadow.
+  islands:Object.freeze(R2.islands
+   .filter(island=>n!==6||island.kind!=='decoration')
+   .map(island=>Object.freeze({...island,
+    id:'r'+n+'-'+island.id,
+    ...(n===6?{visualBrightness:.18,visualSaturation:.32}:{}),
+    // Retain known collision-safe dock locations.
+   }))),
   // After Eclipse, the Iron Strait is a deeper, colder night: no return to daylight.
   // R6 fog is drawn on a separate, lightweight layer; ships and objectives stay legible.
   ...(n===6?{atmosphere:Object.freeze({kind:'cold-night-mist',intensity:.78})}:{}),
