@@ -64,7 +64,7 @@ export function grantFleetEntry(save,regionId){
 }
 export function fleetShipForRegion(save,regionId){
  const e=save.equipment??{},owned=new Set(['starter-red-sails',...(e.ownedShipIds??[])]);
- const prior={r1:'starter-red-sails',r2:owned.has('fragata-sombra-cacadora')
+ const prior={r1:owned.has('galeao-halloween-tabuada')?'galeao-halloween-tabuada':'starter-red-sails',r2:owned.has('fragata-sombra-cacadora')
     ?'fragata-sombra-cacadora':owned.has('galeao-halloween-tabuada')?'galeao-halloween-tabuada':'starter-red-sails',
    r3:owned.has(PLAYABLE_EMERALD_GHOST.id)?PLAYABLE_EMERALD_GHOST.id:owned.has(PLAYABLE_SHADOW_THIEF.id)?PLAYABLE_SHADOW_THIEF.id:'galeao-dourado',
    r4:owned.has(PLAYABLE_FROZEN_LANDS.id)?PLAYABLE_FROZEN_LANDS.id:'terror-do-mar',
