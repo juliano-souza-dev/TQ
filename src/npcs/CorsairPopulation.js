@@ -1,4 +1,6 @@
 import { PUMPKIN_FLEET_GALLEON_SHIP } from '../ships/PumpkinFleetGalleonShip.js';
+import { BLOOD_RED_CORSAIR_SHIP } from '../ships/BloodRedCorsairShip.js';
+import { BLACK_MARKET_SHIP } from '../ships/BlackMarketShip.js';
 import { NORTHERN_THIEF_SHIP } from '../ships/NorthernThiefShip.js';
 import { FROZEN_LANDS_GALLEON_SHIP, FROST_THIEF_SHIP } from '../ships/FrozenLandsGalleonShip.js';
 import { createRedSailCorsair, updateCorsair, RED_SAIL_CORSAIR } from './RedSailCorsair.js';
@@ -39,6 +41,43 @@ function resolveNpcCollisions(world) {
 export const CORSAIR_POPULATION = 20;
 export const CORSAIR_RESPAWN_MS = 20000;
 const MARGIN = 90;
+
+// Four hulls across the 20 mandatory targets in Region 2. The IDs and
+// red-sail-corsair archetype stay the same: previously sunk NPCs remain sunk.
+export const R2_CORSAIR_PROFILES = Object.freeze([
+  Object.freeze({
+    name:'Corsário das Velas Rubras',shipId:'starter-red-sails',
+    health:260,speed:155,damage:2,range:580,cannonSlots:2,
+  }),
+  Object.freeze({
+    name:'Corsário Vermelho Sangue',shipId:BLOOD_RED_CORSAIR_SHIP.id,
+    health:850,speed:195,damage:3,range:690,cannonSlots:3,
+  }),
+  Object.freeze({
+    name:'Mercenário do Mercado Negro',shipId:BLACK_MARKET_SHIP.id,
+    health:1950,speed:150,damage:4,range:760,cannonSlots:3,
+  }),
+  Object.freeze({
+    name:'Galeão Saqueador das Abóboras',shipId:PUMPKIN_FLEET_GALLEON_SHIP.id,
+    health:3900,speed:180,damage:5,range:840,cannonSlots:4,
+  }),
+]);
+export function applyR2CorsairProfile(npc,index){
+  const profile=R2_CORSAIR_PROFILES[index % R2_CORSAIR_PROFILES.length];
+  const veteran=Math.floor(index/R2_CORSAIR_PROFILES.length);
+  const elite=veteran===4;
+  const health=Math.round(profile.health*(1+veteran*.15)*(elite?1.3:1));
+  return Object.assign(npc,{
+    name:(elite?'Capitão ':'')+profile.name,
+    shipId:profile.shipId,health,maxHealth:health,
+    speed:profile.speed,patrolSpeed:profile.speed,baseSpeed:profile.speed,
+    damage:profile.damage,range:profile.range,cannonSlots:profile.cannonSlots,
+    fleetId:'r2-'+profile.shipId,
+    aggression:'retaliate',retaliationActive:false,
+    state:'patrolling',fleetElite:elite,
+  });
+}
+
 
 function spawnPosition(region, player, random) {
   for (let attempt = 0; attempt < 120; attempt++) {
@@ -136,6 +175,7 @@ export function createCorsairPopulation(world, random = Math.random) {
     const npc = world.region.id === 'r1' && i === 0
       ? createTerrorDaTabuada(id, position.x, position.y, random() * 360)
       : createRedSailCorsair(id, position.x, position.y, random() * 360);
+    if(world.region.id==='r2')applyR2CorsairProfile(npc,i);
     npc.wanderTimeMs = 800 + random() * 2400;
     npc.respawnRemainingMs = null;
     world.entities.set(id, npc);
@@ -291,9 +331,9 @@ export function updateCorsairPopulation(world, deltaMs, random = Math.random, on
     }
 
     const radians = npc.heading * Math.PI / 180;
-    const speed = npc.archetype === TERROR_DA_TABUADA.id
+    const speed = npc.patrolSpeed ?? (npc.archetype === TERROR_DA_TABUADA.id
       ? TERROR_DA_TABUADA.speed.initial
-      : RED_SAIL_CORSAIR.speed.initial;
+      : RED_SAIL_CORSAIR.speed.initial);
     const distance = npc.retaliationActive
       ? Math.min(speed*deltaMs/1000,Math.max(0,Math.hypot(world.camera.x-npc.x,world.camera.y-npc.y)-100))
       : speed * deltaMs / 1000;
