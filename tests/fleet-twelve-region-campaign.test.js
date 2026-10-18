@@ -41,11 +41,12 @@ test('boss reward is only awarded once and exit travels only after complete',()=
  c.fleetCampaign.defeated.r5=Array.from({length:p.enemyGoal},(_,i)=>'npc-'+i);
  c.fleetCampaign.monsters.r5=['m1','m2'];
  c.fleetCampaign.treasures.r5=['t1'];
- const boss={id:'r2-morbi',type:'npc',archetype:'golden-galleon',shipId:'galeao-dourado'};
+ const boss={id:'r5-eclipse',type:'npc',archetype:'eclipse-mirror-boss',shipId:'galeao-eclipse'};
  assert.equal(fleetRole('r5',boss),'boss');
- assert.equal(fleetRole('r2',boss),null,'Morbi must not be an R2 boss');
+ assert.equal(fleetRole('r2',boss),null,'Eclipse must not be an R2 boss');
  const win=recordFleetDefeat(c,'r5',boss);
- assert.ok(win.equipment.ownedShipIds.includes('galeao-dourado'));
+ assert.ok(win.equipment.ownedShipIds.includes('galeao-eclipse'));
+ assert.equal(win.equipment.equippedShipId,'galeao-eclipse');
  const after={...c,...win};
  assert.equal(recordFleetDefeat(after,'r5',boss),null);
  assert.equal(fleetProgress(after,'r5',1).complete,true);
