@@ -100,7 +100,7 @@ test('Silas receives entire arsenal once and grants exact Terror da Abobora pack
   assert.equal(claim.patch.equipment,undefined);
   assert.equal(claimR3Mission({...next,...claim.patch},R3_SILAS_MISSION_ID),null);
 });
-test('Horizon fires a burning 50x-speed harpoon, deals 400 and reloads in 1.3s',()=>{
+test('Horizon fires a burning 50x-speed harpoon, deals 800 and reloads in 0.65s',()=>{
   let now=1000;
   let save={equipment:{ownedHarpoonIds:[HORIZON_HARPOON_ID],equippedHarpoonId:HORIZON_HARPOON_ID},
     harpoonAmmo:{'harpoon-horizon-incendiary':3,'harpoon-mariner':3,'harpoon-armor-piercing':6},combat:{shipHealth:100}};
@@ -124,10 +124,10 @@ test('Horizon fires a burning 50x-speed harpoon, deals 400 and reloads in 1.3s',
   assert.equal(shots[0].ammo.name,'Arpão Incandescente');
   assert.equal(save.harpoonAmmo['harpoon-armor-piercing'],6);
   assert.equal(shots[0].onImpact({at:{x:1000,y:0}}).kind,'ship');
-  assert.equal(monster.health,600);
-  now=2299;
+  assert.equal(monster.health,200);
+  now=1649;
   assert.equal(battle.getHarpoonStatus().ready,false);
-  now=2300;
+  now=1650;
   assert.equal(battle.getHarpoonStatus().ready,true);
   monster.x=1101;
   assert.equal(battle.getHarpoonStatus().ready,false);
