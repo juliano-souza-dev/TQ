@@ -1140,6 +1140,7 @@ async function startWorld() {
     readSave,
     writePatch,
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
+    getExit: () => world.fleetNoRespawn&&fleetProgress(readSave(),world.region.id,fleetTreasureGoal(world.region.id,world.region))?.complete?fleetExitPoint(world.region):null,
     getEntities: () => world.entities,
     onFeedback: message => navalHud?.setFeedback(message),
     onDamageVisual: event => damageTextRenderer?.add(event),
@@ -2514,7 +2515,7 @@ async function startWorld() {
     } else if (flow.stage !== 'welcome') firstVoyageGuide.guideTo(flow.destination);
   }
   updateMissionHud();
-  if(world.fleetNoRespawn)syncFleetEncounter();
+  // Fleet encounter synchronization starts after its runtime counters are initialized.
   // Restore the R4 guided pointer on every world load, including active missions.
   // The earlier startup condition only covered players without an active contract.
   if(world.region.id==='r4'&&!world.fleetNoRespawn){
@@ -2823,6 +2824,7 @@ async function startWorld() {
       }
     }
   }
+  if(world.fleetNoRespawn)syncFleetEncounter();
   let positionSaveElapsed = 0;
   function persistPlayerPosition(stepMs) {
     positionSaveElapsed += stepMs;
