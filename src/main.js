@@ -1452,6 +1452,7 @@ async function startWorld() {
   exitBeacon.innerHTML = '<span class="region-exit-beacon-ring">✦</span><span class="region-exit-beacon-label">Costa dos Corsários</span>';
   root.append(exitBeacon);
   function updateExitBeacon() {
+    if(world.fleetNoRespawn){exitBeacon.hidden=true;return;}
     const mission = getCampaignBoard(readSave()).missions.find(item => item.id === 'r1-finale');
     const target = world.region.id === 'r1' && mission && ['active','ready','claimed'].includes(mission.status)
       ? world.region.exitPoint : null;
@@ -1620,6 +1621,7 @@ async function startWorld() {
     return !!m && ['active','ready','claimed'].includes(m.status);
   }
   function updateDarkPortal(now){
+    if(world.fleetNoRespawn){darkPortal.hidden=true;return;}
     if(!darkPortalUnlocked()){darkPortal.hidden=true;return;}
     const screen=projectScreenPoint(darkWatersExit.x,darkWatersExit.y);
     const {x,y}=screen;
@@ -1631,6 +1633,7 @@ async function startWorld() {
     darkPortalEffect.render(now);
   }
   function updateThiefGuide() {
+    if(world.fleetNoRespawn){thiefGuide.hidden=true;return;}
     const campaign = readSave().campaign ?? {};
     const thiefActive = campaign.active?.includes('r1-negotiation') && !campaign.negotiationRobbed && !mathGate.isOpen;
     const exitActive = campaign.active?.includes('r1-finale')
@@ -2278,6 +2281,7 @@ async function startWorld() {
   let lastPortCombatBlockNoticeAt=-Infinity;
   let pendingCombatPortId=null;
   function openDockContact(contact){
+    if(world.fleetNoRespawn)return false;
     if(!contact || contact.kind==='decoration')return false;
     pendingCombatPortId=null;
     contactId = contact.id;
@@ -2660,6 +2664,16 @@ async function startWorld() {
       world.entities.set(boss.id,boss);
     }
     if(!boss)return;
+    if(!boss.fleetSnapshotRestored){
+      boss.fleetSnapshotRestored=true;
+      const snapshot=readSave().fleetCampaign?.bossSnapshots?.[encounter.id];
+      if(snapshot&&Number(snapshot.health)>0){
+        boss.health=Math.max(1,Math.min(Number(boss.maxHealth)||Number(snapshot.health),Number(snapshot.health)));
+        if(Number.isFinite(snapshot.x))boss.x=snapshot.x;
+        if(Number.isFinite(snapshot.y))boss.y=snapshot.y;
+        if(Number.isFinite(snapshot.heading))boss.heading=snapshot.heading;
+      }
+    }
     if(boss.archetype==='terror-do-mar'){
       boss.varkorBattleUnlocked=true;boss.attackProtectedUntil=0;boss.phasedOut=false;
       boss.damage=12;boss.cannonSlots=12;boss.speed=270;
@@ -2685,9 +2699,20 @@ async function startWorld() {
   let positionSaveElapsed = 0;
   function persistPlayerPosition(stepMs) {
     positionSaveElapsed += stepMs;
-    if (positionSaveElapsed < 1500) return;
-    positionSaveElapsed = 0;
-    writePatch({ playerPosition: { x: world.camera.x, y: world.camera.y } });
+    if(positionSaveElapsed<1500)return;
+    positionSaveElapsed=0;
+    if(world.fleetNoRespawn){
+      const save=readSave(),p=fleetProgress(save,world.region.id,fleetTreasureGoal(world.region.id,world.region));
+      const boss=p?.encounter?[...world.entities.values()].find(n=>encounterMatches(p.encounter,n)):null;
+      if(boss?.health>0){
+        const old=save.fleetCampaign?.bossSnapshots??{};
+        writePatch({playerPosition:{x:world.camera.x,y:world.camera.y},
+          fleetCampaign:{...save.fleetCampaign,bossSnapshots:{...old,[p.encounter.id]:{
+            health:boss.health,x:boss.x,y:boss.y,heading:boss.heading}}}});
+        return;
+      }
+    }
+    writePatch({playerPosition:{x:world.camera.x,y:world.camera.y}});
   }
   let state = setGameStatus(createGameState({ seed: previousSave?.payload?.seed ?? 1 }), GAME_STATUS.RUNNING);
   const originalR3Ocean=world.region.id==='r3'?{...world.region.ocean}:null;
