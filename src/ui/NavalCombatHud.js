@@ -239,17 +239,20 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   }
 
 
-  // Prototype navigation/impact traces are no longer user-facing HUD messages.
-  const isPrototypeTrace = message => /navegando até os destroços|alvo selecionado:|bala.*água|projétil.*água|acertou (?:o )?navio|impacto (?:na |n. )?água/i.test(String(message||''));
+  // A permanent trace of every projectile, turn or target was useful in the
+  // prototype, not in the playable HUD. Show only actionable warnings/mission
+  // events briefly. All damage/healing is already conveyed by health bars.
+  const importantFeedback = message => /^(?:⚠️|☠️|🏆|❄️ Seu navio foi congelado|⏹ Disparos interrompidos)|sem munição|fora do alcance|indisponível|destruído|afundou seu navio|missão|reparos|sem arpões|já ativo|aguarde/i.test(String(message||''));
   function setFeedback(text) {
-    if(isPrototypeTrace(text))return;
-    automaticFeedback = '';
+    if(!importantFeedback(text))return;
+    automaticFeedback='';
     setText(feedback,text||'');
-    if(isPortrait()&&text){
-      feedback.classList.add('is-visible');
-      if(feedbackTimer)clearTimeout(feedbackTimer);
-      feedbackTimer=setTimeout(()=>feedback.classList.remove('is-visible'),2000);
-    }
+    feedback.classList.add('is-visible');
+    if(feedbackTimer)clearTimeout(feedbackTimer);
+    feedbackTimer=setTimeout(()=>{
+      feedback.classList.remove('is-visible');
+      feedback.textContent='';
+    },2400);
   }
 
   function refresh() {
@@ -433,16 +436,9 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     fireButton.title = status.ready || status.firing
       ? 'Disparos automáticos com os canhões equipados'
       : (MESSAGES[status.reason] || '');
-    if (!status.firing && !status.ready) {
-      const nextAutomatic = MESSAGES[status.reason] || '';
-      if (!feedback.textContent || feedback.textContent === automaticFeedback) {
-        automaticFeedback = nextAutomatic;
-        feedback.textContent = nextAutomatic;
-      }
-    } else if (automaticFeedback && feedback.textContent === automaticFeedback) {
-      automaticFeedback = '';
-      feedback.textContent = '';
-    }
+    // Do not regenerate a persistent action/status log every HUD refresh.
+    // The fire button tooltip still explains unavailable attacks.
+
   }
 
   consumablesButton.addEventListener('click', () => { ammoPicker.hidden = true; picker.hidden = !picker.hidden; refresh(); });
