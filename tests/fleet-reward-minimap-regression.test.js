@@ -68,14 +68,14 @@ test('R2 fugitive awards its hunter ship and exactly two guided cannons',()=>{
  assert.ok(after.ammunition['aetherion-seeker']>=60000);
  assert.equal(reconcileFleetBossPrizes(after),null);
 });
-test('R5 Morbi awards the Golden Galleon only after its R5 victory',()=>{
+test('R5 Eclipse awards and equips the Eclipse only after victory',()=>{
  const save=initial();
  save.fleetCampaign.region=5;
- save.fleetCampaign.bosses={r5:['r2-morbi']};
+ save.fleetCampaign.bosses={r5:['r5-eclipse']};
  const patch=reconcileFleetBossPrizes(save);
  const after={...save,...patch};
- assert.ok(after.equipment.ownedShipIds.includes('galeao-dourado'));
- assert.equal(after.equipment.equippedShipId,'galeao-dourado');
+ assert.ok(after.equipment.ownedShipIds.includes('galeao-eclipse'));
+ assert.equal(after.equipment.equippedShipId,'galeao-eclipse');
  assert.equal(reconcileFleetBossPrizes(after),null);
 });
 test('every map edge and corner projects safely inside the ornamental radar circle',()=>{
