@@ -438,6 +438,12 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
       : (MESSAGES[status.reason] || '');
     // Do not regenerate a persistent action/status log every HUD refresh.
     // The fire button tooltip still explains unavailable attacks.
+    // Clear any legacy automatic guidance once a valid target is acquired.
+    if(status.ready && feedback.textContent === automaticFeedback){
+      feedback.textContent='';
+      feedback.classList.remove('is-visible');
+      automaticFeedback='';
+    }
 
   }
 
