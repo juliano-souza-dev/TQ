@@ -1547,3 +1547,6 @@ html[data-tq-layout="mobile-portrait"] .combat-hud .naval-ammo-option span:nth-c
 }
 html[data-tq-layout="mobile-portrait"] .combat-hud .naval-ammo-option-count {font-size:10px;}
 html[data-tq-layout="mobile-portrait"] .combat-hud .naval-ammo-option:disabled {opacity:.42;filter:grayscale(.65);}
+
+/* Wreckage and loot belong to the sea floor visual pass, below all ships. */
+.treasure-layer,.treasure-glow-layer {z-index:1;}
