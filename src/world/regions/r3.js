@@ -31,8 +31,6 @@ export const R3=Object.freeze({
     Object.freeze({id:'r3-red-coral',name:'Red do Coral Sangrento',x:3220,y:4480,heading:270,speed:242.25,maxHealth:4800,detectionRange:680,raidRadius:86,role:'terror-guardian'}),
   ]),
   islands:Object.freeze([
-    Object.freeze({...R2.islands.find(i=>i.kind==='missions'),id:'r3-missions',x:850,y:1700}),
-    Object.freeze({...R2.islands.find(i=>i.kind==='shipyard'),id:'r3-shipyard',x:3370,y:1650}),
     Object.freeze({...R2.islands.find(i=>i.id==='r2-scenery-south'),id:'r3-dark-island',x:2350,y:4200}),
   ]),
   ocean:Object.freeze({
