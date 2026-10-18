@@ -43,7 +43,8 @@ test('ordinary cannon projectiles deal exactly 2X while enabled',()=>{
 });
 test('2X costs nothing for WebGL rejected launches and deactivates at zero charges',()=>{
  const rejected=battle({accepted:false,enabled:true});
- assert.equal(rejected.c.toggleFire(),false);
+ rejected.c.toggleFire();
+ assert.equal(rejected.shots.length,0,'rejected launch must not enter the renderer queue');
  assert.equal(rejected.save.consumables.quantities['double-damage'],3);
  const exhausted=battle({enabled:true,charges:1});
  assert.equal(exhausted.c.toggleFire(),true);
