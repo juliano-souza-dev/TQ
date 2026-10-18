@@ -88,6 +88,23 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   const fireRing=document.createElement('span');
   fireRing.className='portrait-fire-ring';fireRing.setAttribute('aria-hidden','true');
   fireIconButton.append(fireIcon,fireRing);
+  // Explicit opt-in; changes only the input trigger, never combat rules.
+  const autoButton=document.createElement('button');
+  autoButton.type='button';autoButton.className='portrait-auto-fire';autoButton.textContent='AUTO';
+  let autoAimEnabled=false;
+  try{autoAimEnabled=localStorage.getItem('tq_auto_aim')==='true';}catch{}
+  function syncAutoButton(){
+    autoButton.setAttribute('aria-pressed',String(autoAimEnabled));
+    autoButton.setAttribute('aria-label',autoAimEnabled?'Desativar disparo automático':'Ativar disparo automático');
+    autoButton.title=autoAimEnabled?'Disparo automático ativo. Toque para desligar.':'Disparar automaticamente ao alcançar um alvo';
+    fireIconButton.classList.toggle('is-auto-enabled',autoAimEnabled);
+  }
+  function setAutoAim(enabled){
+    autoAimEnabled=Boolean(enabled);
+    try{localStorage.setItem('tq_auto_aim',String(autoAimEnabled));}catch{}
+    syncAutoButton();
+  }
+  syncAutoButton();
   const feedback = document.createElement('span');
   feedback.className = 'combat-feedback';
   feedback.setAttribute('aria-live', 'polite');
@@ -111,7 +128,10 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   selectedIcon.alt = '';
   const countLabel = document.createElement('span');
   countLabel.className = 'naval-consumables-count';
-  consumablesButton.append(frame,selectedIcon,countLabel);
+  const abilityCooldown=document.createElement('span');
+  abilityCooldown.className='portrait-ability-cooldown';
+  abilityCooldown.setAttribute('aria-hidden','true');abilityCooldown.hidden=true;
+  consumablesButton.append(frame,selectedIcon,countLabel,abilityCooldown);
   const picker = document.createElement('div');
   picker.className = 'naval-consumables-picker';
   picker.hidden = true;
@@ -170,7 +190,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   const areaFreezeOption=areaFreezeItem.button;
   picker.append(noneOption,flameOption,doubleDamageOption,shieldOption,speedOption,mapOption,areaFreezeOption);
   consumablesWrap.append(consumablesButton,picker);
-  attackControls.append(fireButton, fireIconButton, consumablesWrap, centerButton, repairButton);
+  attackControls.append(fireButton, fireIconButton, autoButton, consumablesWrap, centerButton, repairButton);
   const statusPanel=document.createElement('div');
   statusPanel.className='portrait-status-panel';
   const statusToggle=document.createElement('button');
@@ -223,7 +243,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
       abilityDock.append(ammoWrap,consumablesWrap,centerButton,repairButton);
       element.append(statusPanel,abilityDock,cannonQuantity,attackControls,feedback);
     }else{
-      attackControls.append(fireButton,fireIconButton,consumablesWrap,centerButton,repairButton);
+      attackControls.append(fireButton,fireIconButton,autoButton,consumablesWrap,centerButton,repairButton);
       element.append(statusPanel,ammoWrap,cannonQuantity,attackControls,feedback);
     }
     element.classList.toggle('is-portrait',portrait);
@@ -278,6 +298,15 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     const speedRemaining=Math.max(0,Math.ceil((consumable.speedCooldownUntil-now)/1000));
     const mapRemaining=Math.max(0,Math.ceil((consumable.treasureMapCooldownUntil-now)/1000));
     const formatTime=seconds=>Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
+    const abilityRemaining={
+      'flame-5x':flameRemaining,shield:shieldRemaining,'speed-plus':speedRemaining,
+      'treasure-map':mapRemaining,'double-damage':0,'area-freeze':0,
+    }[consumable.selectedId]??0;
+    abilityCooldown.hidden=!isPortrait()||abilityRemaining<=0;
+    if(abilityRemaining>0)setText(abilityCooldown,abilityRemaining+'s');
+    consumablesButton.classList.toggle('is-recharging',abilityRemaining>0);
+    consumablesButton.setAttribute('aria-label',abilityRemaining>0
+      ?'Selecionar consumível, recarga em '+abilityRemaining+' segundos':'Selecionar consumível');
     for(const [item,quantity,left,until,selected] of [
       [flameItem,flameQty,flameRemaining,consumable.activeUntil,consumable.selectedId==='flame-5x'],
       [doubleDamageItem,doubleQty,0,0,doubleSelected],
@@ -305,7 +334,11 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     centerButton.classList.toggle('is-blocked', !cameraDetached);
     centerButton.setAttribute('aria-disabled', String(!cameraDetached));
     centerButton.title = cameraDetached ? 'Centralizar a câmera no navio' : 'Câmera acompanhando o navio';
-    const status = controller.getStatus();
+    let status = controller.getStatus();
+    // Reuse the existing 160ms HUD cadence, not a new animation loop.
+    if(isPortrait()&&autoAimEnabled&&status.ready&&!status.firing){
+      if(controller.toggleFire())status=controller.getStatus();
+    }
     const choices = [...status.options].filter(item => AMMUNITION.some(ammo => ammo.id === item.id))
       .sort((a,b) => ((NAVAL_AMMO[b.id]?.damagePerShot || 0) * (NAVAL_AMMO[b.id]?.damageFactor || 0))
         - ((NAVAL_AMMO[a.id]?.damagePerShot || 0) * (NAVAL_AMMO[a.id]?.damageFactor || 0)));
@@ -357,7 +390,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     setText(ammoQuantity,isPortrait()?'◉ '+abbreviated:ammoLong);
     ammoQuantity.title=ammoLong;
     ammoButton.title=ammoLong+' · Selecione o tipo';
-    ammoQuantity.title = monsterSelected ? 'Lançador de arpão ativo: '+status.harpoonName : '';
+    ammoQuantity.title=monsterSelected?'Lançador de arpão ativo: '+status.harpoonName+' · '+ammoLong:ammoLong;
     const equipped = Number(status.equippedCannons);
     const inRange = Number(status.cannonsInRange);
     const cannonText=Number.isFinite(equipped)&&Number.isFinite(inRange)
@@ -439,6 +472,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   }
 
   consumablesButton.addEventListener('click', () => { ammoPicker.hidden = true; picker.hidden = !picker.hidden; refresh(); });
+  autoButton.addEventListener('click',()=>{setAutoAim(!autoAimEnabled);refresh();});
   noneOption.addEventListener('click', () => {controller.selectConsumable('none');picker.hidden=true;refresh();});
   function selectAndActivate(id) {
     if (!controller.selectConsumable(id)) return;
@@ -464,6 +498,8 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
         setFeedback(MESSAGES[status.reason]||'Disparo indisponível.');
         vibrate([20,40,20]);return;
       }
+      // Manual cancel also disables AUTO to avoid restarting on the next refresh.
+      if(autoAimEnabled&&status.firing)setAutoAim(false);
       if(controller.toggleFire())vibrate(15);
       refresh();
     };
@@ -495,6 +531,10 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   let lastCenterTouchAt = -Infinity;
   function centerShip() {
     if (centerButton.disabled) return;
+    if(!isCameraDetached()){
+      if(isPortrait())setFeedback('A câmera já está acompanhando o navio.');
+      return;
+    }
     onCenterShip();
     refresh();
   }
@@ -515,10 +555,14 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     lastRepairTouchAt = performance.now();
     event.preventDefault();
     if (controller.getHealth() < controller.getMaxHealth()) onRepair();
+    else if(isPortrait())setFeedback('Casco já está completo.');
   });
   repairButton.addEventListener('click', event => {
     if (event?.detail !== 0 && performance.now() - lastRepairTouchAt < 650) return;
-    if (!repairButton.disabled && controller.getHealth() < controller.getMaxHealth()) onRepair();
+    if(!repairButton.disabled){
+      if(controller.getHealth() < controller.getMaxHealth())onRepair();
+      else if(isPortrait())setFeedback('Casco já está completo.');
+    }
   });
   ammoButton.addEventListener('click', () => {
     if(ammoButton.getAttribute('aria-disabled')==='true'){
