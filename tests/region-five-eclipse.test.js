@@ -8,7 +8,9 @@ import {createMonsterPopulation} from '../src/monsters/MonsterPopulation.js';
 import {rollNpcAmmoLoot} from '../src/combat/NpcAmmoLoot.js';
 import {grantFleetEntry,fleetShipForRegion} from '../src/ships/FleetAutoEquipment.js';
 import {effectiveAmmo} from '../src/combat/NavalBattleRules.js';
-import {NavalBattleController} from '../src/combat/NavalBattleController.js';
+import {NavalBattleController,eclipseAmmoForCannon} from '../src/combat/NavalBattleController.js';
+import {CANNONS} from '../src/items/EquipmentCatalog.js';
+import {applySeekingOrbSlow,seekingOrbMovementSpeed} from '../src/combat/SeekingOrbSlow.js';
 import {MOON_BARRAGE_AMMO_ID,R5_ECLIPSE_BOSS_ID,R5_LEVIATHAN_ID,lunarRandomAmount} from '../src/missions/RegionFiveEclipse.js';
 
 const region=FUTURE_FLEET_REGIONS.r5;
@@ -51,7 +53,7 @@ test('R5 raiders triple hit points and deal ten times base damage',()=>{
   assert.equal(first.damage,previousDamage*10);
 });
 
-test('the Eclipse takes no damage from common shells and accepts lunar impact',()=>{
+test('the Eclipse rejects ordinary shells but accepts lunar and both guided orb types',()=>{
   const boss={id:R5_ECLIPSE_BOSS_ID,type:'npc',archetype:'eclipse-mirror-boss',
     health:500,maxHealth:500,x:800,y:900,aggression:'attack'};
   const battle=Object.create(NavalBattleController.prototype);
@@ -69,6 +71,36 @@ test('the Eclipse takes no damage from common shells and accepts lunar impact',(
   assert.equal(boss.health,500);
   assert.equal(battle.resolvePlayerImpact(boss.id,{x:800,y:900},50,MOON_BARRAGE_AMMO_ID).kind,'ship');
   assert.equal(boss.health,450);
+  assert.equal(battle.resolvePlayerImpact(boss.id,{x:800,y:900},50,'aetherion-seeker').kind,'ship');
+  assert.equal(boss.health,400);
+  assert.equal(battle.resolvePlayerImpact(boss.id,{x:800,y:900},50,'glacial-seeker').kind,'ship');
+  assert.equal(boss.health,350);
+  const slow=applySeekingOrbSlow(boss,'aetherion-seeker',1000);
+  assert.equal(slow,.02);
+  assert.ok(seekingOrbMovementSpeed(boss,330,1001)<330);
+});
+
+test('Eclipse ammo selection respects exclusive seeking cannons and runs without lunar stock',()=>{
+  const aetherion=CANNONS.find(c=>c.id==='aetherion-mk1');
+  const ice=CANNONS.find(c=>c.id==='ice-terror');
+  assert.equal(eclipseAmmoForCannon(aetherion,{'aetherion-seeker':12,'moon-barrage':200},'moon-barrage'),'aetherion-seeker');
+  assert.equal(eclipseAmmoForCannon(ice,{'glacial-seeker':8,'moon-barrage':0},'glacial-seeker'),'glacial-seeker');
+  assert.equal(eclipseAmmoForCannon(ice,{'aetherion-seeker':8,'moon-barrage':0},'aetherion-seeker'),null);
+  assert.equal(eclipseAmmoForCannon(ice,{'rusted-iron':100},'rusted-iron'),null);
+  const boss={id:R5_ECLIPSE_BOSS_ID,type:'npc',health:2000,x:800,y:900};
+  const battle=Object.create(NavalBattleController.prototype);
+  battle.readSave=()=>({equipment:{loadout:{'corsario-geada-negra':['aetherion-mk1']}},
+    ammunition:{'aetherion-seeker':12,'moon-barrage':0},combat:{shipHealth:3600}});
+  battle.getRegionId=()=> 'r5';
+  battle.getTarget=()=>boss;
+  battle.getPlayer=()=>({x:800,y:200});
+  battle.getHealth=()=>3600;
+  battle.shipId='corsario-geada-negra';
+  battle.selectedAmmoId='rusted-iron';
+  const status=battle.getStatus();
+  assert.equal(status.ready,true);
+  assert.equal(status.ammoId,'aetherion-seeker');
+  assert.equal(status.cannonsInRange,1);
 });
 
 test('one required Leviathan spawns and does not respawn after victory',()=>{
