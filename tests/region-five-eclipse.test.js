@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {FLEET_REGIONS,fleetProgress,fleetTreasureGoal,getFleetTreasures,recordFleetTreasure,recordFleetDefeat} from '../src/missions/FleetCampaign.js';
 import {FUTURE_FLEET_REGIONS} from '../src/world/regions/FutureFleetRegions.js';
 import {createFleetPopulation} from '../src/npcs/FleetPopulation.js';
+import {normalizeOceanConfig} from '../src/world/WorldOceanEffect.mjs';
 import {createMonsterPopulation} from '../src/monsters/MonsterPopulation.js';
 import {rollNpcAmmoLoot} from '../src/combat/NpcAmmoLoot.js';
 import {grantFleetEntry,fleetShipForRegion} from '../src/ships/FleetAutoEquipment.js';
@@ -17,6 +18,16 @@ const saveFor=()=>({
     ownedShipIds:['starter-red-sails','corsario-geada-negra'],
     loadout:{'corsario-geada-negra':['ice-terror']}},
   ammunition:{[MOON_BARRAGE_AMMO_ID]:0}
+});
+
+test('R5 is dark at shader level while older regions retain their brightness bounds',()=>{
+  const r5=normalizeOceanConfig(region.ocean);
+  assert.equal(r5.night,true);
+  assert.equal(r5.brightness,28);
+  assert.equal(r5.tintR,24);
+  const day=normalizeOceanConfig({brightness:28,tintR:24});
+  assert.equal(day.brightness,50);
+  assert.equal(day.tintR,50);
 });
 
 test('R5 moon ammunition rewards respect exact inclusive ranges',()=>{
