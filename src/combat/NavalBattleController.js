@@ -9,16 +9,15 @@ import { applySeekingOrbSlow } from './SeekingOrbSlow.js';
 import { EMERALD_GHOST_LEVIATHAN_DAMAGE, EMERALD_GHOST_LEVIATHAN_RELOAD_MS, EMERALD_GHOST_LEVIATHAN_RANGE } from '../npcs/DarkWatersFleet.js';
 import {
   ammoStock, armedCannons, availableNavalAmmo, cannonHardpoint, cannonRange,
-  effectiveAmmo, cannonAcceptsAmmo, aimWithAccuracy, distanceBetween, flightDurationMs,
+  effectiveAmmo, cannonAcceptsAmmo, isSpecialNavalAmmo, isSpecialNavalCannon,
+  bestSpecialAmmoForCannon, aimWithAccuracy, distanceBetween, flightDurationMs,
   interceptPoint, shipCollision, shotDamage,
 } from './NavalBattleRules.js';
 
-// Respect the ammunition each cannon can actually fire; tracking guns retain
-// their exclusive orbs, while ordinary guns can use Moon Barrage or Glacial Orbs.
+// The Eclipse permits only lunar/guided rounds. Each special cannon chooses
+// its highest-ranked compatible ammunition, never the old manual selection.
 export function eclipseAmmoForCannon(cannon,stock={},selectedId=null){
-  return [cannon?.exclusiveAmmoId,selectedId,MOON_BARRAGE_AMMO_ID,...ECLIPSE_DAMAGE_AMMO_IDS]
-    .find(id=>eclipseAcceptsAmmo(id)&&cannonAcceptsAmmo(cannon,id)
-      && (Number(stock?.[id])||0)>0)??null;
+  return bestSpecialAmmoForCannon(cannon,stock,eclipseAcceptsAmmo);
 }
 
 // Distinct cannon sounds, with pooled voices to avoid clipping during volleys.
@@ -191,16 +190,16 @@ export class NavalBattleController {
     const requested = save.selectedNavalAmmoId;
     const options = availableNavalAmmo(save);
     const battery = armedCannons(save, this.shipId);
-    const compatible = item => battery.some(({ cannon }) => cannonAcceptsAmmo(cannon, item.id));
+    const compatible = item => !isSpecialNavalAmmo(item.id) &&
+      battery.some(({ cannon }) => cannonAcceptsAmmo(cannon, item.id));
     if (requested && options.some(item => item.id === requested && item.amount > 0 && compatible(item))) return requested;
-    // The HUD selection controls ordinary cannons only. Special cannons
-    // always consume their exclusive ammo, independently of this selection.
+    // The selection is only for ordinary guns. Special rounds are automatic.
     return options.find(item => item.id === 'rusted-iron' && item.amount > 0 && compatible(item))?.id
-      || options.find(item => item.amount > 0 && item.id !== 'aetherion-seeker' && compatible(item))?.id
       || options.find(item => item.amount > 0 && compatible(item))?.id || 'rusted-iron';
   }
 
   setAmmo(ammoId) {
+    if(isSpecialNavalAmmo(ammoId))return false;
     const selected = availableNavalAmmo(this.readSave())
       .find(item => item.id === ammoId && item.amount > 0 && armedCannons(this.readSave(), this.shipId).some(({ cannon }) => cannonAcceptsAmmo(cannon, item.id)));
     if (!selected) return false;
@@ -343,13 +342,12 @@ export class NavalBattleController {
     const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon)
       && available.some(item=>item.amount>0 && (!eclipseTarget||eclipseAcceptsAmmo(item.id))
         && cannonAcceptsAmmo(cannon,item.id)));
-    const selectedWorks=eclipseTarget&&available.some(item=>item.id===this.selectedAmmoId
-      &&item.amount>0&&eclipseAcceptsAmmo(item.id)
-      &&battery.some(({cannon})=>cannonAcceptsAmmo(cannon,item.id)));
-    const statusAmmoId=eclipseTarget
-      ?(selectedWorks?this.selectedAmmoId:battery.map(({cannon})=>
-         eclipseAmmoForCannon(cannon,save.ammunition??{},this.selectedAmmoId)).find(Boolean)
-        ??MOON_BARRAGE_AMMO_ID):this.selectedAmmoId;
+    const autoSpecial=battery.filter(({cannon})=>isSpecialNavalCannon(cannon))
+      .sort((a,b)=>Number(b.cannon.baseDamage||0)-Number(a.cannon.baseDamage||0))
+      .map(({cannon})=>bestSpecialAmmoForCannon(cannon,save.ammunition??{},
+        eclipseTarget?eclipseAcceptsAmmo:()=>true)).find(Boolean);
+    const statusAmmoId=autoSpecial
+      ??(eclipseTarget?MOON_BARRAGE_AMMO_ID:this.selectedAmmoId);
     const ammo = ammoStock(save, statusAmmoId);
     // R1 possui um tutorial obrigatório. R2 já começa com combate liberado.
     // Finishing the introductory Corsair mission unlocks naval combat permanently.
@@ -759,13 +757,16 @@ export class NavalBattleController {
 
       const eclipseTarget=target.id===R5_ECLIPSE_BOSS_ID&&this.getRegionId()==='r5';
       const ammoId = eclipseTarget
-        ? eclipseAmmoForCannon(cannon,ammoStockById,this.selectedAmmoId)
-        : cannon.exclusiveAmmoId
-        ? cannon.exclusiveAmmoId
-        : (cannonAcceptsAmmo(cannon, this.selectedAmmoId) && ammoStockById[this.selectedAmmoId] > 0
+        ? eclipseAmmoForCannon(cannon,ammoStockById)
+        : isSpecialNavalCannon(cannon)
+        ? bestSpecialAmmoForCannon(cannon,ammoStockById)
+        : (cannonAcceptsAmmo(cannon,this.selectedAmmoId)
+            && !isSpecialNavalAmmo(this.selectedAmmoId)
+            && ammoStock({...save,ammunition:ammoStockById},this.selectedAmmoId)>0
           ? this.selectedAmmoId
           : availableNavalAmmo({...save,ammunition:ammoStockById})
-            .find(item => item.amount > 0 && cannonAcceptsAmmo(cannon,item.id))?.id);
+            .find(item => item.amount > 0&&!isSpecialNavalAmmo(item.id)
+              && cannonAcceptsAmmo(cannon,item.id))?.id);
       if (!cannonAcceptsAmmo(cannon, ammoId)) continue;
 
       const remaining = ammoStockById[ammoId] === undefined ? ammoStock(save, ammoId) : ammoStockById[ammoId];
