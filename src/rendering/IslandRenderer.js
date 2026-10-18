@@ -64,7 +64,18 @@ export class IslandRenderer {
       const height = size * image.naturalHeight / image.naturalWidth;
       const { x, y } = screen;
       if (x < -size || x > w + size || y < -height || y > h + height) continue;
-      this.ctx.drawImage(image, x - size / 2, y - height / 2, size, height);
+      // R6-only visual veil. Preserve true silhouettes, dock locations and collisions;
+      // no filter is applied to islands of other regions.
+      if(Number.isFinite(island.visualBrightness)){
+        const brightness=Math.max(0,Math.min(1,Number(island.visualBrightness)));
+        const saturation=Number.isFinite(island.visualSaturation)
+          ?Math.max(0,Math.min(1,Number(island.visualSaturation))):1;
+        this.ctx.save();
+        this.ctx.filter='brightness('+Math.round(brightness*100)+'%) saturate('
+          +Math.round(saturation*100)+'%)';
+        this.ctx.drawImage(image, x - size / 2, y - height / 2, size, height);
+        this.ctx.restore();
+      }else this.ctx.drawImage(image, x - size / 2, y - height / 2, size, height);
     }
   }
 }
