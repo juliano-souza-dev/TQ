@@ -232,6 +232,7 @@ function updateRaider(npc, world, deltaMs, random, raids, playerAlive=true) {
   if(npc.escapingToR4)return;
   if(Date.now()<(npc.frozenUntil||0)){npc.state='frozen';return;}
   if (npc.health <= 0) {
+    if(world.fleetNoRespawn)return;
     npc.respawnRemainingMs = (npc.respawnRemainingMs ?? DARK_WATERS_RAIDER_RESPAWN_MS) - Math.max(0, deltaMs);
     if (npc.respawnRemainingMs <= 0) respawnRaider(npc, world.region);
     return;
@@ -329,6 +330,7 @@ function updateRaider(npc, world, deltaMs, random, raids, playerAlive=true) {
 
 function updateTerrorGuardian(npc,world,deltaMs,playerAlive=true){
   if(npc.health<=0){
+    if(world.fleetNoRespawn)return;
     npc.respawnRemainingMs=(npc.respawnRemainingMs??DARK_WATERS_RAIDER_RESPAWN_MS)-Math.max(0,deltaMs);
     if(npc.respawnRemainingMs<=0)respawnRaider(npc,world.region);
     return;
