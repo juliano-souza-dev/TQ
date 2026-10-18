@@ -7,6 +7,7 @@ import { claimTreasure,treasureReward } from '../treasures/RegionTreasures.js';
 import { accumulateHullRepair,advanceHullRecovery,getMaxHullHealth } from '../combat/HullRepair.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
 import { fleetEnabled, recordFleetTreasure } from '../missions/FleetCampaign.js';
+import {MOON_BARRAGE_AMMO_ID} from '../missions/RegionFiveEclipse.js';
 
 
 export function applyNegotiationTheft(save) {
@@ -69,6 +70,8 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
     for(const [id,amount] of Object.entries(bonus))
       patch.ammunition[id]=(Number(patch.ammunition[id])||0)+amount;
     questEvent = fleetEnabled(save)?null:{ type: 'treasure', id: action.id };
+    const moonEarned=action.regionId==='r5'
+      ? Math.max(0,(Number(patch.ammunition?.[MOON_BARRAGE_AMMO_ID])||0)-(Number(save.ammunition?.[MOON_BARRAGE_AMMO_ID])||0)):0;
     message = 'Destroços resgatados! +' + outcome.reward.gold
       + ' ouro, +' + outcome.reward.iron + ' ferro, +'+outcome.reward.doubleDamage
       + ' Dano 2×, +'+outcome.reward.flame5x+' 5X em Chamas, ' +
@@ -78,7 +81,7 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
         'ocean-pearl':'Pérolas Oceânicas',
         'violet-crystal':'Cristais Violetas',
         'terror-rose':'Rosas do Terror',
-      }[id])).join(' · ');
+      }[id])).join(' · ') + (moonEarned?' · +'+moonEarned+' Rajadas da Lua':'');
   } else if (type === 'repair') {
     // Repair is not a one-use mission action. During the math question,
     // the current repair may finish or the hull may be healed by another
