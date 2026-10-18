@@ -1,4 +1,5 @@
 import { CANNONS } from '../items/EquipmentCatalog.js';
+import { isSpecialNavalCannon } from '../combat/NavalBattleRules.js';
 import {R5_ECLIPSE_BOSS_ID} from '../missions/RegionFiveEclipse.js';
 import {HORIZON_HARPOON_ID,HORIZON_HARPOON_AMMO_ID} from '../combat/HarpoonCatalog.js';
 import { STARTER_SHIP, HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP,
@@ -107,7 +108,10 @@ export function bestFleetLoadout(save,ship){
   +(save.shipUpgrades?.masterShipwright?5:0);
  const candidate=CANNONS.filter(c=>count(e,c.id)>0
   ||(e.cannonCounts?.[c.id]===undefined&&owned.has(c.id)))
-  .sort((a,b)=>cannonStrength(b)-cannonStrength(a)||a.id.localeCompare(b.id));
+  // The fleet auto-equips the best special battery before conventional guns.
+  // Keep actual cannon counts and the green ship's mandatory Aetherion slots.
+  .sort((a,b)=>Number(isSpecialNavalCannon(b))-Number(isSpecialNavalCannon(a))
+    ||cannonStrength(b)-cannonStrength(a)||a.id.localeCompare(b.id));
  const slots=[];
  // Fleet's green ship reserves two guided-orb cannons even when the
  // inventory includes seven or more Aetherion batteries from older saves.
