@@ -155,11 +155,7 @@ export class NavalBattleController {
       return {ok:true,reason:'❄️ Próximo disparo: congelamento em área de 250 metros por 5 segundos.'};
     }
     if(!config)return {ok:false,reason:'Selecione um consumível.'};
-    if(c.selectedId==='flame-5x' && this.getRegionId()==='r3' &&
-       !save.r3Campaign?.varkorFlameUnlocked)
-      return {ok:false,reason:'5X em Chamas será liberado na missão anterior ao confronto com Varkor.'};
-    if(c.selectedId==='flame-5x' && !this.isBossTarget(this.getTarget()))
-      return {ok:false,reason:'5X em Chamas só pode ser ativado contra chefes.'};
+    // 5X now enhances guided Aetherion orbs only, against any target.
     if(c[config.active]>now)return {ok:false,reason:'Consumível já ativo.'};
     if(c[config.cooldown]>now)return {ok:false,reason:'Aguarde '+Math.ceil((c[config.cooldown]-now)/1000)+'s para reutilizar.'};
     const count=Math.max(0,Math.floor(Number(c.quantities[c.selectedId])||0));
@@ -606,7 +602,8 @@ export class NavalBattleController {
     const aim=interceptPoint(from,target,this.velocities.get(target.id),launcher.projectileSpeed);
     const destination=aimWithAccuracy(aim,from,launcher.accuracy,this.random);
     const targetId=target.id;
-    const flameBoost=this.isFlameActive() && this.isBossTarget(target) && (this.getRegionId()!=='r3' || (target.archetype==='terror-do-mar' && !!this.readSave().r3Campaign?.varkorFlameUnlocked));
+    // The 5X consumable is for guided orbs, never harpoons.
+    const flameBoost=false;
     const horizonFlame=launcher.flameTip===true;
     // The generic flight helper enforces a 580 ms minimum for normal cannons.
     // Bypass it only here, or the nominal 50x projectile would still fly slowly.
@@ -746,7 +743,7 @@ export class NavalBattleController {
       const intercepted = interceptPoint(muzzle, target, this.velocities.get(target.id), speed);
       const accuracy = target.archetype === 'fugitive-frigate' && this.getThiefMissionTarget() ? 1 : cannon.accuracy;
       const destination = aimWithAccuracy(intercepted, muzzle, accuracy, this.random);
-      const flameBoost = this.isFlameActive() && this.isBossTarget(target) && (this.getRegionId()!=='r3' || (target.archetype==='terror-do-mar' && !!save.r3Campaign?.varkorFlameUnlocked));
+      const flameBoost = this.isFlameActive() && ammo.id==='aetherion-seeker';
       // The legacy Morbi duel has 900,000 HP and needs a large damage boost.
       // Fleet mode scales boss HP separately; applying the legacy 2500x bonus there made Morbi sink in 1-2 hits.
       const goldenMission = this.getRegionId() === 'r2' && save.fleetCampaign?.version!==1
@@ -807,7 +804,8 @@ export class NavalBattleController {
       this.writePatch({ammunition: {...save.ammunition, ...ammoStockById}});
       this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000 / (flameBoost ? 5 : 1)));
       this.playerSequenceCursor = (batteryIndex + 1) % battery.length;
-      this.nextPlayerSequenceAt = now + (battery.length > 1 ? (flameBoost ? CANNON_SEQUENCE_MS : PLAYER_CANNON_SEQUENCE_MS) : 0);
+      // Do not accelerate ordinary cannons through the global volley cadence.
+      this.nextPlayerSequenceAt = now + (battery.length > 1 ? PLAYER_CANNON_SEQUENCE_MS : 0);
       this.onFeedback('💥 1 bala disparada.');
       return 1;
     }

@@ -3,5 +3,7 @@ export function rollNpcAmmoLoot(regionId='r1',random=Math.random){if(regionId===
 export function grantNpcAmmoLoot(save,loot){
  if(!loot)return null;
  return {ammunition:{...(save?.ammunition??{}),[loot.id]:(Number(save?.ammunition?.[loot.id])||0)+loot.amount},
- profile:{...(save?.profile??{}),gold:(Number(save?.profile?.gold)||0)+(loot.gold||0)}};
+ profile:{...(save?.profile??{}),gold:(Number(save?.profile?.gold)||0)+(loot.gold||0)},
+ consumables:{...(save?.consumables??{}),quantities:{...(save?.consumables?.quantities??{}),
+  'flame-5x':(Number(save?.consumables?.quantities?.['flame-5x'])||0)+1}}};
 }

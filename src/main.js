@@ -1,6 +1,6 @@
 import {createFirstVoyageGuide} from './ui/FirstVoyageGuide.js';
 import {fleetEnabled,startFleetCampaign,getFleetTreasures,fleetTreasureGoal,
- fleetProgress,fleetLabel,recordFleetDefeat,reconcileFleetBossPrizes,finishFleetRegion,encounterMatches} from './missions/FleetCampaign.js';
+ fleetProgress,fleetLabel,recordFleetDefeat,reconcileFleetBossPrizes,finishFleetRegion,claimFleetMissionConsumables,encounterMatches} from './missions/FleetCampaign.js';
 import {FLEET_PLAYER_SHIPS,grantFleetPreparation,grantFleetEntry,reconcileFleetEquipment,cannonStrength} from './ships/FleetAutoEquipment.js';
 import { createFleetPopulation,updateFleetPopulation } from './npcs/FleetPopulation.js';
 import { FUTURE_FLEET_REGIONS,fleetExitPoint } from './world/regions/FutureFleetRegions.js';
@@ -1179,9 +1179,19 @@ async function startWorld() {
     },
     onVictory: npc => {
       const save = readSave();
+      // Award exactly one 5X plus regular loot when an NPC is sunk.
+      // Fleet battles used to return before running the loot handler.
+      const grantSinkingLoot=()=>{
+        if(npc.type!=='npc'||npc.health>0||npc.merchantKind==='black-market'||npc.lootGranted)return;
+        npc.lootGranted=true;
+        const loot=rollNpcAmmoLoot(world.region.id);
+        const patch=grantNpcAmmoLoot(readSave(),loot);
+        if(patch){writePatch(patch);showOceanReward('🎁 '+npc.name+': +1 5X em Chamas · +'+loot.amount+' '+loot.name+' · +'+loot.gold+' ouro.');}
+      };
       if(world.fleetNoRespawn){
         const patch=recordFleetDefeat(save,world.region.id,npc);
         if(patch)writePatch(patch);
+        grantSinkingLoot();
         world.entities.delete(npc.id);
         if(patch){
           showOceanReward('⚔️ '+npc.name+' derrotado!');
@@ -1246,12 +1256,7 @@ async function startWorld() {
           id: npc.id + ':' + Date.now() + ':' + performance.now(),
         });
       }
-      if(npc.type==='npc'&&npc.health<=0&&npc.merchantKind!=='black-market'&&!npc.lootGranted){
-        npc.lootGranted=true;
-        const loot=rollNpcAmmoLoot(world.region.id);
-        const patch=grantNpcAmmoLoot(readSave(),loot);
-        if(patch){writePatch(patch);showOceanReward('🎁 '+npc.name+': +'+loot.amount+' '+loot.name+' · +'+loot.gold+' ouro.');}
-      }
+      grantSinkingLoot();
     },
   });
   navalHud = createNavalCombatHud(navalBattle, {
@@ -2739,6 +2744,15 @@ async function startWorld() {
     let save=readSave();
     let p=fleetProgress(save,world.region.id,fleetTreasureGoal(world.region.id,world.region));
     if(!p||save.fleetCampaign?.finished)return;
+    // Two rewards per mission stage. Run before win announcements, including
+    // for pre-existing completed saves, without resetting inventory or progress.
+    for(const stage of [1,2]){
+      const gift=claimFleetMissionConsumables(save,world.region.id,stage);
+      if(!gift)continue;
+      writePatch(gift);
+      save=readSave();
+      showOceanReward('🎁 Missão '+stage+' concluída: +2 5X em Chamas e +2 Veloz+!');
+    }
     if(p.complete){
       if(!fleetVictoryAnnouncement){
         fleetVictoryAnnouncement=true;

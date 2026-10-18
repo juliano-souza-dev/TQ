@@ -169,6 +169,20 @@ export function recordFleetDefeat(save,regionId,npc){
  const prize=claimFleetBossPrize(base,regionId,encounter.id);
  return prize?{...prize}:{fleetCampaign:base.fleetCampaign};
 }
+// Award +2 of each consumable at the end of EACH fleet mission (1 and 2).
+// The saved claim key prevents duplicate grants after refresh or re-entry.
+export function claimFleetMissionConsumables(save,regionId,mission){
+ if(!fleetEnabled(save)||!FLEET_REGIONS[regionId]||![1,2].includes(mission))return null;
+ const p=fleetProgress(save,regionId,save.fleetCampaign?.treasureGoal?.[regionId]??0);
+ if(!p||(mission===1?!p.missionOneComplete||!p.prepared:!p.complete))return null;
+ const c=save.fleetCampaign,key=regionId+':'+mission;
+ if(ids(c.claimedMissionConsumables).includes(key))return null;
+ const consumables=save.consumables??{},quantities=consumables.quantities??{};
+ return {fleetCampaign:{...c,claimedMissionConsumables:[...ids(c.claimedMissionConsumables),key]},
+  consumables:{...consumables,quantities:{...quantities,
+   'flame-5x':(Number(quantities['flame-5x'])||0)+2,
+   'speed-plus':(Number(quantities['speed-plus'])||0)+2}}};
+}
 export function fleetLabel(p){
  if(!p)return 'Campanha naval';
  if(p.complete)return '🏆 Missão 2 concluída! Navegue até a saída marcada.';

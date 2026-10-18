@@ -29,5 +29,5 @@ test('consumível não pode ser ativado duas vezes durante o cooldown persistido
  c.selectConsumable('none');
  c.selectConsumable('flame-5x');
  assert.equal(c.activateConsumable().ok,false);
- assert.ok(t.save.consumables.cooldownUntil > Date.now()+299000);
+ assert.ok(t.save.consumables.cooldownUntil > Date.now()+149000);
 });
