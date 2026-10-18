@@ -15,7 +15,7 @@ const FLEETS=Object.freeze({
  r3:['shadow','pumpkin','red','ghost'],
  r4:['frost','thief','red','shadow','northern'],
  r5:['ghost','red','pumpkin','gold','market'],
- // Iron Strait has the Halloween pirate flotilla. Keep the imperial encounter unique.
+ // Halloween raiders share the Iron Strait with one restored Imperial Frigate Captain.
  r6:['pumpkin','halloween','ghost','red','shadow'],
  r7:['crimson','red','pumpkin','imperial','shadow'],
  r8:['veil','shadow','market','ghost','red'],
@@ -32,31 +32,39 @@ const NAMES=Object.freeze({
  imperial:'Fragata Imperial',crimson:'Corsário da Caveira',veil:'Vigia do Véu',
  market:'Mercenário do Mercado Negro',
 });
-// The Iron Strait's captain belongs to the Halloween flotilla, never to the
-// imperial ship class. The imperial galleon is reserved for the R6 final duel.
+// The first R6 captain uses the newly transparent 16-frame Imperial Galleon.
+// Other elites and the regular raiders keep the Halloween identity of the map.
+export const R6_IMPERIAL_CAPTAIN=Object.freeze({
+ name:'Capitão Fragata Imperial',
+ shipId:SHIPS.imperial,
+ fleetId:'r6-imperial'
+});
 export const R6_HALLOWEEN_CAPTAIN=Object.freeze({
  name:'Capitão da Frota das Abóboras',
  shipId:'galeao-frota-das-aboboras',
  fleetId:'r6-pumpkin'
 });
 const number=id=>Math.max(1,Number(id.slice(1))||1);
-export function replaceLegacyR6ImperialCaptains(world){
+// Preserve live HP, entity IDs and the wave progress while upgrading old R6 NPCs.
+export function restoreR6ImperialCaptain(world){
  if(world?.region?.id!=='r6'||!world.entities)return 0;
  let changed=0;
  for(const npc of world.entities.values()){
   if(!String(npc.id||'').startsWith('r6-fleet-')||npc.archetype!=='fleet-raider'
     ||Number(npc.health)<=0)continue;
-  const wasImperial=npc.shipId===SHIPS.imperial||/Fragata Imperial/i.test(npc.name||'');
-  if(!wasImperial)continue;
-  const elite=npc.fleetElite===true||/^Capitão /i.test(npc.name||'');
-  const replacement=elite
-    ?R6_HALLOWEEN_CAPTAIN
-    :{name:NAMES.pumpkin,shipId:SHIPS.pumpkin,fleetId:'r6-pumpkin'};
-  Object.assign(npc,replacement);
+  const isCaptain=npc.id==='r6-fleet-01';
+  const target=isCaptain?R6_IMPERIAL_CAPTAIN:
+    npc.shipId===SHIPS.imperial||/Fragata Imperial/i.test(npc.name||'')
+      ?{name:NAMES.pumpkin,shipId:SHIPS.pumpkin,fleetId:'r6-pumpkin'}:null;
+  if(!target)continue;
+  if(npc.name===target.name&&npc.shipId===target.shipId&&npc.fleetId===target.fleetId)
+    continue;
+  Object.assign(npc,target);
   changed++;
  }
  return changed;
 }
+
 function location(world,index,random){
  const {region}=world;
  for(let attempt=0;attempt<360;attempt++){
@@ -76,8 +84,8 @@ function location(world,index,random){
 export function createFleetPopulation(world,random=Math.random,save={}){
  const id=world.region.id,plan=FLEET_REGIONS[id];
  if(!world.fleetNoRespawn||!plan||!FLEETS[id])return 0;
- // Also re-skin any in-memory legacy R6 captains without resetting their HP or quest IDs.
- replaceLegacyR6ImperialCaptains(world);
+ // Upgrade already-created R6 captains without modifying their combat stats or progress.
+ restoreR6ImperialCaptain(world);
  const expected=id==='r3'?12:plan.enemyGoal;
  const defeated=new Set(save.fleetCampaign?.defeated?.[id]??[]);
  const wave=fleetWaveStatus(id,plan.enemyGoal,defeated.size);
@@ -96,14 +104,16 @@ export function createFleetPopulation(world,random=Math.random,save={}){
   const type=pool[(i*7+Math.floor(i/Math.max(1,pool.length)))%pool.length];
   const position=location(world,i,random);
   const elite=i%7===0;
-  const halloweenCaptain=id==='r6'&&elite;
+  const imperialCaptain=id==='r6'&&i===0;
+  const halloweenCaptain=id==='r6'&&elite&&!imperialCaptain;
+  const captain=imperialCaptain?R6_IMPERIAL_CAPTAIN:halloweenCaptain?R6_HALLOWEEN_CAPTAIN:null;
   const health=Math.round((id==='r3'?4500:id==='r4'?9000:16000+rank*3600)*(elite?1.9:1)*(1+(i%4)*.14)*(id==='r5'?3:1));
   const speed=type==='shadow'?360:type==='thief'?340:type==='imperial'?180:240+(i%3)*22;
   world.entities.set(key,{
    id:key,type:'npc',archetype:'fleet-raider',
-   name:halloweenCaptain?R6_HALLOWEEN_CAPTAIN.name:(elite?'Capitão ':'')+NAMES[type],
-   shipId:halloweenCaptain?R6_HALLOWEEN_CAPTAIN.shipId:SHIPS[type],
-   fleetId:halloweenCaptain?R6_HALLOWEEN_CAPTAIN.fleetId:id+'-'+type,
+   name:captain?captain.name:(elite?'Capitão ':'')+NAMES[type],
+   shipId:captain?captain.shipId:SHIPS[type],
+   fleetId:captain?captain.fleetId:id+'-'+type,
    x:position.x,y:position.y,heading:random()*360,
    health,maxHealth:health,speed,baseSpeed:speed,
    range:Math.min(1200,640+rank*34),damage:Math.max(2,Math.round((rank+2)*(elite?1.25:.75)))*(id==='r5'?10:1),
