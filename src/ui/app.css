@@ -638,6 +638,27 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   box-shadow:0 3px 12px #001522b8;
 }
 
+/* A campanha usa a mesma mão, mas menor e presa ao entorno do navio. */
+.thief-guide.fleet-exit-guide {
+  z-index:18;
+  max-width:138px;
+  gap:3px;
+}
+.thief-guide.fleet-exit-guide.is-route-guide .thief-guide-arrow {
+  width:42px;
+  height:42px;
+  box-sizing:border-box;
+}
+.thief-guide.fleet-exit-guide.is-route-guide .thief-guide-label {
+  font-size:11px;
+  line-height:1.25;
+  padding:4px 7px;
+  border-width:1px;
+  border-radius:8px;
+  white-space:nowrap;
+}
+
+
 /* Global selected-target panel, anchored directly beneath mission HUD. */
 .target-status-hud {position:fixed;z-index:15;left:max(10px,env(safe-area-inset-left));top:75px;
   width:min(47vw,240px);box-sizing:border-box;padding:7px 9px;
