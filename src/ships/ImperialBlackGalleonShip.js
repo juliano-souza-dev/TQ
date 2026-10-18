@@ -25,7 +25,7 @@ export const IMPERIAL_BLACK_GALLEON_SHIP = Object.freeze({
   speed: Object.freeze({ min: 120, initial: 145, max: 180 }),
 
   sprite: Object.freeze({
-    path: '../../assets/ships/galeao-negro-imperial.webp',
+    path: '../../assets/ships/galeao-negro-imperial-transparente.webp',
     frameWidth: 400,
     frameHeight: 400,
     columns: 4,
