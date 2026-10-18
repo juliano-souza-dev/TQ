@@ -2,6 +2,7 @@ import { CANNONS } from '../items/EquipmentCatalog.js';
 import {HORIZON_HARPOON_ID,HORIZON_HARPOON_AMMO_ID} from '../combat/HarpoonCatalog.js';
 import { STARTER_SHIP, HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP,
   SHADOW_CHASER_SHIP, TERROR_DO_MAR_SHIP, FROZEN_LANDS_GALLEON_SHIP } from './ShipRegistry.js';
+import { EMERALD_GHOST_SHIP } from './EmeraldGhostShip.js';
 import { GREEN_GHOST_FUGITIVE_SHIP } from './FugitiveFrigateShip.js';
 
 export const PLAYABLE_TERROR_DO_MAR=Object.freeze({...TERROR_DO_MAR_SHIP,
@@ -10,8 +11,12 @@ export const PLAYABLE_SHADOW_THIEF=Object.freeze({...GREEN_GHOST_FUGITIVE_SHIP,
   status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,
   cannonSlots:4,cannonLayout:Object.freeze({port:4,starboard:4,bow:0,stern:0}),maxHealth:600});
 export const PLAYABLE_FROZEN_LANDS=Object.freeze({...FROZEN_LANDS_GALLEON_SHIP,
-  status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,maxHealth:3600});\nexport const FLEET_PLAYER_SHIPS=Object.freeze([STARTER_SHIP,HALLOWEEN_TABUADA_SHIP,
-  SHADOW_CHASER_SHIP,GOLDEN_GALLEON_SHIP,PLAYABLE_TERROR_DO_MAR,PLAYABLE_SHADOW_THIEF,PLAYABLE_FROZEN_LANDS]);
+  status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,maxHealth:3600});
+export const PLAYABLE_EMERALD_GHOST=Object.freeze({...EMERALD_GHOST_SHIP,
+  status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,
+  cannonSlots:7,cannonLayout:Object.freeze({port:7,starboard:7,bow:0,stern:0}),maxHealth:2400});
+export const FLEET_PLAYER_SHIPS=Object.freeze([STARTER_SHIP,HALLOWEEN_TABUADA_SHIP,
+  SHADOW_CHASER_SHIP,GOLDEN_GALLEON_SHIP,PLAYABLE_TERROR_DO_MAR,PLAYABLE_SHADOW_THIEF,PLAYABLE_FROZEN_LANDS,PLAYABLE_EMERALD_GHOST]);
 
 const count=(equipment,id)=>Math.max(0,Math.floor(Number(equipment?.cannonCounts?.[id])||0));
 const uniq=values=>[...new Set(values)];
@@ -22,7 +27,7 @@ export function grantFleetPreparation(save,regionId,{fugitive=false}={}){
  let cannon=null,qty=0,ammoId='rusted-iron',ammoQty=0;
  if(regionId==='r1'){cannon='blue-gold-pirate';qty=3;ammoQty=20000;}
  if(regionId==='r2'){cannon=fugitive?'aetherion-mk1':'royal-lion';qty=fugitive?2:7;ammoId=fugitive?'aetherion-seeker':'rusted-iron';ammoQty=fugitive?60000:30000;}
- if(regionId==='r3'){cannon='royal-lion';qty=7;ammoQty=80000;}
+ if(regionId==='r3'){cannon='royal-lion';qty=7;ammoQty=80000;ownedShipIds.push(PLAYABLE_SHADOW_THIEF.id);}
  if(regionId==='r4'){cannon='ice-terror';qty=12;ammoId='frozen-explosion';ammoQty=60000;ownedShipIds.push(PLAYABLE_FROZEN_LANDS.id);}
  if(fugitive)ownedShipIds.push('fragata-sombra-cacadora');
  if(cannon){counts[cannon]=Math.max(count(e,cannon),qty);ownedCannonIds.push(cannon);}
@@ -40,7 +45,7 @@ export function fleetShipForRegion(save,regionId){
  const e=save.equipment??{},owned=new Set(['starter-red-sails',...(e.ownedShipIds??[])]);
  const prior={r1:'starter-red-sails',r2:owned.has('fragata-sombra-cacadora')
     ?'fragata-sombra-cacadora':owned.has('galeao-halloween-tabuada')?'galeao-halloween-tabuada':'starter-red-sails',
-   r3:'galeao-dourado',r4:owned.has(PLAYABLE_FROZEN_LANDS.id)?PLAYABLE_FROZEN_LANDS.id:'terror-do-mar'}[regionId]||'starter-red-sails';
+   r3:owned.has(PLAYABLE_EMERALD_GHOST.id)?PLAYABLE_EMERALD_GHOST.id:owned.has(PLAYABLE_SHADOW_THIEF.id)?PLAYABLE_SHADOW_THIEF.id:'galeao-dourado',r4:owned.has(PLAYABLE_FROZEN_LANDS.id)?PLAYABLE_FROZEN_LANDS.id:'terror-do-mar'}[regionId]||'starter-red-sails';
  const id=owned.has(prior)?prior:e.equippedShipId;
  return FLEET_PLAYER_SHIPS.find(s=>s.id===id&&owned.has(s.id))??STARTER_SHIP;
 }
