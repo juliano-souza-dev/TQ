@@ -49,7 +49,7 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
     message = 'Contrato aceito! Boa aventura.';
   } else if (type === 'treasure') {
     const outcome = fleetEnabled(save)
-      ? {patch:recordFleetTreasure(save,action.regionId,action.id),reward:{...treasureReward(action.id),gold:100,iron:350}}
+      ? {patch:recordFleetTreasure(save,action.regionId,action.id,action.region),reward:{...treasureReward(action.id),gold:100,iron:350}}
       : claimTreasure(save, action.id);
     if (!outcome?.patch) return null;
     patch = outcome.patch;

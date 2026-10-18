@@ -8,7 +8,7 @@ export const FLEET_REGIONS=Object.freeze({
  r1:{name:'Enseada dos Aprendizes',enemyGoal:19,monsterGoal:2,encounters:[{id:'terror-da-tabuada',name:'Terror da Tabuada',ship:'galeao-halloween-tabuada'}]},
  r2:{name:'Costa dos Corsários',enemyGoal:20,monsterGoal:2,encounters:[{id:'fugitive-frigate',name:'Fragata Sombra Fugitiva',ship:'fragata-sombra-cacadora'}]},
  r3:{name:'Águas Escuras',enemyGoal:16,monsterGoal:0,encounters:[{id:'r3-leviathan',name:'Leviatã das Águas Escuras',ship:null},{id:'terror-do-mar',name:'Terror do Mar',ship:'terror-do-mar'}]},
- r4:{name:'Terras Gélidas',enemyGoal:24,monsterGoal:0,encounters:[{id:'r4-sombra-do-saque',name:'Sombra do Saque',ship:null}]},
+ r4:{name:'Terras Gélidas',enemyGoal:30,monsterGoal:0,encounters:[{id:'r4-sombra-do-saque',name:'Sombra do Saque',ship:null}]},
  r5:{name:'Costa do Eclipse',enemyGoal:28,monsterGoal:2,encounters:[{id:'r2-morbi',name:'Morbi · Galeão Dourado',ship:'galeao-dourado'}]},
  r6:{name:'Estreito de Ferro',enemyGoal:22,monsterGoal:2,encounters:[{id:'r6-imperial',name:'Galeão Negro Imperial',ship:null}]},
  r7:{name:'Baía Rubra',enemyGoal:24,monsterGoal:2,encounters:[{id:'r7-crimson',name:'Galeão da Caveira Rubra',ship:'galeao-caveira-rubra'}]},
@@ -20,6 +20,24 @@ export const FLEET_REGIONS=Object.freeze({
 });
 const ids=a=>[...new Set((Array.isArray(a)?a:[]).filter(x=>typeof x==='string'))];
 export const fleetEnabled=save=>save?.fleetCampaign?.version===FLEET_CAMPAIGN_VERSION;
+export const FLEET_WAVE_COUNT=5;
+export const hasFleetWaves=regionId=>Number(String(regionId).slice(1))>=4 && !!FLEET_REGIONS[regionId];
+// Deterministic boundaries preserve the total objective while limiting how
+// many enemies or treasures exist in the ocean simultaneously. Each next 20%
+// is unlocked only after the preceding allocation has been completed.
+export function fleetWaveStatus(regionId,total,completed){
+ const goal=Math.max(0,Math.floor(Number(total)||0));
+ const done=Math.max(0,Math.min(goal,Math.floor(Number(completed)||0)));
+ if(!hasFleetWaves(regionId)||goal===0)return null;
+ let finished=0;
+ for(let i=1;i<FLEET_WAVE_COUNT;i++)
+  if(done>=Math.ceil(goal*i/FLEET_WAVE_COUNT))finished=i;
+ const stage=finished+1;
+ const limit=Math.ceil(goal*stage/FLEET_WAVE_COUNT);
+ const start=Math.ceil(goal*finished/FLEET_WAVE_COUNT);
+ return {stage,waves:FLEET_WAVE_COUNT,limit,start,active:Math.max(0,limit-done),
+  remaining:Math.max(0,goal-done),done:done>=goal};
+}
 export function startFleetCampaign(save={}){
  const existing=save.equipment??{},counts=existing.cannonCounts??{};
  return {
@@ -34,19 +52,28 @@ export function startFleetCampaign(save={}){
   playerPosition:null,
  };
 }
-export function getFleetTreasures(save={},regionId,region){
- const source=getVisibleTreasures({},0,regionId==='r1'?'r1':'r2');
- const taken=new Set(ids(save.fleetCampaign?.treasures?.[regionId]));
+function fleetTreasureCatalog(regionId,region){
+ const source=getVisibleTreasures({},0,regionId==='r1'?'r1':'r2',
+  regionId==='r4'?.6:.4);
  return source.map(t=>({...t,id:'fleet-'+regionId+'-'+t.id}))
-   .filter(t=>!region||!collidesWithIsland(region,t.x,t.y,60))
-   .filter(t=>!taken.has(t.id));
+  .filter(t=>!region||!collidesWithIsland(region,t.x,t.y,60));
+}
+export function getFleetTreasures(save={},regionId,region){
+ const source=fleetTreasureCatalog(regionId,region);
+ const taken=new Set(ids(save.fleetCampaign?.treasures?.[regionId]));
+ const collected=source.filter(t=>taken.has(t.id)).length;
+ const wave=fleetWaveStatus(regionId,source.length,collected);
+ const visible=wave?source.slice(0,wave.limit):source;
+ return visible.filter(t=>!taken.has(t.id));
 }
 export function fleetTreasureGoal(regionId,region){
- return getFleetTreasures({},regionId,region).length;
+ return fleetTreasureCatalog(regionId,region).length;
 }
-export function recordFleetTreasure(save,regionId,treasureId){
+export function recordFleetTreasure(save,regionId,treasureId,region){
  if(!fleetEnabled(save)||'r'+save.fleetCampaign.region!==regionId||!treasureId?.startsWith('fleet-'+regionId+'-'))return null;
- const valid=getVisibleTreasures({},0,regionId==='r1'?'r1':'r2').some(t=>'fleet-'+regionId+'-'+t.id===treasureId);
+ // Check the live unlocked wave rather than awarding a chest that is still
+ // hidden. An optional region keeps the collision rules identical to rendering.
+ const valid=getFleetTreasures(save,regionId,region).some(t=>t.id===treasureId);
  if(!valid)return null;
  const c=save.fleetCampaign,old=ids(c.treasures?.[regionId]);
  if(old.includes(treasureId))return null;
@@ -92,8 +119,10 @@ export function fleetProgress(save={},regionId,treasureGoal=0){
  const missionOneComplete=defeated>=plan.enemyGoal&&collected>=treasureGoal&&monsters>=plan.monsterGoal;
  const prepared=ids(c.preparedRegions).includes(regionId);
  const ready=missionOneComplete&&prepared;
+ const enemyWave=fleetWaveStatus(regionId,plan.enemyGoal,defeated);
+ const treasureWave=fleetWaveStatus(regionId,treasureGoal,collected);
  return {plan,regionId,defeated,enemyGoal:plan.enemyGoal,monsters,monsterGoal:plan.monsterGoal,
-  collected,treasureGoal,prepared,missionOneComplete,mission:encounterIndex<0?2:ready?2:1,
+  collected,treasureGoal,enemyWave,treasureWave,prepared,missionOneComplete,mission:encounterIndex<0?2:ready?2:1,
   encounterIndex,encounter:ready&&encounterIndex>=0?plan.encounters[encounterIndex]:null,
   ready,complete:ready&&encounterIndex<0};
 }
@@ -197,8 +226,11 @@ export function fleetLabel(p){
  if(p.complete)return '🏆 Missão 2 concluída! Navegue até a saída marcada.';
  if(p.missionOneComplete&&!p.prepared)return '🎁 Missão 1 concluída! Recolha a preparação para o chefe.';
  if(p.ready)return '☠️ Missão 2: '+p.encounter.name+' · Derrote o chefe!';
- return '📜 Missão 1: ⚔️ '+p.defeated+'/'+p.enemyGoal+
-  ' · 🐙 '+p.monsters+'/'+p.monsterGoal+' · 🧰 '+p.collected+'/'+p.treasureGoal;
+ return '📜 Missão 1: ⚔️ '+p.defeated+'/'+p.enemyGoal
+  +(p.enemyWave?' (onda '+p.enemyWave.stage+'/5)':'')
+  +' · 🐙 '+p.monsters+'/'+p.monsterGoal
+  +' · 🧰 '+p.collected+'/'+p.treasureGoal
+  +(p.treasureWave?' (onda '+p.treasureWave.stage+'/5)':'');
 }
 export function finishFleetRegion(save,regionId,treasureGoal){
  const p=fleetProgress(save,regionId,treasureGoal),c=save.fleetCampaign;

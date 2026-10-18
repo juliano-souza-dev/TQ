@@ -1,6 +1,6 @@
 import { seekingOrbMovementSpeed } from '../combat/SeekingOrbSlow.js';
 import { collidesWithIsland, resolveIslandMovement } from '../world/IslandCollision.js';
-import { FLEET_REGIONS } from '../missions/FleetCampaign.js';
+import { FLEET_REGIONS, fleetWaveStatus } from '../missions/FleetCampaign.js';
 
 const SHIPS=Object.freeze({
  shadow:'sombra-fugitiva-verde-fantasma',pumpkin:'galeao-frota-das-aboboras',
@@ -12,7 +12,7 @@ const SHIPS=Object.freeze({
 });
 const FLEETS=Object.freeze({
  r3:['shadow','pumpkin','red','ghost'],
- r4:['frost','thief','red','shadow'],
+ r4:['frost','thief','red','shadow','northern'],
  r5:['eclipse','red','pumpkin','gold','market'],
  r6:['imperial','frost','red','northern','market'],
  r7:['crimson','red','pumpkin','imperial','shadow'],
@@ -46,15 +46,18 @@ function location(world,index,random){
      &&![...world.entities.values()].some(n=>Math.hypot(x-n.x,y-n.y)<100))return{x,y};
  throw new Error('Não há área navegável para NPC '+region.id+' #'+index);
 }
-export function createFleetPopulation(world,random=Math.random){
+export function createFleetPopulation(world,random=Math.random,save={}){
  const id=world.region.id,plan=FLEET_REGIONS[id];
  if(!world.fleetNoRespawn||!plan||!FLEETS[id])return 0;
- const expected=id==='r3'?12:id==='r4'?7:plan.enemyGoal;
+ const expected=id==='r3'?12:plan.enemyGoal;
+ const defeated=new Set(save.fleetCampaign?.defeated?.[id]??[]);
+ const wave=fleetWaveStatus(id,plan.enemyGoal,defeated.size);
+ const unlocked=wave?wave.limit:expected;
  const pool=FLEETS[id],rank=number(id);
  let added=0;
- for(let i=0;i<expected;i++){
+ for(let i=0;i<Math.min(expected,unlocked);i++){
   const key=id+'-fleet-'+String(i+1).padStart(2,'0');
-  if(world.entities.has(key))continue;
+  if(defeated.has(key)||world.entities.has(key))continue;
   const type=pool[(i*7+Math.floor(i/Math.max(1,pool.length)))%pool.length];
   const position=location(world,i,random);
   const elite=i%7===0;

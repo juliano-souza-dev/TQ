@@ -115,6 +115,13 @@ export function createCorsairPopulation(world, random = Math.random) {
 
   if (world.region.id === 'r4') {
     if(!world.entities.has('r4-mercador-red'))world.entities.set('r4-mercador-red',createBloodRedMarketMerchant({id:'r4-mercador-red',name:'Mercador Red',x:2050,y:2700,heading:90}));
+    // In fleet mode only the vendor and the unique story boss are permanent.
+    // Ordinary ships come from the five incremental FleetPopulation waves.
+    // This avoids materializing 17 legacy NPCs on top of a fleet wave.
+    if(world.fleetNoRespawn){
+      createFrozenLandsFugitive(world);
+      return world.entities.size;
+    }
     // Vigias da Geada: neutral until hit, then the same shipId fleet responds.
     for (let i = 0; i < 4; i++) {
       const id = 'r4-vigias-da-geada-' + String(i+1).padStart(2,'0');

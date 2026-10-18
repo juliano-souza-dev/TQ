@@ -293,7 +293,7 @@ async function startWorld() {
     await import('./npcs/FugitiveFrigateNpc.js');
   const { createMonsterPopulation, ensureFleetLeviathan, updateMonsterPopulation, monsterGoldReward } = await import('./monsters/MonsterPopulation.js');
   createMonsterPopulation(world, Math.random, localSaves.load(currentUser.uid)?.payload??{});
-  createFleetPopulation(world);
+  createFleetPopulation(world,Math.random,localSaves.load(currentUser.uid)?.payload??{});
 
   const fleetDormantBosses=new Map();
   if(world.fleetNoRespawn){
@@ -848,7 +848,7 @@ async function startWorld() {
       showOceanReward('🧰 +10 5X em Chamas · +10 Escudos');
       return 'Baú resgatado: +10 5X em Chamas e +10 Escudos!';
     }
-    const result = resolvePedagogicalAction(readSave(), {...action,regionId:world.region.id}, action.challenge, cleanAnswer);
+    const result = resolvePedagogicalAction(readSave(), {...action,regionId:world.region.id,region:world.region}, action.challenge, cleanAnswer);
     if (!result) return false;
     writePatch(result.patch);
     if (!world.fleetNoRespawn && world.region.id === 'r2' && action.kind !== 'monster-assist') {
@@ -2753,6 +2753,11 @@ async function startWorld() {
     let save=readSave();
     let p=fleetProgress(save,world.region.id,fleetTreasureGoal(world.region.id,world.region));
     if(!p||save.fleetCampaign?.finished)return;
+    // On each victory (and on map reload), spawn at most the unlocked 20%.
+    // Existing defeated IDs are never regenerated.
+    const newEnemies=createFleetPopulation(world,Math.random,save);
+    if(newEnemies&&p.enemyWave&&stepMs===0)
+      showOceanReward('⚔️ Onda '+p.enemyWave.stage+'/5: '+newEnemies+' novos inimigos no oceano!');
     // Two rewards per mission stage. Run before win announcements, including
     // for pre-existing completed saves, without resetting inventory or progress.
     for(const stage of [1,2]){

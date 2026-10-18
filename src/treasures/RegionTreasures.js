@@ -85,7 +85,7 @@ function nextTreasureCycle(save, baseId) {
   }
   return next;
 }
-export function getVisibleTreasures(save = {}, now = Date.now(), regionId = 'r1') {
+export function getVisibleTreasures(save = {}, now = Date.now(), regionId = 'r1', density = .4) {
   const cooldowns = save.treasureCooldowns ?? {};
   // Deterministic 35% density reduction across both maps; stable IDs and cooldowns remain intact.
   const catalog=regionId==='r2'?R2_TREASURES:ALL_R1_TREASURES;
@@ -93,7 +93,8 @@ export function getVisibleTreasures(save = {}, now = Date.now(), regionId = 'r1'
   // Stable per-region selection preserves collected IDs and saved cooldowns.
   const selected=[];
   const remaining=[...catalog].sort((a,b)=>hashId(a.id)-hashId(b.id));
-  const wanted=Math.max(1,Math.round(catalog.length*0.4));
+  const wanted=Math.max(1,Math.round(catalog.length*
+    Math.max(.01,Math.min(1,Number.isFinite(density)?density:.4))));
   if(remaining.length)selected.push(remaining.shift());
   while(selected.length<wanted&&remaining.length){
     let bestIndex=0,bestDistance=-1;
