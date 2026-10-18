@@ -3,7 +3,7 @@ import { equippedHarpoon, harpoonDamage, harpoonStock, horizonHarpoonStock, levi
 import { damageCorsair, RED_SAIL_CORSAIR } from '../npcs/RedSailCorsair.js';
 import { damageMonster } from '../monsters/MonsterCombat.js';
 import { leviathanMouthOrigin } from '../monsters/LeviathanMouthMap.js';
-import {R5_ECLIPSE_BOSS_ID,R5_LEVIATHAN_ID,MOON_BARRAGE_AMMO_ID} from '../missions/RegionFiveEclipse.js';
+import {R5_ECLIPSE_BOSS_ID,R5_LEVIATHAN_ID,MOON_BARRAGE_AMMO_ID,ECLIPSE_DAMAGE_AMMO_IDS,eclipseAcceptsAmmo} from '../missions/RegionFiveEclipse.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
 import { applySeekingOrbSlow } from './SeekingOrbSlow.js';
 import { EMERALD_GHOST_LEVIATHAN_DAMAGE, EMERALD_GHOST_LEVIATHAN_RELOAD_MS, EMERALD_GHOST_LEVIATHAN_RANGE } from '../npcs/DarkWatersFleet.js';
@@ -12,6 +12,14 @@ import {
   effectiveAmmo, cannonAcceptsAmmo, aimWithAccuracy, distanceBetween, flightDurationMs,
   interceptPoint, shipCollision, shotDamage,
 } from './NavalBattleRules.js';
+
+// Respect the ammunition each cannon can actually fire; tracking guns retain
+// their exclusive orbs, while ordinary guns can use Moon Barrage or Glacial Orbs.
+export function eclipseAmmoForCannon(cannon,stock={},selectedId=null){
+  return [cannon?.exclusiveAmmoId,selectedId,MOON_BARRAGE_AMMO_ID,...ECLIPSE_DAMAGE_AMMO_IDS]
+    .find(id=>eclipseAcceptsAmmo(id)&&cannonAcceptsAmmo(cannon,id)
+      && (Number(stock?.[id])||0)>0)??null;
+}
 
 // Distinct cannon sounds, with pooled voices to avoid clipping during volleys.
 const CANNON_AUDIO = Object.freeze({
@@ -331,8 +339,17 @@ export class NavalBattleController {
     const harpoon = equippedHarpoon(save);
     const monsterTarget = target?.type === 'monster';
     const eclipseTarget=target?.id===R5_ECLIPSE_BOSS_ID && this.getRegionId()==='r5';
-    const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon) && availableNavalAmmo(save).some(item => item.amount > 0 && (!eclipseTarget||item.id===MOON_BARRAGE_AMMO_ID) && cannonAcceptsAmmo(cannon,item.id)));
-    const statusAmmoId=eclipseTarget?MOON_BARRAGE_AMMO_ID:this.selectedAmmoId;
+    const available=availableNavalAmmo(save);
+    const inRangeCannons = battery.filter(({ cannon }) => distance <= cannonRange(cannon)
+      && available.some(item=>item.amount>0 && (!eclipseTarget||eclipseAcceptsAmmo(item.id))
+        && cannonAcceptsAmmo(cannon,item.id)));
+    const selectedWorks=eclipseTarget&&available.some(item=>item.id===this.selectedAmmoId
+      &&item.amount>0&&eclipseAcceptsAmmo(item.id)
+      &&battery.some(({cannon})=>cannonAcceptsAmmo(cannon,item.id)));
+    const statusAmmoId=eclipseTarget
+      ?(selectedWorks?this.selectedAmmoId:battery.map(({cannon})=>
+         eclipseAmmoForCannon(cannon,save.ammunition??{},this.selectedAmmoId)).find(Boolean)
+        ??MOON_BARRAGE_AMMO_ID):this.selectedAmmoId;
     const ammo = ammoStock(save, statusAmmoId);
     // R1 possui um tutorial obrigatório. R2 já começa com combate liberado.
     // Finishing the introductory Corsair mission unlocks naval combat permanently.
@@ -392,7 +409,7 @@ export class NavalBattleController {
         'no-cannon':'Nenhum canhão equipado. Equipe um canhão no Estaleiro.',
         target:'Aproxime-se e selecione um navio inimigo.',
         ammo:'Sem munição compatível para os canhões equipados.',
-        'lunar-ammo':'O Eclipse só sofre dano da Rajada da Lua. Resgate um tesouro lunar no mapa.',
+        'lunar-ammo':'O Eclipse recebe dano da Rajada da Lua e de orbes rastreáveis. Verifique munição e canhões compatíveis.',
         range:'Alvo fora do alcance dos canhões.',
         sunk:'Repare o casco antes de atacar.',
       };
@@ -740,9 +757,9 @@ export class NavalBattleController {
       const { slot, cannon } = battery[batteryIndex];
       if (now < (this.nextBySlot.get(slot) ?? -Infinity)) continue;
 
-      const eclipseOnlyMoon=target.id===R5_ECLIPSE_BOSS_ID&&this.getRegionId()==='r5';
-      const ammoId = eclipseOnlyMoon
-        ? (cannonAcceptsAmmo(cannon,MOON_BARRAGE_AMMO_ID)&&ammoStockById[MOON_BARRAGE_AMMO_ID]>0?MOON_BARRAGE_AMMO_ID:null)
+      const eclipseTarget=target.id===R5_ECLIPSE_BOSS_ID&&this.getRegionId()==='r5';
+      const ammoId = eclipseTarget
+        ? eclipseAmmoForCannon(cannon,ammoStockById,this.selectedAmmoId)
         : cannon.exclusiveAmmoId
         ? cannon.exclusiveAmmoId
         : (cannonAcceptsAmmo(cannon, this.selectedAmmoId) && ammoStockById[this.selectedAmmoId] > 0
@@ -848,8 +865,8 @@ export class NavalBattleController {
     const target = this.getEntities().get(targetId);
     // An already sunk target cannot produce another victory, loot roll or mission event.
     if(!target || Number(target.health)<=0)return {kind:'water'};
-    if(this.getRegionId()==='r5' && target.id===R5_ECLIPSE_BOSS_ID && ammoId!==MOON_BARRAGE_AMMO_ID){
-      this.onFeedback('🌙 O Eclipse só pode ser ferido pela Rajada da Lua.');
+    if(this.getRegionId()==='r5' && target.id===R5_ECLIPSE_BOSS_ID && !eclipseAcceptsAmmo(ammoId)){
+      this.onFeedback('🌙 O Eclipse só pode ser ferido pela Rajada da Lua ou por orbes rastreáveis.');
       return {kind:'water'};
     }
     const lockedThief = this.getThiefMissionTarget();
