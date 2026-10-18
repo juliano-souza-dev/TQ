@@ -34,7 +34,9 @@ test('correct answer while recovery already running is accepted and never starts
  const solved=resolvePedagogicalAction(save,{kind:'repair'},challenge('repair-already-running'),true);
  assert.ok(solved,'correct answer must not be rejected');
  assert.match(solved.message,/em andamento/);
- assert.equal(solved.patch.combat,undefined);
+ assert.equal(solved.patch.combat.repairingUntil,originalEnd,
+  'existing repair deadline must not be replaced by a new timer');
+ assert.equal(solved.patch.combat.repairingStartedAt,save.combat.repairingStartedAt);
  assert.equal(save.combat.repairingUntil,originalEnd);
  assert.equal(solved.patch.pedagogy.region3.answeredIds.length,1);
 });
