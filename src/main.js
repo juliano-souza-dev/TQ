@@ -1265,23 +1265,6 @@ async function startWorld() {
   };
   document.addEventListener('keydown', onFireKey);
   fireKeyCleanup = () => document.removeEventListener('keydown', onFireKey);
-  // A opção contextual não altera os botões existentes do HUD.
-  const assistButton=document.createElement('button');
-  assistButton.type='button';
-  assistButton.className='monster-assist-button primary-button';
-  assistButton.textContent='🤝 Receber ajuda';
-  assistButton.hidden=true;
-  root.append(assistButton);
-  assistButton.addEventListener('click',()=>{
-    if (!navalBattle.getAssistStatus().eligible || mathGate.isOpen)return;
-    mathGate.open({
-      kind:'monster-assist',
-      title:'🤝 Receber ajuda',
-      description:'Resolva uma multiplicação para pedir ajuda ao navegador mais próximo do monstro.',
-      afterSuccess:()=>{navalBattle.enableMonsterAssist();assistButton.hidden=true;navalHud.refresh();},
-    });
-  });
-
   let pendingTreasureId = null;
   const visibleTreasures = () => world.fleetNoRespawn
     ? getFleetTreasures(readSave(),world.region.id,world.region)
@@ -3497,7 +3480,6 @@ async function startWorld() {
         hudRefreshElapsed = 0;
         navalHud.refresh();
         refreshTargetAndHealthHud();
-        assistButton.hidden = !navalBattle.getAssistStatus().eligible || mathGate.isOpen || islandPanel.isOpen;
         if(pendingTreasureId && !mathGate.isOpen && !islandPanel.isOpen){
           const target=visibleTreasures().find(t=>t.id===pendingTreasureId);
           if(!target){
