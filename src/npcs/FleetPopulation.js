@@ -67,14 +67,14 @@ export function createFleetPopulation(world,random=Math.random,save={}){
   const type=pool[(i*7+Math.floor(i/Math.max(1,pool.length)))%pool.length];
   const position=location(world,i,random);
   const elite=i%7===0;
-  const health=Math.round((id==='r3'?4500:id==='r4'?9000:16000+rank*3600)*(elite?1.9:1)*(1+(i%4)*.14));
+  const health=Math.round((id==='r3'?4500:id==='r4'?9000:16000+rank*3600)*(elite?1.9:1)*(1+(i%4)*.14)*(id==='r5'?3:1));
   const speed=type==='shadow'?360:type==='thief'?340:type==='imperial'?180:240+(i%3)*22;
   world.entities.set(key,{
    id:key,type:'npc',archetype:'fleet-raider',name:(elite?'Capitão ':'')+NAMES[type],
    shipId:SHIPS[type],fleetId:id+'-'+type,
    x:position.x,y:position.y,heading:random()*360,
    health,maxHealth:health,speed,baseSpeed:speed,
-   range:Math.min(1200,640+rank*34),damage:Math.max(2,Math.round((rank+2)*(elite?1.25:.75))),
+   range:Math.min(1200,640+rank*34),damage:Math.max(2,Math.round((rank+2)*(elite?1.25:.75)))*(id==='r5'?10:1),
    cannonSlots:elite?5:3,aggression:type==='shadow'?'flee':'attack',
    retaliationActive:type!=='shadow',state:'patrolling',
    patrolRemainingMs:0,fleetElite:elite,respawnRemainingMs:null,
