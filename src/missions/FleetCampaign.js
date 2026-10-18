@@ -52,11 +52,19 @@ export function startFleetCampaign(save={}){
   playerPosition:null,
  };
 }
+const fleetTreasureCatalogCache=new Map();
 function fleetTreasureCatalog(regionId,region){
+ // The greedy distance-spaced source catalog is expensive to rebuild every
+ // frame. Geography does not change when the ocean shader or weather updates.
+ const key=regionId+(region?'@geography':'@unfiltered');
+ const cached=fleetTreasureCatalogCache.get(key);
+ if(cached&&cached.islands===region?.islands)return cached.treasures;
  const source=getVisibleTreasures({},0,regionId==='r1'?'r1':'r2',
   regionId==='r4'?.6:.4);
- return source.map(t=>({...t,id:'fleet-'+regionId+'-'+t.id}))
+ const treasures=source.map(t=>({...t,id:'fleet-'+regionId+'-'+t.id}))
   .filter(t=>!region||!collidesWithIsland(region,t.x,t.y,60));
+ fleetTreasureCatalogCache.set(key,{islands:region?.islands,treasures});
+ return treasures;
 }
 export function getFleetTreasures(save={},regionId,region){
  const source=fleetTreasureCatalog(regionId,region);

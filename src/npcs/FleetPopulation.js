@@ -52,10 +52,16 @@ export function createFleetPopulation(world,random=Math.random,save={}){
  const expected=id==='r3'?12:plan.enemyGoal;
  const defeated=new Set(save.fleetCampaign?.defeated?.[id]??[]);
  const wave=fleetWaveStatus(id,plan.enemyGoal,defeated.size);
- const unlocked=wave?wave.limit:expected;
+ const start=wave?.start??0,unlocked=wave?.limit??expected;
+ // Some saves already contain R4 legacy ship IDs. Do not spawn all 30 new
+ // fleet IDs just because an older campaign has already recorded 24 defeats.
+ // Keep the number of live ordinary opponents under the 20% wave cap.
+ const active=wave?[...world.entities.values()].filter(n=>
+   n.archetype==='fleet-raider'&&n.health>0).length:0;
+ const slots=wave?Math.max(0,Math.ceil(plan.enemyGoal/5)-active):expected;
  const pool=FLEETS[id],rank=number(id);
  let added=0;
- for(let i=0;i<Math.min(expected,unlocked);i++){
+ for(let i=start;i<Math.min(expected,unlocked)&&added<slots;i++){
   const key=id+'-fleet-'+String(i+1).padStart(2,'0');
   if(defeated.has(key)||world.entities.has(key))continue;
   const type=pool[(i*7+Math.floor(i/Math.max(1,pool.length)))%pool.length];

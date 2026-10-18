@@ -105,3 +105,27 @@ test('save reload shows only unfinished waves and never duplicates defeated ship
  assert.equal(progress.enemyWave.stage,2);
  assert.equal(progress.treasureWave.stage,2);
 });
+
+test('legacy R4 saves with old defeated NPC IDs never spawn all new enemies at once',()=>{
+ const current=save('r4'),w=world(R4);
+ current.fleetCampaign.defeated.r4=Array.from({length:24},(_,i)=>'r4-old-guard-'+i);
+ const spawned=createFleetPopulation(w,()=>.37,current);
+ assert.equal(spawned,6,'migrating saves must still have only 20% alive');
+ assert.equal([...w.entities.values()].filter(n=>n.archetype==='fleet-raider').length,6);
+ const visible=[...w.entities.values()].filter(n=>n.archetype==='fleet-raider');
+ for(const n of visible){current.fleetCampaign.defeated.r4.push(n.id);w.entities.delete(n.id);}
+ assert.equal(createFleetPopulation(w,()=>.37,current),0,'the saved region is fully cleared');
+});
+test('partially completed legacy R4 wave respects the maximum simultaneous enemy cap',()=>{
+ const current=save('r4'),w=world(R4);
+ current.fleetCampaign.defeated.r4=Array.from({length:14},(_,i)=>'old-r4-npc-'+i);
+ const initial=createFleetPopulation(w,()=>.32,current);
+ assert.equal(initial,6);
+ const group=[...w.entities.values()].filter(n=>n.archetype==='fleet-raider');
+ for(const n of group.slice(0,4)){
+  current.fleetCampaign.defeated.r4.push(n.id);w.entities.delete(n.id);
+ }
+ const newly=createFleetPopulation(w,()=>.32,current);
+ assert.equal(newly,4,'two survivors plus four new enemies still total six');
+ assert.equal([...w.entities.values()].filter(n=>n.archetype==='fleet-raider').length,6);
+});
