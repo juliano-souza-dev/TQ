@@ -213,6 +213,7 @@ export class NavalBattleController {
   }
 
   isLeviathanHuntTarget(id) {
+    if(this.readSave().fleetCampaign?.version===1)return true;
     return this.getRegionId()!=='r3' || this.readSave().r3Campaign?.active!=='r3-leviathan-hunt'
       || !id || id==='r3-leviathan';
   }
@@ -745,7 +746,7 @@ export class NavalBattleController {
       const accuracy = target.archetype === 'fugitive-frigate' && this.getThiefMissionTarget() ? 1 : cannon.accuracy;
       const destination = aimWithAccuracy(intercepted, muzzle, accuracy, this.random);
       const flameBoost = this.isFlameActive() && this.isBossTarget(target) && (this.getRegionId()!=='r3' || (target.archetype==='terror-do-mar' && !!save.r3Campaign?.varkorFlameUnlocked));
-      const goldenMission = this.getRegionId() === 'r2' && save.r2Campaign?.active === 'r2-golden-ii' && target.id === 'r2-morbi';
+      const goldenMission = this.getRegionId() === 'r2' && (save.r2Campaign?.active === 'r2-golden-ii' || save.fleetCampaign?.version===1) && target.id === 'r2-morbi';
       const varkorBonus = target.archetype==='terror-do-mar' && target.varkorBattleUnlocked ? 7 * 1.25 : 1;
       const areaFreezeArmed=!!save.consumables?.areaFreezeArmed;
       const damage = (areaFreezeArmed?0:(cannon.baseDamage??shotDamage(cannon, ammo.id)/1)) * (cannon.baseDamage?1:SHIP_CANNON_DAMAGE_MULTIPLIER) * (this.getRegionId()==='r4' && ammo.id==='volcanic-lava' && target.type==='npc' ? 3 : 1) * varkorBonus * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
@@ -811,7 +812,7 @@ export class NavalBattleController {
     if(!target || Number(target.health)<=0)return {kind:'water'};
     const lockedThief = this.getThiefMissionTarget();
     if (lockedThief && target?.id !== lockedThief.id) return { kind: 'water' };
-    if(target?.id==='r2-morbi' && this.readSave().r2Campaign?.active!=='r2-golden-ii')return {kind:'water'};
+    if(target?.id==='r2-morbi' && this.readSave().r2Campaign?.active!=='r2-golden-ii' && this.readSave().fleetCampaign?.version!==1)return {kind:'water'};
     if (this.isProtectedInformant(target)) {
       this.onFeedback('🕊️ O informante não pode ser atacado durante a missão.');
       return { kind: 'water' };
@@ -1108,7 +1109,7 @@ export class NavalBattleController {
 
       if(npc.id==='r2-morbi' && npc.health>0){
         const mission=this.readSave().r2Campaign?.active;
-        const stageTwo=mission==='r2-golden-ii';
+        const stageTwo=mission==='r2-golden-ii' || this.readSave().fleetCampaign?.version===1;
         const firstEncounter=mission==='r2-golden-i';
         const cannon=npc.specialCannon??{};
         const broadside=npc.broadside??{};
@@ -1118,7 +1119,7 @@ export class NavalBattleController {
         const engagementRange=firstEncounter?2400:(extreme?Math.max(specialRange,broadsideRange):specialRange);
         const distance=distanceBetween(npc,player);
 
-        if(['r2-golden-i','r2-golden-ii'].includes(mission) && distance<=engagementRange){
+        if((['r2-golden-i','r2-golden-ii'].includes(mission) || this.readSave().fleetCampaign?.version===1) && distance<=engagementRange){
           if(distance<=specialRange){
             const specialCount=extreme
               ? Math.max(2,Number(cannon.countAfterPhase)||2)
@@ -1208,7 +1209,7 @@ export class NavalBattleController {
   }
 
   resolveNpcImpact(npcId, point, damage = 5) {
-    if(npcId==='r2-morbi' && !['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active))return {kind:'water'};
+    if(npcId==='r2-morbi' && !['r2-golden-i','r2-golden-ii'].includes(this.readSave().r2Campaign?.active) && this.readSave().fleetCampaign?.version!==1)return {kind:'water'};
     const player = this.getPlayer();
     if (!shipCollision(point, { ...player, health: this.getHealth() }, 56)) {
       return { kind: 'water' };

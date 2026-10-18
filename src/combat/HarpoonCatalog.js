@@ -59,7 +59,7 @@ export const harpoonDamage=launcher=>Math.max(1,Math.round(launcher.baseDamage*(
 export const LEVIATHAN_HUNT_HORIZON_DAMAGE=3200;
 export const leviathanHuntHarpoonDamage=(launcher,save,target)=>
   launcher?.id===HORIZON_HARPOON_ID
-  && save?.r3Campaign?.active==='r3-leviathan-hunt'
-  && !save.r3Campaign.leviathanDefeated
+  && (save?.r3Campaign?.active==='r3-leviathan-hunt' || save?.fleetCampaign?.version===1)
+  && (save?.fleetCampaign?.version===1 || !save.r3Campaign.leviathanDefeated)
   && target?.id==='r3-leviathan'
     ? LEVIATHAN_HUNT_HORIZON_DAMAGE : harpoonDamage(launcher);
