@@ -15,7 +15,7 @@ export class DamageTextRenderer {
       target,
       damage:value,
       startTime:Number(startTime)||performance.now(),
-      duration:820,
+      duration:900,
       lane:(this.items.length%3)-1,
     });
     if(this.items.length>48)this.items.splice(0,this.items.length-48);
@@ -62,7 +62,7 @@ export class DamageTextRenderer {
       ctx.textAlign='center';
       ctx.textBaseline='middle';
       ctx.font='900 '+Math.round(clamp(18*visualScale,8,20)*dpr)+'px system-ui, sans-serif';
-      ctx.fillText('-'+item.damage,x,y);
+      ctx.fillText('-'+item.damage.toLocaleString('pt-BR'),x,y);
       ctx.restore();
       alive.push(item);
     }

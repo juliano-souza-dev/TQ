@@ -6,18 +6,29 @@ export function createClickNavigation(canvas, world, onWorldClick = null) {
   let destination = null;
   let gesture = null;
   let suppressClick = false;
+  let lastTouchTap=null;
+  const inFireDeadZone=event=>{
+    if(document.documentElement.dataset.tqLayout!=='mobile-portrait')return false;
+    const button=document.querySelector('.combat-fire-icon-button');
+    if(!button)return false;
+    const r=button.getBoundingClientRect(),halo=24;
+    return event.clientX>=r.left-halo&&event.clientX<=r.right+halo
+      &&event.clientY>=r.top-halo&&event.clientY<=r.bottom+halo;
+  };
   const clamp = (value, extent, half) => extent <= 2 * half
     ? extent / 2 : Math.max(half, Math.min(extent - half, value));
   const down = event => {
     if (event.pointerType !== 'touch' || !event.isPrimary) return;
-    gesture = { id: event.pointerId, startX: event.clientX, startY: event.clientY,
-      lastX: event.clientX, lastY: event.clientY, dragging: false };
+    const blocked=inFireDeadZone(event);
+    gesture = { id:event.pointerId,startX:event.clientX,startY:event.clientY,
+      lastX:event.clientX,lastY:event.clientY,startedAt:performance.now(),blocked,dragging:false };
+    if(blocked)event.preventDefault();
   };
   const move = event => {
-    if (!gesture || event.pointerId !== gesture.id) return;
+    if (!gesture || event.pointerId !== gesture.id || gesture.blocked) return;
     const dx = event.clientX - gesture.lastX;
     const dy = event.clientY - gesture.lastY;
-    if (!gesture.dragging && Math.hypot(event.clientX - gesture.startX, event.clientY - gesture.startY) > 8) {
+    if (!gesture.dragging && Math.hypot(event.clientX - gesture.startX, event.clientY - gesture.startY) > 10) {
       gesture.dragging = true;
       destination = null;
       if (!world.manualCamera) world.manualCamera = { ...world.cameraView };
@@ -43,11 +54,18 @@ export function createClickNavigation(canvas, world, onWorldClick = null) {
   };
   const end = event => {
     if (!gesture || event.pointerId !== gesture.id) return;
-    if (gesture.dragging) suppressClick = true;
-    gesture = null;
+    const moved=Math.hypot(event.clientX-gesture.startX,event.clientY-gesture.startY);
+    const tap=!gesture.blocked&&!gesture.dragging&&moved<10
+      &&performance.now()-gesture.startedAt<200;
+    suppressClick=!tap;
+    lastTouchTap={at:performance.now(),allowed:tap};
+    gesture=null;
   };
   const onClick = event => {
-    if (suppressClick) { suppressClick = false; return; }
+    if(event.pointerType==='touch'&&lastTouchTap
+      &&performance.now()-lastTouchTap.at<550&&!lastTouchTap.allowed)return;
+    if (suppressClick&&event.pointerType==='touch') { suppressClick=false; return; }
+    if(inFireDeadZone(event))return;
     if (event.button !== 0 || event.detail === 0) return;
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;

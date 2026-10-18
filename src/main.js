@@ -24,6 +24,7 @@ import { effectiveAmmo, armedCannons, cannonRange } from './combat/NavalBattleRu
 import { rollNpcAmmoLoot, grantNpcAmmoLoot } from './combat/NpcAmmoLoot.js';
 import { NavalCombatWebGLRenderer } from './rendering/NavalCombatWebGLRenderer.mjs';
 import { createNavalCombatHud } from './ui/NavalCombatHud.js';
+import { createLayoutMode } from './ui/LayoutMode.js';
 import { SEA_GLINTS, collectSeaGlint } from './events/HalloweenSeaGlints.js';
 import { EVENTS, CANNONS, isItemVisible } from './items/EquipmentCatalog.js';
 import { isHalloweenAtmosphereActive } from './events/HalloweenAtmosphere.js';
@@ -59,6 +60,7 @@ document.addEventListener('pointerdown', () => {
 
 const root = document.getElementById('app');
 if (!root) throw new Error('Elemento #app ausente');
+const layoutMode=createLayoutMode(window);
 
 const syncPreferences = createSyncPreferenceStore(window.localStorage);
 const localSaves = createLocalSaveStore(window.localStorage);

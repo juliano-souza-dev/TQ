@@ -35,6 +35,23 @@ export function createMinimap(world,{getPlayer,getNpcs=()=>[],getTreasures=()=>[
   canvas.width=240;canvas.height=240;
   canvas.setAttribute('aria-label','Posição do navio, das ilhas, dos tesouros e da saída');
   root.append(canvas);
+  const toggle=document.createElement('button');
+  toggle.type='button';toggle.className='minimap-collapse-button';
+  toggle.setAttribute('aria-controls','tq-minimap-canvas');
+  canvas.id='tq-minimap-canvas';
+  const read=()=>{try{return localStorage.getItem('tq_minimap_collapsed')==='true';}
+    catch{return false;}};
+  let collapsed=read();
+  function setCollapsed(next){
+    collapsed=!!next;root.classList.toggle('is-collapsed',collapsed);
+    toggle.textContent=collapsed?'◎':'−';
+    toggle.setAttribute('aria-expanded',String(!collapsed));
+    toggle.setAttribute('aria-label',collapsed?'Expandir minimapa':'Recolher minimapa');
+    try{localStorage.setItem('tq_minimap_collapsed',String(collapsed));}catch{}
+  }
+  toggle.addEventListener('pointerdown',event=>event.stopPropagation());
+  toggle.addEventListener('click',event=>{event.stopPropagation();setCollapsed(!collapsed);if(!collapsed)render();});
+  root.append(toggle);setCollapsed(collapsed);
   const occludedTreasure=document.createElement('span');
   occludedTreasure.className='minimap-hidden-treasure';
   occludedTreasure.hidden=true;
@@ -49,7 +66,7 @@ export function createMinimap(world,{getPlayer,getNpcs=()=>[],getTreasures=()=>[
   };
   let lastOcclusionCheck=0;
   function render(){
-    if(!ctx)return;
+    if(!ctx||collapsed)return;
     ctx.clearRect(0,0,240,240);
     ctx.fillStyle='rgba(4,35,51,.88)';
     ctx.beginPath();ctx.arc(RADAR_CENTER,RADAR_CENTER,RADAR_RADIUS,0,Math.PI*2);ctx.fill();
