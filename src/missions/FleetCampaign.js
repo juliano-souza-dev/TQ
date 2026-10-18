@@ -28,9 +28,31 @@ export function startFleetCampaign(save={}){
 export function getFleetTreasures(save={},regionId,region){
  const source=getVisibleTreasures({},0,regionId==='r1'?'r1':'r2');
  const taken=new Set(ids(save.fleetCampaign?.treasures?.[regionId]));
- return source.map(t=>({...t,id:'fleet-'+regionId+'-'+t.id}))
-   .filter(t=>!region||!collidesWithIsland(region,t.x,t.y,60))
-   .filter(t=>!taken.has(t.id));
+ // Never silently discard a treasure: the mission counter must match reachable objects.
+ // Relocate blocked or edge-adjacent points deterministically, keeping their saved IDs.
+ const placed=[];
+ const safe=(x,y)=>!region||(x>=115&&y>=115&&x<=region.width-115&&y<=region.height-115
+   &&!collidesWithIsland(region,x,y,110));
+ const relocate=t=>{
+   if(!region||safe(t.x,t.y))return t;
+   for(let radius=100;radius<=1100;radius+=100){
+     for(let step=0;step<24;step++){
+       const angle=2*Math.PI*step/24;
+       const x=Math.round(t.x+Math.cos(angle)*radius),y=Math.round(t.y+Math.sin(angle)*radius);
+       if(safe(x,y)&&placed.every(p=>Math.hypot(p.x-x,p.y-y)>95))return {...t,x,y};
+     }
+   }
+   // Last-resort deterministic grid search, rather than creating an unreachable objective.
+   for(let y=150;y<region.height-110;y+=120)
+     for(let x=150;x<region.width-110;x+=120)
+       if(safe(x,y)&&placed.every(p=>Math.hypot(p.x-x,p.y-y)>95))return {...t,x,y};
+   return null;
+ };
+ return source.map(t=>{
+   const item=relocate({...t,id:'fleet-'+regionId+'-'+t.id});
+   if(item)placed.push(item);
+   return item;
+ }).filter(Boolean).filter(t=>!taken.has(t.id));
 }
 export function fleetTreasureGoal(regionId,region){
  return getFleetTreasures({},regionId,region).length;
