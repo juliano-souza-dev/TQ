@@ -2,6 +2,7 @@ export const BASE_REPAIR_PERCENT = 20;
 export const MAX_REPAIR_PERCENT = 30;
 export const MAX_HULL_HEALTH = 100;
 const FLEET_HULLS=Object.freeze({
+  'galeao-halloween-tabuada':120,
   'sombra-fugitiva-verde-fantasma':600,'fantasma-esmeralda':2400,
   'corsario-geada-negra':3600,'terror-do-mar':2000,
   'galeao-eclipse':4000,'galeao-caveira-rubra':5300,
