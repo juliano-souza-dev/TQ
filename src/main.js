@@ -3792,7 +3792,7 @@ async function startWorld() {
       if(halloweenFogCanvas){
         const fogVisible=useColdNightMist
           || (world.region.id==='r3'&&r3Purification<0.999)
-          || (world.region.id==='r1'&&useGreenMist);
+          ;
         halloweenFogCanvas.hidden=!fogVisible;
         halloweenFogCanvas.style.opacity=String(world.region.id==='r3'
           ? Math.max(0,1-r3Purification):1);
