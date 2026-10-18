@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {FUTURE_FLEET_REGIONS} from '../src/world/regions/FutureFleetRegions.js';
 import {collidesWithIsland} from '../src/world/IslandCollision.js';
-import {createFleetPopulation,replaceLegacyR6ImperialCaptains,R6_HALLOWEEN_CAPTAIN} from '../src/npcs/FleetPopulation.js';
+import {createFleetPopulation,restoreR6ImperialCaptain,R6_IMPERIAL_CAPTAIN,R6_HALLOWEEN_CAPTAIN} from '../src/npcs/FleetPopulation.js';
 import {FLEET_REGIONS} from '../src/missions/FleetCampaign.js';
 
 const r6=FUTURE_FLEET_REGIONS.r6;
@@ -31,7 +31,7 @@ test('Iron Strait removes decorative islands but keeps dark mission and shipyard
   assert.equal(collidesWithIsland(r6,3380,4450,0),false);
 });
 
-test('R6 pirate waves use Halloween-themed NPC assets instead of frost watchmen',()=>{
+test('R6 waves restore Imperial captain alongside Halloween raiders without frost watchmen',()=>{
   const world={region:r6,camera:{...r6.spawn},fleetNoRespawn:true,entities:new Map()};
   const created=createFleetPopulation(world,()=>.43,{
     fleetCampaign:{version:1,region:6,defeated:{}}
@@ -40,14 +40,14 @@ test('R6 pirate waves use Halloween-themed NPC assets instead of frost watchmen'
   const raiders=[...world.entities.values()];
   assert.equal(new Set(raiders.map(n=>n.shipId)).size,5,
     'first wave showcases five distinct NPC ships');
-  assert.ok(raiders.some(n=>n.shipId==='galeao-frota-das-aboboras'));
+  assert.ok(raiders.some(n=>n.shipId==='galeao-negro-imperial'));
   assert.ok(raiders.some(n=>n.shipId==='galeao-halloween-tabuada'));
   const captain=raiders.find(n=>n.fleetElite===true);
-  assert.equal(captain.name,R6_HALLOWEEN_CAPTAIN.name);
-  assert.equal(captain.shipId,'galeao-frota-das-aboboras');
-  assert.ok(!raiders.some(n=>n.name==='Capitão Fragata Imperial'));
+  assert.equal(captain.name,R6_IMPERIAL_CAPTAIN.name);
+  assert.equal(captain.shipId,R6_IMPERIAL_CAPTAIN.shipId);
+  assert.equal(captain.id,'r6-fleet-01');
   for(const npc of raiders){
-    assert.ok(halloweenShips.has(npc.shipId),npc.shipId);
+    assert.ok(npc===captain||halloweenShips.has(npc.shipId),npc.shipId);
     assert.ok(!/Geada|Gélido|Norte/.test(npc.name),npc.name);
     assert.ok(!['corsario-geada-negra','ladrao-da-geada','ladrao-do-norte'].includes(npc.shipId));
     assert.equal(npc.archetype,'fleet-raider');
@@ -56,6 +56,8 @@ test('R6 pirate waves use Halloween-themed NPC assets instead of frost watchmen'
   assert.equal(FLEET_REGIONS.r6.enemyGoal,22);
   assert.equal(FLEET_REGIONS.r6.encounters[0].id,'r6-imperial',
     'the final boss and campaign rewards are unchanged');
+  assert.equal(FLEET_REGIONS.r6.encounters[0].shipId,'galeao-negro-imperial',
+    'final encounter can actually spawn using the transparent asset');
 });
 
 test('island darkness is region-specific and drawn without altering sprite assets',()=>{
@@ -66,8 +68,8 @@ test('island darkness is region-specific and drawn without altering sprite asset
   assert.ok(src.includes('else this.ctx.drawImage(image,'));
 });
 
-test('old imperial captain is replaced by Pumpkin Fleet without resetting health, IDs or boss',()=>{
-  const legacy={id:'r6-fleet-08',archetype:'fleet-raider',type:'npc',
+test('restore the original Imperial Captain into a live R6 wave without resetting HP, IDs or boss',()=>{
+  const legacy={id:'r6-fleet-01',archetype:'fleet-raider',type:'npc',
     name:'Capitão Fragata Imperial',shipId:'galeao-negro-imperial',
     fleetId:'r6-imperial',health:7850,maxHealth:13000,fleetElite:true};
   const ordinary={id:'r6-fleet-11',archetype:'fleet-raider',type:'npc',
@@ -78,16 +80,20 @@ test('old imperial captain is replaced by Pumpkin Fleet without resetting health
     health:50000,maxHealth:50000};
   const world={region:r6,entities:new Map([
     [legacy.id,legacy],[ordinary.id,ordinary],[storyBoss.id,storyBoss]])};
-  assert.equal(replaceLegacyR6ImperialCaptains(world),2);
-  assert.equal(legacy.id,'r6-fleet-08');
+  // The on-map Captain was previously re-skinned with a Pumpkin Galleon.
+  legacy.name='Capitão da Frota das Abóboras';
+  legacy.shipId='galeao-frota-das-aboboras';
+  legacy.fleetId='r6-pumpkin';
+  assert.equal(restoreR6ImperialCaptain(world),2);
+  assert.equal(legacy.id,'r6-fleet-01');
   assert.equal(legacy.health,7850);
   assert.equal(legacy.maxHealth,13000);
-  assert.equal(legacy.name,R6_HALLOWEEN_CAPTAIN.name);
-  assert.equal(legacy.shipId,R6_HALLOWEEN_CAPTAIN.shipId);
+  assert.equal(legacy.name,R6_IMPERIAL_CAPTAIN.name);
+  assert.equal(legacy.shipId,R6_IMPERIAL_CAPTAIN.shipId);
   assert.equal(ordinary.shipId,'galeao-frota-das-aboboras');
   assert.equal(ordinary.name,'Saqueador das Abóboras');
   assert.equal(storyBoss.name,'Galeão Negro Imperial');
   assert.equal(storyBoss.shipId,'galeao-negro-imperial');
-  assert.equal(replaceLegacyR6ImperialCaptains(world),0,'migration is idempotent');
-  assert.equal(replaceLegacyR6ImperialCaptains({...world,region:FUTURE_FLEET_REGIONS.r5}),0);
+  assert.equal(restoreR6ImperialCaptain(world),0,'migration is idempotent');
+  assert.equal(restoreR6ImperialCaptain({...world,region:FUTURE_FLEET_REGIONS.r5}),0);
 });
