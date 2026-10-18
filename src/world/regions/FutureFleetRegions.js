@@ -21,7 +21,7 @@ export const FUTURE_FLEET_REGIONS=Object.freeze(Object.fromEntries(presets.map((
    id:'r'+n+'-'+island.id,
    // Retain known collision-safe dock locations.
   }))),
-  ocean:Object.freeze({...R2.ocean,tintR:r,tintG:g,tintB:b,swell,
+  ocean:Object.freeze({...R2.ocean,night:n===5,tintR:r,tintG:g,tintB:b,swell,
    contrast,brightness:n===5?28:Math.round((r+g+b)/3),saturation:n===5?66:R2.ocean.saturation,
    sparkleIntensity:n===5?90:R2.ocean.sparkleIntensity,speed:30+n*2,foamMix:30+n}),
  });
