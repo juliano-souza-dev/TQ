@@ -13,7 +13,7 @@ const SHIPS=Object.freeze({
 const FLEETS=Object.freeze({
  r3:['shadow','pumpkin','red','ghost'],
  r4:['frost','thief','red','shadow','northern'],
- r5:['eclipse','red','pumpkin','gold','market'],
+ r5:['ghost','red','pumpkin','gold','market'],
  r6:['imperial','frost','red','northern','market'],
  r7:['crimson','red','pumpkin','imperial','shadow'],
  r8:['veil','shadow','market','ghost','red'],
