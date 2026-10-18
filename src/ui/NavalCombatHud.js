@@ -309,6 +309,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     const choices = [...status.options].filter(item => AMMUNITION.some(ammo => ammo.id === item.id))
       .sort((a,b) => ((NAVAL_AMMO[b.id]?.damagePerShot || 0) * (NAVAL_AMMO[b.id]?.damageFactor || 0))
         - ((NAVAL_AMMO[a.id]?.damagePerShot || 0) * (NAVAL_AMMO[a.id]?.damageFactor || 0)));
+    const isSpecialAmmo = item => Boolean(AMMUNITION.find(ammo => ammo.id === item.id)?.tracking?.enabled || item.id === 'moon-barrage');
     const selectedAmmo = AMMUNITION.find(item => item.id === status.ammoId);
     if (selectedAmmo) ammoIcon.src = getAmmunitionAssetUrl(selectedAmmo);
     setText(ammoCount,isPortrait()?'×'+(status.ammo??0):String(status.ammo??0));
@@ -324,14 +325,15 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'naval-ammo-option';
-        button.disabled = item.amount <= 0;
+        button.disabled = item.amount <= 0 || isSpecialAmmo(item);
+        if(isSpecialAmmo(item)){button.title='Munição especial: seleção manual indisponível';button.setAttribute('aria-label',item.name+' (especial, não selecionável)');}
         button.classList.toggle('is-selected', item.id === status.ammoId);
         const catalog = AMMUNITION.find(ammo => ammo.id === item.id);
         const img = document.createElement('img');
         img.src = getAmmunitionAssetUrl(catalog);
         img.alt = '';
         const label = document.createElement('span');
-        label.textContent = item.name;
+        label.textContent = item.name + (isSpecialAmmo(item) ? ' · Especial' : '');
         const count = document.createElement('span');
         count.className = 'naval-ammo-option-count';
         count.textContent = String(item.amount);
