@@ -12,7 +12,8 @@ export const CANNONS = Object.freeze([
 ].map(item=>Object.freeze(item)));
 export const AMMUNITION = Object.freeze([
   {id:'aetherion-seeker',name:'Orbe Autoguiado Aetherion',asset:'orbe_autoguiado_aetherion.webp',assetPending:false,tracking:{enabled:true,maxDurationMs:9000,lockOn:'fired-target',retarget:false,impact:'single'},event:null,acquisition:{type:'mission-reward',mission:'r2-equip-chaser'}},
-  {id:'rusted-iron',name:'Bola de Canhão de Ferro Enferrujado',asset:'Bola de Canhão de Ferro Enferrujado.webp',event:null,acquisition:{type:'unconfigured'}},
+  {id:'moon-barrage',name:'Rajada da Lua',asset:'Orbe Mágico de Cristal Violeta.webp',event:null,acquisition:{type:'r5-lunar-treasure',region:'r5'}},
+   {id:'rusted-iron',name:'Bola de Canhão de Ferro Enferrujado',asset:'Bola de Canhão de Ferro Enferrujado.webp',event:null,acquisition:{type:'unconfigured'}},
   {id:'violet-crystal',name:'Orbe Mágico de Cristal Violeta',asset:'Orbe Mágico de Cristal Violeta.webp',event:null,acquisition:{type:'unconfigured'}},
   {id:'ocean-pearl',name:'Orbe Mágico de Pérola Oceânica',asset:'Orbe Mágico de Pérola Oceânica.webp',event:null,acquisition:{type:'unconfigured'}},
   {id:'volcanic-lava',name:'Orbe Vulcânico de Lava Incandescente',asset:'Orbe Vulcânico de Lava Incandescente.webp',event:null,acquisition:{type:'unconfigured'}},
