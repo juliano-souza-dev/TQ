@@ -1,4 +1,4 @@
-import { getVisibleTreasures } from '../treasures/RegionTreasures.js';
+import { getVisibleTreasures, treasureReward } from '../treasures/RegionTreasures.js';
 import { collidesWithIsland } from '../world/IslandCollision.js';
 import { FLEET_PLAYER_SHIPS, bestFleetLoadout } from '../ships/FleetAutoEquipment.js';
 
@@ -50,10 +50,14 @@ export function recordFleetTreasure(save,regionId,treasureId){
  if(!valid)return null;
  const c=save.fleetCampaign,old=ids(c.treasures?.[regionId]);
  if(old.includes(treasureId))return null;
+ const reward=treasureReward(treasureId);
  return {
   fleetCampaign:{...c,treasures:{...(c.treasures??{}),[regionId]:[...old,treasureId]}},
   profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+100},
   ammunition:{...(save.ammunition??{}),'rusted-iron':(Number(save.ammunition?.['rusted-iron'])||0)+350},
+  consumables:{...(save.consumables??{}),quantities:{...(save.consumables?.quantities??{}),
+   'double-damage':(Number(save.consumables?.quantities?.['double-damage'])||0)+reward.doubleDamage,
+   'flame-5x':(Number(save.consumables?.quantities?.['flame-5x'])||0)+reward.flame5x}},
  };
 }
 export function fleetRole(regionId,npc){
@@ -176,12 +180,17 @@ export function claimFleetMissionConsumables(save,regionId,mission){
  const p=fleetProgress(save,regionId,save.fleetCampaign?.treasureGoal?.[regionId]??0);
  if(!p||(mission===1?!p.missionOneComplete||!p.prepared:!p.complete))return null;
  const c=save.fleetCampaign,key=regionId+':'+mission;
- if(ids(c.claimedMissionConsumables).includes(key))return null;
+ const oldConsumables=ids(c.claimedMissionConsumables),oldDouble=ids(c.claimedMissionDoubleDamage);
+ const giveOld=!oldConsumables.includes(key),giveDouble=!oldDouble.includes(key);
+ if(!giveOld&&!giveDouble)return null;
  const consumables=save.consumables??{},quantities=consumables.quantities??{};
- return {fleetCampaign:{...c,claimedMissionConsumables:[...ids(c.claimedMissionConsumables),key]},
+ return {fleetCampaign:{...c,
+   claimedMissionConsumables:giveOld?[...oldConsumables,key]:oldConsumables,
+   claimedMissionDoubleDamage:giveDouble?[...oldDouble,key]:oldDouble},
   consumables:{...consumables,quantities:{...quantities,
-   'flame-5x':(Number(quantities['flame-5x'])||0)+2,
-   'speed-plus':(Number(quantities['speed-plus'])||0)+2}}};
+   'flame-5x':(Number(quantities['flame-5x'])||0)+(giveOld?2:0),
+   'speed-plus':(Number(quantities['speed-plus'])||0)+(giveOld?2:0),
+   'double-damage':(Number(quantities['double-damage'])||0)+(giveDouble?1000:0)}}};
 }
 export function fleetLabel(p){
  if(!p)return 'Campanha naval';

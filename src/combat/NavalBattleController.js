@@ -115,6 +115,7 @@ export class NavalBattleController {
     return {
       selectedId:c.selectedId ?? 'flame-5x',
       quantities:c.quantities ?? {},
+      doubleDamageEnabled: c.doubleDamageEnabled===true,
       activeUntil:Number(c.activeUntil)||0,
       cooldownUntil:Number(c.cooldownUntil)||0,
       shieldActiveUntil:Number(c.shieldActiveUntil)||0,
@@ -134,13 +135,23 @@ export class NavalBattleController {
   isSpeedActive() { return Date.now() < this.getConsumables().speedActiveUntil; }
   isTreasureMapActive() { return Date.now() < this.getConsumables().treasureMapActiveUntil; }
   selectConsumable(id) {
-    if (!['none','flame-5x','shield','speed-plus','treasure-map','area-freeze'].includes(id)) return false;
+    if (!['none','flame-5x','double-damage','shield','speed-plus','treasure-map','area-freeze'].includes(id)) return false;
     const save=this.readSave();
     this.writePatch({consumables:{...(save.consumables??{}),selectedId:id}});
     return true;
   }
   activateConsumable() {
     const save=this.readSave(),c=this.getConsumables(),now=Date.now();
+    if(c.selectedId==='double-damage'){
+      if(c.doubleDamageEnabled){
+        this.writePatch({consumables:{...(save.consumables??{}),doubleDamageEnabled:false}});
+        return {ok:true,reason:'💥 Dano 2× desativado. Unidades preservadas.'};
+      }
+      const charges=Math.max(0,Math.floor(Number(c.quantities?.['double-damage'])||0));
+      if(!charges)return {ok:false,reason:'Você não possui cargas de Dano 2×.'};
+      this.writePatch({consumables:{...(save.consumables??{}),doubleDamageEnabled:true}});
+      return {ok:true,reason:'💥 Dano 2× ativado! Cada disparo consome 1 carga.'};
+    }
     const config={
       shield:{active:'shieldActiveUntil',cooldown:'shieldCooldownUntil',duration:56250,reload:180000,label:'Escudo'},
       'flame-5x':{active:'activeUntil',cooldown:'cooldownUntil',duration:75000,reload:150000,label:'5X em Chamas'},
@@ -750,7 +761,10 @@ export class NavalBattleController {
         && save.r2Campaign?.active === 'r2-golden-ii' && target.id === 'r2-morbi';
       const varkorBonus = target.archetype==='terror-do-mar' && target.varkorBattleUnlocked ? 7 * 1.25 : 1;
       const areaFreezeArmed=!!save.consumables?.areaFreezeArmed;
-      const damage = (areaFreezeArmed?0:(cannon.baseDamage??shotDamage(cannon, ammo.id)/1)) * (cannon.baseDamage?1:SHIP_CANNON_DAMAGE_MULTIPLIER) * (this.getRegionId()==='r4' && ammo.id==='volcanic-lava' && target.type==='npc' ? 3 : 1) * varkorBonus * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
+      // Freeze-only projectiles cause no direct damage; do not consume a 2X charge.
+      const doubleDamage= !areaFreezeArmed && save.consumables?.doubleDamageEnabled===true
+        && (Number(save.consumables?.quantities?.['double-damage'])||0)>0;
+      const damage = (areaFreezeArmed?0:(cannon.baseDamage??shotDamage(cannon, ammo.id)/1)) * (cannon.baseDamage?1:SHIP_CANNON_DAMAGE_MULTIPLIER) * (this.getRegionId()==='r4' && ammo.id==='volcanic-lava' && target.type==='npc' ? 3 : 1) * varkorBonus * (flameBoost ? 5 : 1) * (doubleDamage ? 2 : 1) * (goldenMission ? 2500 : 1);
       const tracking = ammo.trackingDurationMs > 0;
       const accepted = this.renderer.fire({
         from: muzzle, to: destination,
@@ -801,6 +815,15 @@ export class NavalBattleController {
       this.markCombatActivity(now);
       if(areaFreezeArmed)this.writePatch({consumables:{...(this.readSave().consumables??{}),areaFreezeArmed:false}});
       ammoStockById[ammoId] = remaining - 1;
+      // One 2X charge per accepted cannon shot, even when the projectile misses.
+      // Never debit for WebGL-rejected launches, harpoons or freezing-only shots.
+      if(doubleDamage){
+        const latest=this.readSave(),c=latest.consumables??{},qty={...(c.quantities??{})};
+        const remainingCharges=Math.max(0,(Number(qty['double-damage'])||0)-1);
+        qty['double-damage']=remainingCharges;
+        this.writePatch({consumables:{...c,quantities:qty,
+          doubleDamageEnabled:remainingCharges>0}});
+      }
       this.writePatch({ammunition: {...save.ammunition, ...ammoStockById}});
       this.nextBySlot.set(slot, now + Math.max(100, cannon.reloadSeconds * 1000 / (flameBoost ? 5 : 1)));
       this.playerSequenceCursor = (batteryIndex + 1) % battery.length;

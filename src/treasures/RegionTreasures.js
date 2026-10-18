@@ -64,7 +64,8 @@ function hashId(id) {
 }
 export function treasureReward(id) {
   const seed = hashId(id);
-  return { gold: 12 + (seed % 24), iron: 16 + ((seed >>> 6) % 29) };
+  return { gold: 12 + (seed % 24), iron: 16 + ((seed >>> 6) % 29),
+    doubleDamage:200+((seed>>>11)%301),flame5x:1+((seed>>>21)%5) };
 }
 // IDs de ciclos são históricos: nunca reutilizar uma arca já coletada,
  // mesmo em saves antigos ou após uma sincronização parcial.
@@ -139,6 +140,11 @@ export function claimTreasure(save = {}, id, now = Date.now()) {
         ...save.ammunition,
         'rusted-iron': (save.ammunition?.['rusted-iron'] ?? 20) + reward.iron,
       },
+      consumables:{...(save.consumables??{}),
+        quantities:{...(save.consumables?.quantities??{}),
+          'double-damage':(Number(save.consumables?.quantities?.['double-damage'])||0)+reward.doubleDamage,
+          'flame-5x':(Number(save.consumables?.quantities?.['flame-5x'])||0)+reward.flame5x}},
+
     },
   };
 }

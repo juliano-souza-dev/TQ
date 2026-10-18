@@ -155,16 +155,18 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   noneOption.className='naval-consumable-none-option';
   noneOption.textContent='🔒 Nenhum consumível';
   const flameItem=createConsumableOption({name:'5X em Chamas',image:flameAssetUrl});
+  const doubleDamageItem=createConsumableOption({name:'Dano 2×',emoji:'💥'});
   const shieldItem=createConsumableOption({name:'Escudo',emoji:'🛡️'});
   const speedItem=createConsumableOption({name:'Veloz+',emoji:'💨'});
   const mapItem=createConsumableOption({name:'Mapa do Tesouro',emoji:'🗺️'});
   const areaFreezeItem=createConsumableOption({name:'Congelamento em Área',emoji:'❄️'});
   const flameOption=flameItem.button;
+  const doubleDamageOption=doubleDamageItem.button;
   const shieldOption=shieldItem.button;
   const speedOption=speedItem.button;
   const mapOption=mapItem.button;
   const areaFreezeOption=areaFreezeItem.button;
-  picker.append(noneOption,flameOption,shieldOption,speedOption,mapOption,areaFreezeOption);
+  picker.append(noneOption,flameOption,doubleDamageOption,shieldOption,speedOption,mapOption,areaFreezeOption);
   consumablesWrap.append(consumablesButton,picker);
   attackControls.append(fireButton, fireIconButton, consumablesWrap, centerButton, repairButton);
   element.append(hullRow, ammoWrap, ammoQuantity, cannonQuantity, attackControls, feedback);
@@ -181,6 +183,8 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     const shieldSelected=consumable.selectedId==='shield';
     const noneSelected=consumable.selectedId==='none';
     const flameQty=Math.max(0,Math.floor(Number(consumable.quantities['flame-5x'])||0));
+    const doubleQty=Math.max(0,Math.floor(Number(consumable.quantities['double-damage'])||0));
+    const doubleSelected=consumable.selectedId==='double-damage';
     const shieldQty=Math.max(0,Math.floor(Number(consumable.quantities.shield)||0));
     const speedQty=Math.max(0,Math.floor(Number(consumable.quantities['speed-plus'])||0));
     const mapQty=Math.max(0,Math.floor(Number(consumable.quantities['treasure-map'])||0));
@@ -188,10 +192,11 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     const speedSelected=consumable.selectedId==='speed-plus';
     const mapSelected=consumable.selectedId==='treasure-map';
     const areaFreezeSelected=consumable.selectedId==='area-freeze';
-    const qty=shieldSelected?shieldQty:speedSelected?speedQty:mapSelected?mapQty:areaFreezeSelected?areaFreezeQty:flameQty;
-    selectedIcon.hidden=noneSelected||shieldSelected||speedSelected||mapSelected||areaFreezeSelected;
-    countLabel.textContent=noneSelected?'🔒':shieldSelected?'🛡️ '+qty:speedSelected?'💨 '+qty:mapSelected?'🗺️ '+qty:areaFreezeSelected?'❄️ '+qty:String(qty);
+    const qty=doubleSelected?doubleQty:shieldSelected?shieldQty:speedSelected?speedQty:mapSelected?mapQty:areaFreezeSelected?areaFreezeQty:flameQty;
+    selectedIcon.hidden=noneSelected||doubleSelected||shieldSelected||speedSelected||mapSelected||areaFreezeSelected;
+    countLabel.textContent=noneSelected?'🔒':doubleSelected?'💥 '+qty:shieldSelected?'🛡️ '+qty:speedSelected?'💨 '+qty:mapSelected?'🗺️ '+qty:areaFreezeSelected?'❄️ '+qty:String(qty);
     flameOption.hidden=flameQty<=0;
+    doubleDamageOption.hidden=doubleQty<=0&&!consumable.doubleDamageEnabled;
     shieldOption.hidden=shieldQty<=0;
     speedOption.hidden=speedQty<=0;
     mapOption.hidden=mapQty<=0;
@@ -204,6 +209,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     const formatTime=seconds=>Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
     for(const [item,quantity,left,until,selected] of [
       [flameItem,flameQty,flameRemaining,consumable.activeUntil,consumable.selectedId==='flame-5x'],
+      [doubleDamageItem,doubleQty,0,0,doubleSelected],
       [shieldItem,shieldQty,shieldRemaining,consumable.shieldActiveUntil,shieldSelected],
       [speedItem,speedQty,speedRemaining,consumable.speedActiveUntil,speedSelected],
       [mapItem,mapQty,mapRemaining,consumable.treasureMapActiveUntil,mapSelected],
@@ -217,6 +223,11 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
       item.button.classList.toggle('is-recharging',left>0);
       item.button.title=item.detail.textContent;
     }
+    doubleDamageItem.detail.textContent=consumable.doubleDamageEnabled
+      ? 'Ativado · 1 carga por disparo · toque para desligar'
+      : 'Desativado · toque para ligar';
+    doubleDamageItem.button.title=doubleDamageItem.detail.textContent;
+    doubleDamageItem.button.classList.toggle('is-selected',doubleSelected||consumable.doubleDamageEnabled);
         const cameraDetached = Boolean(isCameraDetached());
     centerButton.disabled = !cameraDetached;
     centerButton.classList.toggle('is-available', cameraDetached);
@@ -320,6 +331,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     refresh();
   }
   flameOption.addEventListener('click',()=>selectAndActivate('flame-5x'));
+  doubleDamageOption.addEventListener('click',()=>selectAndActivate('double-damage'));
   shieldOption.addEventListener('click',()=>selectAndActivate('shield'));
   speedOption.addEventListener('click',()=>selectAndActivate('speed-plus'));
   mapOption.addEventListener('click',()=>selectAndActivate('treasure-map'));

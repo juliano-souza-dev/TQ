@@ -1186,7 +1186,7 @@ async function startWorld() {
         npc.lootGranted=true;
         const loot=rollNpcAmmoLoot(world.region.id);
         const patch=grantNpcAmmoLoot(readSave(),loot);
-        if(patch){writePatch(patch);showOceanReward('🎁 '+npc.name+': +1 5X em Chamas · +'+loot.amount+' '+loot.name+' · +'+loot.gold+' ouro.');}
+        if(patch){writePatch(patch);showOceanReward('🎁 '+npc.name+': +1 5X · +'+loot.doubleDamage+' Dano 2× · +'+loot.amount+' '+loot.name+' · +'+loot.gold+' ouro.');}
       };
       if(world.fleetNoRespawn){
         const patch=recordFleetDefeat(save,world.region.id,npc);
@@ -2749,9 +2749,11 @@ async function startWorld() {
     for(const stage of [1,2]){
       const gift=claimFleetMissionConsumables(save,world.region.id,stage);
       if(!gift)continue;
+      const key=world.region.id+':'+stage;
+      const firstTime=!(save.fleetCampaign?.claimedMissionConsumables??[]).includes(key);
       writePatch(gift);
       save=readSave();
-      showOceanReward('🎁 Missão '+stage+' concluída: +2 5X em Chamas e +2 Veloz+!');
+      showOceanReward('🎁 Missão '+stage+': +1.000 Dano 2×'+(firstTime?' · +2 5X e +2 Veloz+!':' (recompensa atualizada)!'));
     }
     if(p.complete){
       if(!fleetVictoryAnnouncement){
@@ -3428,9 +3430,17 @@ async function startWorld() {
         if(wreck){
           const amount=100+Math.floor(Math.random()*151);
           const gold=100+Math.floor(Math.random()*151);
-          writePatch({r4CollectedWrecks:[...collected,wreck.id],ammunition:{...(save.ammunition??{}),'frozen-explosion':(Number(save.ammunition?.['frozen-explosion'])||0)+amount},profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+gold}});
+          const doubleDamage=200+Math.floor(Math.random()*301);
+          const flame5x=1+Math.floor(Math.random()*5);
+          const q=save.consumables?.quantities??{};
+          writePatch({r4CollectedWrecks:[...collected,wreck.id],
+            ammunition:{...(save.ammunition??{}),'frozen-explosion':(Number(save.ammunition?.['frozen-explosion'])||0)+amount},
+            profile:{...(save.profile??{}),gold:(Number(save.profile?.gold)||0)+gold},
+            consumables:{...(save.consumables??{}),quantities:{...q,
+              'double-damage':(Number(q['double-damage'])||0)+doubleDamage,
+              'flame-5x':(Number(q['flame-5x'])||0)+flame5x}}});
           recordMissionEvent({type:'r4-wreck',id:wreck.id});
-          showOceanReward('❄️ Destroços Gélidos: +'+amount+' Explosões Gélidas e +'+gold+' ouro!');
+          showOceanReward('❄️ Destroços Gélidos: +'+amount+' Explosões Gélidas · +'+gold+' ouro · +'+doubleDamage+' Dano 2× · +'+flame5x+' 5X!');
         }
       }
       if(EVENTS.halloween && world.region.id!=='r4'){

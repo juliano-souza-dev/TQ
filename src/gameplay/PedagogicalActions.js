@@ -3,7 +3,7 @@ import {
   acceptCampaignMission, recordCampaignEvent,
   claimCampaignMission, startRegion2,
 } from '../missions/RegionOneCampaign.js';
-import { claimTreasure } from '../treasures/RegionTreasures.js';
+import { claimTreasure,treasureReward } from '../treasures/RegionTreasures.js';
 import { accumulateHullRepair } from '../combat/HullRepair.js';
 import { CANNONS } from '../items/EquipmentCatalog.js';
 import { fleetEnabled, recordFleetTreasure } from '../missions/FleetCampaign.js';
@@ -49,7 +49,7 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
     message = 'Contrato aceito! Boa aventura.';
   } else if (type === 'treasure') {
     const outcome = fleetEnabled(save)
-      ? {patch:recordFleetTreasure(save,action.regionId,action.id),reward:{gold:100,iron:350}}
+      ? {patch:recordFleetTreasure(save,action.regionId,action.id),reward:{...treasureReward(action.id),gold:100,iron:350}}
       : claimTreasure(save, action.id);
     if (!outcome?.patch) return null;
     patch = outcome.patch;
@@ -70,7 +70,8 @@ export function resolvePedagogicalAction(save, action, challenge, firstTry) {
       patch.ammunition[id]=(Number(patch.ammunition[id])||0)+amount;
     questEvent = fleetEnabled(save)?null:{ type: 'treasure', id: action.id };
     message = 'Destroços resgatados! +' + outcome.reward.gold
-      + ' ouro, +' + outcome.reward.iron + ' ferro, ' +
+      + ' ouro, +' + outcome.reward.iron + ' ferro, +'+outcome.reward.doubleDamage
+      + ' Dano 2×, +'+outcome.reward.flame5x+' 5X em Chamas, ' +
       Object.entries(bonus).map(([id,amount])=>'+'+amount+' '+({
         'halloween-purple-ball':'Bolas Roxas',
         'purple-pumpkin-orb':'Orbes de Abóbora Roxa',
