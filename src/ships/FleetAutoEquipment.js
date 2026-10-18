@@ -1,4 +1,5 @@
 import { CANNONS } from '../items/EquipmentCatalog.js';
+import {R5_ECLIPSE_BOSS_ID} from '../missions/RegionFiveEclipse.js';
 import {HORIZON_HARPOON_ID,HORIZON_HARPOON_AMMO_ID} from '../combat/HarpoonCatalog.js';
 import { STARTER_SHIP, HALLOWEEN_TABUADA_SHIP, GOLDEN_GALLEON_SHIP,
   SHADOW_CHASER_SHIP, TERROR_DO_MAR_SHIP, FROZEN_LANDS_GALLEON_SHIP,
@@ -65,6 +66,14 @@ export function grantFleetEntry(save,regionId){
   return {equipment:{...armed,loadout:{...(e.loadout??{}),
     [PLAYABLE_SHADOW_THIEF.id]:bestFleetLoadout({...save,equipment:armed},PLAYABLE_SHADOW_THIEF)}}};
  }
+ if(regionId==='r5'){
+  const next={...e,ownedShipIds:uniq([...ownedShipIds,PLAYABLE_FROZEN_LANDS.id]),
+    equippedShipId:PLAYABLE_FROZEN_LANDS.id,
+    ownedHarpoonIds:uniq([...(e.ownedHarpoonIds??[]),HORIZON_HARPOON_ID]),
+    equippedHarpoonId:HORIZON_HARPOON_ID};
+  return {equipment:next,harpoonAmmo:{...(save.harpoonAmmo??{}),
+    [HORIZON_HARPOON_AMMO_ID]:Math.max(3000,Number(save.harpoonAmmo?.[HORIZON_HARPOON_AMMO_ID])||0)}};
+ }
  if(regionId==='r4'){
   const patch=grantFleetPreparation(save,regionId),next=patch.equipment;
   return {...patch,equipment:{...next,ownedShipIds:uniq([...next.ownedShipIds,PLAYABLE_FROZEN_LANDS.id]),equippedShipId:PLAYABLE_FROZEN_LANDS.id}};
@@ -77,7 +86,8 @@ export function fleetShipForRegion(save,regionId){
     ?'fragata-sombra-cacadora':owned.has('galeao-halloween-tabuada')?'galeao-halloween-tabuada':'starter-red-sails',
    r3:owned.has(PLAYABLE_EMERALD_GHOST.id)?PLAYABLE_EMERALD_GHOST.id:owned.has(PLAYABLE_SHADOW_THIEF.id)?PLAYABLE_SHADOW_THIEF.id:'galeao-dourado',
    r4:owned.has(PLAYABLE_FROZEN_LANDS.id)?PLAYABLE_FROZEN_LANDS.id:'terror-do-mar',
-   r5:owned.has(PLAYABLE_ECLIPSE.id)?PLAYABLE_ECLIPSE.id:e.equippedShipId,
+   r5:(save.fleetCampaign?.bosses?.r5??[]).includes(R5_ECLIPSE_BOSS_ID)&&owned.has(PLAYABLE_ECLIPSE.id)
+      ?PLAYABLE_ECLIPSE.id:owned.has(PLAYABLE_FROZEN_LANDS.id)?PLAYABLE_FROZEN_LANDS.id:e.equippedShipId,
    r7:owned.has(PLAYABLE_CRIMSON.id)?PLAYABLE_CRIMSON.id:e.equippedShipId,
    r8:owned.has(PLAYABLE_BLACK_VEIL.id)?PLAYABLE_BLACK_VEIL.id:e.equippedShipId}[regionId]||e.equippedShipId||'starter-red-sails';
  const id=owned.has(prior)?prior:e.equippedShipId;
