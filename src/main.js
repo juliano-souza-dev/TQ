@@ -1359,6 +1359,15 @@ async function startWorld() {
     getPlayer: () => ({ x: world.camera.x, y: world.camera.y, heading }),
     getNpcs: () => [...world.entities.values()].filter(entity => entity.type === 'npc'),
     getTreasures: () => world.fleetNoRespawn?visibleTreasures():(world.region.id === 'r2' && ['r2-destroy-thief','r2-golden-i','r2-golden-ii'].includes(readSave().r2Campaign?.active)) ? [] : getVisibleTreasures(readSave(),Date.now(),world.region.id),
+    getExit: () => world.fleetNoRespawn
+      && fleetProgress(readSave(),world.region.id,fleetTreasureGoal(world.region.id,world.region))?.complete
+        ? fleetExitPoint(world.region):null,
+    getScreenPoint: (x,y) => {
+      const projected=projectScreenPoint(x,y);
+      if(projected.offscreen)return null;
+      const bounds=canvas.getBoundingClientRect();
+      return {x:bounds.left+projected.x,y:bounds.top+projected.y};
+    },
     hasTreasureSense: () => Boolean(world.treasureSenseActive || navalBattle?.isTreasureMapActive()),
   });
   minimapElement = minimap.element;
