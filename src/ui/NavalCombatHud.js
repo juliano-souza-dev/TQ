@@ -239,7 +239,10 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
   }
 
 
+  // Prototype navigation/impact traces are no longer user-facing HUD messages.
+  const isPrototypeTrace = message => /navegando até os destroços|alvo selecionado:|bala.*água|projétil.*água|acertou (?:o )?navio|impacto (?:na |n. )?água/i.test(String(message||''));
   function setFeedback(text) {
+    if(isPrototypeTrace(text))return;
     automaticFeedback = '';
     setText(feedback,text||'');
     if(isPortrait()&&text){
