@@ -30,3 +30,16 @@ test('rotating changes layout without rebuilding the game',()=>{
   assert.deepEqual(seen,['mobile-portrait','mobile-landscape']);
   off();mode.dispose();
 });
+
+test('reload ring observes the actual harpoon timer without changing gameplay state',async()=>{
+  const {NavalBattleController}=await import('../src/combat/NavalBattleController.js');
+  const save={},battle=Object.create(NavalBattleController.prototype);
+  battle.firing=true;battle.getTarget=()=>({type:'monster'});
+  battle.readSave=()=>save;battle.nextHarpoonAt=4500;
+  const result=battle.getPlayerReloadState(1000);
+  assert.deepEqual(result,{remainingMs:3500,durationMs:3500});
+  assert.equal(battle.nextHarpoonAt,4500);
+  assert.deepEqual(save,{});
+  battle.firing=false;
+  assert.deepEqual(battle.getPlayerReloadState(1000),{remainingMs:0,durationMs:0});
+});
