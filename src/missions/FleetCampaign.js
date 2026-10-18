@@ -11,7 +11,7 @@ export const FLEET_REGIONS=Object.freeze({
  r3:{name:'Águas Escuras',enemyGoal:16,monsterGoal:0,encounters:[{id:'r3-leviathan',name:'Leviatã das Águas Escuras',ship:null},{id:'terror-do-mar',name:'Terror do Mar',ship:'terror-do-mar'}]},
  r4:{name:'Terras Gélidas',enemyGoal:30,monsterGoal:0,encounters:[{id:'r4-almirante-boreal',name:'Almirante Boreal · O Reflexo Gelado',ship:null,shipId:'corsario-geada-negra'}]},
  r5:{name:'Domínio do Eclipse',enemyGoal:28,monsterGoal:1,encounters:[{id:R5_ECLIPSE_BOSS_ID,name:'Galeão Eclipse · Senhor da Noite',ship:'galeao-eclipse'}]},
- r6:{name:'Estreito de Ferro',enemyGoal:22,monsterGoal:2,encounters:[{id:'r6-imperial',name:'Galeão Negro Imperial',ship:null}]},
+ r6:{name:'Estreito de Ferro',enemyGoal:22,monsterGoal:2,encounters:[{id:'r6-imperial',name:'Galeão Negro Imperial',ship:null,shipId:'galeao-negro-imperial'}]},
  r7:{name:'Baía Rubra',enemyGoal:24,monsterGoal:2,encounters:[{id:'r7-crimson',name:'Galeão da Caveira Rubra',ship:'galeao-caveira-rubra'}]},
  r8:{name:'Mar do Véu Negro',enemyGoal:18,monsterGoal:2,encounters:[{id:'r8-black-veil',name:'Corsário do Véu Negro',ship:'corsario-do-veu-negro'}]},
  r9:{name:'Arquipélago das Correntes',enemyGoal:26,monsterGoal:2,encounters:[{id:'r9-pumpkin',name:'Almirante das Abóboras',ship:null,shipId:'galeao-frota-das-aboboras'}]},
