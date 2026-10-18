@@ -747,7 +747,10 @@ export class NavalBattleController {
       const accuracy = target.archetype === 'fugitive-frigate' && this.getThiefMissionTarget() ? 1 : cannon.accuracy;
       const destination = aimWithAccuracy(intercepted, muzzle, accuracy, this.random);
       const flameBoost = this.isFlameActive() && this.isBossTarget(target) && (this.getRegionId()!=='r3' || (target.archetype==='terror-do-mar' && !!save.r3Campaign?.varkorFlameUnlocked));
-      const goldenMission = this.getRegionId() === 'r2' && (save.r2Campaign?.active === 'r2-golden-ii' || save.fleetCampaign?.version===1) && target.id === 'r2-morbi';
+      // The legacy Morbi duel has 900,000 HP and needs a large damage boost.
+      // Fleet mode scales boss HP separately; applying the legacy 2500x bonus there made Morbi sink in 1-2 hits.
+      const goldenMission = this.getRegionId() === 'r2' && save.fleetCampaign?.version!==1
+        && save.r2Campaign?.active === 'r2-golden-ii' && target.id === 'r2-morbi';
       const varkorBonus = target.archetype==='terror-do-mar' && target.varkorBattleUnlocked ? 7 * 1.25 : 1;
       const areaFreezeArmed=!!save.consumables?.areaFreezeArmed;
       const damage = (areaFreezeArmed?0:(cannon.baseDamage??shotDamage(cannon, ammo.id)/1)) * (cannon.baseDamage?1:SHIP_CANNON_DAMAGE_MULTIPLIER) * (this.getRegionId()==='r4' && ammo.id==='volcanic-lava' && target.type==='npc' ? 3 : 1) * varkorBonus * (flameBoost ? 5 : 1) * (goldenMission ? 2500 : 1);
