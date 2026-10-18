@@ -19,6 +19,7 @@ uniform vec4 uPerspective;
 uniform float uZoom;
 uniform float uTime;
 uniform float uIntensity;
+uniform float uMistPalette;
 out vec4 fragColor;
 
 float rand2(vec2 p) {
@@ -86,9 +87,17 @@ void main() {
   vec3 ghostGreen = vec3(0.18, 0.91, 0.52);
   vec3 color = mix(deepGreen, ghostGreen, clamp(glow * 0.9 + threads * 0.55, 0.0, 1.0));
   color += sparks * vec3(0.055, 0.18, 0.095);
+  // Cold silver-blue banks belong to R6 only. Keep R1/R3 emerald mist unchanged.
+  vec3 moonBlue = mix(vec3(0.065, 0.085, 0.16), vec3(0.28, 0.35, 0.54),
+    clamp(glow * 0.9 + threads * 0.55, 0.0, 1.0));
+  moonBlue += sparks * vec3(0.065, 0.095, 0.15);
+  color = mix(color, moonBlue, step(0.5, uMistPalette));
 
   float breath = 0.92 + 0.08 * sin(uTime * 0.37);
-  float alpha = clamp((body + thinHaze + sparks * 0.07) * breath * uIntensity, 0.0, 0.42);
+  // Limit post-Eclipse veil so it never veils the ship, cannonballs or treasure markers.
+  float cold = step(0.5, uMistPalette);
+  float alpha = clamp((body + thinHaze + sparks * 0.07) * breath * uIntensity
+    * mix(1.0, 0.72, cold), 0.0, mix(0.42, 0.27, cold));
   fragColor = vec4(color, alpha);
 }
 `;
