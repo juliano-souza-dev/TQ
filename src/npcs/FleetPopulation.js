@@ -1,3 +1,4 @@
+import { seekingOrbMovementSpeed } from '../combat/SeekingOrbSlow.js';
 import { collidesWithIsland, resolveIslandMovement } from '../world/IslandCollision.js';
 import { FLEET_REGIONS } from '../missions/FleetCampaign.js';
 
@@ -92,7 +93,8 @@ export function updateFleetPopulation(world,deltaMs,random=Math.random){
   }else desired=npc.patrolHeading??npc.heading;
   const turn=((desired-npc.heading+540)%360)-180;
   npc.heading=(npc.heading+Math.sign(turn)*Math.min(Math.abs(turn),180*dt)+360)%360;
-  const amount=retreat?npc.speed*dt:engage?Math.min(npc.speed*dt,Math.max(0,distance-250)):npc.speed*dt*.52;
+  const speed=seekingOrbMovementSpeed(npc,npc.speed);
+  const amount=retreat?speed*dt:engage?Math.min(speed*dt,Math.max(0,distance-250)):speed*dt*.52;
   const rad=npc.heading*Math.PI/180;
   const next=resolveIslandMovement(world.region,npc.x,npc.y,
    Math.max(85,Math.min(world.region.width-85,npc.x+Math.sin(rad)*amount)),
