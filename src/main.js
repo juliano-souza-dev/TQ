@@ -3,6 +3,7 @@ import {fleetEnabled,startFleetCampaign,getFleetTreasures,fleetTreasureGoal,
  fleetProgress,fleetLabel,recordFleetDefeat,reconcileFleetBossPrizes,finishFleetRegion,claimFleetMissionConsumables,encounterMatches} from './missions/FleetCampaign.js';
 import {FLEET_PLAYER_SHIPS,grantFleetPreparation,grantFleetEntry,reconcileFleetEquipment,cannonStrength} from './ships/FleetAutoEquipment.js';
 import { createFleetPopulation,updateFleetPopulation } from './npcs/FleetPopulation.js';
+import {R5_ECLIPSE_BOSS_ID,MOON_BARRAGE_AMMO_ID,isLunarResupply} from './missions/RegionFiveEclipse.js';
 import { FUTURE_FLEET_REGIONS,fleetExitPoint } from './world/regions/FutureFleetRegions.js';
 import { createViewProjection } from './rendering/OrbitalCameraProjection.js';
 import {drawFrozenShip,drawFreezeBurst} from './rendering/FreezeEffects.js';
@@ -346,6 +347,11 @@ async function startWorld() {
         fleetCampaign:{...first.fleetCampaign,
           entryShipRegions:[...new Set([...(first.fleetCampaign?.entryShipRegions??[]),'r3'])],
           r3GuidedArsenalV1:true,r3GuidedArsenalV2:true}});
+    }
+    if(world.region.id==='r5'&&!readSave().fleetCampaign?.entryShipRegions?.includes('r5')){
+      const first=readSave(),entry=grantFleetEntry(first,'r5');
+      writePatch({...entry,fleetCampaign:{...first.fleetCampaign,
+        entryShipRegions:[...new Set([...(first.fleetCampaign?.entryShipRegions??[]),'r5'])]}});
     }
   }
 
@@ -1309,8 +1315,10 @@ async function startWorld() {
     pendingTreasureId=treasure.id;
     return mathGate.open({
       kind:'treasure',id:treasure.id,
-      title:'🪵 Resgatar destroços',
-      description:'Resolva a continha para recolher o que restou do naufrágio.',
+      title:isLunarResupply(treasure.id)?'🌙 Reabastecimento Lunar':'🪵 Resgatar destroços',
+      description:isLunarResupply(treasure.id)
+         ?'Resolva a continha para recuperar Rajadas da Lua e continuar o duelo com o Eclipse.'
+         :'Resolva a continha para recolher o que restou do naufrágio.',
     });
   };
 
@@ -2740,7 +2748,7 @@ async function startWorld() {
   }
 
   let fleetSwitchingShip=false,fleetEncounterAnnouncement=null,fleetVictoryAnnouncement=false;
-  let fleetExitDismissed=false, lastFleetRepairNotice=0;
+  let fleetExitDismissed=false, lastFleetRepairNotice=0, lunarSupplyNoticeShown=false;
   function fleetBossPower(save){
     const equipped=FLEET_PLAYER_SHIPS.find(ship=>ship.id===save.equipment?.equippedShipId)||activeShip;
     const loadout=save.equipment?.loadout?.[equipped.id]??[];
@@ -2749,7 +2757,7 @@ async function startWorld() {
     const dps=(owned.length?owned:[fallback,fallback,fallback]).reduce((sum,c)=>
       sum+(Number(c.baseDamage)||10*(Number(c.damageMultiplier)||1))
       *3*Math.max(.5,Number(c.accuracy)||.8)/Math.max(.6,Number(c.reloadSeconds)||1),0);
-    return Math.max(1500,Math.round(dps*(world.region.id==='r4'?90:65)));
+    return Math.max(1500,Math.round(dps*(['r4','r5'].includes(world.region.id)?90:65)));
   }
   function fleetBossStat(npc,save){
     if(npc.fleetBalanced)return;
@@ -2761,13 +2769,13 @@ async function startWorld() {
       ? Math.max(250000,Math.round(power*2.5))
       :npc.archetype==='terror-do-mar'
         ? Math.max(160000,Math.round(power*1.8))
-        :npc.archetype==='frozen-mirror-boss'
+        :['frozen-mirror-boss','eclipse-mirror-boss'].includes(npc.archetype)
           ? Math.max(120000,Math.round(power*1.5)):power;
     npc.health=npc.maxHealth;
     npc.fleetDamage=Math.max(2,Math.round(getMaxHullHealth(save)*.0075));
     npc.damage=npc.fleetDamage;
     npc.range=Math.max(840,Number(npc.range)||0);
-    npc.cannonSlots=Math.max(3,Math.min(npc.archetype==='frozen-mirror-boss'?9:8,Number(npc.cannonSlots)||5));
+    npc.cannonSlots=Math.max(3,Math.min(['frozen-mirror-boss','eclipse-mirror-boss'].includes(npc.archetype)?9:8,Number(npc.cannonSlots)||5));
     npc.retaliationActive=true;npc.aggression='attack';npc.state='retaliating';
     if(npc.specialCannon){npc.specialCannon={...npc.specialCannon,damage:npc.fleetDamage*1.3};}
     if(npc.broadside){npc.broadside={...npc.broadside,regularDamage:npc.fleetDamage*.6,regularCannons:Math.min(8,npc.cannonSlots)};}
@@ -2859,6 +2867,14 @@ async function startWorld() {
       return;
     }
     if(!p.ready){void updateFleetEquipment();return;}
+    if(world.region.id==='r5'){
+      const empty=(Number(save.ammunition?.[MOON_BARRAGE_AMMO_ID])||0)<=0;
+      if(empty&&!lunarSupplyNoticeShown){
+        lunarSupplyNoticeShown=true;
+        showOceanReward('🌙 Rajadas da Lua esgotadas! Um novo tesouro lunar surgiu no mapa.');
+      }
+      if(!empty)lunarSupplyNoticeShown=false;
+    }
     if(world.region.id==='r2'&&p.encounter?.id==='fugitive-frigate'
       && !save.fleetCampaign?.fugitivePrepared){
       writePatch({...grantFleetPreparation(save,'r2',{fugitive:true}),
@@ -2892,16 +2908,14 @@ async function startWorld() {
         boss.cannonSlots=1;boss.range=840;boss.damage=3;boss.keepAwayFromEdges=true;
       }
     }
-    if(!boss&&world.region.id==='r5'&&encounter.id==='r2-morbi'){
-      boss={id:'r2-morbi',name:'Morbi · Galeão Dourado',type:'npc',
-        archetype:'golden-galleon',shipId:'galeao-dourado',heading:180,
+    if(!boss&&world.region.id==='r5'&&encounter.id===R5_ECLIPSE_BOSS_ID){
+      boss={id:R5_ECLIPSE_BOSS_ID,name:'Galeão Eclipse · Senhor da Noite',type:'npc',
+        archetype:'eclipse-mirror-boss',shipId:'galeao-eclipse',heading:180,
         x:Math.min(world.region.width-280,world.camera.x+650),
         y:Math.min(world.region.height-280,world.camera.y+430),
-        health:900000,maxHealth:900000,state:'retaliating',aggression:'attack',
-        cannonSlots:20,range:840,damage:1200,speed:210,broadsideActive:true,
-        specialCannon:{id:'morbi-golden-cannon',damage:1200,range:840,
-          reloadMs:10000,countBeforePhase:1,countAfterPhase:2},
-        broadside:{regularCannons:18,regularDamage:300,reloadMs:5000,range:840}};
+        health:120000,maxHealth:120000,state:'retaliating',aggression:'attack',
+        cannonSlots:9,range:1180,damage:20,speed:330,
+        retaliationActive:true,respawnRemainingMs:null,assistDisabled:true};
       world.entities.set(boss.id,boss);
     }
     if(!boss&&/^r(?:5|6|7|8|9|10|11|12)-/.test(encounter.id)){
@@ -2943,7 +2957,7 @@ async function startWorld() {
       fleetEncounterAnnouncement=encounter.id;
       showOceanReward('☠️ '+encounter.name+' está no oceano! Siga o guia até o confronto.');
       updateMissionHud();
-      if(['r3','r4'].includes(world.region.id))guideMissionTo(boss);
+      if(['r3','r4','r5'].includes(world.region.id))guideMissionTo(boss);
     }
     if(boss.id==='r3-leviathan')return;
     if(boss.archetype==='fugitive-frigate')boss.keepAwayFromEdges=true;
