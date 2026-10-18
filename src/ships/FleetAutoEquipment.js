@@ -15,10 +15,13 @@ export const PLAYABLE_FROZEN_LANDS=Object.freeze({...FROZEN_LANDS_GALLEON_SHIP,
   status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,maxHealth:3600});
 export const PLAYABLE_EMERALD_GHOST=Object.freeze({...EMERALD_GHOST_SHIP,
   status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,
-  cannonSlots:7,cannonLayout:Object.freeze({port:7,starboard:7,bow:0,stern:0}),maxHealth:2400});
+  cannonSlots:7,cannonLayout:Object.freeze({port:7,starboard:7,bow:0,stern:0}),
+  speed:Object.freeze({min:290,initial:350,max:450}),maxHealth:2400});
 export const PLAYABLE_ECLIPSE=Object.freeze({...ECLIPSE_SHIP,status:'campaign-reward',playable:true,rewardEnabled:true,maxHealth:4000});
-export const PLAYABLE_CRIMSON=Object.freeze({...CRIMSON_SKULL_GALLEON_SHIP,status:'campaign-reward',playable:true,rewardEnabled:true,maxHealth:5300});
-export const PLAYABLE_BLACK_VEIL=Object.freeze({...BLACK_VEIL_CORSAIR_SHIP,status:'campaign-reward',playable:true,rewardEnabled:true,maxHealth:6100});
+export const PLAYABLE_CRIMSON=Object.freeze({...CRIMSON_SKULL_GALLEON_SHIP,status:'campaign-reward',playable:true,rewardEnabled:true,
+  speed:Object.freeze({min:250,initial:310,max:385}),maxHealth:5300});
+export const PLAYABLE_BLACK_VEIL=Object.freeze({...BLACK_VEIL_CORSAIR_SHIP,status:'campaign-reward',playable:true,rewardEnabled:true,
+  speed:Object.freeze({min:290,initial:340,max:440}),maxHealth:6100});
 export const PLAYABLE_ROSE_GOLD=Object.freeze({...ROSE_GOLD_SHIP,status:'campaign-reward',playable:true,rewardEnabled:true,maxHealth:6800});
 export const FLEET_PLAYER_SHIPS=Object.freeze([STARTER_SHIP,HALLOWEEN_TABUADA_SHIP,
   SHADOW_CHASER_SHIP,GOLDEN_GALLEON_SHIP,PLAYABLE_TERROR_DO_MAR,PLAYABLE_SHADOW_THIEF,PLAYABLE_FROZEN_LANDS,PLAYABLE_EMERALD_GHOST,
