@@ -1,5 +1,5 @@
 import { AMMUNITION, getAmmunitionAssetUrl } from '../items/EquipmentCatalog.js';
-import { NAVAL_AMMO } from '../combat/NavalBattleRules.js';
+import { NAVAL_AMMO,isSpecialNavalAmmo } from '../combat/NavalBattleRules.js';
 const MESSAGES = Object.freeze({
   mission: 'Aceite uma missão no Porto das Missões para combater.',
   'no-cannon': 'Equipe um canhão no Estaleiro.',
@@ -7,7 +7,7 @@ const MESSAGES = Object.freeze({
   target: 'Toque num navio inimigo para selecionar o alvo.',
   range: 'Alvo fora do alcance dos seus canhões.',
   ammo: 'Sem munição para disparar.',
-  'ammo-type': 'Este canhão só dispara sua munição especial. Selecione o Orbe Autoguiado Aetherion.',
+  'ammo-type': 'Munição especial automática. Equipe o canhão especial e mantenha o estoque.',
   'thief-equipment': 'A missão exige a Fragata Caçadora das Sombras com o Canhão Aetherion MK-I.',
   sunk: 'O casco está destruído. Repare o navio.',
 });
@@ -312,12 +312,14 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     const choices = [...status.options].filter(item => AMMUNITION.some(ammo => ammo.id === item.id))
       .sort((a,b) => ((NAVAL_AMMO[b.id]?.damagePerShot || 0) * (NAVAL_AMMO[b.id]?.damageFactor || 0))
         - ((NAVAL_AMMO[a.id]?.damagePerShot || 0) * (NAVAL_AMMO[a.id]?.damageFactor || 0)));
-    const isSpecialAmmo = item => Boolean(AMMUNITION.find(ammo => ammo.id === item.id)?.tracking?.enabled || item.id === 'moon-barrage');
+    const isSpecialAmmo = item => isSpecialNavalAmmo(item.id);
     const selectedAmmo = AMMUNITION.find(item => item.id === status.ammoId);
     if (selectedAmmo) ammoIcon.src = getAmmunitionAssetUrl(selectedAmmo);
     setText(ammoCount,isPortrait()?'×'+(status.ammo??0):String(status.ammo??0));
-    ammoButton.title = selectedAmmo?.name || 'Selecionar munição';
-    const ammoAvailable=choices.some(item=>item.amount>0);
+    ammoButton.title = selectedAmmo
+      ? selectedAmmo.name+(isSpecialNavalAmmo(selectedAmmo.id)?' · automática':' · escolha manual')
+      : 'Selecionar munição';
+    const ammoAvailable=choices.some(item=>item.amount>0&&!isSpecialAmmo(item));
     ammoButton.disabled=!ammoAvailable&&!isPortrait();
     ammoButton.setAttribute('aria-disabled',String(!ammoAvailable));
     ammoButton.classList.toggle('is-blocked',!ammoAvailable);
@@ -329,7 +331,7 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
         button.type = 'button';
         button.className = 'naval-ammo-option';
         button.disabled = item.amount <= 0 || isSpecialAmmo(item);
-        if(isSpecialAmmo(item)){button.title='Munição especial: seleção manual indisponível';button.setAttribute('aria-label',item.name+' (especial, não selecionável)');}
+        if(isSpecialAmmo(item)){button.title='Munição especial usada automaticamente pelo melhor canhão compatível';button.setAttribute('aria-label',item.name+' (especial, uso automático)');}
         button.classList.toggle('is-selected', item.id === status.ammoId);
         const catalog = AMMUNITION.find(ammo => ammo.id === item.id);
         const img = document.createElement('img');
