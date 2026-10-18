@@ -29,7 +29,7 @@ test('R6 cool fog reuses world-anchored shader and leaves green fog default unch
   assert.match(HALLOWEEN_FOG_FRAGMENT_SHADER,/uniform float uMistPalette;/);
   assert.match(HALLOWEEN_FOG_FRAGMENT_SHADER,/vec3 moonBlue/);
   assert.match(HALLOWEEN_FOG_FRAGMENT_SHADER,/vec2 world = uCamera/);
-  assert.match(HALLOWEEN_FOG_FRAGMENT_SHADER,/mix\\(0\\.42, 0\\.27, cold\\)/);
+  assert.ok(HALLOWEEN_FOG_FRAGMENT_SHADER.includes('mix(0.42, 0.27, cold)'));
   const canvas={addEventListener:()=>{}};
   assert.equal(new HalloweenFogRenderer(canvas).palette,'green');
   assert.equal(new HalloweenFogRenderer(canvas,{palette:'cold-night'}).palette,'cold-night');
@@ -39,10 +39,10 @@ test('R6 cool fog reuses world-anchored shader and leaves green fog default unch
 test('main world pipeline activates R6 mist but preserves R3 event/purification and projectile layers',()=>{
   const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
   const css=readFileSync(new URL('../src/ui/app.css',import.meta.url),'utf8');
-  assert.match(main,/world\\.region\\.atmosphere\\?\\.kind === 'cold-night-mist'/);
-  assert.match(main,/useGreenMist \\|\\| useColdNightMist/);
-  assert.match(main,/palette: useColdNightMist \\? 'cold-night' : 'green'/);
-  assert.match(main,/halloweenFogCanvas\\.hidden=!fogVisible/);
-  assert.match(main,/world\\.region\\.id==='r3'&&r3Purification<0\\.999/);
-  assert.match(css,/\\.halloween-fog-layer\\.cold-night-fog-layer\\.halloween-fog-fallback/);
+  assert.ok(main.includes("world.region.atmosphere?.kind === 'cold-night-mist'"));
+  assert.ok(main.includes('useGreenMist || useColdNightMist'));
+  assert.ok(main.includes("palette: useColdNightMist ? 'cold-night' : 'green'"));
+  assert.ok(main.includes('halloweenFogCanvas.hidden=!fogVisible'));
+  assert.ok(main.includes("world.region.id==='r3'&&r3Purification<0.999"));
+  assert.ok(css.includes('.halloween-fog-layer.cold-night-fog-layer.halloween-fog-fallback'));
 });
