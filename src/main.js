@@ -7,6 +7,7 @@ import {R5_ECLIPSE_BOSS_ID,MOON_BARRAGE_AMMO_ID,isLunarResupply} from './mission
 import {seekingOrbMovementSpeed} from './combat/SeekingOrbSlow.js';
 import { FUTURE_FLEET_REGIONS,fleetExitPoint } from './world/regions/FutureFleetRegions.js';
 import { createViewProjection } from './rendering/OrbitalCameraProjection.js';
+import { computeDynamicCameraFraming } from './world/BattleCamera.js';
 import {drawFrozenShip,drawFreezeBurst} from './rendering/FreezeEffects.js';
 const R4_ICE_WRECKS=Object.freeze([{id:'r4-ice-wreck-1',x:1200,y:2400},{id:'r4-ice-wreck-2',x:1830,y:2450},{id:'r4-ice-wreck-3',x:2870,y:3100},{id:'r4-ice-wreck-4',x:3500,y:2600},{id:'r4-ice-wreck-5',x:1800,y:3650}]);
 import { R3_WRECKS, R3_LEVIATHAN_MISSION_ID, R3_LEVIATHAN_ENTITY_ID, R3_ABYSS_SECRET_MISSION_ID, R3_ABYSS_WRECKS, R3_FLAME_MISSION_ID, R3_FLAME_STOPS, R3_VARKOR_MISSION_ID, R3_REBUILD_MISSION_ID, R3_CLEANUP_MISSION_ID, R3_CLEANUP_RED_IDS } from './missions/RegionThreeCampaign.js';
@@ -202,24 +203,35 @@ async function startWorld() {
   world.fleetNoRespawn=fleetEnabled(localSaves.load(currentUser.uid)?.payload);
   // A single physical camera defines the water shader, sprites, HUD targets,
   // naval combat effects and reverse pointer raycasts. XY gameplay is unchanged.
-  world.cameraPerspective = { enabled: !world.fleetNoRespawn, yaw: 0, pitch: Math.PI / 4 };
-  // Dynamic camera: high overview at sea, gradually lowers near a live target.
-  // Preserve player orbit yaw and manual camera adjustments.
-  const dynamicCamera={pitch:Math.PI/4,lastTime:0};
+  // The campaign must not disable perspective. That flag prevented the dynamic
+  // high-to-low camera from running in every saved fleet region.
+  world.cameraPerspective = { enabled:true, yaw:0, pitch:1.18 };
+  world.camera.zoom=.76;
+  const dynamicCamera={pitch:1.18,zoom:.76,lastTime:0};
   function updateDynamicCameraPitch(){
-    if(!world.cameraPerspective.enabled || world.fleetNoRespawn)return;
-    const target=world.entities?.get?.(selectedNpcId);
-    const distance=target?.health>0
-      ?Math.hypot(world.camera.x-target.x,world.camera.y-target.y):Infinity;
-    const proximity=Number.isFinite(distance)
-      ?Math.max(0,Math.min(1,(850-distance)/650)):0;
-    const smooth=proximity*proximity*(3-2*proximity);
-    const desired=1.18-(1.18-0.64)*smooth;
+    if(!world.cameraPerspective.enabled||world.manualCamera)return;
+    const selected=world.entities?.get?.(selectedNpcId);
+    // Acquiring an enemy automatically should also trigger the camera, even
+    // before the player taps a target on the radar.
+    let target=selected?.health>0?selected:null;
+    if(!target){
+      let closest=850;
+      for(const npc of world.entities.values()){
+        if((npc.type!=='npc'&&npc.type!=='monster')||npc.health<=0
+          ||npc.aggression==='ally'||npc.archetype==='blood-red-market-merchant')continue;
+        const d=Math.hypot(world.camera.x-npc.x,world.camera.y-npc.y);
+        if(d<closest){closest=d;target=npc;}
+      }
+    }
+    const desired=computeDynamicCameraFraming(world.camera,target);
     const now=performance.now();
-    const dt=dynamicCamera.lastTime?Math.min(.1,(now-dynamicCamera.lastTime)/1000):1/60;
+    const dt=dynamicCamera.lastTime?Math.max(0,Math.min(.1,(now-dynamicCamera.lastTime)/1000)):1/60;
     dynamicCamera.lastTime=now;
-    dynamicCamera.pitch+=(desired-dynamicCamera.pitch)*(1-Math.exp(-2.2*dt));
+    const blend=1-Math.exp(-2.2*dt);
+    dynamicCamera.pitch+=(desired.pitch-dynamicCamera.pitch)*blend;
+    dynamicCamera.zoom+=(desired.zoom-dynamicCamera.zoom)*blend;
     world.cameraPerspective.pitch=dynamicCamera.pitch;
+    world.camera.zoom=dynamicCamera.zoom;
   }
   const projectScreenPoint = (x,y) => {
     const width=canvas.clientWidth,height=canvas.clientHeight;
@@ -636,9 +648,7 @@ async function startWorld() {
     }
   }
 
-  // O enquadramento é estático: seguir o navio, ou manter o pan manual.
-  // Não ajustar zoom, deslocamento ou manualCamera em resposta a combate,
-  // perseguições, missões ou seleção de alvos.
+  // Follow mode uses smooth dynamic zoom and perspective; manual pan remains independent.
   
   const { spriteCannonMuzzle } = await import('./ships/CannonMuzzleMap.js');
   // Reward notifications belong to the ocean viewport, not the combat menu.
