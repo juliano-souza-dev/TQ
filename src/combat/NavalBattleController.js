@@ -368,6 +368,37 @@ export class NavalBattleController {
     };
   }
 
+  // Presentation-only cooldown. Reads actual slot/harpoon timers without
+  // mutating combat state or modifying any weapon's reload interval.
+  getPlayerReloadState(now=this.clock()) {
+    if(!this.firing)return {remainingMs:0,durationMs:0};
+    const target=this.getTarget();
+    if(!target)return {remainingMs:0,durationMs:0};
+    if(target.type==='monster'){
+      const launcher=equippedHarpoon(this.readSave());
+      return {
+        remainingMs:Math.max(0,this.nextHarpoonAt-now),
+        durationMs:playerHarpoonReloadMs(launcher.reloadSeconds,{flameBoost:false}),
+      };
+    }
+    const save=this.readSave(),player=this.getPlayer(),distance=distanceBetween(player,target);
+    const battery=armedCannons(save,this.shipId).filter(({cannon})=>distance<=cannonRange(cannon));
+    if(!battery.length)return {remainingMs:0,durationMs:0};
+    let soonest={remainingMs:Infinity,durationMs:0};
+    for(const {slot,cannon} of battery){
+      const remainingMs=Math.max(0,(this.nextBySlot.get(slot)??-Infinity)-now);
+      if(remainingMs<soonest.remainingMs){
+        soonest={remainingMs,durationMs:Math.max(100,cannon.reloadSeconds*1000/(this.isFlameActive()?5:1))};
+      }
+    }
+    const sequenceMs=Math.max(0,this.nextPlayerSequenceAt-now);
+    const waitingForCannon=soonest.remainingMs>sequenceMs;
+    return {
+      remainingMs:Math.max(soonest.remainingMs,sequenceMs),
+      durationMs:waitingForCannon?soonest.durationMs:PLAYER_CANNON_SEQUENCE_MS,
+    };
+  }
+
   getMaxHealth() { return getMaxHullHealth(this.readSave()); }
   getHealth() {
     const value = this.readSave().combat?.shipHealth;

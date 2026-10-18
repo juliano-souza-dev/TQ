@@ -2,6 +2,10 @@ import { createViewProjection } from '../rendering/OrbitalCameraProjection.js';
 import { screenPointToWorld } from './WorldNavigationInput.mjs';
 
 // Pointer gestures on the ocean only. HUD and joystick retain independent pointers.
+export function isWithinFireDeadZone(x,y,rect,halo=24){
+  return Boolean(rect)&&x>=rect.left-halo&&x<=rect.right+halo
+    &&y>=rect.top-halo&&y<=rect.bottom+halo;
+}
 export function createClickNavigation(canvas, world, onWorldClick = null) {
   let destination = null;
   let gesture = null;
@@ -11,9 +15,7 @@ export function createClickNavigation(canvas, world, onWorldClick = null) {
     if(document.documentElement.dataset.tqLayout!=='mobile-portrait')return false;
     const button=document.querySelector('.combat-fire-icon-button');
     if(!button)return false;
-    const r=button.getBoundingClientRect(),halo=24;
-    return event.clientX>=r.left-halo&&event.clientX<=r.right+halo
-      &&event.clientY>=r.top-halo&&event.clientY<=r.bottom+halo;
+    return isWithinFireDeadZone(event.clientX,event.clientY,button.getBoundingClientRect());
   };
   const clamp = (value, extent, half) => extent <= 2 * half
     ? extent / 2 : Math.max(half, Math.min(extent - half, value));
@@ -58,13 +60,16 @@ export function createClickNavigation(canvas, world, onWorldClick = null) {
     const tap=!gesture.blocked&&!gesture.dragging&&moved<10
       &&performance.now()-gesture.startedAt<200;
     suppressClick=!tap;
-    lastTouchTap={at:performance.now(),allowed:tap};
+    lastTouchTap={at:performance.now(),allowed:tap,x:event.clientX,y:event.clientY};
     gesture=null;
   };
   const onClick = event => {
-    if(event.pointerType==='touch'&&lastTouchTap
-      &&performance.now()-lastTouchTap.at<550&&!lastTouchTap.allowed)return;
-    if (suppressClick&&event.pointerType==='touch') { suppressClick=false; return; }
+    // Some browsers dispatch MouseEvent without pointerType after touch dragging.
+    const recentTouch=lastTouchTap&&performance.now()-lastTouchTap.at<550
+      &&Math.hypot(event.clientX-lastTouchTap.x,event.clientY-lastTouchTap.y)<32;
+    if(recentTouch&&!lastTouchTap.allowed){suppressClick=false;return;}
+    if(recentTouch&&suppressClick){suppressClick=false;return;}
+    if(!recentTouch)suppressClick=false;
     if(inFireDeadZone(event))return;
     if (event.button !== 0 || event.detail === 0) return;
     const rect = canvas.getBoundingClientRect();
