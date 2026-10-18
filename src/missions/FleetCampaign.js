@@ -37,6 +37,9 @@ export function fleetTreasureGoal(regionId,region){
 }
 export function recordFleetTreasure(save,regionId,treasureId){
  if(!fleetEnabled(save)||'r'+save.fleetCampaign.region!==regionId||!treasureId?.startsWith('fleet-'+regionId+'-'))return null;
+ const valid=getVisibleTreasures({},0,regionId==='r1'?'r1':'r2')
+   .some(t=>'fleet-'+regionId+'-'+t.id===treasureId);
+ if(!valid)return null;
  const c=save.fleetCampaign,old=ids(c.treasures?.[regionId]);
  if(old.includes(treasureId))return null;
  return {
