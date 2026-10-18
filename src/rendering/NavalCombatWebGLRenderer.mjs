@@ -1,5 +1,5 @@
 import { createViewProjection } from './OrbitalCameraProjection.js';
-import { normalizeAmmoFx, hexToRgb01 } from "../combat/fx/AmmoFxProfile.mjs";
+import { normalizeAmmoFx, hexToRgb01, compactShipImpactFx } from "../combat/fx/AmmoFxProfile.mjs";
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
 const smoothstep=(edge0,edge1,value)=>{
   const t=clamp((value-edge0)/Math.max(.000001,edge1-edge0),0,1);
@@ -392,14 +392,15 @@ export class NavalCombatWebGLRenderer{
     const impactKind=kind==="water"?"water":(kind==="monster"?"monster":"ship");
     const section=impactKind==="water"?fx.impactWater:fx.impactShip;
     if(!section?.enabled)return true;
+    const visualShip=impactKind==="ship"?compactShipImpactFx(section):null;
     this.impacts.push({
       x:Number(at.x)||0,
       y:Number(at.y)||0,
       startTime:Number(startTime)||performance.now(),
-      duration:Math.min(680,Math.max(120,Number(section.durationMs)||420)),
+      duration:Math.min(680,Math.max(120,Number(visualShip?.durationMs??section.durationMs)||420)),
       kind:impactKind,
       effect:impactKind==="monster"?"blood":(impactKind==="ship"&&String(fx?.preset||"")==="piercing"?"piercing-shrapnel":"profile"),
-      fx,
+      fx:visualShip?{...fx,impactShip:visualShip}:fx,
       size:clamp(Number(size)||1,.25,4),
       seed:Math.abs(Math.sin((Number(at.x)||0)*.017+(Number(at.y)||0)*.031+(Number(startTime)||0)*.0001))
     });
@@ -502,14 +503,15 @@ export class NavalCombatWebGLRenderer{
           :(outcome?.kind==="monster"?"monster":(outcome?.kind==="ship"?"ship":shot.impactKind));
         const section=impactKind==="water"?shot.fx.impactWater:shot.fx.impactShip;
         if(section.enabled){
+          const visualShip=impactKind==="ship"?compactShipImpactFx(section):null;
           const piercing=impactKind==="ship"&&String(shot.fx?.preset||"")==="piercing";
           this.impacts.push({
             x:shot.to.x,y:shot.to.y,
             startTime:shot.startTime+shot.duration,
-            duration:Math.min(680,section.durationMs),
+            duration:Math.min(680,visualShip?.durationMs??section.durationMs),
             kind:impactKind,
             effect:impactKind==="monster"?"blood":(piercing?"piercing-shrapnel":"profile"),
-            fx:shot.fx,
+            fx:visualShip?{...shot.fx,impactShip:visualShip}:shot.fx,
             seed:Math.abs(Math.sin(shot.to.x*.017+shot.to.y*.031+shot.startTime*.0001))
           });
           const impactCap=this.reducedFx?5:12;
