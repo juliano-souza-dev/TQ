@@ -329,9 +329,9 @@ async function startWorld() {
       writePatch({fleetCampaign:{...c,treasureGoal:{...(c.treasureGoal??{}),[world.region.id]:goal}}});
     // The preparation prize belongs to mission 1, not to map load.
     // R3 retains the green starting ship and migrates existing saves to its
-    // stronger four-cannon loadout without changing an already equipped ship.
+    // stronger six-cannon loadout without changing an already equipped ship.
     if(world.region.id==='r3'&&(!current.fleetCampaign?.entryShipRegions?.includes('r3')
-      ||!current.fleetCampaign?.r3GuidedArsenalV1)){
+      ||!current.fleetCampaign?.r3GuidedArsenalV2)){
       const first=readSave();
       const alreadyEntered=first.fleetCampaign?.entryShipRegions?.includes('r3');
       const entry=grantFleetEntry(first,'r3');
@@ -340,7 +340,7 @@ async function startWorld() {
           equippedShipId:first.equipment?.equippedShipId??entry.equipment.equippedShipId}:entry.equipment,
         fleetCampaign:{...first.fleetCampaign,
           entryShipRegions:[...new Set([...(first.fleetCampaign?.entryShipRegions??[]),'r3'])],
-          r3GuidedArsenalV1:true}});
+          r3GuidedArsenalV1:true,r3GuidedArsenalV2:true}});
     }
   }
 

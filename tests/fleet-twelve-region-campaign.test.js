@@ -81,8 +81,10 @@ test('ice ship arrives through opening challenge and emerald ghost after mission
  const shadow=grantFleetEntry(save,'r3');
  assert.ok(shadow.equipment.ownedShipIds.includes('sombra-fugitiva-verde-fantasma'));
  assert.equal(shadow.equipment.equippedShipId,'sombra-fugitiva-verde-fantasma');
+ assert.equal(FLEET_PLAYER_SHIPS.find(ship=>ship.id==='sombra-fugitiva-verde-fantasma').cannonSlots,6);
+ assert.equal(shadow.equipment.cannonCounts['royal-lion'],4);
  assert.deepEqual(shadow.equipment.loadout['sombra-fugitiva-verde-fantasma'],
-   ['aetherion-mk1','aetherion-mk1','royal-lion','royal-lion']);
+   ['aetherion-mk1','aetherion-mk1','royal-lion','royal-lion','royal-lion','royal-lion']);
  const ghost=grantFleetPreparation({...save,equipment:shadow.equipment},'r3');
  assert.ok(ghost.equipment.ownedShipIds.includes('fantasma-esmeralda'));
  const ice=grantFleetEntry(save,'r4');
@@ -101,7 +103,9 @@ test('R3 green ship upgrades old loadouts, keeping two guided guns and filling a
   loadout:{'sombra-fugitiva-verde-fantasma':['aetherion-mk1','aetherion-mk1','aetherion-mk1','aetherion-mk1']}};
  const upgrade=grantFleetEntry(save,'r3');
  assert.deepEqual(upgrade.equipment.loadout['sombra-fugitiva-verde-fantasma'],
-  ['aetherion-mk1','aetherion-mk1','spectral-necromancer','spectral-necromancer']);
+  ['aetherion-mk1','aetherion-mk1','spectral-necromancer','spectral-necromancer','royal-lion','royal-lion']);
+ assert.equal(upgrade.equipment.loadout['sombra-fugitiva-verde-fantasma'].length,6);
+ assert.equal(upgrade.equipment.loadout['sombra-fugitiva-verde-fantasma'].filter(id=>id==='aetherion-mk1').length,2);
  assert.equal(upgrade.equipment.cannonCounts['aetherion-mk1'],7,
   'surplus guided cannons stay owned, but are not equipped on the green ship');
  assert.deepEqual(grantFleetEntry({...save,equipment:upgrade.equipment},'r3').equipment.loadout,

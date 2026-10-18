@@ -10,7 +10,7 @@ export const PLAYABLE_TERROR_DO_MAR=Object.freeze({...TERROR_DO_MAR_SHIP,
   status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,maxHealth:2000});
 export const PLAYABLE_SHADOW_THIEF=Object.freeze({...GREEN_GHOST_FUGITIVE_SHIP,
   status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,
-  cannonSlots:4,cannonLayout:Object.freeze({port:4,starboard:4,bow:0,stern:0}),maxHealth:600});
+  cannonSlots:6,cannonLayout:Object.freeze({port:6,starboard:6,bow:0,stern:0}),maxHealth:600});
 export const PLAYABLE_FROZEN_LANDS=Object.freeze({...FROZEN_LANDS_GALLEON_SHIP,
   status:'campaign-reward',playable:true,npcEnabled:false,rewardEnabled:true,maxHealth:3600});
 export const PLAYABLE_EMERALD_GHOST=Object.freeze({...EMERALD_GHOST_SHIP,
@@ -54,11 +54,11 @@ export function grantFleetPreparation(save,regionId,{fugitive=false}={}){
 export function grantFleetEntry(save,regionId){
  const e=save.equipment??{},ownedShipIds=uniq(e.ownedShipIds??[]);
  if(regionId==='r3'){
-  // Four green-ship slots: exactly two tracking Aetherion cannons, then
+  // Six green-ship slots: exactly two tracking Aetherion cannons, then
   // the strongest conventional guns the player owns. Never take ammo away.
   const cannonCounts={...(e.cannonCounts??{}),
     'aetherion-mk1':Math.max(2,count(e,'aetherion-mk1')),
-    'royal-lion':Math.max(2,count(e,'royal-lion'))};
+    'royal-lion':Math.max(4,count(e,'royal-lion'))};
   const armed={...e,ownedShipIds:uniq([...ownedShipIds,PLAYABLE_SHADOW_THIEF.id]),
     ownedCannonIds:uniq([...(e.ownedCannonIds??[]),'aetherion-mk1','royal-lion']),
     cannonCounts,equippedShipId:PLAYABLE_SHADOW_THIEF.id};
