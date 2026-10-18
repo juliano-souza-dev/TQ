@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/build-imperial-alpha.yml'
+      - 'scripts/imperial_alpha_atlas.py'
   workflow_dispatch:
 permissions:
   contents: write
