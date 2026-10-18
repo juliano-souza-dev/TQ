@@ -6,6 +6,7 @@ import { GOLDEN_GALLEON_SHIP, FROZEN_LANDS_GALLEON_SHIP, PUMPKIN_FLEET_GALLEON_S
 import { STARTER_SHIP, getShipFrame } from '../ships/ShipRegistry.js';
 import { HALLOWEEN_TABUADA_SHIP } from '../ships/HalloweenTabuadaShip.js';
 import { FUGITIVE_FRIGATE_SHIP, GREEN_GHOST_FUGITIVE_SHIP } from '../ships/FugitiveFrigateShip.js';
+import { ECLIPSE_SHIP, IMPERIAL_BLACK_GALLEON_SHIP, CRIMSON_SKULL_GALLEON_SHIP, BLACK_VEIL_CORSAIR_SHIP, ROSE_GOLD_SHIP } from '../ships/ShipRegistry.js';
 import { loadShipSprite } from '../ships/ShipSpriteLoader.js';
 import { renderMonsterBlood } from '../monsters/MonsterBloodRenderer.js';
 import { leviathanFrameForHeading } from '../monsters/LeviathanMouthMap.js';
@@ -39,7 +40,7 @@ export class NpcRenderer {
     await loadShipSprite(FUGITIVE_FRIGATE_SHIP)
       .then(image => this.images.set(FUGITIVE_FRIGATE_SHIP.id, image))
       .catch(() => console.warn('Fragata Sombra Fugitiva aguardando sprite no repositório.'));
-    await Promise.all([NORTHERN_THIEF_SHIP,FROST_THIEF_SHIP,GREEN_GHOST_FUGITIVE_SHIP,GOLDEN_GALLEON_SHIP,FROZEN_LANDS_GALLEON_SHIP,PUMPKIN_FLEET_GALLEON_SHIP,BLACK_MARKET_SHIP,BLOOD_RED_CORSAIR_SHIP,TERROR_DO_MAR_SHIP,EMERALD_GHOST_SHIP].map(ship=>
+    await Promise.all([NORTHERN_THIEF_SHIP,FROST_THIEF_SHIP,GREEN_GHOST_FUGITIVE_SHIP,GOLDEN_GALLEON_SHIP,FROZEN_LANDS_GALLEON_SHIP,PUMPKIN_FLEET_GALLEON_SHIP,BLACK_MARKET_SHIP,BLOOD_RED_CORSAIR_SHIP,TERROR_DO_MAR_SHIP,EMERALD_GHOST_SHIP,ECLIPSE_SHIP,IMPERIAL_BLACK_GALLEON_SHIP,CRIMSON_SKULL_GALLEON_SHIP,BLACK_VEIL_CORSAIR_SHIP,ROSE_GOLD_SHIP].map(ship=>
       loadShipSprite(ship).then(image=>this.images.set(ship.id,image))
         .catch(()=>console.warn('NPC aguardando sprite:',ship.id))));
     const image = new Image();
@@ -230,6 +231,11 @@ export class NpcRenderer {
         : npc.shipId === TERROR_DO_MAR_SHIP.id ? TERROR_DO_MAR_SHIP
         : npc.shipId === EMERALD_GHOST_SHIP.id ? EMERALD_GHOST_SHIP
         : npc.shipId === FUGITIVE_FRIGATE_SHIP.id ? FUGITIVE_FRIGATE_SHIP
+        : npc.shipId === ECLIPSE_SHIP.id ? ECLIPSE_SHIP
+        : npc.shipId === IMPERIAL_BLACK_GALLEON_SHIP.id ? IMPERIAL_BLACK_GALLEON_SHIP
+        : npc.shipId === CRIMSON_SKULL_GALLEON_SHIP.id ? CRIMSON_SKULL_GALLEON_SHIP
+        : npc.shipId === BLACK_VEIL_CORSAIR_SHIP.id ? BLACK_VEIL_CORSAIR_SHIP
+        : npc.shipId === ROSE_GOLD_SHIP.id ? ROSE_GOLD_SHIP
         : npc.shipId === HALLOWEEN_TABUADA_SHIP.id ? HALLOWEEN_TABUADA_SHIP : STARTER_SHIP;
       const image = this.images.get(ship.id);
       if (!image) continue;
