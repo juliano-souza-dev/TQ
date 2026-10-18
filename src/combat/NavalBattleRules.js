@@ -59,6 +59,8 @@ export function armedCannons(save, shipId, events = EVENTS) {
 export function cannonAcceptsAmmo(cannon, ammoId) {
   if (!cannon || !ammoId) return false;
   if (cannon.exclusiveAmmoId) return cannon.exclusiveAmmoId === ammoId;
+  // Aetherion's guidance protocol belongs exclusively to its own cannon.
+  if (ammoId === 'aetherion-seeker') return false;
   if (isSpecialNavalAmmo(ammoId)) return isSpecialNavalCannon(cannon);
   return !isSpecialNavalCannon(cannon);
 }
