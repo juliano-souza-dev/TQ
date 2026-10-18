@@ -139,6 +139,27 @@ export function normalizeAmmoFx(ammo={}){
   };
 }
 
+// Smaller, short-lived hits keep ship silhouettes readable under rapid cannon fire.
+// Presentation-only: ammunition damage, hitboxes, muzzle flashes and sea splashes are unchanged.
+export const SHIP_HIT_VISUAL_LIMITS=Object.freeze({
+  scale:.34,maxSize:54,maxDurationMs:440,maxSparks:12,maxRings:2,
+  maxFlash:.5,maxFireworks:.55,maxSmoke:.5
+});
+export function compactShipImpactFx(impact={}){
+  const cfg=SHIP_HIT_VISUAL_LIMITS;
+  const number=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
+  return {
+    ...impact,
+    size:Math.max(12,Math.min(cfg.maxSize,number(impact.size,104)*cfg.scale)),
+    durationMs:Math.max(100,Math.min(cfg.maxDurationMs,number(impact.durationMs,650)*.65)),
+    sparks:Math.max(0,Math.min(cfg.maxSparks,Math.round(number(impact.sparks)*.42))),
+    ringCount:Math.max(1,Math.min(cfg.maxRings,Math.round(number(impact.ringCount,1)))),
+    flash:Math.max(0,Math.min(cfg.maxFlash,number(impact.flash)*.5)),
+    fireworks:Math.max(0,Math.min(cfg.maxFireworks,number(impact.fireworks)*.5)),
+    smoke:Math.max(0,Math.min(cfg.maxSmoke,number(impact.smoke)*.6))
+  };
+}
+
 export function applyAmmoFxPreset(ammo,presetId){
   const selected=AMMO_FX_PRESETS[presetId]||AMMO_FX_PRESETS.standard;
   return {...ammo,fx:normalizeAmmoFx({...ammo,fx:{preset:selected.id,...structuredClone(selected)}})};
