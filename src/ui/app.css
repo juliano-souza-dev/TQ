@@ -1229,3 +1229,254 @@ html.tq-android-app .combat-hud {
 }
 html.tq-android-app .combat-hud button { min-height: 40px; touch-action: manipulation; }
 html.tq-android-app .minimap { width: clamp(110px, 23dvh, 160px); }
+
+
+/* TQ portrait layer: only the shared LayoutMode may enable it.
+   Landscape and desktop continue using their original HUD and controls. */
+html[data-tq-layout="mobile-portrait"] {
+  overscroll-behavior:none;
+}
+html[data-tq-layout="mobile-portrait"] body:has(#ocean) {
+  overscroll-behavior:none;
+}
+html[data-tq-layout="mobile-portrait"] #ocean {
+  height:100vh;height:100dvh;touch-action:none;
+}
+/* The playable center remains >=65% at 360x740 and 390x844, excluding safe areas. */
+html[data-tq-layout="mobile-portrait"] .combat-hud {
+  --tq-dock-height:clamp(208px,27dvh,224px);
+  position:fixed;left:0;right:0;bottom:0;top:auto;
+  width:100%;max-width:none;min-width:0;
+  height:calc(var(--tq-dock-height) + env(safe-area-inset-bottom,0px));
+  max-height:none;overflow:visible;
+  padding:2px max(16px,env(safe-area-inset-right,0px)) max(6px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  display:grid;grid-template-columns:1fr;grid-template-rows:40px 56px 12px 84px;
+  justify-items:center;align-content:end;gap:2px;
+  border:0;border-top:1px solid #5f91a677;border-radius:0;
+  background:linear-gradient(to top,#061727f5 12%,#092c3beb 84%,#092c3b20);
+  box-shadow:none;color:#fff0c8;z-index:31;
+  pointer-events:none;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud button,
+html[data-tq-layout="mobile-portrait"] .combat-hud .naval-ammo-picker,
+html[data-tq-layout="mobile-portrait"] .combat-hud .naval-consumables-picker {
+  pointer-events:auto;touch-action:manipulation;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-status-panel {
+  position:relative;display:flex;flex-direction:column;align-items:center;
+  width:min(100%,328px);height:40px;pointer-events:none;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .portrait-status-toggle {
+  position:relative;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:2px;width:100%;height:40px;min-height:40px;min-width:0;
+  padding:1px 8px;border:1px solid #80aab58a;border-radius:9px;
+  background:#0b2639ef;color:#f5dfab;font:750 12px/1.2 system-ui;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-status-summary {
+  display:block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;
+  max-width:100%;font-variant-numeric:tabular-nums;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-hull-track {
+  display:block;overflow:hidden;width:95%;height:4px;flex:none;
+  background:#542e36;border-radius:8px;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-hull-fill {
+  display:block;height:100%;width:100%;background:#6ed9ad;border-radius:inherit;
+  transition:width 180ms linear;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-status-details {
+  position:absolute;bottom:calc(100% + 3px);left:0;right:0;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px;border:1px solid #678ca3;border-radius:8px;
+  background:#092335f4;color:#f9e2b5;font:650 11px system-ui;
+  pointer-events:none;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-status-panel.is-collapsed .portrait-status-details {
+  display:none;
+}
+html:not([data-tq-layout="mobile-portrait"]) .portrait-status-panel,
+html:not([data-tq-layout="mobile-portrait"]) .portrait-status-details {
+  display:contents;
+}
+html:not([data-tq-layout="mobile-portrait"]) .portrait-status-toggle,
+html:not([data-tq-layout="mobile-portrait"]) .portrait-ability-dock,
+html:not([data-tq-layout="mobile-portrait"]) .portrait-ability-label,
+html:not([data-tq-layout="mobile-portrait"]) .portrait-fire-ring {
+  display:none;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .portrait-ability-dock {
+  display:flex;justify-content:center;align-items:center;
+  flex-wrap:nowrap;gap:8px;height:56px;width:100%;min-width:0;
+  pointer-events:none;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .portrait-ability-dock > *,
+html[data-tq-layout="mobile-portrait"] .combat-hud .portrait-ability-dock > .naval-ammo-wrap,
+html[data-tq-layout="mobile-portrait"] .combat-hud .portrait-ability-dock > .naval-consumables-wrap {
+  position:relative;inset:auto;left:auto;right:auto;top:auto;bottom:auto;
+  flex:0 0 56px;width:56px;height:56px;min-width:56px;max-width:56px;
+  min-height:56px;align-self:center;margin:0;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .portrait-ability-dock button,
+html[data-tq-layout="mobile-portrait"] .combat-hud .portrait-ability-dock .naval-ammo-button,
+html[data-tq-layout="mobile-portrait"] .combat-hud .portrait-ability-dock .naval-consumables-button {
+  display:grid;place-items:center;position:relative;
+  width:56px;height:56px;min-width:56px;min-height:56px;
+  padding:0 2px 12px;border-radius:12px;
+  background:rgba(7,32,50,.83);border:1px solid #7a9baa91;
+  box-shadow:none;opacity:1;filter:none;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-ability-label {
+  display:block;position:absolute;bottom:1px;left:0;right:0;
+  font:700 10px/12px system-ui;color:#ffe9c0;text-align:center;
+  pointer-events:none;text-shadow:0 1px 2px #00192d;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-ability-dock .naval-consumables-frame {
+  inset:2px 7px 13px;width:40px;height:40px;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-ability-dock .naval-consumables-icon {
+  inset:9px 17px 19px;width:22px;height:24px;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-ability-dock .naval-consumables-count {
+  font-size:10px;line-height:13px;bottom:11px;right:0;z-index:1;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-ability-dock .naval-center-icon,
+html[data-tq-layout="mobile-portrait"] .portrait-ability-dock .naval-repair-icon {
+  display:block;width:38px;height:38px;object-fit:contain;
+  margin:0 auto 10px;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-ability-dock .is-blocked,
+html[data-tq-layout="mobile-portrait"] .portrait-ability-dock [aria-disabled="true"] {
+  opacity:.4;filter:grayscale(1);
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .naval-ammo-picker,
+html[data-tq-layout="mobile-portrait"] .combat-hud .naval-consumables-picker {
+  position:absolute;bottom:calc(100% + 6px);top:auto;
+  left:50%;right:auto;transform:translateX(-50%);
+  width:min(300px,calc(100vw - 32px));min-width:240px;max-height:45dvh;
+  overflow-y:auto;z-index:90;pointer-events:auto;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-cannon-quantity {
+  display:flex;justify-content:center;align-items:center;
+  gap:4px;height:12px;line-height:12px;white-space:nowrap;
+  font-size:11px;text-align:center;pointer-events:none;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-cannon-dot {
+  display:inline-block;width:9px;height:9px;flex:0 0 9px;
+  border:1.5px solid #cbd9e0;border-radius:50%;
+  background:transparent;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-cannon-dot.is-in-range {
+  background:#ffd26e;border-color:#ffd26e;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-attack-controls {
+  position:relative;display:grid;place-items:center;
+  width:100%;height:84px;gap:0;flex-wrap:nowrap;pointer-events:none;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-attack-controls > .combat-fire-icon-button {
+  position:relative;order:0;display:grid;place-items:center;
+  flex:none;width:84px;height:84px;min-width:84px;min-height:84px;
+  padding:4px;margin:0;border:0;border-radius:50%;
+  background:transparent;opacity:1;box-shadow:none;pointer-events:auto;
+  transition:transform 80ms ease-out,opacity 150ms;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-fire-icon-button:active {transform:scale(.94);}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-fire-icon {
+  width:76px;height:76px;object-fit:contain;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-fire-ring {
+  display:none;position:absolute;inset:2px;border:4px solid transparent;
+  border-radius:50%;pointer-events:none;
+  background:conic-gradient(#83eee0 0 calc(100% - var(--reload-left,0%)),#41586b calc(100% - var(--reload-left,0%)) 100%) border-box;
+  mask:radial-gradient(farthest-side,transparent calc(100% - 6px),black calc(100% - 5px));
+}
+html[data-tq-layout="mobile-portrait"] .combat-fire-icon-button.is-reloading .portrait-fire-ring {display:block;}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-attack-controls > .primary-button {display:none;}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-feedback {
+  position:fixed;z-index:56;top:40%;left:50%;bottom:auto;
+  width:min(310px,calc(100vw - 32px));max-width:none;
+  padding:8px 10px;border:1px solid #c6a461;border-radius:9px;
+  background:#09253df0;color:#ffe7b0;text-align:center;
+  font:700 12px/1.4 system-ui;opacity:0;visibility:hidden;
+  transform:translate(-50%,10px);transition:transform 160ms,opacity 160ms;
+  pointer-events:none;
+}
+html[data-tq-layout="mobile-portrait"] .combat-hud .combat-feedback.is-visible {
+  opacity:1;visibility:visible;transform:translate(-50%,0);
+}
+html[data-tq-layout="mobile-portrait"] .mission-progress-hud,
+html[data-tq-layout="mobile-portrait"] .target-status-hud {
+  display:none!important;
+}
+.portrait-mission-boss {display:none;}
+html[data-tq-layout="mobile-portrait"] .portrait-mission-boss {
+  position:fixed;top:env(safe-area-inset-top,0px);left:max(8px,env(safe-area-inset-left,0px));
+  right:max(8px,env(safe-area-inset-right,0px));height:44px;
+  display:flex;flex-direction:column;justify-content:center;gap:2px;
+  padding:3px 9px;z-index:30;
+  background:#081f31e8;border:1px solid #608b9a85;border-radius:8px;
+  font:700 11px/1.2 system-ui;color:#ffe6ae;
+  pointer-events:none;overflow:hidden;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-mission-name {
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-boss-line {
+  display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-boss-line[hidden]{display:none;}
+html[data-tq-layout="mobile-portrait"] .portrait-boss-name {
+  flex:0 1 auto;max-width:36%;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  color:#f7dbdc;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-boss-track {
+  flex:1;min-width:25px;height:5px;background:#532a35;border-radius:5px;overflow:hidden;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-boss-fill {
+  display:block;width:100%;height:100%;background:#ec6a58;border-radius:5px;
+  transition:width 150ms linear;
+}
+html[data-tq-layout="mobile-portrait"] .portrait-boss-value {
+  flex:none;font:700 10px system-ui;font-variant-numeric:tabular-nums;
+}
+.minimap-collapse-button {display:none;}
+html[data-tq-layout="mobile-portrait"] .minimap {
+  position:fixed;top:calc(env(safe-area-inset-top,0px) + 51px);
+  right:max(8px,env(safe-area-inset-right,0px));
+  width:80px;height:80px;aspect-ratio:1;border-radius:50%;
+  background-size:100% 100%;filter:none;z-index:29;
+  pointer-events:none;
+}
+html[data-tq-layout="mobile-portrait"] .minimap canvas {width:80px;height:80px;}
+html[data-tq-layout="mobile-portrait"] .minimap .minimap-collapse-button {
+  position:absolute;display:grid;place-items:center;
+  top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;
+  padding:0;border:1px solid #d6b979;border-radius:50%;
+  background:#0a2a40e9;color:#ffe29f;font:800 25px/1 system-ui;
+  pointer-events:auto;touch-action:manipulation;
+}
+html[data-tq-layout="mobile-portrait"] .minimap.is-collapsed {
+  width:44px;height:44px;background:#0b2c40;border-radius:50%;
+}
+html[data-tq-layout="mobile-portrait"] .minimap.is-collapsed canvas,
+html[data-tq-layout="mobile-portrait"] .minimap.is-collapsed .minimap-hidden-treasure {
+  display:none;
+}
+html[data-tq-layout="mobile-portrait"] .analog-joystick {
+  position:fixed;bottom:calc(clamp(208px,27dvh,224px) + env(safe-area-inset-bottom,0px) + 16px);
+  left:max(16px,env(safe-area-inset-left,0px));
+  width:96px;height:96px;z-index:30;touch-action:none;
+  box-shadow:none;
+}
+html[data-tq-layout="mobile-portrait"] .damage-text-layer {
+  z-index:13;pointer-events:none;
+}
+/* Portrait answers must remain easily tappable and cannot inherit HUD button sizes. */
+html[data-tq-layout="mobile-portrait"] .math-gate-answer,
+html[data-tq-layout="mobile-portrait"] .mission-math-option {
+  min-height:56px;min-width:56px;
+}
+@media(prefers-reduced-motion:reduce){
+ html[data-tq-layout="mobile-portrait"] .combat-hud .combat-fire-icon-button,
+ html[data-tq-layout="mobile-portrait"] .combat-hud .combat-feedback {transition:none;}
+}

@@ -196,8 +196,9 @@ export function createNavalCombatHud(controller, { onRepair = () => false, onCen
     label.className='portrait-ability-label';label.textContent=name;label.setAttribute('aria-hidden','true');
     button.append(label);
   }
-  let statusCollapsed=false;
-  try{statusCollapsed=localStorage.getItem('tq_status_collapsed')==='true';}catch{}
+  let statusCollapsed=true;
+  try{const old=localStorage.getItem('tq_status_collapsed');
+    if(old!==null)statusCollapsed=old==='true';}catch{}
   function syncStatusCollapse(){
     statusPanel.classList.toggle('is-collapsed',statusCollapsed);
     statusToggle.setAttribute('aria-expanded',String(!statusCollapsed));

@@ -1443,6 +1443,29 @@ async function startWorld() {
   targetHud.hidden = true;
   targetHud.innerHTML = '<div class="target-status-name"></div><div class="target-status-bar"><div class="target-status-fill"></div></div><div class="target-status-value"></div>';
   root.append(targetHud);
+  // Portrait top strip replaces two stacked HUD cards without modifying their
+  // mission/boss providers. Desktop still uses the original cards unchanged.
+  const portraitBar=document.createElement('section');
+  portraitBar.className='portrait-mission-boss';
+  portraitBar.setAttribute('aria-label','Missão e alvo');
+  const portraitMission=document.createElement('span');portraitMission.className='portrait-mission-name';
+  const portraitBossName=document.createElement('span');portraitBossName.className='portrait-boss-name';
+  const portraitBossTrack=document.createElement('span');portraitBossTrack.className='portrait-boss-track';
+  const portraitBossFill=document.createElement('span');portraitBossFill.className='portrait-boss-fill';
+  portraitBossTrack.append(portraitBossFill);
+  const portraitBossValue=document.createElement('span');portraitBossValue.className='portrait-boss-value';
+  const portraitBossLine=document.createElement('div');portraitBossLine.className='portrait-boss-line';
+  portraitBossLine.append(portraitBossName,portraitBossTrack,portraitBossValue);
+  portraitBar.append(portraitMission,portraitBossLine);
+  root.append(portraitBar);
+  function setPortraitText(node,raw){const value=String(raw);
+    if(node.textContent!==value)node.textContent=value;}
+  function shortPortraitHealth(value){
+    const n=Math.max(0,Math.ceil(Number(value)||0));
+    if(n>=1000000)return (n/1000000).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mi';
+    if(n>=10000)return (n/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mil';
+    return n.toLocaleString('pt-BR');
+  }
   const criticalHealthOverlay = document.createElement('div');
   criticalHealthOverlay.className = 'critical-health-viewport';
   criticalHealthOverlay.hidden = true;
@@ -1451,7 +1474,8 @@ async function startWorld() {
   function refreshTargetAndHealthHud() {
     const npc = navalBattle?.getTarget();
     targetHud.hidden = !npc || npc.health <= 0;
-    if (!targetHud.hidden) targetHud.style.top = Math.ceil(missionHud.getBoundingClientRect().bottom + 7) + 'px';
+    if (!targetHud.hidden && layoutMode.value!=='mobile-portrait')
+      targetHud.style.top = Math.ceil(missionHud.getBoundingClientRect().bottom + 7) + 'px';
     if (!targetHud.hidden) {
       const max = Math.max(1,Number(npc.maxHealth)||Number(npc.health)||1);
       const hp = Math.max(0,Number(npc.health)||0);
@@ -1459,6 +1483,22 @@ async function startWorld() {
       targetHud.querySelector('.target-status-name').textContent = '🎯 '+(npc.name || 'Alvo');
       targetHud.querySelector('.target-status-fill').style.width = ratio+'%';
       targetHud.querySelector('.target-status-value').textContent = Math.ceil(hp).toLocaleString('pt-BR')+' / '+Math.ceil(max).toLocaleString('pt-BR')+' PV';
+    }
+    if(layoutMode.value==='mobile-portrait'){
+      const rawMission=missionHud?.textContent?.trim()||'Navegação livre';
+      setPortraitText(portraitMission,rawMission);
+      portraitMission.title=rawMission;
+      const visible=npc?.health>0;
+      portraitBossLine.hidden=!visible;
+      if(visible){
+        const max=Math.max(1,Number(npc.maxHealth)||Number(npc.health)||1);
+        const hp=Math.max(0,Number(npc.health)||0);
+        const percentage=Math.max(0,Math.min(100,100*hp/max));
+        setPortraitText(portraitBossName,npc.name||'Alvo');
+        setPortraitText(portraitBossValue,shortPortraitHealth(hp)+' / '+shortPortraitHealth(max)+' · '+Math.round(percentage)+'%');
+        const width=percentage.toFixed(1)+'%';
+        if(portraitBossFill.style.width!==width)portraitBossFill.style.width=width;
+      }
     }
     criticalHealthOverlay.hidden = navalBattle.getHealth() >= 30;
   }
