@@ -19,6 +19,23 @@ export const NAVAL_AMMO = Object.freeze({
   'terror-rose': { damageFactor: 2.4, damagePerShot: 10, speed: 470, preset: 'terror-rose' },
 });
 
+// These rounds are ammunition for special cannons, not manual HUD choices.
+// Priority weighs guidance and battlefield control before visual spectacle.
+export const SPECIAL_NAVAL_AMMO_PRIORITY=Object.freeze([
+  'glacial-seeker','frozen-explosion','moon-barrage','aetherion-seeker',
+]);
+export const SPECIAL_NAVAL_CANNON_IDS=Object.freeze(['ice-terror','aetherion-mk1']);
+export const isSpecialNavalAmmo=id=>SPECIAL_NAVAL_AMMO_PRIORITY.includes(id);
+export const isSpecialNavalCannon=cannon=>
+  Boolean(cannon&&(cannon.exclusiveAmmoId||SPECIAL_NAVAL_CANNON_IDS.includes(cannon.id)));
+export function bestSpecialAmmoForCannon(cannon,stock={},allowed=()=>true){
+  if(!isSpecialNavalCannon(cannon))return null;
+  // Aetherion is the one gun with a genuinely exclusive chamber.
+  const candidates=cannon.exclusiveAmmoId?[cannon.exclusiveAmmoId]:SPECIAL_NAVAL_AMMO_PRIORITY;
+  return candidates.find(id=>isSpecialNavalAmmo(id)&&allowed(id)
+    &&cannonAcceptsAmmo(cannon,id)&&ammoStock({ammunition:stock},id)>0)??null;
+}
+
 const finite = value => Number.isFinite(value) ? value : 0;
 export function ammoStock(save, ammoId) {
   const amount = save?.ammunition?.[ammoId];
@@ -42,7 +59,8 @@ export function armedCannons(save, shipId, events = EVENTS) {
 export function cannonAcceptsAmmo(cannon, ammoId) {
   if (!cannon || !ammoId) return false;
   if (cannon.exclusiveAmmoId) return cannon.exclusiveAmmoId === ammoId;
-  return ammoId !== 'aetherion-seeker';
+  if (isSpecialNavalAmmo(ammoId)) return isSpecialNavalCannon(cannon);
+  return !isSpecialNavalCannon(cannon);
 }
 export function cannonRange(cannon) {
   return Math.max(1, finite(cannon.range) || finite(cannon.caliberPounder) * 15);
