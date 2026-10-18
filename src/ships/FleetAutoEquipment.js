@@ -31,6 +31,8 @@ export const FLEET_PLAYER_SHIPS=Object.freeze([STARTER_SHIP,HALLOWEEN_TABUADA_SH
 const count=(equipment,id)=>Math.max(0,Math.floor(Number(equipment?.cannonCounts?.[id])||0));
 const uniq=values=>[...new Set(values)];
 export function grantFleetPreparation(save,regionId,{fugitive=false}={}){
+ // R5 is a test of the exact ice-ship arsenal earned in R4, not a free upgrade.
+ if(regionId==='r5')return {equipment:{...(save.equipment??{})},ammunition:{...(save.ammunition??{})}};
  const e=save.equipment??{},counts={...(e.cannonCounts??{})};
  const ownedShipIds=uniq([...(e.ownedShipIds??[]),'starter-red-sails']);
  const ownedCannonIds=uniq([...(e.ownedCannonIds??[]),'blue-gold-pirate']);
